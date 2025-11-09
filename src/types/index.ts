@@ -125,8 +125,8 @@ export interface AuditLog {
   table_name: string
   record_id: string
   action: 'create' | 'update' | 'delete'
-  old_values?: Record<string, any>
-  new_values?: Record<string, any>
+  old_values?: Record<string, unknown>
+  new_values?: Record<string, unknown>
   user_id: string
   created_at: string
 }
@@ -325,7 +325,7 @@ export interface DatabaseError {
 export interface ValidationError {
   field: string
   message: string
-  value?: any
+  value?: unknown
 }
 
 // Utility types for form handling
