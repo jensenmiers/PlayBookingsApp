@@ -1,5 +1,4 @@
 import { createClient } from './client'
-import { createClient as createServerClient } from './server'
 
 /**
  * Test file to verify Supabase connections are working correctly
@@ -146,7 +145,7 @@ export async function testRLSPolicies() {
     const client = createClient()
     
     // Test that unauthenticated users can't access sensitive data
-    const { data: users, error: usersError } = await client
+    const { error: usersError } = await client
       .from('users')
       .select('*')
       .limit(1)
@@ -158,7 +157,7 @@ export async function testRLSPolicies() {
     }
     
     // Test that public venues are accessible
-    const { data: venues, error: venuesError } = await client
+    const { error: venuesError } = await client
       .from('venues')
       .select('*')
       .eq('is_active', true)
@@ -239,7 +238,7 @@ export async function runAllTests() {
   ]
   
   let passedTests = 0
-  let totalTests = tests.length
+  const totalTests = tests.length
   
   for (const test of tests) {
     try {
@@ -264,13 +263,14 @@ export async function runAllTests() {
   return passedTests === totalTests
 }
 
-// Export for use in other files
-export default {
+const connectionTestUtils = {
   testEnvironmentVariables,
   testClientConnection,
   testServerConnection,
   testDatabaseSchema,
   testRLSPolicies,
   testCustomTypes,
-  runAllTests
+  runAllTests,
 }
+
+export default connectionTestUtils

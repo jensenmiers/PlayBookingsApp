@@ -110,7 +110,7 @@ export default function TestSupabasePage() {
         <ul className="space-y-2 text-sm text-gray-700">
           <li>• Make sure your <code className="bg-gray-200 px-1 rounded">.env.local</code> file has the correct Supabase credentials</li>
           <li>• Verify your Supabase project is active and the database is running</li>
-          <li>• Check that you've run the migration files in your Supabase dashboard</li>
+          <li>• Check that you&rsquo;ve run the migration files in your Supabase dashboard</li>
           <li>• Ensure your RLS policies are properly configured</li>
           <li>• Verify your database schema matches the migration files</li>
         </ul>

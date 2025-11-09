@@ -8,35 +8,37 @@ export function Navigation() {
   const pathname = usePathname()
 
   return (
-    <nav className="border-b bg-white/95 backdrop-blur supports-[backdrop-filter]:bg-white/60">
+    <nav className="border-b border-border/40 bg-white/90 backdrop-blur supports-[backdrop-filter]:bg-white/70">
       <div className="mx-auto flex h-16 max-w-7xl items-center justify-between px-4">
         <Link href="/" className="flex items-center space-x-2">
-          <div className="h-8 w-8 rounded-lg bg-gradient-to-br from-blue-600 to-green-600" />
-          <span className="text-xl font-bold text-gray-900">PlayBookings</span>
+          <div className="h-9 w-9 rounded-xl bg-gradient-to-br from-primary-500 to-secondary-500" />
+          <span className="text-xl font-bold text-primary-800">PlayBookings</span>
         </Link>
 
         <div className="hidden md:flex md:items-center md:space-x-6">
           <Link
             href="/marketing"
-            className={`text-sm font-medium transition-colors hover:text-blue-600 ${
-              pathname === '/marketing' ? 'text-blue-600' : 'text-gray-600'
+            className={`text-sm font-medium transition-colors ${
+              pathname === '/marketing'
+                ? 'text-primary-700'
+                : 'text-primary-500 hover:text-primary-700'
             }`}
           >
             Home
           </Link>
           <Link
             href="/auth/login"
-            className="text-sm font-medium text-gray-600 transition-colors hover:text-blue-600"
+            className="text-sm font-medium text-primary-500 transition-colors hover:text-primary-700"
           >
             Sign In
           </Link>
-          <Button asChild>
+          <Button asChild className="rounded-xl">
             <Link href="/auth/register">Get Started</Link>
           </Button>
         </div>
 
         {/* Mobile menu button */}
-        <Button variant="ghost" size="sm" className="md:hidden">
+        <Button variant="ghost" size="sm" className="md:hidden text-primary-600 hover:text-primary-800">
           <svg
             className="h-6 w-6"
             fill="none"
