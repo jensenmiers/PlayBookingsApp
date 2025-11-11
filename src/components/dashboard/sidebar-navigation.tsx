@@ -10,7 +10,7 @@ import {
   faChartLine,
   faGear,
   faListUl,
-  faMessageDots,
+  faComments,
   faMoneyBillTransfer,
 } from "@fortawesome/free-solid-svg-icons"
 import type { IconDefinition } from "@fortawesome/fontawesome-svg-core"
@@ -42,7 +42,7 @@ const DEFAULT_ITEMS: SidebarNavItem[] = [
   { label: "Bookings", href: "/dashboard/bookings", icon: faCalendarDays },
   { label: "Payouts", href: "/dashboard/payouts", icon: faMoneyBillTransfer },
   { label: "Listings", href: "/dashboard/listings", icon: faListUl },
-  { label: "Messages", href: "/dashboard/messages", icon: faMessageDots, badge: "3" },
+  { label: "Messages", href: "/dashboard/messages", icon: faComments, badge: "3" },
   { label: "Settings", href: "/dashboard/settings", icon: faGear },
 ]
 
