@@ -39,11 +39,11 @@ export type SidebarNavigationProps = {
 
 const DEFAULT_ITEMS: SidebarNavItem[] = [
   { label: "Dashboard", href: "/dashboard", icon: faChartLine },
-  { label: "Bookings", href: "/dashboard/bookings", icon: faCalendarDays },
-  { label: "Payouts", href: "/dashboard/payouts", icon: faMoneyBillTransfer },
-  { label: "Listings", href: "/dashboard/listings", icon: faListUl },
-  { label: "Messages", href: "/dashboard/messages", icon: faComments, badge: "3" },
-  { label: "Settings", href: "/dashboard/settings", icon: faGear },
+  { label: "Bookings", href: "/bookings", icon: faCalendarDays },
+  { label: "Payouts", href: "/payouts", icon: faMoneyBillTransfer },
+  { label: "Listings", href: "/listings", icon: faListUl },
+  { label: "Messages", href: "/messages", icon: faComments, badge: "3" },
+  { label: "Settings", href: "/settings", icon: faGear },
 ]
 
 export function SidebarNavigation({
