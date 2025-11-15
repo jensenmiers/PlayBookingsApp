@@ -1,0 +1,289 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Availability</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script> window.FontAwesomeConfig = { autoReplaceSvg: 'nest'};</script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/js/all.min.js" crossorigin="anonymous" referrerpolicy="no-referrer"></script>
+    <link href="https://fonts.googleapis.com/css2?family=DM+Sans:opsz,wght@9..40,400;9..40,500;9..40,600;9..40,700&display=swap" rel="stylesheet">
+    <style>::-webkit-scrollbar { display: none;}</style>
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    colors: {
+                        primary: {
+                            50: '#f7f3ef',
+                            100: '#e9e1d8',
+                            200: '#d5c7b7',
+                            300: '#c1a992',
+                            400: '#ad8c70',
+                            500: '#96755a',
+                            600: '#7d5e48',
+                            700: '#644a3a',
+                            800: '#4c382c',
+                            900: '#33251e',
+                        },
+                        secondary: {
+                            50: '#f1f6f4',
+                            100: '#d6e6e0',
+                            200: '#b1cdc2',
+                            300: '#8db3a4',
+                            400: '#689a87',
+                            500: '#507d6c',
+                            600: '#406454',
+                            700: '#324c41',
+                            800: '#24352e',
+                            900: '#121d19',
+                        },
+                        accent: {
+                            50: '#fdf5f1',
+                            100: '#f9e5da',
+                            200: '#f3cbb7',
+                            300: '#ecb194',
+                            400: '#e69771',
+                            500: '#dd7d4e',
+                            600: '#c5613a',
+                            700: '#9c4c2e',
+                            800: '#743922',
+                            900: '#4d2517',
+                        }
+                    },
+                    fontFamily: {
+                        sans: ['DM Sans', 'sans-serif'],
+                    },
+                    boxShadow: {
+                        'soft': '0 4px 15px rgba(0, 0, 0, 0.05)',
+                        'glass': '0 8px 32px rgba(0, 0, 0, 0.08)',
+                    },
+                    borderRadius: {
+                        'xl': '16px',
+                        '2xl': '20px',
+                    }
+                }
+            }
+        }
+    </script>
+</head>
+<body class="font-sans bg-primary-50 text-gray-800">
+    <div id="availability-app" class="min-h-screen">
+        <!-- Mobile Header -->
+        <header id="header" class="bg-white p-4 sticky top-0 z-20 shadow-soft">
+            <div class="flex items-center justify-between">
+                <div class="flex items-center">
+                    <button class="mr-3 text-gray-600 hover:text-gray-800">
+                        <i class="fa-solid fa-arrow-left text-xl"></i>
+                    </button>
+                    <h1 class="text-xl font-bold text-primary-800">Weekly Availability</h1>
+                </div>
+                <div class="flex items-center space-x-4">
+                    <button class="relative text-gray-600 hover:text-gray-800">
+                        <i class="fa-regular fa-bell text-xl"></i>
+                        <span class="absolute -top-1 -right-1 bg-accent-500 text-white text-xs rounded-full h-5 w-5 flex items-center justify-center">2</span>
+                    </button>
+                    <img src="https://storage.googleapis.com/uxpilot-auth.appspot.com/avatars/avatar-1.jpg" alt="Profile" class="w-10 h-10 rounded-full">
+                </div>
+            </div>
+        </header>
+
+        <!-- Location Bar -->
+        <section id="location-section" class="px-4 pt-6 pb-4">
+            <button class="w-full bg-white rounded-full px-6 py-4 shadow-soft flex items-center justify-center space-x-3 hover:bg-gray-50 transition duration-200">
+                <i class="fa-solid fa-location-dot text-primary-600"></i>
+                <span class="font-medium text-primary-800">Current location</span>
+            </button>
+        </section>
+
+        <!-- Availability Grid -->
+        <section id="availability-grid" class="px-4 pb-6">
+            <div class="bg-white rounded-2xl shadow-soft overflow-hidden">
+                <!-- Grid Header -->
+                <div class="grid grid-cols-5 bg-primary-100">
+                    <div class="p-4 border-r border-primary-200"></div>
+                    <div class="p-4 text-center border-r border-primary-200">
+                        <h3 class="font-bold text-primary-800 text-sm">Monday</h3>
+                    </div>
+                    <div class="p-4 text-center border-r border-primary-200">
+                        <h3 class="font-bold text-primary-800 text-sm">Tuesday</h3>
+                    </div>
+                    <div class="p-4 text-center border-r border-primary-200">
+                        <h3 class="font-bold text-primary-800 text-sm">Wednes</h3>
+                    </div>
+                    <div class="p-4 text-center">
+                        <h3 class="font-bold text-primary-800 text-sm">Thurs</h3>
+                    </div>
+                </div>
+
+                <!-- Time Row: 6a-8a -->
+                <div class="grid grid-cols-5 border-b border-gray-100" style="min-height: 80px;">
+                    <div class="p-4 bg-primary-50 border-r border-primary-200 flex items-center">
+                        <span class="text-sm font-medium text-primary-700">6a–8a</span>
+                    </div>
+                    <div class="p-3 border-r border-gray-100 bg-gradient-to-br from-primary-25 to-primary-50 relative" style="background-image: repeating-linear-gradient(45deg, transparent, transparent 2px, rgba(150, 117, 90, 0.1) 2px, rgba(150, 117, 90, 0.1) 4px);">
+                        <button class="w-full h-full bg-white rounded-xl shadow-soft hover:shadow-glass transition duration-200 flex items-center justify-center min-h-[50px]">
+                            <span class="text-xs font-medium text-primary-700 text-center px-2">Availability Nearby</span>
+                        </button>
+                    </div>
+                    <div class="p-3 border-r border-gray-100 bg-gradient-to-br from-primary-25 to-primary-50" style="background-image: repeating-linear-gradient(45deg, transparent, transparent 2px, rgba(150, 117, 90, 0.1) 2px, rgba(150, 117, 90, 0.1) 4px);"></div>
+                    <div class="p-3 border-r border-gray-100 bg-gradient-to-br from-primary-25 to-primary-50 relative" style="background-image: repeating-linear-gradient(45deg, transparent, transparent 2px, rgba(150, 117, 90, 0.1) 2px, rgba(150, 117, 90, 0.1) 4px);">
+                        <button class="w-full h-full bg-white rounded-xl shadow-soft hover:shadow-glass transition duration-200 flex items-center justify-center min-h-[50px]">
+                            <span class="text-xs font-medium text-primary-700 text-center px-2">Availability Nearby</span>
+                        </button>
+                    </div>
+                    <div class="p-3 bg-gradient-to-br from-primary-25 to-primary-50 relative" style="background-image: repeating-linear-gradient(45deg, transparent, transparent 2px, rgba(150, 117, 90, 0.1) 2px, rgba(150, 117, 90, 0.1) 4px);">
+                        <button class="w-full h-full bg-white rounded-xl shadow-soft hover:shadow-glass transition duration-200 flex items-center justify-center min-h-[50px]">
+                            <span class="text-xs font-medium text-primary-700 text-center px-2">Availability Nearby</span>
+                        </button>
+                    </div>
+                </div>
+
+                <!-- Time Row: 8a-10a -->
+                <div class="grid grid-cols-5 border-b border-gray-100" style="min-height: 80px;">
+                    <div class="p-4 bg-primary-50 border-r border-primary-200 flex items-center">
+                        <span class="text-sm font-medium text-primary-700">8a–10a</span>
+                    </div>
+                    <div class="p-3 border-r border-gray-100 bg-gradient-to-br from-primary-25 to-primary-50" style="background-image: repeating-linear-gradient(45deg, transparent, transparent 2px, rgba(150, 117, 90, 0.1) 2px, rgba(150, 117, 90, 0.1) 4px);"></div>
+                    <div class="p-3 border-r border-gray-100 bg-gradient-to-br from-primary-25 to-primary-50" style="background-image: repeating-linear-gradient(45deg, transparent, transparent 2px, rgba(150, 117, 90, 0.1) 2px, rgba(150, 117, 90, 0.1) 4px);"></div>
+                    <div class="p-3 border-r border-gray-100 bg-gradient-to-br from-primary-25 to-primary-50" style="background-image: repeating-linear-gradient(45deg, transparent, transparent 2px, rgba(150, 117, 90, 0.1) 2px, rgba(150, 117, 90, 0.1) 4px);"></div>
+                    <div class="p-3 bg-gradient-to-br from-primary-25 to-primary-50 relative" style="background-image: repeating-linear-gradient(45deg, transparent, transparent 2px, rgba(150, 117, 90, 0.1) 2px, rgba(150, 117, 90, 0.1) 4px);">
+                        <button class="w-full h-full bg-white rounded-xl shadow-soft hover:shadow-glass transition duration-200 flex items-center justify-center min-h-[50px]">
+                            <span class="text-xs font-medium text-primary-700 text-center px-2">Availability Nearby</span>
+                        </button>
+                    </div>
+                </div>
+
+                <!-- Time Row: 12p-2p -->
+                <div class="grid grid-cols-5 border-b border-gray-100" style="min-height: 80px;">
+                    <div class="p-4 bg-primary-50 border-r border-primary-200 flex items-center">
+                        <span class="text-sm font-medium text-primary-700">12p–2p</span>
+                    </div>
+                    <div class="p-3 border-r border-gray-100 bg-gradient-to-br from-primary-25 to-primary-50" style="background-image: repeating-linear-gradient(45deg, transparent, transparent 2px, rgba(150, 117, 90, 0.1) 2px, rgba(150, 117, 90, 0.1) 4px);"></div>
+                    <div class="p-3 border-r border-gray-100 bg-gradient-to-br from-primary-25 to-primary-50" style="background-image: repeating-linear-gradient(45deg, transparent, transparent 2px, rgba(150, 117, 90, 0.1) 2px, rgba(150, 117, 90, 0.1) 4px);"></div>
+                    <div class="p-3 border-r border-gray-100 bg-gradient-to-br from-primary-25 to-primary-50 relative" style="background-image: repeating-linear-gradient(45deg, transparent, transparent 2px, rgba(150, 117, 90, 0.1) 2px, rgba(150, 117, 90, 0.1) 4px);">
+                        <button class="w-full h-full bg-white rounded-xl shadow-soft hover:shadow-glass transition duration-200 flex items-center justify-center min-h-[50px]">
+                            <span class="text-xs font-medium text-primary-700 text-center px-2">Availability Nearby</span>
+                        </button>
+                    </div>
+                    <div class="p-3 bg-gradient-to-br from-primary-25 to-primary-50 relative" style="background-image: repeating-linear-gradient(45deg, transparent, transparent 2px, rgba(150, 117, 90, 0.1) 2px, rgba(150, 117, 90, 0.1) 4px);">
+                        <button class="w-full h-full bg-white rounded-xl shadow-soft hover:shadow-glass transition duration-200 flex items-center justify-center min-h-[50px]">
+                            <span class="text-xs font-medium text-primary-700 text-center px-2">Availability Nearby</span>
+                        </button>
+                    </div>
+                </div>
+
+                <!-- Time Row: 2p-4p -->
+                <div class="grid grid-cols-5 border-b border-gray-100" style="min-height: 80px;">
+                    <div class="p-4 bg-primary-50 border-r border-primary-200 flex items-center">
+                        <span class="text-sm font-medium text-primary-700">2p–4p</span>
+                    </div>
+                    <div class="p-3 border-r border-gray-100 bg-gradient-to-br from-primary-25 to-primary-50" style="background-image: repeating-linear-gradient(45deg, transparent, transparent 2px, rgba(150, 117, 90, 0.1) 2px, rgba(150, 117, 90, 0.1) 4px);"></div>
+                    <div class="p-3 border-r border-gray-100 bg-gradient-to-br from-primary-25 to-primary-50" style="background-image: repeating-linear-gradient(45deg, transparent, transparent 2px, rgba(150, 117, 90, 0.1) 2px, rgba(150, 117, 90, 0.1) 4px);"></div>
+                    <div class="p-3 border-r border-gray-100 bg-gradient-to-br from-primary-25 to-primary-50 relative" style="background-image: repeating-linear-gradient(45deg, transparent, transparent 2px, rgba(150, 117, 90, 0.1) 2px, rgba(150, 117, 90, 0.1) 4px);">
+                        <button class="w-full h-full bg-white rounded-xl shadow-soft hover:shadow-glass transition duration-200 flex items-center justify-center min-h-[50px]">
+                            <span class="text-xs font-medium text-primary-700 text-center px-2">Availability Nearby</span>
+                        </button>
+                    </div>
+                    <div class="p-3 bg-gradient-to-br from-primary-25 to-primary-50 relative" style="background-image: repeating-linear-gradient(45deg, transparent, transparent 2px, rgba(150, 117, 90, 0.1) 2px, rgba(150, 117, 90, 0.1) 4px);">
+                        <button class="w-full h-full bg-white rounded-xl shadow-soft hover:shadow-glass transition duration-200 flex items-center justify-center min-h-[50px]">
+                            <span class="text-xs font-medium text-primary-700 text-center px-2">Availability Nearby</span>
+                        </button>
+                    </div>
+                </div>
+
+                <!-- Time Row: 6p-8p -->
+                <div class="grid grid-cols-5 border-b border-gray-100" style="min-height: 80px;">
+                    <div class="p-4 bg-primary-50 border-r border-primary-200 flex items-center">
+                        <span class="text-sm font-medium text-primary-700">6p–8p</span>
+                    </div>
+                    <div class="p-3 border-r border-gray-100 bg-gradient-to-br from-primary-25 to-primary-50 relative" style="background-image: repeating-linear-gradient(45deg, transparent, transparent 2px, rgba(150, 117, 90, 0.1) 2px, rgba(150, 117, 90, 0.1) 4px);">
+                        <button class="w-full h-full bg-white rounded-xl shadow-soft hover:shadow-glass transition duration-200 flex items-center justify-center min-h-[50px]">
+                            <span class="text-xs font-medium text-primary-700 text-center px-2">Availability Nearby</span>
+                        </button>
+                    </div>
+                    <div class="p-3 border-r border-gray-100 bg-gradient-to-br from-primary-25 to-primary-50" style="background-image: repeating-linear-gradient(45deg, transparent, transparent 2px, rgba(150, 117, 90, 0.1) 2px, rgba(150, 117, 90, 0.1) 4px);"></div>
+                    <div class="p-3 border-r border-gray-100 bg-gradient-to-br from-primary-25 to-primary-50 relative" style="background-image: repeating-linear-gradient(45deg, transparent, transparent 2px, rgba(150, 117, 90, 0.1) 2px, rgba(150, 117, 90, 0.1) 4px);">
+                        <button class="w-full h-full bg-white rounded-xl shadow-soft hover:shadow-glass transition duration-200 flex items-center justify-center min-h-[50px]">
+                            <span class="text-xs font-medium text-primary-700 text-center px-2">Availability Nearby</span>
+                        </button>
+                    </div>
+                    <div class="p-3 bg-gradient-to-br from-primary-25 to-primary-50 relative" style="background-image: repeating-linear-gradient(45deg, transparent, transparent 2px, rgba(150, 117, 90, 0.1) 2px, rgba(150, 117, 90, 0.1) 4px);">
+                        <button class="w-full h-full bg-white rounded-xl shadow-soft hover:shadow-glass transition duration-200 flex items-center justify-center min-h-[50px]">
+                            <span class="text-xs font-medium text-primary-700 text-center px-2">Availability Nearby</span>
+                        </button>
+                    </div>
+                </div>
+
+                <!-- Time Row: 8p-10p -->
+                <div class="grid grid-cols-5" style="min-height: 80px;">
+                    <div class="p-4 bg-primary-50 border-r border-primary-200 flex items-center">
+                        <span class="text-sm font-medium text-primary-700">8p–10p</span>
+                    </div>
+                    <div class="p-3 border-r border-gray-100 bg-gradient-to-br from-primary-25 to-primary-50 relative" style="background-image: repeating-linear-gradient(45deg, transparent, transparent 2px, rgba(150, 117, 90, 0.1) 2px, rgba(150, 117, 90, 0.1) 4px);">
+                        <button class="w-full h-full bg-white rounded-xl shadow-soft hover:shadow-glass transition duration-200 flex items-center justify-center min-h-[50px]">
+                            <span class="text-xs font-medium text-primary-700 text-center px-2">Availability Nearby</span>
+                        </button>
+                    </div>
+                    <div class="p-3 border-r border-gray-100 bg-gradient-to-br from-primary-25 to-primary-50 relative" style="background-image: repeating-linear-gradient(45deg, transparent, transparent 2px, rgba(150, 117, 90, 0.1) 2px, rgba(150, 117, 90, 0.1) 4px);">
+                        <button class="w-full h-full bg-white rounded-xl shadow-soft hover:shadow-glass transition duration-200 flex items-center justify-center min-h-[50px]">
+                            <span class="text-xs font-medium text-primary-700 text-center px-2">Availability Nearby</span>
+                        </button>
+                    </div>
+                    <div class="p-3 border-r border-gray-100 bg-gradient-to-br from-primary-25 to-primary-50" style="background-image: repeating-linear-gradient(45deg, transparent, transparent 2px, rgba(150, 117, 90, 0.1) 2px, rgba(150, 117, 90, 0.1) 4px);"></div>
+                    <div class="p-3 bg-gradient-to-br from-primary-25 to-primary-50 relative" style="background-image: repeating-linear-gradient(45deg, transparent, transparent 2px, rgba(150, 117, 90, 0.1) 2px, rgba(150, 117, 90, 0.1) 4px);">
+                        <button class="w-full h-full bg-white rounded-xl shadow-soft hover:shadow-glass transition duration-200 flex items-center justify-center min-h-[50px]">
+                            <span class="text-xs font-medium text-primary-700 text-center px-2">Availability Nearby</span>
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <!-- Mobile Navigation Bar -->
+        <nav id="footer" class="fixed bottom-0 left-0 right-0 bg-white shadow-soft border-t border-gray-100 z-20">
+            <div class="flex justify-around items-center py-3">
+                <span class="flex flex-col items-center text-gray-400 cursor-pointer">
+                    <i class="fa-solid fa-home text-xl"></i>
+                    <span class="text-xs mt-1">Home</span>
+                </span>
+                <span class="flex flex-col items-center text-primary-700 cursor-pointer">
+                    <i class="fa-solid fa-search text-xl"></i>
+                    <span class="text-xs mt-1">Explore</span>
+                </span>
+                <span class="flex flex-col items-center text-gray-400 cursor-pointer">
+                    <i class="fa-regular fa-calendar text-xl"></i>
+                    <span class="text-xs mt-1">Bookings</span>
+                </span>
+                <span class="flex flex-col items-center text-gray-400 cursor-pointer">
+                    <i class="fa-regular fa-message text-xl"></i>
+                    <span class="text-xs mt-1">Messages</span>
+                </span>
+                <span class="flex flex-col items-center text-gray-400 cursor-pointer">
+                    <i class="fa-regular fa-user text-xl"></i>
+                    <span class="text-xs mt-1">Profile</span>
+                </span>
+            </div>
+        </nav>
+    </div>
+
+    <script>
+        document.addEventListener('DOMContentLoaded', function() {
+            const availabilityButtons = document.querySelectorAll('button[class*="bg-white rounded-xl"]');
+            
+            availabilityButtons.forEach(button => {
+                button.addEventListener('click', function() {
+                    this.classList.add('bg-secondary-100', 'border-2', 'border-secondary-400');
+                    this.classList.remove('bg-white');
+                    
+                    setTimeout(() => {
+                        this.classList.remove('bg-secondary-100', 'border-2', 'border-secondary-400');
+                        this.classList.add('bg-white');
+                    }, 200);
+                });
+            });
+        });
+    </script>
+</body>
+</html>
+
