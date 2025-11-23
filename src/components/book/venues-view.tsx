@@ -1,5 +1,6 @@
 'use client'
 
+import { useState } from 'react'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome'
@@ -12,8 +13,13 @@ import {
   faStar,
   faLocationDot,
   faDollarSign,
+  faSpinner,
 } from '@fortawesome/free-solid-svg-icons'
 import { faClock as faClockRegular } from '@fortawesome/free-regular-svg-icons'
+import { useVenues } from '@/hooks/useVenues'
+import { CreateBookingForm } from '@/components/forms/create-booking-form'
+import Image from 'next/image'
+import type { Venue } from '@/types'
 
 // Mock data - will be replaced with API data later
 const featuredCourts = [
@@ -104,6 +110,20 @@ const recentlyViewed = [
 ]
 
 export function VenuesView() {
+  const [selectedVenueId, setSelectedVenueId] = useState<string | null>(null)
+  const [showBookingForm, setShowBookingForm] = useState(false)
+  const { data: venues, loading: venuesLoading } = useVenues()
+
+  const handleBookNow = (venueId: string) => {
+    setSelectedVenueId(venueId)
+    setShowBookingForm(true)
+  }
+
+  // Use real venues if available, otherwise show loading or empty state
+  const displayVenues = venues || []
+  const featuredVenues = displayVenues.slice(0, 3)
+  const nearbyVenues = displayVenues.slice(3, 6)
+
   return (
     <div className="min-h-screen bg-primary-50">
       {/* Search and Filter Section */}
@@ -158,50 +178,65 @@ export function VenuesView() {
         </div>
 
         <div className="flex overflow-x-auto space-x-4 pb-4">
-          {featuredCourts.map((court) => (
-            <div
-              key={court.id}
-              className="flex-shrink-0 w-[280px] bg-white rounded-2xl shadow-soft overflow-hidden"
-            >
-              <div className="relative h-[160px]">
-                <img
-                  className="w-full h-full object-cover"
-                  src={court.image}
-                  alt={`${court.name} basketball court`}
-                />
-                <div
-                  className={`absolute top-3 left-3 ${
-                    court.badge.color === 'accent' ? 'bg-accent-500' : 'bg-secondary-500'
-                  } text-white text-xs font-bold px-3 py-1 rounded-full`}
-                >
-                  {court.badge.text}
-                </div>
-                <div className="absolute bottom-3 right-3 bg-white bg-opacity-90 rounded-lg px-2 py-1 text-xs font-medium text-primary-800">
-                  ${court.price}/hour
-                </div>
-              </div>
-              <div className="p-4">
-                <div className="flex justify-between items-start mb-2">
-                  <h4 className="font-bold text-primary-800">{court.name}</h4>
-                  <div className="flex items-center">
-                    <FontAwesomeIcon icon={faStar} className="text-yellow-400 text-xs mr-1" />
-                    <span className="text-sm font-medium">{court.rating}</span>
+          {venuesLoading ? (
+            <div className="flex items-center justify-center w-full py-8">
+              <FontAwesomeIcon icon={faSpinner} className="animate-spin text-primary-600" size="2x" />
+            </div>
+          ) : featuredVenues.length > 0 ? (
+            featuredVenues.map((venue) => (
+              <div
+                key={venue.id}
+                className="flex-shrink-0 w-[280px] bg-white rounded-2xl shadow-soft overflow-hidden"
+              >
+                <div className="relative h-[160px]">
+                  {venue.photos && venue.photos.length > 0 ? (
+                    <Image
+                      src={venue.photos[0]}
+                      alt={`${venue.name} basketball court`}
+                      fill
+                      className="object-cover"
+                      sizes="280px"
+                    />
+                  ) : (
+                    <div className="w-full h-full bg-primary-100 flex items-center justify-center">
+                      <span className="text-primary-400">No Image</span>
+                    </div>
+                  )}
+                  {venue.instant_booking && (
+                    <div className="absolute top-3 left-3 bg-accent-500 text-white text-xs font-bold px-3 py-1 rounded-full">
+                      Instant Booking
+                    </div>
+                  )}
+                  <div className="absolute bottom-3 right-3 bg-white bg-opacity-90 rounded-lg px-2 py-1 text-xs font-medium text-primary-800">
+                    ${venue.hourly_rate}/hour
                   </div>
                 </div>
-                <div className="flex items-center text-primary-600 text-sm mb-2">
-                  <FontAwesomeIcon icon={faLocationDot} className="mr-2 text-primary-500" />
-                  <span>{court.distance}</span>
+                <div className="p-4">
+                  <div className="flex justify-between items-start mb-2">
+                    <h4 className="font-bold text-primary-800">{venue.name}</h4>
+                  </div>
+                  <div className="flex items-center text-primary-600 text-sm mb-2">
+                    <FontAwesomeIcon icon={faLocationDot} className="mr-2 text-primary-500" />
+                    <span>{venue.city}, {venue.state}</span>
+                  </div>
+                  <div className="flex items-center text-primary-600 text-sm mb-3">
+                    <FontAwesomeIcon icon={faClockRegular} className="mr-2 text-primary-500" />
+                    <span>Available</span>
+                  </div>
+                  <Button
+                    onClick={() => handleBookNow(venue.id)}
+                    className="w-full bg-primary-600 hover:bg-primary-700 text-white font-medium py-3 rounded-xl transition duration-200"
+                  >
+                    Book Now
+                  </Button>
                 </div>
-                <div className="flex items-center text-primary-600 text-sm mb-3">
-                  <FontAwesomeIcon icon={faClockRegular} className="mr-2 text-primary-500" />
-                  <span>{court.availability}</span>
-                </div>
-                <Button className="w-full bg-primary-600 hover:bg-primary-700 text-white font-medium py-3 rounded-xl transition duration-200">
-                  Book Now
-                </Button>
               </div>
+            ))
+          ) : (
+            <div className="w-full py-8 text-center text-primary-600">
+              No featured venues available
             </div>
-          ))}
+          )}
         </div>
       </section>
 
@@ -215,46 +250,64 @@ export function VenuesView() {
         </div>
 
         <div className="space-y-4">
-          {nearbyCourts.map((court) => (
-            <div key={court.id} className="bg-white rounded-2xl shadow-soft overflow-hidden">
-              <div className="flex">
-                <div className="w-1/3 h-[120px]">
-                  <img
-                    className="w-full h-full object-cover"
-                    src={court.image}
-                    alt={`${court.name} basketball court`}
-                  />
-                </div>
-                <div className="w-2/3 p-4">
-                  <div className="flex justify-between items-start mb-1">
-                    <h4 className="font-bold text-primary-800">{court.name}</h4>
-                    <div className="flex items-center">
-                      <FontAwesomeIcon icon={faStar} className="text-yellow-400 text-xs mr-1" />
-                      <span className="text-sm font-medium">{court.rating}</span>
+          {nearbyVenues.length > 0 ? (
+            nearbyVenues.map((venue) => (
+              <div key={venue.id} className="bg-white rounded-2xl shadow-soft overflow-hidden">
+                <div className="flex">
+                  <div className="w-1/3 h-[120px] relative">
+                    {venue.photos && venue.photos.length > 0 ? (
+                      <Image
+                        src={venue.photos[0]}
+                        alt={`${venue.name} basketball court`}
+                        fill
+                        className="object-cover"
+                        sizes="120px"
+                      />
+                    ) : (
+                      <div className="w-full h-full bg-primary-100 flex items-center justify-center">
+                        <span className="text-primary-400 text-xs">No Image</span>
+                      </div>
+                    )}
+                  </div>
+                  <div className="w-2/3 p-4">
+                    <div className="flex justify-between items-start mb-1">
+                      <h4 className="font-bold text-primary-800">{venue.name}</h4>
                     </div>
-                  </div>
-                  <div className="flex items-center text-primary-600 text-sm mb-1">
-                    <FontAwesomeIcon icon={faLocationDot} className="mr-2 text-primary-500" />
-                    <span>{court.distance}</span>
-                  </div>
-                  <div className="flex items-center text-primary-600 text-sm mb-2">
-                    <FontAwesomeIcon icon={faDollarSign} className="mr-2 text-primary-500" />
-                    <span>${court.price}/hour</span>
-                  </div>
-                  <div className="flex space-x-2">
-                    {court.amenities.map((amenity, idx) => (
-                      <span
-                        key={idx}
-                        className="bg-primary-100 text-primary-600 text-xs px-2 py-1 rounded-full"
-                      >
-                        {amenity}
-                      </span>
-                    ))}
+                    <div className="flex items-center text-primary-600 text-sm mb-1">
+                      <FontAwesomeIcon icon={faLocationDot} className="mr-2 text-primary-500" />
+                      <span>{venue.city}, {venue.state}</span>
+                    </div>
+                    <div className="flex items-center text-primary-600 text-sm mb-2">
+                      <FontAwesomeIcon icon={faDollarSign} className="mr-2 text-primary-500" />
+                      <span>${venue.hourly_rate}/hour</span>
+                    </div>
+                    {venue.amenities && venue.amenities.length > 0 && (
+                      <div className="flex space-x-2 mb-2">
+                        {venue.amenities.slice(0, 3).map((amenity, idx) => (
+                          <span
+                            key={idx}
+                            className="bg-primary-100 text-primary-600 text-xs px-2 py-1 rounded-full"
+                          >
+                            {amenity}
+                          </span>
+                        ))}
+                      </div>
+                    )}
+                    <Button
+                      onClick={() => handleBookNow(venue.id)}
+                      className="w-full bg-primary-600 hover:bg-primary-700 text-white font-medium py-2 text-sm rounded-xl transition duration-200"
+                    >
+                      Book Now
+                    </Button>
                   </div>
                 </div>
               </div>
+            ))
+          ) : (
+            <div className="text-center py-8 text-primary-600">
+              No nearby venues available
             </div>
-          ))}
+          )}
         </div>
 
         <Button className="w-full mt-4 bg-white border border-primary-300 text-primary-700 font-medium py-3 rounded-xl hover:bg-primary-50 transition duration-200">
@@ -272,35 +325,25 @@ export function VenuesView() {
         </div>
 
         <div className="flex overflow-x-auto space-x-4 pb-4">
-          {recentlyViewed.map((court) => (
-            <div
-              key={court.id}
-              className="flex-shrink-0 w-[220px] bg-white rounded-2xl shadow-soft overflow-hidden"
-            >
-              <div className="relative h-[120px]">
-                <img
-                  className="w-full h-full object-cover"
-                  src={court.image}
-                  alt={`${court.name} basketball court`}
-                />
-                <div className="absolute bottom-3 right-3 bg-white bg-opacity-90 rounded-lg px-2 py-1 text-xs font-medium text-primary-800">
-                  ${court.price}/hour
-                </div>
-              </div>
-              <div className="p-3">
-                <h4 className="font-bold text-primary-800 mb-1">{court.name}</h4>
-                <div className="flex items-center text-primary-600 text-xs mb-2">
-                  <FontAwesomeIcon icon={faLocationDot} className="mr-1 text-primary-500" />
-                  <span>{court.distance}</span>
-                </div>
-                <Button className="w-full bg-primary-600 hover:bg-primary-700 text-white font-medium py-2 text-sm rounded-xl transition duration-200">
-                  Book Again
-                </Button>
-              </div>
-            </div>
-          ))}
+          {/* Recently viewed could be implemented with localStorage or user preferences */}
+          <div className="text-center py-8 text-primary-600 w-full">
+            No recently viewed venues
+          </div>
         </div>
       </section>
+
+      {/* Booking Form Dialog */}
+      {showBookingForm && selectedVenueId && (
+        <CreateBookingForm
+          venueId={selectedVenueId}
+          open={showBookingForm}
+          onOpenChange={setShowBookingForm}
+          onSuccess={() => {
+            setShowBookingForm(false)
+            setSelectedVenueId(null)
+          }}
+        />
+      )}
     </div>
   )
 }
