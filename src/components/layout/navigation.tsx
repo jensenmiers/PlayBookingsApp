@@ -3,9 +3,16 @@
 import { Button } from '@/components/ui/button'
 import Link from 'next/link'
 import { usePathname } from 'next/navigation'
+import { useCurrentUser } from '@/hooks/useCurrentUser'
 
 export function Navigation() {
   const pathname = usePathname()
+  const { user, loading } = useCurrentUser()
+
+  // Determine home route based on authentication status
+  const homeHref = user ? '/dashboard' : '/auth/register'
+  // Check if current path matches the home route
+  const isHomeActive = pathname === homeHref
 
   return (
     <nav className="border-b border-border/40 bg-white/90 backdrop-blur supports-[backdrop-filter]:bg-white/70">
@@ -17,9 +24,9 @@ export function Navigation() {
 
         <div className="hidden md:flex md:items-center md:space-x-6">
           <Link
-            href="/marketing"
+            href={homeHref}
             className={`text-sm font-medium transition-colors ${
-              pathname === '/marketing'
+              isHomeActive
                 ? 'text-primary-700'
                 : 'text-primary-500 hover:text-primary-700'
             }`}

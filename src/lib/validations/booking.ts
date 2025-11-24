@@ -59,3 +59,4 @@ export type GenerateRecurringInput = z.infer<typeof generateRecurringSchema>
 export type BookingQueryInput = z.infer<typeof bookingQuerySchema>
 
 
+

@@ -109,3 +109,4 @@ export interface ListBookingsQueryParams {
 export interface ListBookingsResponse extends PaginatedResponse<Booking> {}
 
 
+

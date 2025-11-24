@@ -48,3 +48,4 @@ export function BookingStatusBadge({ status, className }: BookingStatusBadgeProp
   )
 }
 
+

@@ -123,3 +123,4 @@ DROP FUNCTION IF EXISTS check_insurance_requirements_deprecated();
 **Recommendation**: Keep deprecated functions for at least 3-6 months after API deployment to ensure stability.
 
 
+
