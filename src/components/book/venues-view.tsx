@@ -168,7 +168,7 @@ export function VenuesView() {
         </div>
       </section>
 
-      {/* Featured Courts Section */}
+      {/* Featured Courts Section - COMMENTED OUT FOR NOW
       <section className="px-4 pb-6">
         <div className="flex items-center justify-between mb-4">
           <h3 className="text-lg font-bold text-primary-800">Featured Courts</h3>
@@ -239,6 +239,7 @@ export function VenuesView() {
           )}
         </div>
       </section>
+      */}
 
       {/* Nearby Courts Section */}
       <section className="px-4 pb-6">
