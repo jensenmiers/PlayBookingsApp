@@ -50,7 +50,7 @@ export default function LoginPage() {
           <Button
             onClick={handleGoogleLogin}
             disabled={loading}
-            className="w-full rounded-xl bg-secondary-600 py-3 text-base hover:bg-secondary-700"
+            className="w-full rounded-xl bg-secondary-600 py-3 text-base text-white hover:bg-secondary-700"
             size="lg"
           >
             {loading ? (
