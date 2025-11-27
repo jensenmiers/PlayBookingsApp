@@ -18,111 +18,28 @@ import {
 import { faClock as faClockRegular } from '@fortawesome/free-regular-svg-icons'
 import { useVenues } from '@/hooks/useVenues'
 import { CreateBookingForm } from '@/components/forms/create-booking-form'
+import { VenueCardSkeleton } from '@/components/book/venue-card-skeleton'
+import { ErrorMessage } from '@/components/ui/error-message'
 import Image from 'next/image'
 import type { Venue } from '@/types'
 
-// Mock data - will be replaced with API data later
-const featuredCourts = [
-  {
-    id: 1,
-    name: 'Downtown Court',
-    image: 'https://storage.googleapis.com/uxpilot-auth.appspot.com/6c21859434-7a91768137c57282a2dc.png',
-    badge: { text: 'Featured', color: 'accent' },
-    price: 45,
-    rating: 4.9,
-    distance: '2.3 miles away',
-    availability: 'Available 8AM - 10PM',
-  },
-  {
-    id: 2,
-    name: 'Riverside Gym',
-    image: 'https://storage.googleapis.com/uxpilot-auth.appspot.com/18e5a0f8c5-200092e4588618c5e022.png',
-    badge: { text: 'Pro Court', color: 'secondary' },
-    price: 65,
-    rating: 4.8,
-    distance: '3.7 miles away',
-    availability: 'Available 6AM - 11PM',
-  },
-  {
-    id: 3,
-    name: 'Parkside Courts',
-    image: 'https://storage.googleapis.com/uxpilot-auth.appspot.com/b940e2d8f5-915485541597535f71c2.png',
-    badge: { text: 'Featured', color: 'accent' },
-    price: 35,
-    rating: 4.7,
-    distance: '1.5 miles away',
-    availability: 'Available 7AM - 9PM',
-  },
-]
-
-const nearbyCourts = [
-  {
-    id: 1,
-    name: 'Community Center',
-    image: 'https://storage.googleapis.com/uxpilot-auth.appspot.com/4c98a71eaa-995723f8d928f44a5776.png',
-    rating: 4.5,
-    distance: '0.8 miles away',
-    price: 30,
-    amenities: ['Indoor', 'Locker Room'],
-  },
-  {
-    id: 2,
-    name: 'Lincoln Park Courts',
-    image: 'https://storage.googleapis.com/uxpilot-auth.appspot.com/a1ee9a2943-f8f342ab4732e1437b92.png',
-    rating: 4.3,
-    distance: '1.2 miles away',
-    price: 25,
-    amenities: ['Outdoor', 'Lights'],
-  },
-  {
-    id: 3,
-    name: 'University Gym',
-    image: 'https://storage.googleapis.com/uxpilot-auth.appspot.com/d4976ba121-539c8e8894da16d4664a.png',
-    rating: 4.9,
-    distance: '2.5 miles away',
-    price: 55,
-    amenities: ['Indoor', 'Pro Quality'],
-  },
-]
-
-const recentlyViewed = [
-  {
-    id: 1,
-    name: 'Elite Sports Arena',
-    image: 'https://storage.googleapis.com/uxpilot-auth.appspot.com/c42af518cb-42e7507c0159a36618cc.png',
-    price: 70,
-    distance: '4.1 miles away',
-  },
-  {
-    id: 2,
-    name: 'Westside Rec Center',
-    image: 'https://storage.googleapis.com/uxpilot-auth.appspot.com/2edf2cf3cc-e846f2f6fe104498ef16.png',
-    price: 40,
-    distance: '3.2 miles away',
-  },
-  {
-    id: 3,
-    name: 'Neighborhood Court',
-    image: 'https://storage.googleapis.com/uxpilot-auth.appspot.com/90412b9be5-386a140f47a5629af618.png',
-    price: 25,
-    distance: '1.8 miles away',
-  },
-]
+// Mock data - commented out, using database data instead
+// const featuredCourts = [...]
+// const nearbyCourts = [...]
+// const recentlyViewed = [...]
 
 export function VenuesView() {
   const [selectedVenueId, setSelectedVenueId] = useState<string | null>(null)
   const [showBookingForm, setShowBookingForm] = useState(false)
-  const { data: venues, loading: venuesLoading } = useVenues()
+  const { data: venues, loading: venuesLoading, error, refetch } = useVenues()
 
   const handleBookNow = (venueId: string) => {
     setSelectedVenueId(venueId)
     setShowBookingForm(true)
   }
 
-  // Use real venues if available, otherwise show loading or empty state
-  const displayVenues = venues || []
-  const featuredVenues = displayVenues.slice(0, 3)
-  const nearbyVenues = displayVenues.slice(3, 6)
+  // Show all venues from database - pagination will be added later
+  const nearbyVenues = venues || []
 
   return (
     <div className="min-h-screen bg-primary-50">
@@ -251,7 +168,26 @@ export function VenuesView() {
         </div>
 
         <div className="space-y-4">
-          {nearbyVenues.length > 0 ? (
+          {venuesLoading ? (
+            // Show skeleton loading cards
+            <>
+              <VenueCardSkeleton />
+              <VenueCardSkeleton />
+              <VenueCardSkeleton />
+            </>
+          ) : error ? (
+            // Show error state with retry button
+            <div className="space-y-4">
+              <ErrorMessage error={error} title="Failed to load venues" />
+              <Button
+                onClick={() => refetch()}
+                className="w-full bg-primary-600 hover:bg-primary-700 text-white font-medium py-3 rounded-xl transition duration-200"
+              >
+                Try Again
+              </Button>
+            </div>
+          ) : nearbyVenues.length > 0 ? (
+            // Show venue cards
             nearbyVenues.map((venue) => (
               <div key={venue.id} className="bg-white rounded-2xl shadow-soft overflow-hidden">
                 <div className="flex">
