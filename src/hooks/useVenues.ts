@@ -59,6 +59,8 @@ export function useVenues(filters?: VenueSearchFilters) {
 
       setState({ data: data || [], loading: false, error: null })
     } catch (error) {
+      // Log the actual error for debugging
+      console.error('Venue fetch error:', error)
       const message = error instanceof Error ? error.message : 'Failed to fetch venues'
       setState({ data: null, loading: false, error: message })
     }
@@ -90,21 +92,27 @@ export function useVenue(id: string | null) {
       return
     }
 
-    setState((prev) => ({ ...prev, loading: true, error: null }))
-    const supabase = createClient()
-    supabase
-      .from('venues')
-      .select('*')
-      .eq('id', id)
-      .single()
-      .then(({ data, error }) => {
+    const fetchVenue = async () => {
+      setState((prev) => ({ ...prev, loading: true, error: null }))
+      try {
+        const supabase = createClient()
+        const { data, error } = await supabase
+          .from('venues')
+          .select('*')
+          .eq('id', id)
+          .single()
+
         if (error) throw error
         setState({ data, loading: false, error: null })
-      })
-      .catch((error) => {
+      } catch (error) {
+        // Log the actual error for debugging
+        console.error('Venue fetch error:', error)
         const message = error instanceof Error ? error.message : 'Failed to fetch venue'
         setState({ data: null, loading: false, error: message })
-      })
+      }
+    }
+
+    fetchVenue()
   }, [id])
 
   return state
@@ -126,23 +134,29 @@ export function useVenueAvailability(venueId: string | null, date: string | null
       return
     }
 
-    setState((prev) => ({ ...prev, loading: true, error: null }))
-    const supabase = createClient()
-    supabase
-      .from('availability')
-      .select('*')
-      .eq('venue_id', venueId)
-      .eq('date', date)
-      .eq('is_available', true)
-      .order('start_time', { ascending: true })
-      .then(({ data, error }) => {
+    const fetchAvailability = async () => {
+      setState((prev) => ({ ...prev, loading: true, error: null }))
+      try {
+        const supabase = createClient()
+        const { data, error } = await supabase
+          .from('availability')
+          .select('*')
+          .eq('venue_id', venueId)
+          .eq('date', date)
+          .eq('is_available', true)
+          .order('start_time', { ascending: true })
+
         if (error) throw error
         setState({ data: data || [], loading: false, error: null })
-      })
-      .catch((error) => {
+      } catch (error) {
+        // Log the actual error for debugging
+        console.error('Availability fetch error:', error)
         const message = error instanceof Error ? error.message : 'Failed to fetch availability'
         setState({ data: null, loading: false, error: message })
-      })
+      }
+    }
+
+    fetchAvailability()
   }, [venueId, date])
 
   return state
@@ -168,25 +182,31 @@ export function useVenueAvailabilityRange(
       return
     }
 
-    setState((prev) => ({ ...prev, loading: true, error: null }))
-    const supabase = createClient()
-    supabase
-      .from('availability')
-      .select('*')
-      .eq('venue_id', venueId)
-      .gte('date', dateFrom)
-      .lte('date', dateTo)
-      .eq('is_available', true)
-      .order('date', { ascending: true })
-      .order('start_time', { ascending: true })
-      .then(({ data, error }) => {
+    const fetchAvailabilityRange = async () => {
+      setState((prev) => ({ ...prev, loading: true, error: null }))
+      try {
+        const supabase = createClient()
+        const { data, error } = await supabase
+          .from('availability')
+          .select('*')
+          .eq('venue_id', venueId)
+          .gte('date', dateFrom)
+          .lte('date', dateTo)
+          .eq('is_available', true)
+          .order('date', { ascending: true })
+          .order('start_time', { ascending: true })
+
         if (error) throw error
         setState({ data: data || [], loading: false, error: null })
-      })
-      .catch((error) => {
+      } catch (error) {
+        // Log the actual error for debugging
+        console.error('Availability range fetch error:', error)
         const message = error instanceof Error ? error.message : 'Failed to fetch availability'
         setState({ data: null, loading: false, error: message })
-      })
+      }
+    }
+
+    fetchAvailabilityRange()
   }, [venueId, dateFrom, dateTo])
 
   return state
