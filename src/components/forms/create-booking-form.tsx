@@ -34,6 +34,7 @@ import {
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome'
 import { faCalendarDays, faClock, faSpinner } from '@fortawesome/free-solid-svg-icons'
 import { cn } from '@/lib/utils'
+import { AuthRequiredDialog } from '@/components/ui/auth-required-dialog'
 import type { Venue } from '@/types'
 
 interface CreateBookingFormProps {
@@ -56,6 +57,7 @@ export function CreateBookingForm({
   const [selectedDate, setSelectedDate] = useState<Date | undefined>(initialDate)
   const [showDatePicker, setShowDatePicker] = useState(false)
   const [conflictChecked, setConflictChecked] = useState(false)
+  const [showAuthDialog, setShowAuthDialog] = useState(false)
 
   const { data: venues, loading: venuesLoading } = useVenues()
   const { data: selectedVenue } = useVenue(initialVenueId || null)
@@ -127,6 +129,21 @@ export function CreateBookingForm({
       form.reset()
       setConflictChecked(false)
       onOpenChange?.(false)
+    } else if (createBooking.error) {
+      // Check if error is authentication-related
+      const errorMessage = createBooking.error.toLowerCase()
+      if (
+        errorMessage.includes('authentication required') ||
+        errorMessage.includes('unauthorized') ||
+        errorMessage.includes('sign in')
+      ) {
+        setShowAuthDialog(true)
+      } else {
+        // Show other errors in the form
+        form.setError('root', {
+          message: createBooking.error,
+        })
+      }
     }
   }
 
@@ -134,6 +151,7 @@ export function CreateBookingForm({
   const venue = venues?.find((v) => v.id === watchedVenueId) || selectedVenue
 
   return (
+    <>
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
         <DialogHeader>
@@ -413,6 +431,13 @@ export function CreateBookingForm({
         </Form>
       </DialogContent>
     </Dialog>
+
+    {/* Auth Required Dialog */}
+    <AuthRequiredDialog
+      open={showAuthDialog}
+      onOpenChange={setShowAuthDialog}
+    />
+  </>
   )
 }
 
