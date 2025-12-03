@@ -6,8 +6,8 @@
 
 import { useState, useEffect, useCallback } from 'react'
 import { bookingApi } from '@/lib/api/bookings'
+import type { Booking } from '@/types'
 import type {
-  Booking,
   CreateBookingRequest,
   UpdateBookingRequest,
   ListBookingsQueryParams,
@@ -107,16 +107,16 @@ export function useCreateBooking() {
     error: null,
   })
 
-  const mutate = useCallback(async (data: CreateBookingRequest): Promise<Booking | null> => {
+  const mutate = useCallback(async (data: CreateBookingRequest): Promise<{ data: Booking | null; error: string | null }> => {
     setState({ data: null, loading: true, error: null })
     try {
       const booking = await bookingApi.createBooking(data)
       setState({ data: booking, loading: false, error: null })
-      return booking
+      return { data: booking, error: null }
     } catch (error) {
       const message = error instanceof Error ? error.message : 'Failed to create booking'
       setState({ data: null, loading: false, error: message })
-      return null
+      return { data: null, error: message }
     }
   }, [])
 

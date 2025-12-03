@@ -54,7 +54,9 @@ export function CreateBookingForm({
   open = true,
   onOpenChange,
 }: CreateBookingFormProps) {
-  const [selectedDate, setSelectedDate] = useState<Date | undefined>(initialDate)
+  const today = new Date()
+  const defaultDate = initialDate || today
+  const [selectedDate, setSelectedDate] = useState<Date | undefined>(defaultDate)
   const [showDatePicker, setShowDatePicker] = useState(false)
   const [conflictChecked, setConflictChecked] = useState(false)
   const [showAuthDialog, setShowAuthDialog] = useState(false)
@@ -68,7 +70,7 @@ export function CreateBookingForm({
     resolver: zodResolver(createBookingSchema),
     defaultValues: {
       venue_id: initialVenueId || '',
-      date: initialDate ? format(initialDate, 'yyyy-MM-dd') : '',
+      date: format(defaultDate, 'yyyy-MM-dd'),
       start_time: '09:00:00',
       end_time: '10:00:00',
       recurring_type: 'none',
@@ -123,15 +125,15 @@ export function CreateBookingForm({
       return
     }
 
-    const booking = await createBooking.mutate(data)
-    if (booking) {
-      onSuccess?.(booking.id)
+    const result = await createBooking.mutate(data)
+    if (result.data) {
+      onSuccess?.(result.data.id)
       form.reset()
       setConflictChecked(false)
       onOpenChange?.(false)
-    } else if (createBooking.error) {
+    } else if (result.error) {
       // Check if error is authentication-related
-      const errorMessage = createBooking.error.toLowerCase()
+      const errorMessage = result.error.toLowerCase()
       if (
         errorMessage.includes('authentication required') ||
         errorMessage.includes('unauthorized') ||
@@ -141,7 +143,7 @@ export function CreateBookingForm({
       } else {
         // Show other errors in the form
         form.setError('root', {
-          message: createBooking.error,
+          message: result.error,
         })
       }
     }
