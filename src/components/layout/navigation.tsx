@@ -2,17 +2,44 @@
 
 import { Button } from '@/components/ui/button'
 import Link from 'next/link'
-import { usePathname } from 'next/navigation'
+import { usePathname, useRouter } from 'next/navigation'
 import { useCurrentUser } from '@/hooks/useCurrentUser'
+import { createClient } from '@/lib/supabase/client'
 
 export function Navigation() {
   const pathname = usePathname()
-  const { user, loading } = useCurrentUser()
+  const router = useRouter()
+  const { user, loading, error: userError } = useCurrentUser()
 
   // Determine home route based on authentication status
   const homeHref = user ? '/dashboard' : '/auth/register'
   // Check if current path matches the home route
   const isHomeActive = pathname === homeHref
+
+  const handleSignOut = async () => {
+    const supabase = createClient()
+    await supabase.auth.signOut()
+    router.push('/')
+    router.refresh()
+  }
+
+  const getUserDisplayName = () => {
+    if (!user) return ''
+    if (user.first_name || user.last_name) {
+      return `${user.first_name || ''} ${user.last_name || ''}`.trim()
+    }
+    return user.email?.split('@')[0] || 'User'
+  }
+
+  const getUserInitials = () => {
+    if (!user) return ''
+    if (user.first_name || user.last_name) {
+      const first = user.first_name?.[0] || ''
+      const last = user.last_name?.[0] || ''
+      return `${first}${last}`.toUpperCase() || user.email?.[0].toUpperCase() || 'U'
+    }
+    return user.email?.[0].toUpperCase() || 'U'
+  }
 
   return (
     <nav className="border-b border-border/40 bg-white/90 backdrop-blur supports-[backdrop-filter]:bg-white/70">
@@ -33,15 +60,55 @@ export function Navigation() {
           >
             Home
           </Link>
-          <Link
-            href="/auth/login"
-            className="text-sm font-medium text-primary-500 transition-colors hover:text-primary-700"
-          >
-            Sign In
-          </Link>
-          <Button asChild className="rounded-xl">
-            <Link href="/auth/register">Get Started</Link>
-          </Button>
+          {loading && !userError ? (
+            <>
+              <div className="h-9 w-20 animate-pulse rounded-xl bg-primary-100" />
+              <div className="h-9 w-24 animate-pulse rounded-xl bg-primary-100" />
+            </>
+          ) : user ? (
+            <>
+              <Link
+                href="/dashboard"
+                className={`text-sm font-medium transition-colors ${
+                  pathname === '/dashboard'
+                    ? 'text-primary-700'
+                    : 'text-primary-500 hover:text-primary-700'
+                }`}
+              >
+                Dashboard
+              </Link>
+              <div className="flex items-center gap-3">
+                <div className="flex items-center gap-2">
+                  <div className="flex h-8 w-8 items-center justify-center rounded-full bg-primary-100 text-sm font-semibold text-primary-700">
+                    {getUserInitials()}
+                  </div>
+                  <span className="text-sm font-medium text-primary-700">
+                    {getUserDisplayName()}
+                  </span>
+                </div>
+                <Button
+                  onClick={handleSignOut}
+                  variant="outline"
+                  size="sm"
+                  className="rounded-xl border-border/60 text-primary-700 hover:bg-primary-100"
+                >
+                  Sign Out
+                </Button>
+              </div>
+            </>
+          ) : (
+            <>
+              <Link
+                href="/auth/login"
+                className="text-sm font-medium text-primary-500 transition-colors hover:text-primary-700"
+              >
+                Sign In
+              </Link>
+              <Button asChild className="rounded-xl">
+                <Link href="/auth/register">Get Started</Link>
+              </Button>
+            </>
+          )}
         </div>
 
         {/* Mobile menu button */}

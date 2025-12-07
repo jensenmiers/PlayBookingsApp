@@ -30,6 +30,7 @@ export function useVenues(filters?: VenueSearchFilters) {
 
   const fetchVenues = useCallback(async () => {
     setState((prev) => ({ ...prev, loading: true, error: null }))
+    
     try {
       const supabase = createClient()
       let query = supabase.from('venues').select('*').eq('is_active', true)
@@ -55,7 +56,10 @@ export function useVenues(filters?: VenueSearchFilters) {
 
       const { data, error } = await query.order('created_at', { ascending: false })
 
-      if (error) throw error
+      if (error) {
+        console.error('Venue fetch error:', error)
+        throw error
+      }
 
       setState({ data: data || [], loading: false, error: null })
     } catch (error) {
@@ -67,7 +71,29 @@ export function useVenues(filters?: VenueSearchFilters) {
   }, [filters?.city, filters?.state, filters?.min_price, filters?.max_price, filters?.insurance_required, filters?.instant_booking])
 
   useEffect(() => {
-    fetchVenues()
+    let mounted = true
+    let timeoutId: NodeJS.Timeout | null = null
+
+    // Safety timeout to prevent infinite loading
+    timeoutId = setTimeout(() => {
+      if (mounted) {
+        console.warn('Venue fetch timeout - setting loading to false')
+        setState((prev) => ({ ...prev, loading: false }))
+      }
+    }, 10000) // 10 second timeout
+
+    fetchVenues().then(() => {
+      if (timeoutId) {
+        clearTimeout(timeoutId)
+      }
+    })
+
+    return () => {
+      mounted = false
+      if (timeoutId) {
+        clearTimeout(timeoutId)
+      }
+    }
   }, [fetchVenues])
 
   return {
