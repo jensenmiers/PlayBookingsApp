@@ -14,7 +14,6 @@ import {
   DialogDescription,
 } from '@/components/ui/dialog'
 import { Button } from '@/components/ui/button'
-import { BookingStatusBadge } from './booking-status-badge'
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome'
 import { faCalendarDays, faClock, faDollarSign, faMapMarkerAlt } from '@fortawesome/free-solid-svg-icons'
 import { format } from 'date-fns'

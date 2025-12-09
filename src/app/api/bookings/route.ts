@@ -11,7 +11,7 @@ import { requireRenterOrOwner } from '@/middleware/rbacMiddleware'
 import { validateRequest, validateQuery } from '@/middleware/validationMiddleware'
 import { createBookingSchema, bookingQuerySchema } from '@/lib/validations/booking'
 import { handleApiError } from '@/utils/errorHandling'
-import type { ApiResponse, PaginatedResponse, ListBookingsResponse } from '@/types/api'
+import type { ApiResponse, ListBookingsResponse } from '@/types/api'
 import type { Booking } from '@/types'
 
 export async function GET(request: NextRequest) {

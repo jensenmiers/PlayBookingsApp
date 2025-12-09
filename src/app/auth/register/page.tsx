@@ -2,25 +2,18 @@
 
 import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
-import { Label } from '@/components/ui/label'
 import { createClient } from '@/lib/supabase/client'
 import { useState } from 'react'
 import Link from 'next/link'
 
-type UserRole = 'venue_owner' | 'renter'
-
 export default function RegisterPage() {
   const [loading, setLoading] = useState(false)
-  const [selectedRole, setSelectedRole] = useState<UserRole>('renter')
   const supabase = createClient()
 
   const handleGoogleSignup = async () => {
     try {
       setLoading(true)
-      
-      // Store the selected role in localStorage to use after OAuth callback
-      localStorage.setItem('pendingUserRole', selectedRole)
-      
+
       const { error } = await supabase.auth.signInWithOAuth({
         provider: 'google',
         options: {
@@ -46,64 +39,10 @@ export default function RegisterPage() {
         <CardHeader className="space-y-3 text-center">
           <CardTitle className="text-2xl font-bold text-primary-800">Join PlayBookings</CardTitle>
           <CardDescription className="text-primary-600">
-            Get started by selecting your role
+            Get started with your account
           </CardDescription>
         </CardHeader>
         <CardContent className="space-y-6">
-          {/* Role Selection */}
-          <div className="space-y-4">
-            <Label className="text-sm font-semibold text-primary-700">I want to:</Label>
-            <div className="space-y-3">
-              <div
-                className={`cursor-pointer rounded-xl border p-4 transition-colors ${
-                  selectedRole === 'renter'
-                    ? 'border-secondary-500 bg-secondary-50 shadow-soft'
-                    : 'border-border/70 hover:border-primary-300'
-                }`}
-                onClick={() => setSelectedRole('renter')}
-              >
-                <div className="flex items-center gap-3">
-                  <input
-                    type="radio"
-                    checked={selectedRole === 'renter'}
-                    onChange={() => setSelectedRole('renter')}
-                    className="text-secondary-600"
-                  />
-                  <div>
-                    <div className="font-medium text-primary-800">Rent Courts</div>
-                    <div className="text-sm text-primary-600">
-                      Book basketball courts for teams, leagues, or events
-                    </div>
-                  </div>
-                </div>
-              </div>
-
-              <div
-                className={`cursor-pointer rounded-xl border p-4 transition-colors ${
-                  selectedRole === 'venue_owner'
-                    ? 'border-secondary-500 bg-secondary-50 shadow-soft'
-                    : 'border-border/70 hover:border-primary-300'
-                }`}
-                onClick={() => setSelectedRole('venue_owner')}
-              >
-                <div className="flex items-center gap-3">
-                  <input
-                    type="radio"
-                    checked={selectedRole === 'venue_owner'}
-                    onChange={() => setSelectedRole('venue_owner')}
-                    className="text-secondary-600"
-                  />
-                  <div>
-                    <div className="font-medium text-primary-800">List My Venue</div>
-                    <div className="text-sm text-primary-600">
-                      Generate revenue from unused court time
-                    </div>
-                  </div>
-                </div>
-              </div>
-            </div>
-          </div>
-
           <Button
             onClick={handleGoogleSignup}
             disabled={loading}

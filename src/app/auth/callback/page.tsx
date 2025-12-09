@@ -26,30 +26,29 @@ export default function AuthCallbackPage() {
           const user = data.session.user
           console.log('User authenticated:', user.email)
 
-          // Check if we have a pending role selection from registration
-          const pendingRole = localStorage.getItem('pendingUserRole')
-          
-          if (pendingRole) {
-            // This is a new user registration - create user profile with role
-            const { error: profileError } = await supabase
-              .from('users')
-              .upsert({
+          // Always ensure a profile exists (default capabilities: renter)
+          const fullName = user.user_metadata?.full_name || ''
+          const [firstName, ...lastNameParts] = fullName.split(' ')
+
+          const { error: profileError } = await supabase
+            .from('users')
+            .upsert(
+              {
                 id: user.id,
                 email: user.email,
-                full_name: user.user_metadata.full_name,
-                avatar_url: user.user_metadata.avatar_url,
-                role: pendingRole,
-                created_at: new Date().toISOString(),
-                updated_at: new Date().toISOString()
-              })
+                first_name: firstName || null,
+                last_name: lastNameParts.join(' ') || null,
+                role: 'renter',
+                is_renter: true,
+                is_venue_owner: false,
+                updated_at: new Date().toISOString(),
+              },
+              { onConflict: 'id' }
+            )
 
-            if (profileError) {
-              console.error('Error creating user profile:', profileError)
-              // Still proceed to dashboard even if profile creation fails
-            }
-
-            // Clear the pending role
-            localStorage.removeItem('pendingUserRole')
+          if (profileError) {
+            console.error('Error creating user profile:', profileError)
+            // Still proceed to dashboard even if profile creation fails
           }
 
           setStatus('success')

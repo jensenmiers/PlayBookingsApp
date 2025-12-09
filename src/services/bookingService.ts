@@ -9,7 +9,7 @@ import { checkBookingConflicts } from '@/utils/conflictDetection'
 import { calculateRecurringDates } from '@/utils/recurringGenerator'
 import { isWithinAdvanceWindow, isWithinCancellationWindow, calculateDuration } from '@/utils/dateHelpers'
 import { conflict, badRequest, notFound } from '@/utils/errorHandling'
-import type { Booking, RecurringBooking, CreateBookingForm } from '@/types'
+import type { Booking, RecurringBooking, CreateBookingForm, BookingStatus } from '@/types'
 import { createClient } from '@/lib/supabase/server'
 
 export class BookingService {
@@ -343,7 +343,7 @@ export class BookingService {
    */
   async listBookings(
     filters: {
-      status?: string
+      status?: BookingStatus
       venue_id?: string
       date_from?: string
       date_to?: string
@@ -352,7 +352,7 @@ export class BookingService {
   ): Promise<Booking[]> {
     const { data: user } = await this.supabase
       .from('users')
-      .select('role')
+      .select('role, is_renter, is_venue_owner')
       .eq('id', userId)
       .single()
 
@@ -360,24 +360,24 @@ export class BookingService {
     if (user?.role === 'admin') {
       if (filters.venue_id) {
         return this.bookingRepo.findByVenue(filters.venue_id, {
-          status: filters.status as any,
+          status: filters.status,
           date_from: filters.date_from,
           date_to: filters.date_to,
         })
       }
       if (filters.status) {
-        return this.bookingRepo.findByStatus(filters.status as any)
+        return this.bookingRepo.findByStatus(filters.status)
       }
       // Return all bookings for admin (simplified - could add pagination)
       return this.bookingRepo.findByRenter(userId, {
-        status: filters.status as any,
+        status: filters.status,
         date_from: filters.date_from,
         date_to: filters.date_to,
       })
     }
 
     // Venue owners see their venue's bookings
-    if (user?.role === 'venue_owner') {
+    if (user?.is_venue_owner) {
       if (filters.venue_id) {
         // Verify ownership
         const { data: venue } = await this.supabase
@@ -388,7 +388,7 @@ export class BookingService {
 
         if (venue?.owner_id === userId) {
           return this.bookingRepo.findByVenue(filters.venue_id, {
-            status: filters.status as any,
+            status: filters.status,
             date_from: filters.date_from,
             date_to: filters.date_to,
           })
@@ -405,7 +405,7 @@ export class BookingService {
 
       for (const venueId of venueIds) {
         const bookings = await this.bookingRepo.findByVenue(venueId, {
-          status: filters.status as any,
+          status: filters.status,
           date_from: filters.date_from,
           date_to: filters.date_to,
         })
@@ -416,11 +416,16 @@ export class BookingService {
     }
 
     // Renters see their own bookings
-    return this.bookingRepo.findByRenter(userId, {
-      status: filters.status as any,
-      date_from: filters.date_from,
-      date_to: filters.date_to,
-    })
+    if (user?.is_renter) {
+      return this.bookingRepo.findByRenter(userId, {
+        status: filters.status,
+        date_from: filters.date_from,
+        date_to: filters.date_to,
+      })
+    }
+
+    // If user has no capabilities, return empty list
+    return []
   }
 }
 

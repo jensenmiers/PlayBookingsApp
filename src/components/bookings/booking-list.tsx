@@ -7,24 +7,22 @@
 
 import { useState } from 'react'
 import { useBookings } from '@/hooks/useBookings'
-import { BookingListItem } from '@/components/dashboard/booking-list-item'
 import { BookingStatusBadge } from './booking-status-badge'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome'
-import { faSpinner, faSearch, faFilter } from '@fortawesome/free-solid-svg-icons'
+import { faSpinner, faFilter } from '@fortawesome/free-solid-svg-icons'
 import { cn } from '@/lib/utils'
-import type { BookingStatus, UserRole } from '@/types'
+import type { BookingStatus } from '@/types'
 import type { ListBookingsQueryParams } from '@/types/api'
 import Link from 'next/link'
 
 interface BookingListProps {
-  userRole: UserRole
   initialFilters?: ListBookingsQueryParams
   className?: string
 }
 
-export function BookingList({ userRole, initialFilters, className }: BookingListProps) {
+export function BookingList({ initialFilters, className }: BookingListProps) {
   const [filters, setFilters] = useState<ListBookingsQueryParams>({
     status: initialFilters?.status,
     venue_id: initialFilters?.venue_id,

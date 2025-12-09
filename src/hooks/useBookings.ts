@@ -54,7 +54,7 @@ export function useBookings(params?: ListBookingsQueryParams) {
       const message = error instanceof Error ? error.message : 'Failed to fetch bookings'
       setState({ data: null, loading: false, error: message })
     }
-  }, [params?.status, params?.venue_id, params?.date_from, params?.date_to, params?.page, params?.limit])
+  }, [params])
 
   useEffect(() => {
     fetchBookings()

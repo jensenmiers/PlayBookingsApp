@@ -10,18 +10,14 @@ import {
   faClock,
   faSliders,
   faChevronDown,
-  faStar,
   faLocationDot,
   faDollarSign,
-  faSpinner,
 } from '@fortawesome/free-solid-svg-icons'
-import { faClock as faClockRegular } from '@fortawesome/free-regular-svg-icons'
 import { useVenues } from '@/hooks/useVenues'
 import { CreateBookingForm } from '@/components/forms/create-booking-form'
 import { VenueCardSkeleton } from '@/components/book/venue-card-skeleton'
 import { ErrorMessage } from '@/components/ui/error-message'
 import Image from 'next/image'
-import type { Venue } from '@/types'
 
 // Mock data - commented out, using database data instead
 // const featuredCourts = [...]

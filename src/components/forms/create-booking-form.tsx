@@ -32,10 +32,8 @@ import {
   DialogFooter,
 } from '@/components/ui/dialog'
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome'
-import { faCalendarDays, faClock, faSpinner } from '@fortawesome/free-solid-svg-icons'
-import { cn } from '@/lib/utils'
+import { faCalendarDays, faSpinner } from '@fortawesome/free-solid-svg-icons'
 import { AuthRequiredDialog } from '@/components/ui/auth-required-dialog'
-import type { Venue } from '@/types'
 
 interface CreateBookingFormProps {
   venueId?: string

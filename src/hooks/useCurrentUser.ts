@@ -5,6 +5,7 @@
 'use client'
 
 import { useState, useEffect } from 'react'
+import type { PostgrestError } from '@supabase/supabase-js'
 import { createClient } from '@/lib/supabase/client'
 import type { User } from '@/types'
 
@@ -38,7 +39,7 @@ export function useCurrentUser() {
         if (error) {
           // Handle case where user profile doesn't exist
           // PGRST116 = no rows returned, but also check message for other variations
-          const errorCode = (error as any)?.code
+          const errorCode = (error as PostgrestError | null)?.code
           const errorMessage = error.message?.toLowerCase() || ''
           
           if (

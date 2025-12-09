@@ -8,7 +8,7 @@ import { BookingService } from '@/services/bookingService'
 import { validateRequest } from '@/middleware/validationMiddleware'
 import { checkConflictsSchema } from '@/lib/validations/booking'
 import { handleApiError } from '@/utils/errorHandling'
-import type { ApiResponse, CheckConflictsResponse } from '@/types/api'
+import type { CheckConflictsResponse } from '@/types/api'
 
 export async function POST(request: NextRequest) {
   try {

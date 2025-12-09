@@ -10,7 +10,16 @@ import type { AuthContext } from './authMiddleware'
  * Require specific role
  */
 export function requireRole(authContext: AuthContext, allowedRoles: UserRole[]): void {
-  if (!allowedRoles.includes(authContext.user.role)) {
+  const user = authContext.user
+
+  const hasRole = allowedRoles.some((role) => {
+    if (role === 'admin') return user.role === 'admin'
+    if (role === 'venue_owner') return user.is_venue_owner
+    if (role === 'renter') return user.is_renter
+    return false
+  })
+
+  if (!hasRole) {
     throw forbidden(`Access denied. Required roles: ${allowedRoles.join(', ')}`)
   }
 }

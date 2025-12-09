@@ -8,7 +8,7 @@ import { useVenues } from '@/hooks/useVenues'
 import { useVenueAvailabilityRange } from '@/hooks/useVenues'
 import { useBookings } from '@/hooks/useBookings'
 import { CreateBookingForm } from '@/components/forms/create-booking-form'
-import { format, addDays, startOfWeek, isSameDay, parse } from 'date-fns'
+import { format, addDays, isSameDay } from 'date-fns'
 
 // Define time slots (2-hour blocks)
 const timeSlots = [

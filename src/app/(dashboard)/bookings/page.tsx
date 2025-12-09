@@ -42,7 +42,7 @@ export default function BookingsPage() {
         <CreateBookingForm
           open={showCreateForm}
           onOpenChange={setShowCreateForm}
-          onSuccess={(bookingId) => {
+          onSuccess={() => {
             setShowCreateForm(false)
             // Optionally redirect to booking details
             // router.push(`/dashboard/bookings/${bookingId}`)

@@ -6,17 +6,12 @@
 import { apiClient } from './client'
 import type {
   CreateBookingRequest,
-  CreateBookingResponse,
   UpdateBookingRequest,
-  UpdateBookingResponse,
   CancelBookingRequest,
-  CancelBookingResponse,
-  ConfirmBookingResponse,
   CheckConflictsRequest,
   CheckConflictsResponse,
   GenerateRecurringRequest,
   GenerateRecurringResponse,
-  GetBookingResponse,
   ListBookingsQueryParams,
   ListBookingsResponse,
   Booking,

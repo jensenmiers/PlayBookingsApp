@@ -14,7 +14,7 @@ export function MapView() {
         </div>
         <h2 className="text-2xl font-bold text-primary-800 mb-3">Map View Coming Soon</h2>
         <p className="text-primary-600 mb-6">
-          We're working on bringing you an interactive map view to help you discover venues near you.
+          We&apos;re working on bringing you an interactive map view to help you discover venues near you.
         </p>
         <div className="bg-white rounded-2xl shadow-soft p-6 text-left">
           <h3 className="font-semibold text-primary-800 mb-2">Planned Features:</h3>
