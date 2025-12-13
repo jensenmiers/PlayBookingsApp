@@ -93,25 +93,8 @@ export function useCurrentUser() {
       }
     }
 
-    // Safety timeout to prevent infinite loading
-    const timeoutId = setTimeout(() => {
-      if (mounted) {
-        console.warn('User fetch timeout - setting loading to false')
-        setState((prev) => {
-          if (prev.loading) {
-            return { ...prev, loading: false }
-          }
-          return prev
-        })
-      }
-    }, 5000) // 5 second timeout
+    fetchUser()
 
-    // Initial fetch
-    fetchUser().finally(() => {
-      clearTimeout(timeoutId)
-    })
-
-    // Subscribe to auth state changes
     const {
       data: { subscription },
     } = supabase.auth.onAuthStateChange(async (_event, session) => {
@@ -121,7 +104,6 @@ export function useCurrentUser() {
         try {
           await fetchUserProfile(session.user.id)
         } catch (error) {
-          // Error already handled in fetchUserProfile
           console.error('Error in auth state change callback:', error)
         }
       } else {
@@ -131,7 +113,6 @@ export function useCurrentUser() {
 
     return () => {
       mounted = false
-      clearTimeout(timeoutId)
       subscription.unsubscribe()
     }
   }, [])

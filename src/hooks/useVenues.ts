@@ -63,7 +63,6 @@ export function useVenues(filters?: VenueSearchFilters) {
 
       setState({ data: data || [], loading: false, error: null })
     } catch (error) {
-      // Log the actual error for debugging
       console.error('Venue fetch error:', error)
       const message = error instanceof Error ? error.message : 'Failed to fetch venues'
       setState({ data: null, loading: false, error: message })
@@ -71,29 +70,7 @@ export function useVenues(filters?: VenueSearchFilters) {
   }, [filters?.city, filters?.state, filters?.min_price, filters?.max_price, filters?.insurance_required, filters?.instant_booking])
 
   useEffect(() => {
-    let mounted = true
-    let timeoutId: NodeJS.Timeout | null = null
-
-    // Safety timeout to prevent infinite loading
-    timeoutId = setTimeout(() => {
-      if (mounted) {
-        console.warn('Venue fetch timeout - setting loading to false')
-        setState((prev) => ({ ...prev, loading: false }))
-      }
-    }, 10000) // 10 second timeout
-
-    fetchVenues().then(() => {
-      if (timeoutId) {
-        clearTimeout(timeoutId)
-      }
-    })
-
-    return () => {
-      mounted = false
-      if (timeoutId) {
-        clearTimeout(timeoutId)
-      }
-    }
+    fetchVenues()
   }, [fetchVenues])
 
   return {
@@ -131,7 +108,6 @@ export function useVenue(id: string | null) {
         if (error) throw error
         setState({ data, loading: false, error: null })
       } catch (error) {
-        // Log the actual error for debugging
         console.error('Venue fetch error:', error)
         const message = error instanceof Error ? error.message : 'Failed to fetch venue'
         setState({ data: null, loading: false, error: message })
@@ -175,7 +151,6 @@ export function useVenueAvailability(venueId: string | null, date: string | null
         if (error) throw error
         setState({ data: data || [], loading: false, error: null })
       } catch (error) {
-        // Log the actual error for debugging
         console.error('Availability fetch error:', error)
         const message = error instanceof Error ? error.message : 'Failed to fetch availability'
         setState({ data: null, loading: false, error: message })
@@ -225,7 +200,6 @@ export function useVenueAvailabilityRange(
         if (error) throw error
         setState({ data: data || [], loading: false, error: null })
       } catch (error) {
-        // Log the actual error for debugging
         console.error('Availability range fetch error:', error)
         const message = error instanceof Error ? error.message : 'Failed to fetch availability'
         setState({ data: null, loading: false, error: message })

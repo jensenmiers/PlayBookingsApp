@@ -19,11 +19,6 @@ import { VenueCardSkeleton } from '@/components/book/venue-card-skeleton'
 import { ErrorMessage } from '@/components/ui/error-message'
 import Image from 'next/image'
 
-// Mock data - commented out, using database data instead
-// const featuredCourts = [...]
-// const nearbyCourts = [...]
-// const recentlyViewed = [...]
-
 export function VenuesView() {
   const [selectedVenueId, setSelectedVenueId] = useState<string | null>(null)
   const [showBookingForm, setShowBookingForm] = useState(false)
@@ -34,7 +29,6 @@ export function VenuesView() {
     setShowBookingForm(true)
   }
 
-  // Show all venues from database - pagination will be added later
   const nearbyVenues = venues || []
 
   return (
@@ -81,79 +75,6 @@ export function VenuesView() {
         </div>
       </section>
 
-      {/* Featured Courts Section - COMMENTED OUT FOR NOW
-      <section className="px-4 pb-6">
-        <div className="flex items-center justify-between mb-4">
-          <h3 className="text-lg font-bold text-primary-800">Featured Courts</h3>
-          <span className="text-secondary-600 font-medium text-sm cursor-pointer hover:text-secondary-700">
-            View All
-          </span>
-        </div>
-
-        <div className="flex overflow-x-auto space-x-4 pb-4">
-          {venuesLoading ? (
-            <div className="flex items-center justify-center w-full py-8">
-              <FontAwesomeIcon icon={faSpinner} className="animate-spin text-primary-600" size="2x" />
-            </div>
-          ) : featuredVenues.length > 0 ? (
-            featuredVenues.map((venue) => (
-              <div
-                key={venue.id}
-                className="flex-shrink-0 w-[280px] bg-white rounded-2xl shadow-soft overflow-hidden"
-              >
-                <div className="relative h-[160px]">
-                  {venue.photos && venue.photos.length > 0 ? (
-                    <Image
-                      src={venue.photos[0]}
-                      alt={`${venue.name} basketball court`}
-                      fill
-                      className="object-cover"
-                      sizes="280px"
-                    />
-                  ) : (
-                    <div className="w-full h-full bg-primary-100 flex items-center justify-center">
-                      <span className="text-primary-400">No Image</span>
-                    </div>
-                  )}
-                  {venue.instant_booking && (
-                    <div className="absolute top-3 left-3 bg-accent-500 text-white text-xs font-bold px-3 py-1 rounded-full">
-                      Instant Booking
-                    </div>
-                  )}
-                  <div className="absolute bottom-3 right-3 bg-white bg-opacity-90 rounded-lg px-2 py-1 text-xs font-medium text-primary-800">
-                    ${venue.hourly_rate}/hour
-                  </div>
-                </div>
-                <div className="p-4">
-                  <div className="flex justify-between items-start mb-2">
-                    <h4 className="font-bold text-primary-800">{venue.name}</h4>
-                  </div>
-                  <div className="flex items-center text-primary-600 text-sm mb-2">
-                    <FontAwesomeIcon icon={faLocationDot} className="mr-2 text-primary-500" />
-                    <span>{venue.city}, {venue.state}</span>
-                  </div>
-                  <div className="flex items-center text-primary-600 text-sm mb-3">
-                    <FontAwesomeIcon icon={faClockRegular} className="mr-2 text-primary-500" />
-                    <span>Available</span>
-                  </div>
-                  <Button
-                    onClick={() => handleBookNow(venue.id)}
-                    className="w-full bg-primary-600 hover:bg-primary-700 text-white font-medium py-3 rounded-xl transition duration-200"
-                  >
-                    Book Now
-                  </Button>
-                </div>
-              </div>
-            ))
-          ) : (
-            <div className="w-full py-8 text-center text-primary-600">
-              No featured venues available
-            </div>
-          )}
-        </div>
-      </section>
-      */}
-
       {/* Nearby Courts Section */}
       <section className="px-4 pb-6">
         <div className="flex items-center justify-between mb-4">
@@ -165,14 +86,12 @@ export function VenuesView() {
 
         <div className="space-y-4">
           {venuesLoading ? (
-            // Show skeleton loading cards
             <>
               <VenueCardSkeleton />
               <VenueCardSkeleton />
               <VenueCardSkeleton />
             </>
           ) : error ? (
-            // Show error state with retry button
             <div className="space-y-4">
               <ErrorMessage error={error} title="Failed to load venues" />
               <Button
@@ -183,7 +102,6 @@ export function VenuesView() {
               </Button>
             </div>
           ) : nearbyVenues.length > 0 ? (
-            // Show venue cards
             nearbyVenues.map((venue) => (
               <div key={venue.id} className="bg-white rounded-2xl shadow-soft overflow-hidden">
                 <div className="flex">
@@ -258,7 +176,6 @@ export function VenuesView() {
         </div>
 
         <div className="flex overflow-x-auto space-x-4 pb-4">
-          {/* Recently viewed could be implemented with localStorage or user preferences */}
           <div className="text-center py-8 text-primary-600 w-full">
             No recently viewed venues
           </div>
