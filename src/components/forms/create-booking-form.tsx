@@ -139,7 +139,6 @@ export function CreateBookingForm({
       ) {
         setShowAuthDialog(true)
       } else {
-        // Show other errors in the form
         form.setError('root', {
           message: result.error,
         })
