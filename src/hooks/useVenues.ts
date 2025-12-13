@@ -6,7 +6,6 @@
 'use client'
 
 import { useState, useEffect, useCallback } from 'react'
-import { createClient } from '@/lib/supabase/client'
 import type { Venue, Availability, VenueSearchFilters } from '@/types'
 
 /**
@@ -32,38 +31,60 @@ export function useVenues(filters?: VenueSearchFilters) {
     setState((prev) => ({ ...prev, loading: true, error: null }))
     
     try {
-      const supabase = createClient()
-      let query = supabase.from('venues').select('*').eq('is_active', true)
+      // Using direct fetch instead of Supabase client due to SSR client hanging issue
+      // The Supabase SSR client's query promise was hanging indefinitely
 
+      
+      // Build query URL directly (workaround for Supabase SSR client hanging issue)
+      // TODO: Investigate why supabase.from().select() hangs - possibly SSR client initialization issue
+      const baseUrl = `${process.env.NEXT_PUBLIC_SUPABASE_URL}/rest/v1/venues`
+      const params = new URLSearchParams({
+        select: '*',
+        'is_active': 'eq.true',
+        order: 'created_at.desc'
+      })
+
+      // Add filter parameters if present
+      // Note: PostgREST supports multiple query params with the same key (e.g., hourly_rate=gte.X&hourly_rate=lte.Y)
       if (filters?.city) {
-        query = query.eq('city', filters.city)
+        params.append('city', `eq.${filters.city}`)
       }
       if (filters?.state) {
-        query = query.eq('state', filters.state)
+        params.append('state', `eq.${filters.state}`)
       }
       if (filters?.min_price !== undefined) {
-        query = query.gte('hourly_rate', filters.min_price)
+        params.append('hourly_rate', `gte.${filters.min_price}`)
       }
       if (filters?.max_price !== undefined) {
-        query = query.lte('hourly_rate', filters.max_price)
+        params.append('hourly_rate', `lte.${filters.max_price}`)
       }
       if (filters?.insurance_required !== undefined) {
-        query = query.eq('insurance_required', filters.insurance_required)
+        params.append('insurance_required', `eq.${filters.insurance_required}`)
       }
       if (filters?.instant_booking !== undefined) {
-        query = query.eq('instant_booking', filters.instant_booking)
+        params.append('instant_booking', `eq.${filters.instant_booking}`)
       }
 
-      const { data, error } = await query.order('created_at', { ascending: false })
+      const queryUrl = `${baseUrl}?${params.toString()}`
+      
+      // Use direct fetch since Supabase SSR client query hangs
+      const response = await fetch(queryUrl, {
+        method: 'GET',
+        headers: {
+          'apikey': process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
+          'Authorization': `Bearer ${process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY}`,
+          'Content-Type': 'application/json',
+        },
+      })
 
-      if (error) {
-        console.error('Venue fetch error:', error)
-        throw error
+      if (!response.ok) {
+        const errorText = await response.text()
+        throw new Error(`Venue fetch failed: ${response.status} ${response.statusText} - ${errorText}`)
       }
 
+      const data = await response.json()
       setState({ data: data || [], loading: false, error: null })
     } catch (error) {
-      // Log the actual error for debugging
       console.error('Venue fetch error:', error)
       const message = error instanceof Error ? error.message : 'Failed to fetch venues'
       setState({ data: null, loading: false, error: message })
