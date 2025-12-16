@@ -6,6 +6,7 @@
 'use client'
 
 import Link from 'next/link'
+import { usePathname } from 'next/navigation'
 import {
   Dialog,
   DialogContent,
@@ -21,6 +22,7 @@ interface AuthRequiredDialogProps {
   onOpenChange: (open: boolean) => void
   title?: string
   message?: string
+  returnTo?: string
 }
 
 export function AuthRequiredDialog({
@@ -28,7 +30,16 @@ export function AuthRequiredDialog({
   onOpenChange,
   title = 'Sign In Required',
   message = 'Please sign in to complete your booking',
+  returnTo,
 }: AuthRequiredDialogProps) {
+  const pathname = usePathname()
+  
+  // Use explicit returnTo if provided, otherwise use current pathname
+  const redirectPath = returnTo || pathname
+  const loginHref = redirectPath 
+    ? `/auth/login?returnTo=${encodeURIComponent(redirectPath)}`
+    : '/auth/login'
+
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="sm:max-w-md">
@@ -40,7 +51,7 @@ export function AuthRequiredDialog({
         </DialogHeader>
         <DialogFooter>
           <Button asChild className="w-full sm:w-auto">
-            <Link href="/auth/login" onClick={() => onOpenChange(false)}>
+            <Link href={loginHref} onClick={() => onOpenChange(false)}>
               Sign In
             </Link>
           </Button>
