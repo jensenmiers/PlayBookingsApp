@@ -25,10 +25,11 @@ export function useCurrentUser() {
   useEffect(() => {
     const supabase = createClient()
     let mounted = true
+    let lastRequestedUserId: string | null = null
 
-    const fetchUserProfile = async (userId: string) => {
+    const fetchUserProfileWithClient = async (client: ReturnType<typeof createClient>, userId: string) => {
       try {
-        const { data: user, error } = await supabase
+        const { data: user, error } = await client
           .from('users')
           .select('*')
           .eq('id', userId)
@@ -71,30 +72,6 @@ export function useCurrentUser() {
       }
     }
 
-    const fetchUser = async () => {
-      try {
-        const {
-          data: { session },
-        } = await supabase.auth.getSession()
-
-        if (!mounted) return
-
-        if (!session?.user) {
-          setState({ user: null, loading: false, error: null })
-          return
-        }
-
-        await fetchUserProfile(session.user.id)
-      } catch (error) {
-        if (!mounted) return
-        const message = error instanceof Error ? error.message : 'Failed to fetch user'
-        console.error('Error fetching user:', error)
-        setState({ user: null, loading: false, error: message })
-      }
-    }
-
-    fetchUser()
-
     const {
       data: { subscription },
     } = supabase.auth.onAuthStateChange(async (_event, session) => {
@@ -102,9 +79,31 @@ export function useCurrentUser() {
 
       if (session?.user) {
         try {
-          await fetchUserProfile(session.user.id)
+          const userId = session.user.id
+          if (lastRequestedUserId === userId && state.loading === false && state.user?.id === userId) {
+            return
+          }
+          lastRequestedUserId = userId
+
+          if (_event === 'SIGNED_IN') {
+            queueMicrotask(() => {
+              ;(async () => {
+                if (!mounted) return
+                const fresh = createClient()
+                await fetchUserProfileWithClient(fresh, userId)
+              })().catch((err) => {
+                console.error('Error in microtask profile fetch:', err)
+              })
+            })
+          } else {
+            const client = createClient()
+            await fetchUserProfileWithClient(client, userId)
+          }
         } catch (error) {
           console.error('Error in auth state change callback:', error)
+          if (mounted) {
+            setState({ user: null, loading: false, error: 'Failed to fetch user profile' })
+          }
         }
       } else {
         setState({ user: null, loading: false, error: null })

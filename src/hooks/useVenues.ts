@@ -30,7 +30,7 @@ export function useVenues(filters?: VenueSearchFilters) {
 
   const fetchVenues = useCallback(async () => {
     setState((prev) => ({ ...prev, loading: true, error: null }))
-    
+
     try {
       const supabase = createClient()
       let query = supabase.from('venues').select('*').eq('is_active', true)
