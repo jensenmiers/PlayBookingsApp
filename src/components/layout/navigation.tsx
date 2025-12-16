@@ -12,7 +12,7 @@ export function Navigation() {
   const { user, loading, error: userError } = useCurrentUser()
 
   // Determine home route based on authentication status
-  const homeHref = user ? '/dashboard' : '/auth/register'
+  const homeHref = user ? '/book' : '/auth/register'
   // Check if current path matches the home route
   const isHomeActive = pathname === homeHref
 

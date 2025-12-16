@@ -1,13 +1,14 @@
 'use client'
 
 import { createClient } from '@/lib/supabase/client'
-import { useRouter } from 'next/navigation'
+import { useRouter, useSearchParams } from 'next/navigation'
 import { useEffect, useState } from 'react'
 
 export default function AuthCallbackPage() {
   const [status, setStatus] = useState<'loading' | 'success' | 'error'>('loading')
   const [errorMessage, setErrorMessage] = useState('')
   const router = useRouter()
+  const searchParams = useSearchParams()
   const supabase = createClient()
 
   useEffect(() => {
@@ -48,14 +49,23 @@ export default function AuthCallbackPage() {
 
           if (profileError) {
             console.error('Error creating user profile:', profileError)
-            // Still proceed to dashboard even if profile creation fails
+            // Still proceed even if profile creation fails
           }
 
           setStatus('success')
           
-          // Redirect to dashboard after a brief success message
+          // Get returnTo param and validate it (only allow relative paths starting with /)
+          const returnTo = searchParams.get('returnTo')
+          let redirectPath = '/book' // Default destination
+          
+          if (returnTo && returnTo.startsWith('/') && !returnTo.startsWith('//')) {
+            // Valid relative path - use it
+            redirectPath = returnTo
+          }
+          
+          // Redirect after a brief success message
           setTimeout(() => {
-            router.push('/dashboard')
+            router.push(redirectPath)
           }, 2000)
         } else {
           setErrorMessage('No session found')
@@ -69,7 +79,7 @@ export default function AuthCallbackPage() {
     }
 
     handleAuthCallback()
-  }, [supabase, router])
+  }, [supabase, router, searchParams])
 
   if (status === 'loading') {
     return (
@@ -93,7 +103,7 @@ export default function AuthCallbackPage() {
             </svg>
           </div>
           <h2 className="text-xl font-semibold text-primary-800">Welcome to PlayBookings!</h2>
-          <p className="text-primary-600">Redirecting you to your dashboard...</p>
+          <p className="text-primary-600">Let&apos;s find you a venue to book...</p>
         </div>
       </div>
     )

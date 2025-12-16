@@ -9,6 +9,7 @@
     "start": "next start",
     "lint": "next lint",
     "test:supabase": "node scripts/test-supabase.js",
+    "test:auth-redirect": "tsx tests/auth-redirect.test.ts",
     "inspect:schema": "tsx scripts/inspect-schema.ts"
   },
   "dependencies": {

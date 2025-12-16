@@ -5,19 +5,27 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { createClient } from '@/lib/supabase/client'
 import { useState } from 'react'
 import Link from 'next/link'
+import { useSearchParams } from 'next/navigation'
 
 export default function RegisterPage() {
   const [loading, setLoading] = useState(false)
+  const searchParams = useSearchParams()
   const supabase = createClient()
 
   const handleGoogleSignup = async () => {
     try {
       setLoading(true)
 
+      // Get returnTo param and forward it to callback
+      const returnTo = searchParams.get('returnTo')
+      const callbackUrl = returnTo 
+        ? `${window.location.origin}/auth/callback?returnTo=${encodeURIComponent(returnTo)}`
+        : `${window.location.origin}/auth/callback`
+
       const { error } = await supabase.auth.signInWithOAuth({
         provider: 'google',
         options: {
-          redirectTo: `${window.location.origin}/auth/callback`,
+          redirectTo: callbackUrl,
         },
       })
       
