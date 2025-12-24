@@ -7,7 +7,9 @@
 
 import { useState, useEffect, useCallback } from 'react'
 import { createClient } from '@/lib/supabase/client'
-import type { Venue, Availability, VenueSearchFilters } from '@/types'
+import type { Venue, Availability, VenueSearchFilters, AvailabilityWithVenue } from '@/types'
+import { getNextTopOfHour, timeStringToDate, calculateDuration } from '@/utils/dateHelpers'
+import { format } from 'date-fns'
 
 /**
  * Hook state interface
@@ -210,6 +212,107 @@ export function useVenueAvailabilityRange(
   }, [venueId, dateFrom, dateTo])
 
   return state
+}
+
+/**
+ * Fetch availability slots with venue information for search page
+ */
+export function useAvailabilitySlots(filters?: {
+  date?: string // YYYY-MM-DD format, defaults to today
+  time?: string // Optional time filter (HH:MM format), defaults to "Any time"
+}) {
+  const [state, setState] = useState<UseAsyncState<AvailabilityWithVenue[]>>({
+    data: null,
+    loading: true,
+    error: null,
+  })
+
+  const fetchAvailabilitySlots = useCallback(async () => {
+    setState((prev) => ({ ...prev, loading: true, error: null }))
+
+    try {
+      const supabase = createClient()
+      const today = format(new Date(), 'yyyy-MM-dd')
+      const selectedDate = filters?.date || today
+      const isToday = selectedDate === today
+
+      // Calculate minimum start time (next top-of-hour if today, otherwise any time)
+      let minStartTime: string | null = null
+      if (isToday) {
+        const nextHour = getNextTopOfHour()
+        minStartTime = format(nextHour, 'HH:mm:ss')
+      }
+
+      // Build query with join to venues
+      // Note: Supabase uses the foreign key relationship name for joins
+      let query = supabase
+        .from('availability')
+        .select(`
+          *,
+          venue:venues (*)
+        `)
+        .eq('date', selectedDate)
+        .eq('is_available', true)
+
+      // Filter by minimum start time if today
+      if (minStartTime) {
+        query = query.gte('start_time', minStartTime)
+      }
+
+      // Optional time filter (specific hour)
+      if (filters?.time && filters.time !== 'Any time') {
+        // Filter slots that start at or after the selected time
+        const filterTime = filters.time.length === 5 ? `${filters.time}:00` : filters.time
+        query = query.gte('start_time', filterTime)
+      }
+
+      // Order by start_time ascending
+      const { data, error } = await query.order('start_time', { ascending: true })
+
+      if (error) {
+        console.error('Availability slots fetch error:', error)
+        throw error
+      }
+
+      // Transform data to match AvailabilityWithVenue type
+      const transformedData: AvailabilityWithVenue[] = (data || [])
+        .map((item: any) => ({
+          id: item.id,
+          venue_id: item.venue_id,
+          date: item.date,
+          start_time: item.start_time,
+          end_time: item.end_time,
+          is_available: item.is_available,
+          created_at: item.created_at,
+          updated_at: item.updated_at,
+          venue: item.venue as Venue,
+        }))
+        .filter((item: AvailabilityWithVenue) => {
+          // Additional client-side filtering for today to ensure slots are in the future
+          if (isToday) {
+            const slotDateTime = timeStringToDate(item.date, item.start_time)
+            const now = new Date()
+            return slotDateTime >= now
+          }
+          return true
+        })
+
+      setState({ data: transformedData, loading: false, error: null })
+    } catch (error) {
+      console.error('Availability slots fetch error:', error)
+      const message = error instanceof Error ? error.message : 'Failed to fetch availability slots'
+      setState({ data: null, loading: false, error: message })
+    }
+  }, [filters?.date, filters?.time])
+
+  useEffect(() => {
+    fetchAvailabilitySlots()
+  }, [fetchAvailabilitySlots])
+
+  return {
+    ...state,
+    refetch: fetchAvailabilitySlots,
+  }
 }
 
 

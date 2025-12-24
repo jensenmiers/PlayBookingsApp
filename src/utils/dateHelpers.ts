@@ -97,5 +97,27 @@ export function formatTime(time: string): string {
   return time.substring(0, 5) // Ensure HH:MM format
 }
 
+/**
+ * Get the next top-of-hour time (rounded up)
+ * Example: 2:15 PM -> 3:00 PM, 2:00 PM -> 2:00 PM
+ */
+export function getNextTopOfHour(): Date {
+  const now = new Date()
+  const nextHour = new Date(now)
+  nextHour.setHours(now.getHours() + 1)
+  nextHour.setMinutes(0, 0, 0)
+  return nextHour
+}
+
+/**
+ * Format time string to Date for comparison
+ */
+export function timeStringToDate(dateStr: string, timeStr: string): Date {
+  const [hours, minutes] = timeStr.split(':').map(Number)
+  const date = new Date(dateStr)
+  date.setHours(hours, minutes || 0, 0, 0)
+  return date
+}
+
 
 
