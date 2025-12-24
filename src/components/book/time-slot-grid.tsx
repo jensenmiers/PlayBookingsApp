@@ -1,7 +1,7 @@
 'use client'
 
 import { Button } from '@/components/ui/button'
-import type { Venue, Availability } from '@/types'
+import type { Venue } from '@/types'
 
 export interface TimeSlot {
   start: string
@@ -34,10 +34,9 @@ export function TimeSlotGrid({
   }
 
   if (slots.length === 0) {
-    return null // Empty state handled by parent
+    return null
   }
 
-  // Group slots by AM/PM
   const amSlots = slots.filter((slot) => slot.hour < 12)
   const pmSlots = slots.filter((slot) => slot.hour >= 12)
 

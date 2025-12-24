@@ -45,7 +45,7 @@ export function TimeSlotConfirmationDialog({
   }
 
   const hourlyRate = venue.hourly_rate
-  const estimatedTotal = hourlyRate // 1 hour booking
+  const estimatedTotal = hourlyRate
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
@@ -100,13 +100,6 @@ export function TimeSlotConfirmationDialog({
             </div>
           )}
 
-          {/* Placeholder Notice */}
-          <div className="p-3 bg-blue-50 border border-blue-200 rounded-lg">
-            <p className="text-xs text-blue-800">
-              <span className="font-semibold">Next Step:</span> The booking creation flow will be
-              implemented next.
-            </p>
-          </div>
         </div>
 
         <DialogFooter>

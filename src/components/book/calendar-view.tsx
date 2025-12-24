@@ -14,16 +14,12 @@ import { format, addDays, isToday } from 'date-fns'
 import { checkTimeOverlap } from '@/utils/conflictDetection'
 import type { Availability, Booking } from '@/types'
 
-/**
- * Generate hourly time slots (6 AM - 10 PM)
- */
 function generateHourlySlots(): TimeSlot[] {
   const slots: TimeSlot[] = []
   for (let hour = 6; hour < 22; hour++) {
     const start = `${hour.toString().padStart(2, '0')}:00:00`
     const end = `${(hour + 1).toString().padStart(2, '0')}:00:00`
     
-    // Format display time (12-hour format)
     const displayHour = hour % 12 || 12
     const ampm = hour >= 12 ? 'PM' : 'AM'
     const display = `${displayHour}:00 ${ampm}`
@@ -38,9 +34,6 @@ function generateHourlySlots(): TimeSlot[] {
   return slots
 }
 
-/**
- * Check if a time slot is available
- */
 function isSlotAvailable(
   slot: TimeSlot,
   date: Date,
@@ -49,7 +42,6 @@ function isSlotAvailable(
 ): boolean {
   const dateStr = format(date, 'yyyy-MM-dd')
   
-  // Check if there's availability for this day and time
   const hasAvailability = availability?.some(
     (avail) =>
       avail.date === dateStr &&
@@ -60,18 +52,15 @@ function isSlotAvailable(
 
   if (!hasAvailability) return false
 
-  // Check if there's a conflicting booking (only pending and confirmed)
   const hasConflict = bookings?.some((booking) => {
     if (booking.date !== dateStr) return false
     if (booking.status !== 'pending' && booking.status !== 'confirmed') return false
     
-    // Check for time overlap
     return checkTimeOverlap(slot.start, slot.end, booking.start_time, booking.end_time)
   }) ?? false
 
   if (hasConflict) return false
 
-  // Check if slot is in the past (for today only)
   if (isToday(date)) {
     const now = new Date()
     const slotDateTime = new Date(`${dateStr}T${slot.start}`)
@@ -90,7 +79,6 @@ export function CalendarView() {
   const { data: venues, loading: venuesLoading } = useVenues()
   const { data: selectedVenue } = useVenue(selectedVenueId)
   
-  // Get dates for today + next 2 days (3 days total)
   const days = useMemo(() => {
     const today = new Date()
     return Array.from({ length: 3 }, (_, i) => addDays(today, i))
@@ -106,17 +94,14 @@ export function CalendarView() {
     dateTo
   )
 
-  // Get bookings for the selected venue to check conflicts
   const { data: bookings } = useBookings({
     venue_id: selectedVenueId || undefined,
     date_from: dateFrom,
     date_to: dateTo,
   })
 
-  // Generate all hourly slots
   const allSlots = useMemo(() => generateHourlySlots(), [])
 
-  // Filter available slots for selected date
   const availableSlots = useMemo(() => {
     if (!selectedVenueId || !selectedDate) return []
     
@@ -131,13 +116,11 @@ export function CalendarView() {
   }
 
   const handleConfirm = () => {
-    // Placeholder - actual booking creation will be implemented later
     console.log('Booking confirmed:', {
       venueId: selectedVenueId,
       date: selectedDate,
       timeSlot: selectedTimeSlot,
     })
-    // For now, just close the dialog
     setShowConfirmationDialog(false)
     setSelectedTimeSlot(null)
   }
