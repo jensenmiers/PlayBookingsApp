@@ -1,1 +1,1 @@
-Your job is to create a PR with a descriptive title. Always use the GitHub CLI. If you haven't already made a commit, do that first.
+Your job is to create a PR with a descriptive title. Always use the GitHub CLI. If you haven't already made a commit or still on the main branch, create a new branch and commit it first.
