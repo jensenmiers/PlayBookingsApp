@@ -162,6 +162,10 @@ export interface VenueWithOwner extends Venue {
   owner: User
 }
 
+export interface AvailabilityWithVenue extends Availability {
+  venue: Venue
+}
+
 export interface BookingWithDetails extends Booking {
   venue: Venue
   renter: User
