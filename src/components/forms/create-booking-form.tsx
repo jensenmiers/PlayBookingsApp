@@ -9,6 +9,21 @@ import { useState, useEffect } from 'react'
 import { useForm } from 'react-hook-form'
 import { zodResolver } from '@hookform/resolvers/zod'
 import { format } from 'date-fns'
+
+/**
+ * Parse a date string (YYYY-MM-DD) as local midnight to avoid UTC timezone issues
+ */
+function parseLocalDate(dateStr: string): Date {
+  const [year, month, day] = dateStr.split('-').map(Number)
+  return new Date(year, month - 1, day) // month is 0-indexed
+}
+
+/**
+ * Normalize a Date to local midnight to avoid timezone issues when formatting
+ */
+function normalizeToLocalMidnight(d: Date): Date {
+  return new Date(d.getFullYear(), d.getMonth(), d.getDate())
+}
 import { createBookingSchema, type CreateBookingInput } from '@/lib/validations/booking'
 import { useCreateBooking, useCheckConflicts } from '@/hooks/useBookings'
 import { useVenues, useVenue } from '@/hooks/useVenues'
@@ -38,6 +53,8 @@ import { AuthRequiredDialog } from '@/components/ui/auth-required-dialog'
 interface CreateBookingFormProps {
   venueId?: string
   initialDate?: Date
+  initialStartTime?: string
+  initialEndTime?: string
   onSuccess?: (bookingId: string) => void
   onCancel?: () => void
   open?: boolean
@@ -47,13 +64,16 @@ interface CreateBookingFormProps {
 export function CreateBookingForm({
   venueId: initialVenueId,
   initialDate,
+  initialStartTime,
+  initialEndTime,
   onSuccess,
   onCancel,
   open = true,
   onOpenChange,
 }: CreateBookingFormProps) {
   const today = new Date()
-  const defaultDate = initialDate || today
+  // Normalize initialDate to local midnight to avoid timezone issues
+  const defaultDate = initialDate ? normalizeToLocalMidnight(initialDate) : normalizeToLocalMidnight(today)
   const [selectedDate, setSelectedDate] = useState<Date | undefined>(defaultDate)
   const [showDatePicker, setShowDatePicker] = useState(false)
   const [conflictChecked, setConflictChecked] = useState(false)
@@ -64,13 +84,23 @@ export function CreateBookingForm({
   const createBooking = useCreateBooking()
   const { check: checkConflicts, data: conflictData, loading: checkingConflicts } = useCheckConflicts()
 
+  // Format time to HH:MM:SS if needed
+  const formatTimeForForm = (time?: string): string => {
+    if (!time) return '09:00:00'
+    // If time is already in HH:MM:SS format, return as is
+    if (time.length === 8) return time
+    // If time is in HH:MM format, add :00
+    if (time.length === 5) return `${time}:00`
+    return time
+  }
+
   const form = useForm<CreateBookingInput>({
     resolver: zodResolver(createBookingSchema),
     defaultValues: {
       venue_id: initialVenueId || '',
       date: format(defaultDate, 'yyyy-MM-dd'),
-      start_time: '09:00:00',
-      end_time: '10:00:00',
+      start_time: formatTimeForForm(initialStartTime) || '09:00:00',
+      end_time: formatTimeForForm(initialEndTime) || '10:00:00',
       recurring_type: 'none',
       notes: '',
     },
@@ -106,6 +136,29 @@ export function CreateBookingForm({
       setConflictChecked(false)
     }
   }, [selectedDate, form])
+
+  // Update form values when initial props change (e.g., when opening with a pre-selected slot)
+  useEffect(() => {
+    if (open) {
+      if (initialVenueId) {
+        form.setValue('venue_id', initialVenueId)
+      }
+      if (initialDate) {
+        // Create a local date from the initialDate to avoid timezone issues
+        const localDate = normalizeToLocalMidnight(initialDate)
+        const dateStr = format(localDate, 'yyyy-MM-dd')
+        form.setValue('date', dateStr)
+        setSelectedDate(localDate)
+      }
+      if (initialStartTime) {
+        form.setValue('start_time', formatTimeForForm(initialStartTime))
+      }
+      if (initialEndTime) {
+        form.setValue('end_time', formatTimeForForm(initialEndTime))
+      }
+      setConflictChecked(false)
+    }
+  }, [open, initialVenueId, initialDate, initialStartTime, initialEndTime, form])
 
   const onSubmit = async (data: CreateBookingInput) => {
     // Check conflicts one more time before submission
@@ -203,7 +256,7 @@ export function CreateBookingForm({
                             field.onChange(e)
                             setConflictChecked(false)
                             if (e.target.value) {
-                              setSelectedDate(new Date(e.target.value))
+                              setSelectedDate(parseLocalDate(e.target.value))
                             }
                           }}
                         />

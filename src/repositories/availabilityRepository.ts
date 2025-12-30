@@ -6,13 +6,12 @@ import { createClient } from '@/lib/supabase/server'
 import type { Availability } from '@/types'
 
 export class AvailabilityRepository {
-  private supabase = createClient()
-
   /**
    * Find availability blocks for a venue and date
    */
   async findByVenueAndDate(venueId: string, date: string): Promise<Availability[]> {
-    const { data, error } = await this.supabase
+    const supabase = await createClient()
+    const { data, error } = await supabase
       .from('availability')
       .select('*')
       .eq('venue_id', venueId)
@@ -50,7 +49,8 @@ export class AvailabilityRepository {
    * Find available time slots for a venue and date
    */
   async findAvailableSlots(venueId: string, date: string): Promise<Availability[]> {
-    const { data, error } = await this.supabase
+    const supabase = await createClient()
+    const { data, error } = await supabase
       .from('availability')
       .select('*')
       .eq('venue_id', venueId)

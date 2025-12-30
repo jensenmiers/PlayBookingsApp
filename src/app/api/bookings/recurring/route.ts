@@ -17,7 +17,7 @@ import { BookingRepository } from '@/repositories/bookingRepository'
 export async function POST(request: NextRequest) {
   try {
     const auth = await requireAuth()
-    const supabase = createClient()
+    const supabase = await createClient()
 
     const body = await validateRequest(request, generateRecurringSchema)
 

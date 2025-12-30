@@ -16,14 +16,14 @@ export class BookingService {
   private bookingRepo = new BookingRepository()
   private availabilityRepo = new AvailabilityRepository()
   private auditService = new AuditService()
-  private supabase = createClient()
 
   /**
    * Create a new booking with full validation
    */
   async createBooking(data: CreateBookingForm, userId: string): Promise<Booking> {
+    const supabase = await createClient()
     // Get venue to check advance booking window and calculate amount
-    const { data: venue, error: venueError } = await this.supabase
+    const { data: venue, error: venueError } = await supabase
       .from('venues')
       .select('*')
       .eq('id', data.venue_id)
@@ -151,6 +151,7 @@ export class BookingService {
    * Cancel booking with 48-hour policy validation
    */
   async cancelBooking(bookingId: string, userId: string): Promise<Booking> {
+    const supabase = await createClient()
     const booking = await this.bookingRepo.findById(bookingId)
 
     if (!booking) {
@@ -160,13 +161,13 @@ export class BookingService {
     // Check authorization
     if (booking.renter_id !== userId) {
       // Check if user is venue owner or admin
-      const { data: venue } = await this.supabase
+      const { data: venue } = await supabase
         .from('venues')
         .select('owner_id')
         .eq('id', booking.venue_id)
         .single()
 
-      const { data: user } = await this.supabase
+      const { data: user } = await supabase
         .from('users')
         .select('role')
         .eq('id', userId)
@@ -202,6 +203,7 @@ export class BookingService {
    * Confirm booking with insurance validation
    */
   async confirmBooking(bookingId: string, userId: string): Promise<Booking> {
+    const supabase = await createClient()
     const booking = await this.bookingRepo.findById(bookingId)
 
     if (!booking) {
@@ -209,7 +211,7 @@ export class BookingService {
     }
 
     // Check if user is venue owner or admin
-    const { data: venue } = await this.supabase
+    const { data: venue } = await supabase
       .from('venues')
       .select('owner_id, insurance_required')
       .eq('id', booking.venue_id)
@@ -219,7 +221,7 @@ export class BookingService {
       throw notFound('Venue not found')
     }
 
-    const { data: user } = await this.supabase
+    const { data: user } = await supabase
       .from('users')
       .select('role')
       .eq('id', userId)
@@ -258,6 +260,7 @@ export class BookingService {
     updates: Partial<Booking>,
     userId: string
   ): Promise<Booking> {
+    const supabase = await createClient()
     const booking = await this.bookingRepo.findById(bookingId)
 
     if (!booking) {
@@ -266,13 +269,13 @@ export class BookingService {
 
     // Check authorization
     if (booking.renter_id !== userId) {
-      const { data: venue } = await this.supabase
+      const { data: venue } = await supabase
         .from('venues')
         .select('owner_id')
         .eq('id', booking.venue_id)
         .single()
 
-      const { data: user } = await this.supabase
+      const { data: user } = await supabase
         .from('users')
         .select('role')
         .eq('id', userId)
@@ -310,6 +313,7 @@ export class BookingService {
    * Get booking by ID with authorization check
    */
   async getBooking(bookingId: string, userId: string): Promise<Booking> {
+    const supabase = await createClient()
     const booking = await this.bookingRepo.findById(bookingId)
 
     if (!booking) {
@@ -318,13 +322,13 @@ export class BookingService {
 
     // Check authorization
     if (booking.renter_id !== userId) {
-      const { data: venue } = await this.supabase
+      const { data: venue } = await supabase
         .from('venues')
         .select('owner_id')
         .eq('id', booking.venue_id)
         .single()
 
-      const { data: user } = await this.supabase
+      const { data: user } = await supabase
         .from('users')
         .select('role')
         .eq('id', userId)
@@ -350,7 +354,8 @@ export class BookingService {
     },
     userId: string
   ): Promise<Booking[]> {
-    const { data: user } = await this.supabase
+    const supabase = await createClient()
+    const { data: user } = await supabase
       .from('users')
       .select('role, is_renter, is_venue_owner')
       .eq('id', userId)
@@ -378,9 +383,10 @@ export class BookingService {
 
     // Venue owners see their venue's bookings
     if (user?.is_venue_owner) {
+      const supabaseOwner = await createClient()
       if (filters.venue_id) {
         // Verify ownership
-        const { data: venue } = await this.supabase
+        const { data: venue } = await supabaseOwner
           .from('venues')
           .select('owner_id')
           .eq('id', filters.venue_id)
@@ -395,7 +401,7 @@ export class BookingService {
         }
       }
       // Get all venues owned by user and their bookings
-      const { data: venues } = await this.supabase
+      const { data: venues } = await supabaseOwner
         .from('venues')
         .select('id')
         .eq('owner_id', userId)

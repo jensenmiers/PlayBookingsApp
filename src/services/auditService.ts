@@ -6,8 +6,6 @@ import { createClient } from '@/lib/supabase/server'
 import type { AuditLog } from '@/types'
 
 export class AuditService {
-  private supabase = createClient()
-
   /**
    * Log a create action
    */
@@ -17,7 +15,8 @@ export class AuditService {
     userId: string,
     newValues: Record<string, unknown>
   ): Promise<void> {
-    const { error } = await this.supabase.from('audit_logs').insert({
+    const supabase = await createClient()
+    const { error } = await supabase.from('audit_logs').insert({
       table_name: tableName,
       record_id: recordId,
       action: 'create',
@@ -41,7 +40,8 @@ export class AuditService {
     oldValues: Record<string, unknown>,
     newValues: Record<string, unknown>
   ): Promise<void> {
-    const { error } = await this.supabase.from('audit_logs').insert({
+    const supabase = await createClient()
+    const { error } = await supabase.from('audit_logs').insert({
       table_name: tableName,
       record_id: recordId,
       action: 'update',
@@ -65,7 +65,8 @@ export class AuditService {
     userId: string,
     oldValues: Record<string, unknown>
   ): Promise<void> {
-    const { error } = await this.supabase.from('audit_logs').insert({
+    const supabase = await createClient()
+    const { error } = await supabase.from('audit_logs').insert({
       table_name: tableName,
       record_id: recordId,
       action: 'delete',

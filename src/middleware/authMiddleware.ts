@@ -19,7 +19,7 @@ export interface AuthContext {
  * Require authentication and return user context
  */
 export async function requireAuth(): Promise<AuthContext> {
-  const supabase = createClient()
+  const supabase = await createClient()
   
   const {
     data: { session },
@@ -66,7 +66,7 @@ export async function getCurrentUser(): Promise<AuthContext | null> {
  * Get session only
  */
 export async function getSession() {
-  const supabase = createClient()
+  const supabase = await createClient()
   const {
     data: { session },
   } = await supabase.auth.getSession()

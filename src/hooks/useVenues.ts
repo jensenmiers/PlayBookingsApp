@@ -9,6 +9,7 @@ import { useState, useEffect, useCallback } from 'react'
 import { createClient } from '@/lib/supabase/client'
 import type { Venue, Availability, VenueSearchFilters, AvailabilityWithVenue } from '@/types'
 import { getNextTopOfHour, timeStringToDate, calculateDuration } from '@/utils/dateHelpers'
+import { slugify } from '@/lib/utils'
 import { format } from 'date-fns'
 
 /**
@@ -118,6 +119,56 @@ export function useVenue(id: string | null) {
 
     fetchVenue()
   }, [id])
+
+  return state
+}
+
+/**
+ * Fetch a single venue by slugified name
+ * Fetches all venues and finds the one matching the slug
+ */
+export function useVenueBySlug(slug: string | null) {
+  const [state, setState] = useState<UseAsyncState<Venue>>({
+    data: null,
+    loading: true,
+    error: null,
+  })
+
+  useEffect(() => {
+    if (!slug) {
+      setState({ data: null, loading: false, error: null })
+      return
+    }
+
+    const fetchVenueBySlug = async () => {
+      setState((prev) => ({ ...prev, loading: true, error: null }))
+      try {
+        const supabase = createClient()
+        const { data: venues, error } = await supabase
+          .from('venues')
+          .select('*')
+          .eq('is_active', true)
+
+        if (error) throw error
+
+        // Find venue by matching slugified name
+        const venue = venues?.find((v) => slugify(v.name) === slug) || null
+
+        if (!venue) {
+          setState({ data: null, loading: false, error: 'Venue not found' })
+          return
+        }
+
+        setState({ data: venue, loading: false, error: null })
+      } catch (error) {
+        console.error('Venue fetch error:', error)
+        const message = error instanceof Error ? error.message : 'Failed to fetch venue'
+        setState({ data: null, loading: false, error: message })
+      }
+    }
+
+    fetchVenueBySlug()
+  }, [slug])
 
   return state
 }
@@ -274,19 +325,17 @@ export function useAvailabilitySlots(filters?: {
         throw error
       }
 
-      // Transform data to match AvailabilityWithVenue type
-      const transformedData: AvailabilityWithVenue[] = (data || [])
-        .map((item: any) => ({
-          id: item.id,
-          venue_id: item.venue_id,
-          date: item.date,
-          start_time: item.start_time,
-          end_time: item.end_time,
-          is_available: item.is_available,
-          created_at: item.created_at,
-          updated_at: item.updated_at,
-          venue: item.venue as Venue,
-        }))
+      const transformedData: AvailabilityWithVenue[] = (data || []).map((item) => ({
+        id: item.id,
+        venue_id: item.venue_id,
+        date: item.date,
+        start_time: item.start_time,
+        end_time: item.end_time,
+        is_available: item.is_available,
+        created_at: item.created_at,
+        updated_at: item.updated_at,
+        venue: item.venue as Venue,
+      }))
         .filter((item: AvailabilityWithVenue) => {
           // Additional client-side filtering for today to ensure slots are in the future
           if (isToday) {
