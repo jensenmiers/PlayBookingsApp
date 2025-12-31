@@ -21,7 +21,7 @@ interface RouteParams {
 export async function POST(request: NextRequest, { params }: RouteParams) {
   try {
     const auth = await requireAuth()
-    const supabase = createClient()
+    const supabase = await createClient()
 
     await requireBookingAccess(supabase, params.id, auth)
 

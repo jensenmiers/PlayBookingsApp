@@ -6,8 +6,6 @@ import { createClient } from '@/lib/supabase/server'
 import type { Booking, RecurringBooking, BookingStatus } from '@/types'
 
 export class BookingRepository {
-  private supabase = createClient()
-
   /**
    * Create a new booking
    */
@@ -25,7 +23,8 @@ export class BookingRepository {
     recurring_end_date?: string
     notes?: string
   }): Promise<Booking> {
-    const { data: booking, error } = await this.supabase
+    const supabase = await createClient()
+    const { data: booking, error } = await supabase
       .from('bookings')
       .insert({
         ...data,
@@ -48,7 +47,8 @@ export class BookingRepository {
    * Find booking by ID
    */
   async findById(id: string): Promise<Booking | null> {
-    const { data, error } = await this.supabase
+    const supabase = await createClient()
+    const { data, error } = await supabase
       .from('bookings')
       .select('*')
       .eq('id', id)
@@ -72,7 +72,8 @@ export class BookingRepository {
     date_from?: string
     date_to?: string
   }): Promise<Booking[]> {
-    let query = this.supabase
+    const supabase = await createClient()
+    let query = supabase
       .from('bookings')
       .select('*')
       .eq('renter_id', renterId)
@@ -108,7 +109,8 @@ export class BookingRepository {
     date_from?: string
     date_to?: string
   }): Promise<Booking[]> {
-    let query = this.supabase
+    const supabase = await createClient()
+    let query = supabase
       .from('bookings')
       .select('*')
       .eq('venue_id', venueId)
@@ -140,7 +142,8 @@ export class BookingRepository {
    * Find bookings by status
    */
   async findByStatus(status: BookingStatus): Promise<Booking[]> {
-    const { data, error } = await this.supabase
+    const supabase = await createClient()
+    const { data, error } = await supabase
       .from('bookings')
       .select('*')
       .eq('status', status)
@@ -157,7 +160,8 @@ export class BookingRepository {
    * Update booking
    */
   async update(id: string, updates: Partial<Booking>): Promise<Booking> {
-    const { data, error } = await this.supabase
+    const supabase = await createClient()
+    const { data, error } = await supabase
       .from('bookings')
       .update(updates)
       .eq('id', id)
@@ -175,7 +179,8 @@ export class BookingRepository {
    * Delete booking (soft delete by setting status to cancelled)
    */
   async delete(id: string): Promise<void> {
-    const { error } = await this.supabase
+    const supabase = await createClient()
+    const { error } = await supabase
       .from('bookings')
       .update({ status: 'cancelled' })
       .eq('id', id)
@@ -195,7 +200,8 @@ export class BookingRepository {
     endTime: string,
     excludeBookingId?: string
   ): Promise<Booking[]> {
-    let query = this.supabase
+    const supabase = await createClient()
+    let query = supabase
       .from('bookings')
       .select('*')
       .eq('venue_id', venueId)
@@ -230,7 +236,8 @@ export class BookingRepository {
     endTime: string,
     excludeRecurringId?: string
   ): Promise<RecurringBooking[]> {
-    let query = this.supabase
+    const supabase = await createClient()
+    let query = supabase
       .from('recurring_bookings')
       .select('*')
       .eq('venue_id', venueId)
@@ -269,7 +276,8 @@ export class BookingRepository {
     total_amount: number
     insurance_approved?: boolean
   }): Promise<RecurringBooking> {
-    const { data: recurring, error } = await this.supabase
+    const supabase = await createClient()
+    const { data: recurring, error } = await supabase
       .from('recurring_bookings')
       .insert({
         ...data,
@@ -290,7 +298,8 @@ export class BookingRepository {
    * Find recurring bookings by parent booking
    */
   async findByParentBooking(parentBookingId: string): Promise<RecurringBooking[]> {
-    const { data, error } = await this.supabase
+    const supabase = await createClient()
+    const { data, error } = await supabase
       .from('recurring_bookings')
       .select('*')
       .eq('parent_booking_id', parentBookingId)

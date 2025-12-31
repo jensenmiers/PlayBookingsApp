@@ -5,20 +5,29 @@
 import { BUSINESS_RULES } from '@/types'
 
 /**
+ * Parse a date string (YYYY-MM-DD) as local midnight, avoiding UTC parsing issues
+ */
+function parseLocalDate(dateStr: string): Date {
+  const [year, month, day] = dateStr.split('-').map(Number)
+  return new Date(year, month - 1, day) // month is 0-indexed
+}
+
+/**
  * Check if a booking date is within the advance booking window
  */
 export function isWithinAdvanceWindow(
   date: Date | string,
   maxAdvanceDays: number = BUSINESS_RULES.MAX_ADVANCE_BOOKING_DAYS
 ): boolean {
-  const bookingDate = typeof date === 'string' ? new Date(date) : date
+  // Parse date string as local date to avoid UTC timezone shift
+  const bookingDate = typeof date === 'string' ? parseLocalDate(date) : new Date(date)
+  bookingDate.setHours(0, 0, 0, 0)
+  
   const today = new Date()
   today.setHours(0, 0, 0, 0)
   
   const maxDate = new Date(today)
   maxDate.setDate(maxDate.getDate() + maxAdvanceDays)
-  
-  bookingDate.setHours(0, 0, 0, 0)
   
   return bookingDate >= today && bookingDate <= maxDate
 }

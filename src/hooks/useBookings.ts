@@ -4,7 +4,7 @@
 
 'use client'
 
-import { useState, useEffect, useCallback } from 'react'
+import { useState, useEffect, useCallback, useRef } from 'react'
 import { bookingApi } from '@/lib/api/bookings'
 import type { Booking } from '@/types'
 import type {
@@ -41,11 +41,41 @@ interface UseMutationState<T> {
 export function useBookings(params?: ListBookingsQueryParams) {
   const [state, setState] = useState<UseAsyncState<Booking[]>>({
     data: null,
-    loading: true,
+    loading: false,
     error: null,
   })
 
-  const fetchBookings = useCallback(async () => {
+  // Track if we've already fetched to prevent duplicate calls
+  const hasFetchedRef = useRef(false)
+  const lastParamsKeyRef = useRef<string | null>(null)
+
+  // Serialize params to avoid object reference changes causing infinite loops
+  const paramsKey = JSON.stringify(params)
+
+  useEffect(() => {
+    // Skip if params haven't changed since last fetch
+    if (lastParamsKeyRef.current === paramsKey && hasFetchedRef.current) {
+      return
+    }
+
+    lastParamsKeyRef.current = paramsKey
+    hasFetchedRef.current = true
+
+    const fetchBookings = async () => {
+      setState((prev) => ({ ...prev, loading: true, error: null }))
+      try {
+        const response = await bookingApi.listBookings(params)
+        setState({ data: response.data, loading: false, error: null })
+      } catch (error) {
+        const message = error instanceof Error ? error.message : 'Failed to fetch bookings'
+        setState({ data: null, loading: false, error: message })
+      }
+    }
+
+    fetchBookings()
+  }, [paramsKey, params])
+
+  const refetch = useCallback(async () => {
     setState((prev) => ({ ...prev, loading: true, error: null }))
     try {
       const response = await bookingApi.listBookings(params)
@@ -56,13 +86,9 @@ export function useBookings(params?: ListBookingsQueryParams) {
     }
   }, [params])
 
-  useEffect(() => {
-    fetchBookings()
-  }, [fetchBookings])
-
   return {
     ...state,
-    refetch: fetchBookings,
+    refetch,
   }
 }
 
