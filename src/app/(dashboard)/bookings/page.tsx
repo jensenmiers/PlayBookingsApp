@@ -11,7 +11,6 @@ import { faPlus, faSpinner } from '@fortawesome/free-solid-svg-icons'
 export default function BookingsPage() {
   const [showCreateForm, setShowCreateForm] = useState(false)
   const { user, loading: userLoading } = useCurrentUser()
-  const userRole = user?.role || 'renter' // Default to renter if not loaded
 
   return (
     <div className="space-y-10">
@@ -22,7 +21,7 @@ export default function BookingsPage() {
             Manage and view all your bookings.
           </p>
         </div>
-        {userRole === 'renter' && (
+        {user?.is_renter && (
           <Button onClick={() => setShowCreateForm(true)}>
             <FontAwesomeIcon icon={faPlus} className="mr-2" />
             Create Booking
@@ -35,7 +34,7 @@ export default function BookingsPage() {
           <FontAwesomeIcon icon={faSpinner} className="animate-spin text-primary-600" size="2x" />
         </div>
       ) : (
-        <BookingList userRole={userRole} />
+        <BookingList />
       )}
 
       {showCreateForm && (

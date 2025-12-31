@@ -169,11 +169,11 @@ export class BookingService {
 
       const { data: user } = await supabase
         .from('users')
-        .select('role')
+        .select('is_admin')
         .eq('id', userId)
         .single()
 
-      if (venue?.owner_id !== userId && user?.role !== 'admin') {
+      if (venue?.owner_id !== userId && !user?.is_admin) {
         throw badRequest('You do not have permission to cancel this booking')
       }
     }
@@ -223,11 +223,11 @@ export class BookingService {
 
     const { data: user } = await supabase
       .from('users')
-      .select('role')
+      .select('is_admin')
       .eq('id', userId)
       .single()
 
-    if (venue.owner_id !== userId && user?.role !== 'admin') {
+    if (venue.owner_id !== userId && !user?.is_admin) {
       throw badRequest('Only venue owner or admin can confirm bookings')
     }
 
@@ -277,11 +277,11 @@ export class BookingService {
 
       const { data: user } = await supabase
         .from('users')
-        .select('role')
+        .select('is_admin')
         .eq('id', userId)
         .single()
 
-      if (venue?.owner_id !== userId && user?.role !== 'admin') {
+      if (venue?.owner_id !== userId && !user?.is_admin) {
         throw badRequest('You do not have permission to update this booking')
       }
     }
@@ -330,11 +330,11 @@ export class BookingService {
 
       const { data: user } = await supabase
         .from('users')
-        .select('role')
+        .select('is_admin')
         .eq('id', userId)
         .single()
 
-      if (venue?.owner_id !== userId && user?.role !== 'admin') {
+      if (venue?.owner_id !== userId && !user?.is_admin) {
         throw notFound('Booking not found') // Don't reveal existence
       }
     }
@@ -357,12 +357,12 @@ export class BookingService {
     const supabase = await createClient()
     const { data: user } = await supabase
       .from('users')
-      .select('role, is_renter, is_venue_owner')
+      .select('is_admin, is_renter, is_venue_owner')
       .eq('id', userId)
       .single()
 
     // Admins can see all bookings
-    if (user?.role === 'admin') {
+    if (user?.is_admin) {
       if (filters.venue_id) {
         return this.bookingRepo.findByVenue(filters.venue_id, {
           status: filters.status,

@@ -20,18 +20,22 @@ import { Input } from '@/components/ui/input'
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome'
 import { faSpinner, faXmark, faCheck, faTrash } from '@fortawesome/free-solid-svg-icons'
 import { cn } from '@/lib/utils'
-import type { Booking, UserRole } from '@/types'
+import type { Booking } from '@/types'
 
 interface BookingActionsProps {
   booking: Booking
-  userRole: UserRole
+  isRenter: boolean
+  isVenueOwner: boolean
+  isAdmin: boolean
   onActionComplete?: () => void
   className?: string
 }
 
 export function BookingActions({
   booking,
-  userRole,
+  isRenter,
+  isVenueOwner,
+  isAdmin,
   onActionComplete,
   className,
 }: BookingActionsProps) {
@@ -41,9 +45,9 @@ export function BookingActions({
   const confirmBooking = useConfirmBooking()
 
   const canCancel =
-    (userRole === 'renter' || userRole === 'admin') &&
+    (isRenter || isAdmin) &&
     (booking.status === 'pending' || booking.status === 'confirmed')
-  const canConfirm = userRole === 'venue_owner' && booking.status === 'pending'
+  const canConfirm = isVenueOwner && booking.status === 'pending'
 
   const handleCancel = async () => {
     const result = await cancelBooking.mutate(booking.id, cancelReason || undefined)

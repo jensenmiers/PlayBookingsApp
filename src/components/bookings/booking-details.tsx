@@ -13,18 +13,21 @@ import { FontAwesomeIcon } from '@fortawesome/react-fontawesome'
 import { faSpinner, faCalendarDays, faClock, faDollarSign, faMapMarkerAlt } from '@fortawesome/free-solid-svg-icons'
 import { format } from 'date-fns'
 import { cn } from '@/lib/utils'
-import type { UserRole } from '@/types'
 
 interface BookingDetailsProps {
   bookingId: string
-  userRole: UserRole
+  isRenter: boolean
+  isVenueOwner: boolean
+  isAdmin: boolean
   onActionComplete?: () => void
   className?: string
 }
 
 export function BookingDetails({
   bookingId,
-  userRole,
+  isRenter,
+  isVenueOwner,
+  isAdmin,
   onActionComplete,
   className,
 }: BookingDetailsProps) {
@@ -130,7 +133,9 @@ export function BookingDetails({
       <div className="pt-4 border-t">
         <BookingActions
           booking={booking}
-          userRole={userRole}
+          isRenter={isRenter}
+          isVenueOwner={isVenueOwner}
+          isAdmin={isAdmin}
           onActionComplete={onActionComplete}
         />
       </div>

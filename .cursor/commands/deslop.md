@@ -1,6 +1,6 @@
 # Remove AI code slop
 
-Check the diff against main, and remove all AI generated slop introduced in this branch.
+Check the diff against main, and remove all AI generated slop introduced in this branch.If already on main, check the unstaged changes compared to the remote main branch (if feasable)
 
 This includes:
 - Extra comments that a human wouldn't add or is inconsistent with the rest of the file

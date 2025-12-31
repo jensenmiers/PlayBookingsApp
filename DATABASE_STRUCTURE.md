@@ -41,12 +41,16 @@ All functions have mutable `search_path` which is a security risk:
 **Columns:**
 - `id` (uuid, PK) → References `auth.users.id`
 - `email` (text, UNIQUE, NOT NULL)
-- `role` (user_role enum: 'venue_owner' | 'renter' | 'admin', DEFAULT: 'renter')
+- `is_renter` (boolean, NOT NULL, DEFAULT: true)
+- `is_venue_owner` (boolean, NOT NULL, DEFAULT: false)
+- `is_admin` (boolean, NOT NULL, DEFAULT: false)
 - `first_name` (text, nullable)
 - `last_name` (text, nullable)
 - `phone` (text, nullable)
 - `created_at` (timestamptz, DEFAULT: now())
 - `updated_at` (timestamptz, DEFAULT: now())
+
+**Note:** Users can have multiple capabilities simultaneously (e.g., both `is_renter` and `is_venue_owner` can be true).
 
 **Foreign Keys:**
 - Referenced by: venues, bookings, recurring_bookings, insurance_documents, payments, messages, subscriptions, audit_logs

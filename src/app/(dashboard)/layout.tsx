@@ -6,7 +6,9 @@ import { SidebarNavigation } from '@/components/dashboard/sidebar-navigation'
 
 const placeholderUser = {
   name: 'Michael Johnson',
-  role: 'Facility Owner',
+  isRenter: false,
+  isVenueOwner: true,
+  isAdmin: false,
   avatarUrl: 'https://storage.googleapis.com/uxpilot-auth.appspot.com/avatars/avatar-3.jpg',
 }
 

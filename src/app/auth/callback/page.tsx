@@ -39,9 +39,9 @@ export default function AuthCallbackPage() {
                 email: user.email,
                 first_name: firstName || null,
                 last_name: lastNameParts.join(' ') || null,
-                role: 'renter',
                 is_renter: true,
                 is_venue_owner: false,
+                is_admin: false,
                 updated_at: new Date().toISOString(),
               },
               { onConflict: 'id' }

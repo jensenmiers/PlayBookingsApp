@@ -1,5 +1,3 @@
-export type UserRole = 'venue_owner' | 'renter' | 'admin'
-
 export type BookingStatus = 'pending' | 'confirmed' | 'cancelled' | 'completed'
 
 export type InsuranceStatus = 'pending' | 'approved' | 'rejected' | 'needs_changes'
@@ -11,9 +9,9 @@ export type RecurringType = 'none' | 'weekly' | 'monthly'
 export interface User {
   id: string
   email: string
-  role: UserRole
   is_renter: boolean
   is_venue_owner: boolean
+  is_admin: boolean
   first_name?: string
   last_name?: string
   phone?: string

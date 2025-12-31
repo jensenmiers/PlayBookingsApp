@@ -2,38 +2,39 @@
  * Role-based access control middleware
  */
 
-import type { UserRole } from '@/types'
 import { forbidden } from '@/utils/errorHandling'
 import type { AuthContext } from './authMiddleware'
 
+type UserCapability = 'renter' | 'venue_owner' | 'admin'
+
 /**
- * Require specific role
+ * Require specific capability
  */
-export function requireRole(authContext: AuthContext, allowedRoles: UserRole[]): void {
+export function requireRole(authContext: AuthContext, allowedCapabilities: UserCapability[]): void {
   const user = authContext.user
 
-  const hasRole = allowedRoles.some((role) => {
-    if (role === 'admin') return user.role === 'admin'
-    if (role === 'venue_owner') return user.is_venue_owner
-    if (role === 'renter') return user.is_renter
+  const hasCapability = allowedCapabilities.some((capability) => {
+    if (capability === 'admin') return user.is_admin
+    if (capability === 'venue_owner') return user.is_venue_owner
+    if (capability === 'renter') return user.is_renter
     return false
   })
 
-  if (!hasRole) {
-    throw forbidden(`Access denied. Required roles: ${allowedRoles.join(', ')}`)
+  if (!hasCapability) {
+    throw forbidden(`Access denied. Required capabilities: ${allowedCapabilities.join(', ')}`)
   }
 }
 
 /**
- * Require renter or venue owner role
+ * Require renter or venue owner capability
  */
 export function requireRenterOrOwner(authContext: AuthContext): void {
-  const allowedRoles: UserRole[] = ['renter', 'venue_owner']
-  requireRole(authContext, allowedRoles)
+  const allowedCapabilities: UserCapability[] = ['renter', 'venue_owner']
+  requireRole(authContext, allowedCapabilities)
 }
 
 /**
- * Require admin role
+ * Require admin capability
  */
 export function requireAdmin(authContext: AuthContext): void {
   requireRole(authContext, ['admin'])
@@ -105,7 +106,7 @@ export async function requireBookingAccess(
   authContext: AuthContext
 ): Promise<void> {
   // Admins have access to everything
-  if (authContext.user.role === 'admin') {
+  if (authContext.user.is_admin) {
     return
   }
   

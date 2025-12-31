@@ -27,7 +27,9 @@ export type SidebarNavItem = {
 
 export type SidebarUser = {
   name: string
-  role?: string
+  isRenter?: boolean
+  isVenueOwner?: boolean
+  isAdmin?: boolean
   avatarUrl?: string
 }
 
@@ -119,8 +121,16 @@ export function SidebarNavigation({
             </div>
             <div>
               <p className="text-sm font-semibold text-primary-800">{user.name}</p>
-              {user.role && (
-                <p className="text-xs text-muted-foreground">{user.role}</p>
+              {(user.isAdmin || user.isVenueOwner || user.isRenter) && (
+                <p className="text-xs text-muted-foreground">
+                  {[
+                    user.isAdmin && 'Admin',
+                    user.isVenueOwner && 'Venue Owner',
+                    user.isRenter && 'Renter',
+                  ]
+                    .filter(Boolean)
+                    .join(' + ')}
+                </p>
               )}
             </div>
           </div>
