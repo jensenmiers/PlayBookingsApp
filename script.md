@@ -1,4 +1,4 @@
-# PlayBookings Demo Script
+# Play Bookings Demo Script
 ## User Persona: Athletic Director (Primary Renter, Occasional Venue Owner)
 
 ---
@@ -299,7 +299,7 @@
 ## KEY DEMO TALKING POINTS
 
 ### For Browse-Without-Login Flow:
-- **"The beauty of PlayBookings is that you can explore all available venues without creating an account. This removes friction and lets you see exactly what's available before committing."**
+- **"The beauty of Play Bookings is that you can explore all available venues without creating an account. This removes friction and lets you see exactly what's available before committing."**
 - **"No sign-up required to browse - we only ask you to create an account when you're ready to actually make a booking."**
 - "As an athletic director, I can search by location, view venues on a map, check availability on a calendar, and compare rates - all before logging in."
 

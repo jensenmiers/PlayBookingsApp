@@ -15,7 +15,7 @@ const geistMono = Geist_Mono({
 });
 
 export const metadata: Metadata = {
-  title: "PlayBookings - Indoor Basketball Court Rentals",
+  title: "Play Bookings - Indoor Basketball Court Rentals",
   description:
     "Streamline the rental of underutilized middle school sports facilities. Connect trusted renters with available indoor basketball courts.",
 };

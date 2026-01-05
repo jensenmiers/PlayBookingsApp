@@ -45,7 +45,7 @@ export default function RegisterPage() {
     <div className="flex min-h-screen items-center justify-center bg-gradient-to-br from-primary-50 via-primary-50/80 to-secondary-50 p-4">
       <Card className="w-full max-w-md border-border/60 bg-white/95 p-8 shadow-soft">
         <CardHeader className="space-y-3 text-center">
-          <CardTitle className="text-2xl font-bold text-primary-800">Join PlayBookings</CardTitle>
+          <CardTitle className="text-2xl font-bold text-primary-800">Join Play Bookings</CardTitle>
           <CardDescription className="text-primary-600">
             Get started with your account
           </CardDescription>

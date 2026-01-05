@@ -2,7 +2,7 @@
 
 ## Overview
 
-PlayBookings uses **Tailwind CSS v4** with a CSS-first configuration approach. This is a significant departure from Tailwind v3's JavaScript-based configuration.
+Play Bookings uses **Tailwind CSS v4** with a CSS-first configuration approach. This is a significant departure from Tailwind v3's JavaScript-based configuration.
 
 ## Technology Stack
 

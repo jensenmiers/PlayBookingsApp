@@ -1,4 +1,4 @@
-# PlayBookings.com
+# Play Bookings
 
 A web-based facility rental marketplace for streamlining the rental of underutilized sports facilities. Connect trusted renters with available indoor basketball courts and fields.
 

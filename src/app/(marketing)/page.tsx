@@ -31,7 +31,7 @@ export default function MarketingPage() {
               size="lg"
               className="rounded-xl border-primary-200 bg-white/80 px-10 py-3 text-base text-primary-700 hover:bg-primary-100"
             >
-              <Link href="/auth/login">Sign In</Link>
+              <Link href="/venues">Browse</Link>
             </Button>
           </div>
         </div>
@@ -41,7 +41,7 @@ export default function MarketingPage() {
       <section className="px-4 py-20">
         <div className="mx-auto max-w-6xl">
           <h2 className="mb-16 text-center text-3xl font-semibold text-primary-900">
-            Why Choose PlayBookings?
+            Why Choose Play Bookings?
           </h2>
           <div className="grid gap-8 md:grid-cols-2 lg:grid-cols-4">
             <Card className="border-border/60 bg-white/95 p-6 text-center shadow-soft">
@@ -110,7 +110,7 @@ export default function MarketingPage() {
             Ready to Transform Your Gym Rental Process?
           </h2>
           <p className="text-lg text-primary-600">
-            Join the growing network of venues and renters using PlayBookings.
+            Join the growing network of venues and renters using Play Bookings.
           </p>
           <Button asChild size="lg" className="rounded-xl bg-secondary-600 px-10 py-3 text-base hover:bg-secondary-700">
             <Link href="/auth/register">Start Today</Link>

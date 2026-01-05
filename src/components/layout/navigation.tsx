@@ -11,8 +11,8 @@ export function Navigation() {
   const router = useRouter()
   const { user, loading, error: userError } = useCurrentUser()
 
-  // Determine home route based on authentication status
-  const homeHref = user ? '/book' : '/auth/register'
+  // Home link points to /venues for all authenticated users
+  const homeHref = '/venues'
   // Check if current path matches the home route
   const isHomeActive = pathname === homeHref
 
@@ -46,20 +46,22 @@ export function Navigation() {
       <div className="mx-auto flex h-16 max-w-7xl items-center justify-between px-4">
         <Link href="/" className="flex items-center space-x-2">
           <div className="h-9 w-9 rounded-xl bg-gradient-to-br from-primary-500 to-secondary-500" />
-          <span className="text-xl font-bold text-primary-800">PlayBookings</span>
+          <span className="text-xl font-bold text-primary-800">Play Bookings</span>
         </Link>
 
         <div className="hidden md:flex md:items-center md:space-x-6">
-          <Link
-            href={homeHref}
-            className={`text-sm font-medium transition-colors ${
-              isHomeActive
-                ? 'text-primary-700'
-                : 'text-primary-500 hover:text-primary-700'
-            }`}
-          >
-            Home
-          </Link>
+          {user && (
+            <Link
+              href={homeHref}
+              className={`text-sm font-medium transition-colors ${
+                isHomeActive
+                  ? 'text-primary-700'
+                  : 'text-primary-500 hover:text-primary-700'
+              }`}
+            >
+              Home
+            </Link>
+          )}
           {loading && !userError ? (
             <>
               <div className="h-9 w-20 animate-pulse rounded-xl bg-primary-100" />
@@ -99,12 +101,12 @@ export function Navigation() {
           ) : (
             <>
               <Link
-                href="/auth/login"
+                href="/venues"
                 className="text-sm font-medium text-primary-500 transition-colors hover:text-primary-700"
               >
-                Sign In
+                Browse
               </Link>
-              <Button asChild className="rounded-xl">
+              <Button asChild size="lg" className="rounded-xl bg-secondary-600 px-10 py-3 text-base hover:bg-secondary-700">
                 <Link href="/auth/register">Get Started</Link>
               </Button>
             </>

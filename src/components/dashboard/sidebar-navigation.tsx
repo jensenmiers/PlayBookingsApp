@@ -59,7 +59,7 @@ export function SidebarNavigation({
         <div className="flex size-10 items-center justify-center rounded-xl bg-primary text-primary-foreground">
           <span className="text-lg font-semibold">PB</span>
         </div>
-        <span className="text-xl font-bold text-primary-800">PlayBookings</span>
+        <span className="text-xl font-bold text-primary-800">Play Bookings</span>
       </div>
 
       <nav className="mt-10 flex flex-col gap-1">

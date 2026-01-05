@@ -56,7 +56,7 @@ export default function AuthCallbackPage() {
           
           // Get returnTo param and validate it (only allow relative paths starting with /)
           const returnTo = searchParams.get('returnTo')
-          let redirectPath = '/book' // Default destination
+          let redirectPath = '/venues' // Default destination
           
           if (returnTo && returnTo.startsWith('/') && !returnTo.startsWith('//')) {
             // Valid relative path - use it
@@ -102,7 +102,7 @@ export default function AuthCallbackPage() {
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
             </svg>
           </div>
-          <h2 className="text-xl font-semibold text-primary-800">Welcome to PlayBookings!</h2>
+          <h2 className="text-xl font-semibold text-primary-800">Welcome to Play Bookings!</h2>
           <p className="text-primary-600">Let&apos;s find you a venue to book...</p>
         </div>
       </div>

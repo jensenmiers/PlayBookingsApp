@@ -52,7 +52,7 @@ export default function LoginPage() {
         <CardHeader className="space-y-3 text-center">
           <CardTitle className="text-2xl font-bold text-primary-800">Welcome Back</CardTitle>
           <CardDescription className="text-primary-600">
-            Sign in to your PlayBookings account
+            Sign in to your Play Bookings account
           </CardDescription>
         </CardHeader>
         <CardContent className="space-y-6">
