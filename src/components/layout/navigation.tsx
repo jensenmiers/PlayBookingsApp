@@ -11,10 +11,11 @@ export function Navigation() {
   const router = useRouter()
   const { user, loading, error: userError } = useCurrentUser()
 
-  // Home link points to /venues for all authenticated users
-  const homeHref = '/venues'
-  // Check if current path matches the home route
-  const isHomeActive = pathname === homeHref
+  // Check active states for navigation links
+  const isAvailabilityActive = pathname === '/search'
+  const isBookingsActive = pathname === '/bookings'
+  const isVenuesActive = pathname === '/venues'
+  const isDashboardActive = pathname === '/dashboard'
 
   const handleSignOut = async () => {
     const supabase = createClient()
@@ -50,18 +51,6 @@ export function Navigation() {
         </Link>
 
         <div className="hidden md:flex md:items-center md:space-x-6">
-          {user && (
-            <Link
-              href={homeHref}
-              className={`text-sm font-medium transition-colors ${
-                isHomeActive
-                  ? 'text-primary-700'
-                  : 'text-primary-500 hover:text-primary-700'
-              }`}
-            >
-              Home
-            </Link>
-          )}
           {loading && !userError ? (
             <>
               <div className="h-9 w-20 animate-pulse rounded-xl bg-primary-100" />
@@ -70,15 +59,47 @@ export function Navigation() {
           ) : user ? (
             <>
               <Link
-                href="/dashboard"
+                href="/search"
                 className={`text-sm font-medium transition-colors ${
-                  pathname === '/dashboard'
+                  isAvailabilityActive
                     ? 'text-primary-700'
                     : 'text-primary-500 hover:text-primary-700'
                 }`}
               >
-                Dashboard
+                Availability
               </Link>
+              <Link
+                href="/bookings"
+                className={`text-sm font-medium transition-colors ${
+                  isBookingsActive
+                    ? 'text-primary-700'
+                    : 'text-primary-500 hover:text-primary-700'
+                }`}
+              >
+                Bookings
+              </Link>
+              <Link
+                href="/venues"
+                className={`text-sm font-medium transition-colors ${
+                  isVenuesActive
+                    ? 'text-primary-700'
+                    : 'text-primary-500 hover:text-primary-700'
+                }`}
+              >
+                Venues
+              </Link>
+              {user.is_venue_owner && (
+                <Link
+                  href="/dashboard"
+                  className={`text-sm font-medium transition-colors ${
+                    isDashboardActive
+                      ? 'text-primary-700'
+                      : 'text-primary-500 hover:text-primary-700'
+                  }`}
+                >
+                  Dashboard
+                </Link>
+              )}
               <div className="flex items-center gap-3">
                 <div className="flex items-center gap-2">
                   <div className="flex h-8 w-8 items-center justify-center rounded-full bg-primary-100 text-sm font-semibold text-primary-700">
@@ -104,7 +125,7 @@ export function Navigation() {
                 href="/venues"
                 className="text-sm font-medium text-primary-500 transition-colors hover:text-primary-700"
               >
-                Browse
+                Venues
               </Link>
               <Button asChild size="lg" className="rounded-xl bg-secondary-600 px-10 py-3 text-base hover:bg-secondary-700">
                 <Link href="/auth/register">Get Started</Link>
