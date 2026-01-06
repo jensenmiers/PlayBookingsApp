@@ -1,4 +1,4 @@
-Your job is to create a PR with a descriptive title. Always use the GitHub CLI. If you haven't already made a commit or still on the main branch, create a new branch and commit it first. Use git add . so you pickup ALL changes. 
+Your job is to create a PR with a descriptive title. Always use the GitHub CLI. If you haven't already made a commit or still on the main branch, create a new branch and commit it first. Use git add . so you pickup ALL changes.
 
 Check the diff against main, and remove all AI generated slop introduced in this branch.
 
