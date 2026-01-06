@@ -16,21 +16,20 @@ import type { ApiResponse } from '@/types/api'
 import type { Booking } from '@/types'
 import { createClient } from '@/lib/supabase/server'
 
-interface RouteParams {
-  params: {
-    id: string
-  }
+interface RouteContext {
+  params: Promise<{ id: string }>
 }
 
-export async function GET(request: NextRequest, { params }: RouteParams) {
+export async function GET(request: NextRequest, context: RouteContext) {
   try {
+    const { id } = await context.params
     const auth = await requireAuth()
     const supabase = await createClient()
 
-    await requireBookingAccess(supabase, params.id, auth)
+    await requireBookingAccess(supabase, id, auth)
 
     const bookingService = new BookingService()
-    const booking = await bookingService.getBooking(params.id, auth.userId)
+    const booking = await bookingService.getBooking(id, auth.userId)
 
     const response: ApiResponse<Booking> = {
       success: true,
@@ -43,17 +42,18 @@ export async function GET(request: NextRequest, { params }: RouteParams) {
   }
 }
 
-export async function PATCH(request: NextRequest, { params }: RouteParams) {
+export async function PATCH(request: NextRequest, context: RouteContext) {
   try {
+    const { id } = await context.params
     const auth = await requireAuth()
     const supabase = await createClient()
 
-    await requireBookingAccess(supabase, params.id, auth)
+    await requireBookingAccess(supabase, id, auth)
 
     const body = await validateRequest(request, updateBookingSchema)
 
     const bookingService = new BookingService()
-    const booking = await bookingService.updateBooking(params.id, body, auth.userId)
+    const booking = await bookingService.updateBooking(id, body, auth.userId)
 
     const response: ApiResponse<Booking> = {
       success: true,
@@ -67,16 +67,17 @@ export async function PATCH(request: NextRequest, { params }: RouteParams) {
   }
 }
 
-export async function DELETE(request: NextRequest, { params }: RouteParams) {
+export async function DELETE(request: NextRequest, context: RouteContext) {
   try {
+    const { id } = await context.params
     const auth = await requireAuth()
     const supabase = await createClient()
 
-    await requireBookingAccess(supabase, params.id, auth)
+    await requireBookingAccess(supabase, id, auth)
 
     const bookingService = new BookingService()
     // Soft delete by cancelling
-    const booking = await bookingService.cancelBooking(params.id, auth.userId)
+    const booking = await bookingService.cancelBooking(id, auth.userId)
 
     const response: ApiResponse<Booking> = {
       success: true,

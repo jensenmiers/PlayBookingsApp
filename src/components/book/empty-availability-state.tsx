@@ -13,7 +13,7 @@ export function EmptyAvailabilityState({ onViewTomorrow }: EmptyAvailabilityStat
         <div className="text-primary-600">
           <p className="text-lg font-medium mb-2">No available times today</p>
           <p className="text-sm text-primary-500">
-            This venue doesn't have any available time slots for today.
+            This venue doesn&apos;t have any available time slots for today.
           </p>
         </div>
         {onViewTomorrow && (

@@ -122,7 +122,7 @@ export function AvailabilitySlotsList({ venue }: AvailabilitySlotsListProps) {
       <div className="bg-white rounded-2xl shadow-soft p-6">
         <h3 className="text-xl font-bold text-primary-800 mb-4">Available Time Slots</h3>
         <p className="text-sm text-primary-600 mb-6">
-          Select a time slot and click "Book Now" to reserve this venue.
+          Select a time slot and click &quot;Book Now&quot; to reserve this venue.
         </p>
 
         <div className="space-y-6">

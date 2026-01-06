@@ -44,7 +44,7 @@ export function requireAdmin(authContext: AuthContext): void {
  * Check if user owns a venue
  */
 export async function checkVenueOwnership(
-  supabase: ReturnType<typeof import('@/lib/supabase/server').createClient>,
+  supabase: Awaited<ReturnType<typeof import('@/lib/supabase/server').createClient>>,
   venueId: string,
   userId: string
 ): Promise<boolean> {
@@ -65,7 +65,7 @@ export async function checkVenueOwnership(
  * Check if user owns a booking (as renter) or owns the venue
  */
 export async function checkBookingAccess(
-  supabase: ReturnType<typeof import('@/lib/supabase/server').createClient>,
+  supabase: Awaited<ReturnType<typeof import('@/lib/supabase/server').createClient>>,
   bookingId: string,
   userId: string
 ): Promise<{ hasAccess: boolean; isOwner: boolean; isRenter: boolean }> {
@@ -101,7 +101,7 @@ export async function checkBookingAccess(
  * Require booking access (renter or venue owner)
  */
 export async function requireBookingAccess(
-  supabase: ReturnType<typeof import('@/lib/supabase/server').createClient>,
+  supabase: Awaited<ReturnType<typeof import('@/lib/supabase/server').createClient>>,
   bookingId: string,
   authContext: AuthContext
 ): Promise<void> {

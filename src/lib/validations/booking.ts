@@ -47,11 +47,12 @@ export const bookingQuerySchema = z.object({
   venue_id: z.string().uuid().optional(),
   date_from: z.string().regex(/^\d{4}-\d{2}-\d{2}$/).optional(),
   date_to: z.string().regex(/^\d{4}-\d{2}-\d{2}$/).optional(),
-  page: z.string().regex(/^\d+$/).transform(Number).default('1'),
-  limit: z.string().regex(/^\d+$/).transform(Number).default('20'),
+  page: z.string().regex(/^\d+$/).optional().default('1').transform(Number),
+  limit: z.string().regex(/^\d+$/).optional().default('20').transform(Number),
 })
 
-export type CreateBookingInput = z.infer<typeof createBookingSchema>
+export type CreateBookingInput = z.input<typeof createBookingSchema>
+export type CreateBookingOutput = z.infer<typeof createBookingSchema>
 export type UpdateBookingInput = z.infer<typeof updateBookingSchema>
 export type CancelBookingInput = z.infer<typeof cancelBookingSchema>
 export type CheckConflictsInput = z.infer<typeof checkConflictsSchema>

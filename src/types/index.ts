@@ -213,10 +213,13 @@ export interface CreateBookingForm {
   date: string
   start_time: string
   end_time: string
-  recurring_type: RecurringType
+  recurring_type?: RecurringType
   recurring_end_date?: string
   notes?: string
 }
+
+// Alias for backwards compatibility
+export type CreateBookingInput = CreateBookingForm
 
 export interface UpdateBookingForm {
   status?: BookingStatus

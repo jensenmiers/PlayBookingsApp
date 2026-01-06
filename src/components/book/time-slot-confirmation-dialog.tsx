@@ -95,7 +95,7 @@ export function TimeSlotConfirmationDialog({
             <div className="p-3 bg-amber-50 border border-amber-200 rounded-lg">
               <p className="text-xs text-amber-800">
                 <span className="font-semibold">Approval Required:</span> This booking requires
-                venue owner approval. You'll be notified once it's confirmed.
+                venue owner approval. You&apos;ll be notified once it&apos;s confirmed.
               </p>
             </div>
           )}

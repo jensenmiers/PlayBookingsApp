@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useEffect } from 'react'
+import { useState, useEffect, Suspense } from 'react'
 import { useSearchParams, useRouter } from 'next/navigation'
 import { Navigation } from '@/components/layout/navigation'
 import { VenueCard } from '@/components/venues/venue-card'
@@ -13,7 +13,7 @@ import { faSearch } from '@fortawesome/free-solid-svg-icons'
 import type { Venue } from '@/types'
 import type { PaginatedResponse } from '@/types/api'
 
-export default function VenuesPage() {
+function VenuesContent() {
   const router = useRouter()
   const searchParams = useSearchParams()
   const [venues, setVenues] = useState<Venue[]>([])
@@ -226,6 +226,33 @@ export default function VenuesPage() {
         )}
       </div>
     </div>
+  )
+}
+
+function LoadingFallback() {
+  return (
+    <div className="min-h-screen bg-primary-50">
+      <Navigation />
+      <div className="mx-auto max-w-6xl px-4 py-6">
+        <div className="mb-6">
+          <h1 className="text-3xl font-bold text-primary-800 mb-2">All Venues</h1>
+          <p className="text-primary-600">Discover basketball courts available for booking</p>
+        </div>
+        <div className="space-y-4">
+          <VenueCardSkeleton />
+          <VenueCardSkeleton />
+          <VenueCardSkeleton />
+        </div>
+      </div>
+    </div>
+  )
+}
+
+export default function VenuesPage() {
+  return (
+    <Suspense fallback={<LoadingFallback />}>
+      <VenuesContent />
+    </Suspense>
   )
 }
 

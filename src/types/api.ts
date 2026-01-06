@@ -53,7 +53,7 @@ export interface CreateBookingRequest {
   notes?: string
 }
 
-export interface CreateBookingResponse extends ApiResponse<Booking> {}
+export type CreateBookingResponse = ApiResponse<Booking>
 
 export interface UpdateBookingRequest {
   status?: 'pending' | 'confirmed' | 'cancelled' | 'completed'
@@ -62,15 +62,15 @@ export interface UpdateBookingRequest {
   recurring_end_date?: string
 }
 
-export interface UpdateBookingResponse extends ApiResponse<Booking> {}
+export type UpdateBookingResponse = ApiResponse<Booking>
 
 export interface CancelBookingRequest {
   reason?: string
 }
 
-export interface CancelBookingResponse extends ApiResponse<Booking> {}
+export type CancelBookingResponse = ApiResponse<Booking>
 
-export interface ConfirmBookingResponse extends ApiResponse<Booking> {}
+export type ConfirmBookingResponse = ApiResponse<Booking>
 
 export interface CheckConflictsRequest {
   venue_id: string
@@ -80,12 +80,12 @@ export interface CheckConflictsRequest {
   exclude_booking_id?: string
 }
 
-export interface CheckConflictsResponse extends ApiResponse<{
+export type CheckConflictsResponse = ApiResponse<{
   hasConflict: boolean
   conflictType?: 'time_overlap' | 'availability_unavailable' | 'advance_booking_exceeded'
   conflictingBookingId?: string
   message?: string
-}> {}
+}>
 
 export interface GenerateRecurringRequest {
   parent_booking_id: string
@@ -93,9 +93,9 @@ export interface GenerateRecurringRequest {
   end_date: string
 }
 
-export interface GenerateRecurringResponse extends ApiResponse<RecurringBooking[]> {}
+export type GenerateRecurringResponse = ApiResponse<RecurringBooking[]>
 
-export interface GetBookingResponse extends ApiResponse<Booking> {}
+export type GetBookingResponse = ApiResponse<Booking>
 
 export interface ListBookingsQueryParams {
   status?: 'pending' | 'confirmed' | 'cancelled' | 'completed'
@@ -106,7 +106,7 @@ export interface ListBookingsQueryParams {
   limit?: string
 }
 
-export interface ListBookingsResponse extends PaginatedResponse<Booking> {}
+export type ListBookingsResponse = PaginatedResponse<Booking>
 
 
 

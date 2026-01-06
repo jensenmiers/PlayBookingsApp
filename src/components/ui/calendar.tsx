@@ -140,7 +140,9 @@ function Calendar({
             />
           )
         },
-        Chevron: ({ className, orientation, ...props }) => {
+        Chevron: ({ className, orientation, size: _size, disabled: _disabled, ...props }) => {
+          // Extract size and disabled to avoid passing them to FontAwesomeIcon
+          // as they have incompatible types
           if (orientation === "left") {
             return (
               <FontAwesomeIcon

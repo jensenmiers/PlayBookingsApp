@@ -4,6 +4,7 @@
  */
 
 import { apiClient } from './client'
+import type { Booking } from '@/types'
 import type {
   CreateBookingRequest,
   UpdateBookingRequest,
@@ -14,7 +15,6 @@ import type {
   GenerateRecurringResponse,
   ListBookingsQueryParams,
   ListBookingsResponse,
-  Booking,
 } from '@/types/api'
 
 /**

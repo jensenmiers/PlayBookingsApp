@@ -19,8 +19,9 @@ interface ApiClientConfig {
 /**
  * Request options extending fetch options
  */
-interface RequestOptions extends RequestInit {
+interface RequestOptions extends Omit<RequestInit, 'headers'> {
   requireAuth?: boolean
+  headers?: Record<string, string>
 }
 
 /**

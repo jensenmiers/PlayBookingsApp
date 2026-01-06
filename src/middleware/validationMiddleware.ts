@@ -18,7 +18,7 @@ export async function validateRequest<T>(
     return schema.parse(body)
   } catch (error) {
     if (error instanceof z.ZodError) {
-      const details = error.errors.map((err) => ({
+      const details = error.issues.map((err) => ({
         field: err.path.join('.'),
         message: err.message,
       }))
@@ -44,7 +44,7 @@ export function validateQuery<T>(
     return schema.parse(params)
   } catch (error) {
     if (error instanceof z.ZodError) {
-      const details = error.errors.map((err) => ({
+      const details = error.issues.map((err) => ({
         field: err.path.join('.'),
         message: err.message,
       }))
