@@ -120,10 +120,13 @@ export function getNextTopOfHour(): Date {
 
 /**
  * Format time string to Date for comparison
+ * Uses local date parsing to avoid UTC timezone shift issues
  */
 export function timeStringToDate(dateStr: string, timeStr: string): Date {
   const [hours, minutes] = timeStr.split(':').map(Number)
-  const date = new Date(dateStr)
+  // Parse date as local midnight to avoid UTC shift
+  const [year, month, day] = dateStr.split('-').map(Number)
+  const date = new Date(year, month - 1, day) // month is 0-indexed
   date.setHours(hours, minutes || 0, 0, 0)
   return date
 }

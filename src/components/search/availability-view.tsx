@@ -31,7 +31,9 @@ export function AvailabilityView() {
   })
 
   const handleDateChange = (direction: 'prev' | 'next') => {
-    const currentDate = new Date(selectedDate)
+    // Parse selectedDate as local date to avoid UTC timezone shift
+    const [y, m, d] = selectedDate.split('-').map(Number)
+    const currentDate = new Date(y, m - 1, d)
     const newDate = direction === 'prev' ? subDays(currentDate, 1) : addDays(currentDate, 1)
     setSelectedDate(format(newDate, 'yyyy-MM-dd'))
   }
@@ -40,7 +42,10 @@ export function AvailabilityView() {
     setSelectedDate(format(today, 'yyyy-MM-dd'))
   }
 
-  const formattedDate = format(new Date(selectedDate), 'EEE, MMM d')
+  // Parse selectedDate as local date to avoid UTC timezone shift
+  const [year, month, day] = selectedDate.split('-').map(Number)
+  const parsedDate = new Date(year, month - 1, day) // month is 0-indexed
+  const formattedDate = format(parsedDate, 'EEE, MMM d')
   const isToday = selectedDate === format(today, 'yyyy-MM-dd')
 
   return (
