@@ -11,15 +11,24 @@ function RegisterContent() {
   const [loading, setLoading] = useState(false)
   const searchParams = useSearchParams()
   const supabase = createClient()
+  const isHostSignup = searchParams.get('intent') === 'host'
 
   const handleGoogleSignup = async () => {
     try {
       setLoading(true)
 
-      // Get returnTo param and forward it to callback
+      // Get returnTo and intent params and forward them to callback
       const returnTo = searchParams.get('returnTo')
-      const callbackUrl = returnTo 
-        ? `${window.location.origin}/auth/callback?returnTo=${encodeURIComponent(returnTo)}`
+      const intent = searchParams.get('intent')
+      const callbackParams = new URLSearchParams()
+      if (returnTo) {
+        callbackParams.set('returnTo', returnTo)
+      }
+      if (intent) {
+        callbackParams.set('intent', intent)
+      }
+      const callbackUrl = callbackParams.toString()
+        ? `${window.location.origin}/auth/callback?${callbackParams.toString()}`
         : `${window.location.origin}/auth/callback`
 
       const { error } = await supabase.auth.signInWithOAuth({
@@ -45,9 +54,21 @@ function RegisterContent() {
     <div className="flex min-h-screen items-center justify-center bg-gradient-to-br from-primary-50 via-primary-50/80 to-secondary-50 p-4">
       <Card className="w-full max-w-md border-border/60 bg-white/95 p-8 shadow-soft">
         <CardHeader className="space-y-3 text-center">
-          <CardTitle className="text-2xl font-bold text-primary-800">Join Play Bookings</CardTitle>
+          {isHostSignup && (
+            <div className="mx-auto mb-2 inline-flex items-center gap-2 rounded-full bg-secondary-100 px-4 py-1.5 text-sm font-semibold text-secondary-700">
+              <svg className="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 10V3L4 14h7v7l9-11h-7z" />
+              </svg>
+              Host Registration
+            </div>
+          )}
+          <CardTitle className="text-2xl font-bold text-primary-800">
+            {isHostSignup ? 'Become a Host' : 'Join Play Bookings'}
+          </CardTitle>
           <CardDescription className="text-primary-600">
-            Get started with your account
+            {isHostSignup 
+              ? 'Create your host account to list your courts and start earning revenue'
+              : 'Get started with your account'}
           </CardDescription>
         </CardHeader>
         <CardContent className="space-y-6">
@@ -60,7 +81,7 @@ function RegisterContent() {
             {loading ? (
               <div className="flex items-center space-x-2">
                 <div className="h-4 w-4 animate-spin rounded-full border-2 border-white border-t-transparent" />
-                <span>Creating account...</span>
+                <span>{isHostSignup ? 'Creating host account...' : 'Creating account...'}</span>
               </div>
             ) : (
               <div className="flex items-center space-x-2">

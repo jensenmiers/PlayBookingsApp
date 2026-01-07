@@ -27,7 +27,29 @@ function AuthCallbackContent() {
           const user = data.session.user
           console.log('User authenticated:', user.email)
 
-          // Always ensure a profile exists (default capabilities: renter)
+          // Check if this is a host sign-up
+          const intent = searchParams.get('intent')
+          const isHostSignup = intent === 'host'
+
+          // Check if user profile already exists
+          const { data: existingUser, error: fetchError } = await supabase
+            .from('users')
+            .select('id, is_venue_owner')
+            .eq('id', user.id)
+            .single()
+
+          // If user exists and this is a host sign-up, check if they need to upgrade
+          if (existingUser && !fetchError) {
+            if (isHostSignup && !existingUser.is_venue_owner) {
+              // Existing renter trying to become a host - redirect to upgrade page
+              router.push('/auth/upgrade-to-host')
+              return
+            }
+            // If already a venue owner, proceed normally
+            // If not a host sign-up, proceed normally
+          }
+
+          // User doesn't exist or we need to update them
           const fullName = user.user_metadata?.full_name || ''
           const [firstName, ...lastNameParts] = fullName.split(' ')
 
@@ -40,7 +62,7 @@ function AuthCallbackContent() {
                 first_name: firstName || null,
                 last_name: lastNameParts.join(' ') || null,
                 is_renter: true,
-                is_venue_owner: false,
+                is_venue_owner: existingUser?.is_venue_owner ?? isHostSignup,
                 is_admin: false,
                 updated_at: new Date().toISOString(),
               },
@@ -48,15 +70,17 @@ function AuthCallbackContent() {
             )
 
           if (profileError) {
-            console.error('Error creating user profile:', profileError)
+            console.error('Error creating/updating user profile:', profileError)
             // Still proceed even if profile creation fails
           }
 
           setStatus('success')
           
           // Get returnTo param and validate it (only allow relative paths starting with /)
+          // Hosts should go to dashboard, renters to venues
           const returnTo = searchParams.get('returnTo')
-          let redirectPath = '/venues' // Default destination
+          const finalIsHost = existingUser?.is_venue_owner ?? isHostSignup
+          let redirectPath = finalIsHost ? '/dashboard' : '/venues' // Default destination
           
           if (returnTo && returnTo.startsWith('/') && !returnTo.startsWith('//')) {
             // Valid relative path - use it
@@ -103,7 +127,11 @@ function AuthCallbackContent() {
             </svg>
           </div>
           <h2 className="text-xl font-semibold text-primary-800">Welcome to Play Bookings!</h2>
-          <p className="text-primary-600">Let&apos;s find you a venue to book...</p>
+          <p className="text-primary-600">
+            {searchParams.get('intent') === 'host' 
+              ? 'Setting up your host account...' 
+              : 'Let\'s find you a venue to book...'}
+          </p>
         </div>
       </div>
     )

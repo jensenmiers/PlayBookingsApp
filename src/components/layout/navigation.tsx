@@ -125,10 +125,16 @@ export function Navigation() {
                 href="/venues"
                 className="text-sm font-medium text-primary-500 transition-colors hover:text-primary-700"
               >
-                Venues
+                Find a Court
+              </Link>
+              <Link
+                href="/become-a-host"
+                className="text-sm font-medium text-primary-500 transition-colors hover:text-primary-700"
+              >
+                Become a Host
               </Link>
               <Button asChild size="lg" className="rounded-xl bg-secondary-600 px-10 py-3 text-base hover:bg-secondary-700">
-                <Link href="/auth/register">Get Started</Link>
+                <Link href="/auth/register">Sign Up</Link>
               </Button>
             </>
           )}
