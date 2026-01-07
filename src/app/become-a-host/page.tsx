@@ -71,7 +71,7 @@ export default function BecomeAHostPage() {
               </CardHeader>
               <CardContent>
                 <CardDescription className="text-primary-600">
-                  Our intuitive dashboard makes it simple to manage bookings, view earnings, and track your court's performance.
+                  Our intuitive dashboard makes it simple to manage bookings, view earnings, and track your court&apos;s performance.
                 </CardDescription>
               </CardContent>
             </Card>
@@ -160,7 +160,7 @@ export default function BecomeAHostPage() {
               <div>
                 <h3 className="mb-2 text-xl font-semibold text-primary-900">Get Bookings</h3>
                 <p className="text-primary-600">
-                  Renters discover and book your court through our platform. You'll receive notifications for new bookings.
+                  Renters discover and book your court through our platform. You&apos;ll receive notifications for new bookings.
                 </p>
               </div>
             </div>

@@ -2,6 +2,7 @@
 
 import { Button } from '@/components/ui/button'
 import Link from 'next/link'
+import Image from 'next/image'
 import { useRouter } from 'next/navigation'
 import { useCurrentUser } from '@/hooks/useCurrentUser'
 import { createClient } from '@/lib/supabase/client'
@@ -98,11 +99,14 @@ export function Navigation() {
                 </svg>
                 {/* User profile photo or initials */}
                 {user.avatar_url && !avatarError ? (
-                  <img
+                  <Image
                     src={user.avatar_url}
                     alt={getUserDisplayName()}
+                    width={32}
+                    height={32}
                     className="h-8 w-8 rounded-full object-cover"
                     onError={() => setAvatarError(true)}
+                    unoptimized
                   />
                 ) : (
                   <div className="flex h-8 w-8 items-center justify-center rounded-full bg-primary-100 text-sm font-semibold text-primary-700">
