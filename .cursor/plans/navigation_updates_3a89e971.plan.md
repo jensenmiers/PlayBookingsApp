@@ -65,7 +65,7 @@ flowchart TD
 - Add "Venues" link routing to `/venues`
 - Only show "Dashboard" link if `user.is_venue_owner` is true
 
-### 2. Dashboard Layout - [(dashboard)/layout.tsx](src/app/\\(dashboard)/layout.tsx)
+### 2. Dashboard Layout - [(dashboard)/layout.tsx](src/app/\\\(dashboard)/layout.tsx)
 
 Make the layout role-aware:
 
@@ -74,8 +74,6 @@ Make the layout role-aware:
 - If user is a renter only (not a venue owner): render the universal `Navigation` component instead of the sidebar
 - Show a loading state while user role is being determined
 
-### 3. Dashboard Route Protection - [(dashboard)/layout.tsx](src/app/\\(dashboard)/layout.tsx)
+### 3. Dashboard Route Protection - [(dashboard)/layout.tsx](src/app/\\\(dashboard)/layout.tsx)
 
 Add access control to restrict `/dashboard` to venue owners only:
-
-- When an unauthorized user (not authenticated) or a renter (non-venue owner) tries to access any dashboard route (including `/dashboard`), redirect them to `/bookings`

@@ -25,7 +25,7 @@ export default function Home() {
           </p>
           <div className="flex flex-col gap-4 sm:flex-row sm:justify-center">
             <Button asChild size="lg" className="rounded-xl bg-secondary-600 px-10 py-3 text-base hover:bg-secondary-700">
-              <Link href="/venues">Find a Court</Link>
+              <Link href="/venues">Discover Courts</Link>
             </Button>
             <Button
               asChild
@@ -35,6 +35,12 @@ export default function Home() {
             >
               <Link href="/search">Browse Availability</Link>
             </Button>
+          </div>
+
+          <div className="pt-4 text-center">
+            <Link href="/become-a-host" className="text-sm font-semibold text-primary-700 hover:text-secondary-600">
+              Own a court? Become a host →
+            </Link>
           </div>
         </div>
       </section>

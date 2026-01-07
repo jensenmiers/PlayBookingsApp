@@ -4,60 +4,74 @@ import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { Navigation } from '@/components/layout/navigation'
 import Link from 'next/link'
-import { FontAwesomeIcon } from '@fortawesome/react-fontawesome'
-import { faDollarSign, faChartLine, faShieldHalved, faClock, faUsers, faCalendarCheck } from '@fortawesome/free-solid-svg-icons'
 
 export default function BecomeAHostPage() {
   return (
     <div className="min-h-screen bg-gradient-to-br from-primary-50 via-primary-50/70 to-secondary-50">
       <Navigation />
-      
+
       {/* Hero Section */}
       <section className="px-4 py-20 text-center">
         <div className="mx-auto max-w-4xl space-y-6">
           <h1 className="text-4xl font-bold text-primary-900 md:text-6xl">
-            Turn Your Court Into{' '}
+            Hosting that feels{' '}
             <span className="bg-gradient-to-r from-primary-500 to-secondary-500 bg-clip-text text-transparent">
-              Passive Income
+              effortless
             </span>
           </h1>
+
           <p className="text-lg text-primary-600 md:text-xl">
-            List your basketball court or sports facility on Play Bookings and start earning revenue from bookings. 
-            We handle the scheduling, payments, and customer management so you can focus on what matters.
+            Turn open gym time into reliable revenue—without the back-and-forth. Play Bookings helps you publish availability,
+            manage bookings, and get paid, all from a host dashboard built for real facilities.
           </p>
+
           <div className="flex flex-col gap-4 sm:flex-row sm:justify-center">
             <Button asChild size="lg" className="rounded-xl bg-secondary-600 px-10 py-3 text-base hover:bg-secondary-700">
               <Link href="/auth/register?intent=host">Get Started as a Host</Link>
             </Button>
+
             <Button
               asChild
               variant="outline"
               size="lg"
               className="rounded-xl border-primary-200 bg-white/80 px-10 py-3 text-base text-primary-700 hover:bg-primary-100"
             >
-              <Link href="/venues">Browse Courts</Link>
+              <Link href="#how-hosting-works">See how hosting works</Link>
             </Button>
           </div>
+
+          <p className="text-sm text-primary-500">
+            Already have an account?{' '}
+            <Link className="font-semibold text-primary-700 hover:text-secondary-600" href="/auth/login">
+              Sign in
+            </Link>
+          </p>
         </div>
       </section>
 
-      {/* Benefits Section */}
-      <section className="px-4 py-20">
-        <div className="mx-auto max-w-6xl">
-          <h2 className="mb-16 text-center text-3xl font-semibold text-primary-900">
-            Why List Your Court on Play Bookings?
-          </h2>
-          <div className="grid gap-8 md:grid-cols-2 lg:grid-cols-3">
+      {/* Narrative: what it feels like */}
+      <section className="px-4 py-16">
+        <div className="mx-auto max-w-6xl space-y-10">
+          <div className="mx-auto max-w-3xl text-center space-y-3">
+            <h2 className="text-3xl font-semibold text-primary-900">What hosting feels like</h2>
+            <p className="text-primary-600">
+              You set the rules. Renters find open times. Bookings stay organized. Payments land reliably.
+            </p>
+          </div>
+
+          <div className="grid gap-8 lg:grid-cols-3">
             <Card className="border-border/60 bg-white/95 p-6 shadow-soft">
               <CardHeader>
                 <div className="mx-auto mb-4 flex h-16 w-16 items-center justify-center rounded-full bg-secondary-100 text-secondary-600">
-                  <FontAwesomeIcon icon={faDollarSign} className="h-8 w-8" />
+                  <svg className="h-8 w-8" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z" />
+                  </svg>
                 </div>
-                <CardTitle>Generate Revenue</CardTitle>
+                <CardTitle>Stay in control</CardTitle>
               </CardHeader>
               <CardContent>
                 <CardDescription className="text-primary-600">
-                  Monetize your unused court time. Set your own pricing and availability to maximize your earnings.
+                  Decide what&apos;s bookable, when. Block off school events, maintenance, or private time—your calendar is the source of truth.
                 </CardDescription>
               </CardContent>
             </Card>
@@ -65,13 +79,15 @@ export default function BecomeAHostPage() {
             <Card className="border-border/60 bg-white/95 p-6 shadow-soft">
               <CardHeader>
                 <div className="mx-auto mb-4 flex h-16 w-16 items-center justify-center rounded-full bg-primary-100 text-primary-600">
-                  <FontAwesomeIcon icon={faChartLine} className="h-8 w-8" />
+                  <svg className="h-8 w-8" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 10V3L4 14h7v7l9-11h-7z" />
+                  </svg>
                 </div>
-                <CardTitle>Easy Management</CardTitle>
+                <CardTitle>Less admin, fewer headaches</CardTitle>
               </CardHeader>
               <CardContent>
                 <CardDescription className="text-primary-600">
-                  Our intuitive dashboard makes it simple to manage bookings, view earnings, and track your court&apos;s performance.
+                  One place to track requests, confirmed reservations, messages, and changes—no messy email chains or spreadsheets.
                 </CardDescription>
               </CardContent>
             </Card>
@@ -79,55 +95,15 @@ export default function BecomeAHostPage() {
             <Card className="border-border/60 bg-white/95 p-6 shadow-soft">
               <CardHeader>
                 <div className="mx-auto mb-4 flex h-16 w-16 items-center justify-center rounded-full bg-accent-100 text-accent-600">
-                  <FontAwesomeIcon icon={faShieldHalved} className="h-8 w-8" />
+                  <svg className="h-8 w-8" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+                  </svg>
                 </div>
-                <CardTitle>Secure Payments</CardTitle>
+                <CardTitle>Get paid with confidence</CardTitle>
               </CardHeader>
               <CardContent>
                 <CardDescription className="text-primary-600">
-                  Automatic payment processing with secure transactions. Get paid on time, every time.
-                </CardDescription>
-              </CardContent>
-            </Card>
-
-            <Card className="border-border/60 bg-white/95 p-6 shadow-soft">
-              <CardHeader>
-                <div className="mx-auto mb-4 flex h-16 w-16 items-center justify-center rounded-full bg-primary-100 text-primary-600">
-                  <FontAwesomeIcon icon={faClock} className="h-8 w-8" />
-                </div>
-                <CardTitle>Save Time</CardTitle>
-              </CardHeader>
-              <CardContent>
-                <CardDescription className="text-primary-600">
-                  Automate your booking process. No more phone calls, emails, or manual scheduling headaches.
-                </CardDescription>
-              </CardContent>
-            </Card>
-
-            <Card className="border-border/60 bg-white/95 p-6 shadow-soft">
-              <CardHeader>
-                <div className="mx-auto mb-4 flex h-16 w-16 items-center justify-center rounded-full bg-secondary-100 text-secondary-600">
-                  <FontAwesomeIcon icon={faUsers} className="h-8 w-8" />
-                </div>
-                <CardTitle>Vetted Renters</CardTitle>
-              </CardHeader>
-              <CardContent>
-                <CardDescription className="text-primary-600">
-                  Connect with trusted renters including athletic directors, league coordinators, and club sports managers.
-                </CardDescription>
-              </CardContent>
-            </Card>
-
-            <Card className="border-border/60 bg-white/95 p-6 shadow-soft">
-              <CardHeader>
-                <div className="mx-auto mb-4 flex h-16 w-16 items-center justify-center rounded-full bg-accent-100 text-accent-600">
-                  <FontAwesomeIcon icon={faCalendarCheck} className="h-8 w-8" />
-                </div>
-                <CardTitle>Flexible Scheduling</CardTitle>
-              </CardHeader>
-              <CardContent>
-                <CardDescription className="text-primary-600">
-                  Control when your court is available. Block out times for your own use and set recurring availability.
+                  Payments run through the platform so you can focus on the facility—not chasing invoices.
                 </CardDescription>
               </CardContent>
             </Card>
@@ -135,43 +111,44 @@ export default function BecomeAHostPage() {
         </div>
       </section>
 
-      {/* How It Works Section */}
-      <section className="px-4 py-20">
+      {/* How it works */}
+      <section id="how-hosting-works" className="px-4 py-20">
         <div className="mx-auto max-w-4xl">
-          <h2 className="mb-16 text-center text-3xl font-semibold text-primary-900">
-            How It Works
-          </h2>
+          <h2 className="mb-10 text-center text-3xl font-semibold text-primary-900">How hosting works</h2>
+
           <div className="space-y-8">
             <div className="flex gap-6">
               <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-full bg-secondary-600 text-lg font-bold text-white">
                 1
               </div>
               <div>
-                <h3 className="mb-2 text-xl font-semibold text-primary-900">Sign Up & List Your Court</h3>
+                <h3 className="mb-2 text-xl font-semibold text-primary-900">Create your host account</h3>
                 <p className="text-primary-600">
-                  Create your account and add your court details. Upload photos, set pricing, and define your availability.
+                  Sign up in minutes. You&apos;ll land in the host dashboard where you can start setting up your listing.
                 </p>
               </div>
             </div>
+
             <div className="flex gap-6">
               <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-full bg-secondary-600 text-lg font-bold text-white">
                 2
               </div>
               <div>
-                <h3 className="mb-2 text-xl font-semibold text-primary-900">Get Bookings</h3>
+                <h3 className="mb-2 text-xl font-semibold text-primary-900">Publish availability the way you actually run a facility</h3>
                 <p className="text-primary-600">
-                  Renters discover and book your court through our platform. You&apos;ll receive notifications for new bookings.
+                  Add recurring open hours, one-off openings, and blackouts. Your listing reflects real operational constraints.
                 </p>
               </div>
             </div>
+
             <div className="flex gap-6">
               <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-full bg-secondary-600 text-lg font-bold text-white">
                 3
               </div>
               <div>
-                <h3 className="mb-2 text-xl font-semibold text-primary-900">Get Paid</h3>
+                <h3 className="mb-2 text-xl font-semibold text-primary-900">Manage bookings from one dashboard</h3>
                 <p className="text-primary-600">
-                  Payments are processed automatically. View your earnings, manage payouts, and track your revenue all in one place.
+                  See upcoming reservations, handle changes, and keep communication in one thread per booking.
                 </p>
               </div>
             </div>
@@ -182,12 +159,8 @@ export default function BecomeAHostPage() {
       {/* CTA Section */}
       <section className="px-4 py-20">
         <div className="mx-auto max-w-4xl space-y-6 rounded-3xl border border-border/40 bg-white/90 p-12 text-center shadow-glass">
-          <h2 className="text-3xl font-semibold text-primary-900">
-            Ready to Start Earning?
-          </h2>
-          <p className="text-lg text-primary-600">
-            Join Play Bookings today and turn your court into a revenue stream. Setup takes just minutes.
-          </p>
+          <h2 className="text-3xl font-semibold text-primary-900">Ready to host your first booking?</h2>
+          <p className="text-lg text-primary-600">Create your host account and start listing your space today.</p>
           <Button asChild size="lg" className="rounded-xl bg-secondary-600 px-10 py-3 text-base hover:bg-secondary-700">
             <Link href="/auth/register?intent=host">Become a Host</Link>
           </Button>
@@ -196,4 +169,3 @@ export default function BecomeAHostPage() {
     </div>
   )
 }
-

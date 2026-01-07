@@ -3,13 +3,15 @@
 import { Button } from '@/components/ui/button'
 import Link from 'next/link'
 import Image from 'next/image'
-import { useRouter } from 'next/navigation'
+import { useRouter, usePathname } from 'next/navigation'
 import { useCurrentUser } from '@/hooks/useCurrentUser'
 import { createClient } from '@/lib/supabase/client'
 import { useState, useRef, useEffect } from 'react'
 
 export function Navigation() {
   const router = useRouter()
+  const pathname = usePathname()
+  const isHostLanding = pathname === '/become-a-host'
   const { user, loading, error: userError } = useCurrentUser()
   const [dropdownOpen, setDropdownOpen] = useState(false)
   const [avatarError, setAvatarError] = useState(false)
@@ -168,6 +170,18 @@ export function Navigation() {
                 </div>
               )}
             </div>
+          ) : isHostLanding ? (
+            <>
+              <Link
+                href="/search"
+                className="text-sm font-medium text-primary-500 transition-colors hover:text-primary-700"
+              >
+                For Renters
+              </Link>
+              <Button asChild size="lg" className="rounded-xl bg-secondary-600 px-10 py-3 text-base hover:bg-secondary-700">
+                <Link href="/auth/register?intent=host">Get Started</Link>
+              </Button>
+            </>
           ) : (
             <>
               <Link
