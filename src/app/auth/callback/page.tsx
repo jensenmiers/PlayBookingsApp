@@ -77,10 +77,10 @@ function AuthCallbackContent() {
           setStatus('success')
           
           // Get returnTo param and validate it (only allow relative paths starting with /)
-          // Hosts should go to dashboard, renters to venues
+          // Hosts should go to dashboard, renters to search
           const returnTo = searchParams.get('returnTo')
           const finalIsHost = existingUser?.is_venue_owner ?? isHostSignup
-          let redirectPath = finalIsHost ? '/dashboard' : '/venues' // Default destination
+          let redirectPath = finalIsHost ? '/dashboard' : '/search' // Default destination
           
           if (returnTo && returnTo.startsWith('/') && !returnTo.startsWith('//')) {
             // Valid relative path - use it

@@ -8,10 +8,10 @@ import {
   faArrowRightFromBracket,
   faCalendarDays,
   faChartLine,
-  faGear,
-  faListUl,
-  faComments,
+  faBuilding,
   faMoneyBillTransfer,
+  faClipboardList,
+  faGear,
 } from "@fortawesome/free-solid-svg-icons"
 import type { IconDefinition } from "@fortawesome/fontawesome-svg-core"
 
@@ -39,10 +39,10 @@ export type SidebarNavigationProps = {
 
 const DEFAULT_ITEMS: SidebarNavItem[] = [
   { label: "Dashboard", href: "/dashboard", icon: faChartLine },
-  { label: "Bookings", href: "/bookings", icon: faCalendarDays },
+  { label: "My Venues", href: "/listings", icon: faBuilding },
+  { label: "My Bookings", href: "/bookings", icon: faClipboardList },
+  { label: "Availability", href: "/calendar", icon: faCalendarDays },
   { label: "Payouts", href: "/payouts", icon: faMoneyBillTransfer },
-  { label: "Listings", href: "/listings", icon: faListUl },
-  { label: "Messages", href: "/messages", icon: faComments, badge: "3" },
   { label: "Settings", href: "/settings", icon: faGear },
 ]
 

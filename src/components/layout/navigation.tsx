@@ -2,24 +2,44 @@
 
 import { Button } from '@/components/ui/button'
 import Link from 'next/link'
-import { usePathname, useRouter } from 'next/navigation'
+import { useRouter } from 'next/navigation'
 import { useCurrentUser } from '@/hooks/useCurrentUser'
 import { createClient } from '@/lib/supabase/client'
+import { useState, useRef, useEffect } from 'react'
 
 export function Navigation() {
-  const pathname = usePathname()
   const router = useRouter()
   const { user, loading, error: userError } = useCurrentUser()
+  const [dropdownOpen, setDropdownOpen] = useState(false)
+  const [avatarError, setAvatarError] = useState(false)
+  const dropdownRef = useRef<HTMLDivElement>(null)
 
-  // Check active states for navigation links
-  const isAvailabilityActive = pathname === '/search'
-  const isBookingsActive = pathname === '/bookings'
-  const isVenuesActive = pathname === '/venues'
-  const isDashboardActive = pathname === '/dashboard'
+  // Reset avatar error when user changes
+  useEffect(() => {
+    setAvatarError(false)
+  }, [user?.id, user?.avatar_url])
+
+  // Close dropdown when clicking outside
+  useEffect(() => {
+    const handleClickOutside = (event: MouseEvent) => {
+      if (dropdownRef.current && !dropdownRef.current.contains(event.target as Node)) {
+        setDropdownOpen(false)
+      }
+    }
+
+    if (dropdownOpen) {
+      document.addEventListener('mousedown', handleClickOutside)
+    }
+
+    return () => {
+      document.removeEventListener('mousedown', handleClickOutside)
+    }
+  }, [dropdownOpen])
 
   const handleSignOut = async () => {
     const supabase = createClient()
     await supabase.auth.signOut()
+    setDropdownOpen(false)
     router.push('/')
     router.refresh()
   }
@@ -57,72 +77,97 @@ export function Navigation() {
               <div className="h-9 w-24 animate-pulse rounded-xl bg-primary-100" />
             </>
           ) : user ? (
-            <>
-              <Link
-                href="/search"
-                className={`text-sm font-medium transition-colors ${
-                  isAvailabilityActive
-                    ? 'text-primary-700'
-                    : 'text-primary-500 hover:text-primary-700'
-                }`}
+            <div className="relative" ref={dropdownRef}>
+              <button
+                onClick={() => setDropdownOpen(!dropdownOpen)}
+                className="flex items-center gap-3 rounded-full border border-primary-200 bg-white/80 px-4 py-2 transition-colors hover:bg-white hover:border-primary-300"
               >
-                Availability
-              </Link>
-              <Link
-                href="/bookings"
-                className={`text-sm font-medium transition-colors ${
-                  isBookingsActive
-                    ? 'text-primary-700'
-                    : 'text-primary-500 hover:text-primary-700'
-                }`}
-              >
-                Bookings
-              </Link>
-              <Link
-                href="/venues"
-                className={`text-sm font-medium transition-colors ${
-                  isVenuesActive
-                    ? 'text-primary-700'
-                    : 'text-primary-500 hover:text-primary-700'
-                }`}
-              >
-                Venues
-              </Link>
-              {user.is_venue_owner && (
-                <Link
-                  href="/dashboard"
-                  className={`text-sm font-medium transition-colors ${
-                    isDashboardActive
-                      ? 'text-primary-700'
-                      : 'text-primary-500 hover:text-primary-700'
-                  }`}
+                {/* Hamburger icon */}
+                <svg
+                  className="h-5 w-5 text-primary-600"
+                  fill="none"
+                  stroke="currentColor"
+                  viewBox="0 0 24 24"
                 >
-                  Dashboard
-                </Link>
-              )}
-              <div className="flex items-center gap-3">
-                <div className="flex items-center gap-2">
+                  <path
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                    strokeWidth={2}
+                    d="M4 6h16M4 12h16M4 18h16"
+                  />
+                </svg>
+                {/* User profile photo or initials */}
+                {user.avatar_url && !avatarError ? (
+                  <img
+                    src={user.avatar_url}
+                    alt={getUserDisplayName()}
+                    className="h-8 w-8 rounded-full object-cover"
+                    onError={() => setAvatarError(true)}
+                  />
+                ) : (
                   <div className="flex h-8 w-8 items-center justify-center rounded-full bg-primary-100 text-sm font-semibold text-primary-700">
                     {getUserInitials()}
                   </div>
-                  <span className="text-sm font-medium text-primary-700">
-                    {getUserDisplayName()}
-                  </span>
+                )}
+                {/* User name */}
+                <span className="text-sm font-medium text-primary-700">
+                  {getUserDisplayName()}
+                </span>
+              </button>
+
+              {/* Dropdown menu */}
+              {dropdownOpen && (
+                <div className="absolute right-0 top-full z-50 mt-2 w-56 rounded-xl border border-border/60 bg-white shadow-lg">
+                  <div className="py-2">
+                    <Link
+                      href="/bookings"
+                      onClick={() => setDropdownOpen(false)}
+                      className="block px-4 py-2 text-sm text-primary-700 transition-colors hover:bg-primary-50"
+                    >
+                      Reservations
+                    </Link>
+                    <Link
+                      href="/search"
+                      onClick={() => setDropdownOpen(false)}
+                      className="block px-4 py-2 text-sm text-primary-700 transition-colors hover:bg-primary-50"
+                    >
+                      Find a Court
+                    </Link>
+                    <Link
+                      href="/venues"
+                      onClick={() => setDropdownOpen(false)}
+                      className="block px-4 py-2 text-sm text-primary-700 transition-colors hover:bg-primary-50"
+                    >
+                      Court Directory
+                    </Link>
+                    <Link
+                      href="/become-a-host"
+                      onClick={() => setDropdownOpen(false)}
+                      className="block px-4 py-2 text-sm text-primary-700 transition-colors hover:bg-primary-50"
+                    >
+                      List a Space
+                    </Link>
+                    <button
+                      disabled
+                      className="block w-full px-4 py-2 text-left text-sm text-primary-400 cursor-not-allowed"
+                    >
+                      Favorites
+                    </button>
+                    <div className="my-1 border-t border-border/40" />
+                    <button
+                      onClick={handleSignOut}
+                      className="block w-full px-4 py-2 text-left text-sm text-primary-700 transition-colors hover:bg-primary-50"
+                    >
+                      Log Out
+                    </button>
+                  </div>
                 </div>
-                <Button
-                  onClick={handleSignOut}
-                  variant="outline"
-                  size="sm"
-                  className="rounded-xl border-border/60 text-primary-700 hover:bg-primary-100"
-                >
-                  Sign Out
-                </Button>
-              </div>
-            </>
+              )}
+            </div>
           ) : (
             <>
               <Link
-                href="/venues"
+                href="/search"
                 className="text-sm font-medium text-primary-500 transition-colors hover:text-primary-700"
               >
                 Find a Court

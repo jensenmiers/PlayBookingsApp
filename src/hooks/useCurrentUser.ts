@@ -27,8 +27,9 @@ export function useCurrentUser() {
     let mounted = true
     let lastRequestedUserId: string | null = null
 
-    const fetchUserProfileWithClient = async (client: ReturnType<typeof createClient>, userId: string) => {
+    const fetchUserProfileWithClient = async (client: ReturnType<typeof createClient>, userId: string, avatarUrl?: string) => {
       try {
+        // Fetch user profile from database
         const { data: user, error } = await client
           .from('users')
           .select('*')
@@ -63,7 +64,23 @@ export function useCurrentUser() {
           return
         }
 
-        setState({ user: user as User, loading: false, error: null })
+        // If avatar URL wasn't passed, try to fetch it from auth
+        let finalAvatarUrl = avatarUrl
+        if (!finalAvatarUrl) {
+          const { data: { user: authUser } } = await client.auth.getUser()
+          finalAvatarUrl = authUser?.user_metadata?.avatar_url || 
+                          authUser?.user_metadata?.picture ||
+                          authUser?.user_metadata?.avatar ||
+                          undefined
+        }
+
+        // Merge avatar URL with user profile
+        const userWithAvatar: User = {
+          ...(user as User),
+          avatar_url: finalAvatarUrl,
+        }
+
+        setState({ user: userWithAvatar, loading: false, error: null })
       } catch (error) {
         if (!mounted) return
         const message = error instanceof Error ? error.message : 'Failed to fetch user'
@@ -85,19 +102,25 @@ export function useCurrentUser() {
           }
           lastRequestedUserId = userId
 
+          // Extract avatar URL from session user metadata
+          const avatarUrl = session.user.user_metadata?.avatar_url || 
+                          session.user.user_metadata?.picture ||
+                          session.user.user_metadata?.avatar ||
+                          undefined
+
           if (_event === 'SIGNED_IN') {
             queueMicrotask(() => {
               ;(async () => {
                 if (!mounted) return
                 const fresh = createClient()
-                await fetchUserProfileWithClient(fresh, userId)
+                await fetchUserProfileWithClient(fresh, userId, avatarUrl)
               })().catch((err) => {
                 console.error('Error in microtask profile fetch:', err)
               })
             })
           } else {
             const client = createClient()
-            await fetchUserProfileWithClient(client, userId)
+            await fetchUserProfileWithClient(client, userId, avatarUrl)
           }
         } catch (error) {
           console.error('Error in auth state change callback:', error)
