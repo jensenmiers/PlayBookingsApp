@@ -64,7 +64,7 @@ export function Navigation() {
   }
 
   return (
-    <nav className="border-b border-border/40 bg-white/90 backdrop-blur supports-[backdrop-filter]:bg-white/70">
+    <nav className="relative z-40 border-b border-border/40 bg-white/90 backdrop-blur supports-[backdrop-filter]:bg-white/70">
       <div className="mx-auto flex h-16 max-w-7xl items-center justify-between px-4">
         <Link href="/" className="flex items-center space-x-2">
           <div className="h-9 w-9 rounded-xl bg-gradient-to-br from-primary-500 to-secondary-500" />
