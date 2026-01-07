@@ -69,7 +69,7 @@ export default function Home() {
               </CardHeader>
               <CardContent>
                 <CardDescription className="text-primary-600">
-                  Every court is verified with accurate photos and amenities, so you know exactly what you're getting.
+                  Every court is verified with accurate photos and amenities, so you know exactly what you&apos;re getting.
                 </CardDescription>
               </CardContent>
             </Card>
@@ -83,7 +83,7 @@ export default function Home() {
               </CardHeader>
               <CardContent>
                 <CardDescription className="text-primary-600">
-                  Discover courts near you—whether it's for pickup games, team practices, or private sessions.
+                  Discover courts near you—whether it&apos;s for pickup games, team practices, or private sessions.
                 </CardDescription>
               </CardContent>
             </Card>
