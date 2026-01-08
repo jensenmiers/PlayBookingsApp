@@ -5,6 +5,7 @@ import Link from 'next/link'
 import Image from 'next/image'
 import { useRouter, usePathname } from 'next/navigation'
 import { useCurrentUser } from '@/hooks/useCurrentUser'
+import { useAuthModal } from '@/contexts/AuthModalContext'
 import { createClient } from '@/lib/supabase/client'
 import { useState, useRef, useEffect } from 'react'
 
@@ -13,6 +14,7 @@ export function Navigation() {
   const pathname = usePathname()
   const isHostLanding = pathname === '/become-a-host'
   const { user, loading, error: userError } = useCurrentUser()
+  const { openAuthModal } = useAuthModal()
   const [dropdownOpen, setDropdownOpen] = useState(false)
   const [guestDropdownOpen, setGuestDropdownOpen] = useState(false)
   const [avatarError, setAvatarError] = useState(false)
@@ -183,8 +185,12 @@ export function Navigation() {
               >
                 For Renters
               </Link>
-              <Button asChild size="lg" className="rounded-xl bg-secondary-600 px-10 py-3 text-base hover:bg-secondary-700">
-                <Link href="/auth/register?intent=host">Get Started</Link>
+              <Button 
+                size="lg" 
+                className="rounded-xl bg-secondary-600 px-10 py-3 text-base hover:bg-secondary-700"
+                onClick={() => openAuthModal({ intent: 'host' })}
+              >
+                Get Started
               </Button>
             </>
           ) : (
@@ -221,13 +227,15 @@ export function Navigation() {
                 {guestDropdownOpen && (
                   <div className="absolute right-0 top-full z-50 mt-2 w-56 rounded-xl border border-border/60 bg-white shadow-lg">
                     <div className="p-3">
-                      <Link
-                        href="/auth/register"
-                        onClick={() => setGuestDropdownOpen(false)}
+                      <button
+                        onClick={() => {
+                          setGuestDropdownOpen(false)
+                          openAuthModal()
+                        }}
                         className="block w-full rounded-lg bg-secondary-600 px-4 py-2.5 text-center text-sm font-semibold text-white transition-colors hover:bg-secondary-700"
                       >
                         Log in or Sign up
-                      </Link>
+                      </button>
                     </div>
                     <div className="border-t border-border/40 py-2">
                       <Link

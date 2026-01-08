@@ -48,7 +48,7 @@ import {
 } from '@/components/ui/dialog'
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome'
 import { faCalendarDays, faSpinner } from '@fortawesome/free-solid-svg-icons'
-import { AuthRequiredDialog } from '@/components/ui/auth-required-dialog'
+import { useAuthModal } from '@/contexts/AuthModalContext'
 
 interface CreateBookingFormProps {
   venueId?: string
@@ -77,7 +77,7 @@ export function CreateBookingForm({
   const [selectedDate, setSelectedDate] = useState<Date | undefined>(defaultDate)
   const [showDatePicker, setShowDatePicker] = useState(false)
   const [conflictChecked, setConflictChecked] = useState(false)
-  const [showAuthDialog, setShowAuthDialog] = useState(false)
+  const { openAuthModal } = useAuthModal()
 
   const { data: venues, loading: venuesLoading } = useVenues()
   const { data: selectedVenue } = useVenue(initialVenueId || null)
@@ -190,7 +190,7 @@ export function CreateBookingForm({
         errorMessage.includes('unauthorized') ||
         errorMessage.includes('sign in')
       ) {
-        setShowAuthDialog(true)
+        openAuthModal({ contextMessage: 'Sign in to complete your booking' })
       } else {
         form.setError('root', {
           message: result.error,
@@ -203,7 +203,6 @@ export function CreateBookingForm({
   const venue = venues?.find((v) => v.id === watchedVenueId) || selectedVenue
 
   return (
-    <>
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
         <DialogHeader>
@@ -483,13 +482,6 @@ export function CreateBookingForm({
         </Form>
       </DialogContent>
     </Dialog>
-
-    {/* Auth Required Dialog */}
-    <AuthRequiredDialog
-      open={showAuthDialog}
-      onOpenChange={setShowAuthDialog}
-    />
-  </>
   )
 }
 

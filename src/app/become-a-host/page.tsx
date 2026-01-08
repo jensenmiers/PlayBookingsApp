@@ -3,9 +3,35 @@
 import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { Navigation } from '@/components/layout/navigation'
-import Link from 'next/link'
+import { useAuthModal } from '@/contexts/AuthModalContext'
+import { useCurrentUser } from '@/hooks/useCurrentUser'
+import { useRouter } from 'next/navigation'
 
 export default function BecomeAHostPage() {
+  const { openAuthModal } = useAuthModal()
+  const { user } = useCurrentUser()
+  const router = useRouter()
+
+  const handleHostCTA = () => {
+    if (user) {
+      // User is already authenticated
+      if (user.is_venue_owner) {
+        // Already a host - go to dashboard
+        router.push('/dashboard')
+      } else {
+        // Renter needs to upgrade to host
+        router.push('/auth/upgrade-to-host')
+      }
+    } else {
+      // Not authenticated - open auth modal with host intent
+      openAuthModal({ intent: 'host' })
+    }
+  }
+
+  const handleSignIn = () => {
+    openAuthModal()
+  }
+
   return (
     <div className="min-h-screen bg-gradient-to-br from-primary-50 via-primary-50/70 to-secondary-50">
       <Navigation />
@@ -26,25 +52,32 @@ export default function BecomeAHostPage() {
           </p>
 
           <div className="flex flex-col gap-4 sm:flex-row sm:justify-center">
-            <Button asChild size="lg" className="rounded-xl bg-secondary-600 px-10 py-3 text-base hover:bg-secondary-700">
-              <Link href="/auth/register?intent=host">Get Started as a Host</Link>
+            <Button 
+              size="lg" 
+              className="rounded-xl bg-secondary-600 px-10 py-3 text-base hover:bg-secondary-700"
+              onClick={handleHostCTA}
+            >
+              Get Started as a Host
             </Button>
 
             <Button
-              asChild
               variant="outline"
               size="lg"
               className="rounded-xl border-primary-200 bg-white/80 px-10 py-3 text-base text-primary-700 hover:bg-primary-100"
+              onClick={() => document.getElementById('how-hosting-works')?.scrollIntoView({ behavior: 'smooth' })}
             >
-              <Link href="#how-hosting-works">See how hosting works</Link>
+              See how hosting works
             </Button>
           </div>
 
           <p className="text-sm text-primary-500">
             Already have an account?{' '}
-            <Link className="font-semibold text-primary-700 hover:text-secondary-600" href="/auth/login">
+            <button 
+              className="font-semibold text-primary-700 hover:text-secondary-600"
+              onClick={handleSignIn}
+            >
               Sign in
-            </Link>
+            </button>
           </p>
         </div>
       </section>
@@ -161,8 +194,12 @@ export default function BecomeAHostPage() {
         <div className="mx-auto max-w-4xl space-y-6 rounded-3xl border border-border/40 bg-white/90 p-12 text-center shadow-glass">
           <h2 className="text-3xl font-semibold text-primary-900">Ready to host your first booking?</h2>
           <p className="text-lg text-primary-600">Create your host account and start listing your space today.</p>
-          <Button asChild size="lg" className="rounded-xl bg-secondary-600 px-10 py-3 text-base hover:bg-secondary-700">
-            <Link href="/auth/register?intent=host">Become a Host</Link>
+          <Button 
+            size="lg" 
+            className="rounded-xl bg-secondary-600 px-10 py-3 text-base hover:bg-secondary-700"
+            onClick={handleHostCTA}
+          >
+            Become a Host
           </Button>
         </div>
       </section>

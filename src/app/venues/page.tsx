@@ -255,4 +255,3 @@ export default function VenuesPage() {
     </Suspense>
   )
 }
-
