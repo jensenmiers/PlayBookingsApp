@@ -63,13 +63,13 @@ function RegisterContent() {
             </div>
           )}
           <CardTitle className="text-2xl font-bold text-primary-800">
-            {isHostSignup ? 'Become a Host' : 'Join Play Bookings'}
+            {isHostSignup ? 'Become a Host' : 'Welcome to Play Bookings!'}
           </CardTitle>
-          <CardDescription className="text-primary-600">
-            {isHostSignup 
-              ? 'Create your host account to list your courts and start earning revenue'
-              : 'Get started with your account'}
-          </CardDescription>
+          {isHostSignup && (
+            <CardDescription className="text-primary-600">
+              Create your host account to list your courts and start earning revenue
+            </CardDescription>
+          )}
         </CardHeader>
         <CardContent className="space-y-6">
           <Button
@@ -96,15 +96,8 @@ function RegisterContent() {
             )}
           </Button>
 
-          <div className="text-center text-sm text-primary-600">
-            Already have an account?{' '}
-            <Link href="/auth/login" className="font-semibold text-primary-700 hover:text-secondary-600">
-              Sign in here
-            </Link>
-          </div>
-
           <div className="text-center">
-            <Link href="/marketing" className="text-sm font-medium text-primary-500 hover:text-primary-700">
+            <Link href="/" className="text-sm font-medium text-primary-500 hover:text-primary-700">
               Back to Home
             </Link>
           </div>

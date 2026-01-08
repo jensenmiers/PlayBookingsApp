@@ -14,8 +14,10 @@ export function Navigation() {
   const isHostLanding = pathname === '/become-a-host'
   const { user, loading, error: userError } = useCurrentUser()
   const [dropdownOpen, setDropdownOpen] = useState(false)
+  const [guestDropdownOpen, setGuestDropdownOpen] = useState(false)
   const [avatarError, setAvatarError] = useState(false)
   const dropdownRef = useRef<HTMLDivElement>(null)
+  const guestDropdownRef = useRef<HTMLDivElement>(null)
 
   // Reset avatar error when user changes
   useEffect(() => {
@@ -28,16 +30,19 @@ export function Navigation() {
       if (dropdownRef.current && !dropdownRef.current.contains(event.target as Node)) {
         setDropdownOpen(false)
       }
+      if (guestDropdownRef.current && !guestDropdownRef.current.contains(event.target as Node)) {
+        setGuestDropdownOpen(false)
+      }
     }
 
-    if (dropdownOpen) {
+    if (dropdownOpen || guestDropdownOpen) {
       document.addEventListener('mousedown', handleClickOutside)
     }
 
     return () => {
       document.removeEventListener('mousedown', handleClickOutside)
     }
-  }, [dropdownOpen])
+  }, [dropdownOpen, guestDropdownOpen])
 
   const handleSignOut = async () => {
     const supabase = createClient()
@@ -190,15 +195,65 @@ export function Navigation() {
               >
                 Find a Court
               </Link>
-              <Link
-                href="/become-a-host"
-                className="text-sm font-medium text-primary-500 transition-colors hover:text-primary-700"
-              >
-                Become a Host
-              </Link>
-              <Button asChild size="lg" className="rounded-xl bg-secondary-600 px-10 py-3 text-base hover:bg-secondary-700">
-                <Link href="/auth/register">Sign Up</Link>
-              </Button>
+              <div className="relative" ref={guestDropdownRef}>
+                <button
+                  onClick={() => setGuestDropdownOpen(!guestDropdownOpen)}
+                  className="flex items-center gap-3 rounded-full border border-primary-200 bg-white/80 px-4 py-2 transition-colors hover:bg-white hover:border-primary-300"
+                >
+                  {/* Hamburger icon */}
+                  <svg
+                    className="h-5 w-5 text-primary-600"
+                    fill="none"
+                    stroke="currentColor"
+                    viewBox="0 0 24 24"
+                  >
+                    <path
+                      strokeLinecap="round"
+                      strokeLinejoin="round"
+                      strokeWidth={2}
+                      d="M4 6h16M4 12h16M4 18h16"
+                    />
+                  </svg>
+                  <span className="text-sm font-medium text-primary-700">Sign Up</span>
+                </button>
+
+                {/* Guest dropdown menu */}
+                {guestDropdownOpen && (
+                  <div className="absolute right-0 top-full z-50 mt-2 w-56 rounded-xl border border-border/60 bg-white shadow-lg">
+                    <div className="p-3">
+                      <Link
+                        href="/auth/register"
+                        onClick={() => setGuestDropdownOpen(false)}
+                        className="block w-full rounded-lg bg-secondary-600 px-4 py-2.5 text-center text-sm font-semibold text-white transition-colors hover:bg-secondary-700"
+                      >
+                        Log in or Sign up
+                      </Link>
+                    </div>
+                    <div className="border-t border-border/40 py-2">
+                      <Link
+                        href="/search"
+                        onClick={() => setGuestDropdownOpen(false)}
+                        className="block px-4 py-2 text-sm text-primary-700 transition-colors hover:bg-primary-50"
+                      >
+                        Find a Court
+                      </Link>
+                      <Link
+                        href="/become-a-host"
+                        onClick={() => setGuestDropdownOpen(false)}
+                        className="block px-4 py-2 text-sm text-primary-700 transition-colors hover:bg-primary-50"
+                      >
+                        Become a Host
+                      </Link>
+                      <button
+                        disabled
+                        className="block w-full px-4 py-2 text-left text-sm text-primary-400 cursor-not-allowed"
+                      >
+                        Contact
+                      </button>
+                    </div>
+                  </div>
+                )}
+              </div>
             </>
           )}
         </div>
