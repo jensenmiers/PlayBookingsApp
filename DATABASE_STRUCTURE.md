@@ -1,6 +1,7 @@
 # Database Structure - Live Query Results
 
 This document contains the actual database structure as queried via Supabase MCP on **2025-01-15**.
+Last updated: **2026-01-09** (trigger function fix applied).
 
 ## 📊 Database Overview
 
@@ -22,13 +23,13 @@ This document contains the actual database structure as queried via Supabase MCP
 **Action Required**: Enable RLS on these tables immediately!
 
 ### Function Security Issues
-All functions have mutable `search_path` which is a security risk:
+Most functions have mutable `search_path` which is a security risk:
 - `check_booking_conflicts`
 - `check_recurring_booking_conflicts`
 - `check_insurance_requirements`
 - `update_updated_at_column`
 - `log_audit_trail`
-- `handle_new_user`
+- ~~`handle_new_user`~~ ✅ Fixed (2026-01-09)
 - `generate_recurring_bookings`
 - `check_cancellation_policy`
 
@@ -231,19 +232,63 @@ All functions have mutable `search_path` which is a security risk:
 Based on migration files, these functions should exist:
 
 1. **`update_updated_at_column()`** - Auto-updates `updated_at` timestamps
-2. **`check_booking_conflicts()`** - Validates booking time conflicts
-3. **`check_recurring_booking_conflicts()`** - Validates recurring booking conflicts
+2. **`check_booking_conflicts()`** - Validates booking time conflicts (deprecated, moved to API)
+3. **`check_recurring_booking_conflicts()`** - Validates recurring booking conflicts (deprecated, moved to API)
 4. **`log_audit_trail()`** - Creates audit log entries
-5. **`handle_new_user()`** - Creates user profile after auth signup
-6. **`generate_recurring_bookings()`** - Generates recurring booking instances
-7. **`check_cancellation_policy()`** - Validates 48-hour cancellation window
-8. **`check_insurance_requirements()`** - Ensures insurance approval before confirmation
+5. **`handle_new_user()`** - Creates user profile after auth signup ✅ **Fixed 2026-01-09**
+6. **`generate_recurring_bookings()`** - Generates recurring booking instances (deprecated, moved to API)
+7. **`check_cancellation_policy()`** - Validates 48-hour cancellation window (deprecated, moved to API)
+8. **`check_insurance_requirements()`** - Ensures insurance approval before confirmation (deprecated, moved to API)
+
+### `handle_new_user()` Function Details
+
+**Trigger**: `on_auth_user_created` (AFTER INSERT on `auth.users`)
+
+This function automatically creates a user profile in `public.users` when a new user signs up via Supabase Auth (including Google OAuth).
+
+**Current Implementation** (fixed 2026-01-09):
+```sql
+CREATE OR REPLACE FUNCTION public.handle_new_user()
+RETURNS TRIGGER
+SECURITY DEFINER
+SET search_path = public
+LANGUAGE plpgsql
+AS $$
+BEGIN
+  INSERT INTO public.users (
+    id, email, first_name, last_name,
+    is_renter, is_venue_owner, is_admin,
+    created_at, updated_at
+  )
+  VALUES (
+    NEW.id,
+    NEW.email,
+    COALESCE(NEW.raw_user_meta_data->>'first_name', 
+             split_part(NEW.raw_user_meta_data->>'full_name', ' ', 1)),
+    COALESCE(NEW.raw_user_meta_data->>'last_name', 
+             NULLIF(regexp_replace(NEW.raw_user_meta_data->>'full_name', '^[^ ]+ ', ''), '')),
+    true,   -- is_renter (default)
+    false,  -- is_venue_owner
+    false,  -- is_admin
+    NOW(),
+    NOW()
+  )
+  ON CONFLICT (id) DO UPDATE SET
+    email = EXCLUDED.email,
+    updated_at = NOW();
+  
+  RETURN NEW;
+END;
+$$;
+```
+
+**Fix Applied**: The previous version referenced a non-existent `role` column (which was replaced by boolean flags in migration `20251231055310_user_role_booleans`). This caused "Database error saving new user" errors for all new user signups.
 
 ## ⚠️ Security Advisors Summary
 
 ### Critical Issues:
 1. **RLS Disabled**: `recurring_bookings`, `payments` tables
-2. **Function Search Path**: All 8 functions have mutable search_path
+2. **Function Search Path**: 7 of 8 functions have mutable search_path (1 fixed: `handle_new_user`)
 3. **Postgres Version**: Security patches available (17.4.1.074)
 
 ### Warnings:
@@ -251,10 +296,21 @@ Based on migration files, these functions should exist:
 2. **Leaked Password Protection**: Disabled
 3. **Postgres Version**: Has outstanding security patches
 
+## ✅ Recent Fixes
+
+### 2026-01-09: `handle_new_user()` Trigger Fix
+**Migration**: `fix_handle_new_user_trigger`
+
+**Problem**: The `handle_new_user()` function was referencing a `role` column that no longer exists (removed in `20251231055310_user_role_booleans` migration). This caused all new user signups via Google OAuth to fail with "Database error saving new user".
+
+**Solution**: Updated the function to use the new boolean columns (`is_renter`, `is_venue_owner`, `is_admin`) and added `SET search_path = public` for security.
+
+**Impact**: New users can now successfully sign up via Google OAuth. Users are created with `is_renter=true` by default.
+
 ## 📝 Next Steps
 
 1. **URGENT**: Enable RLS on `recurring_bookings` and `payments` tables
-2. Fix function security by adding `SET search_path = public` to all functions
+2. Fix function security by adding `SET search_path = public` to remaining 7 functions
 3. Review and update RLS policies for the two disabled tables
 4. Consider moving business logic from triggers to application code (as discussed)
 

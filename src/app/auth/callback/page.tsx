@@ -1,16 +1,28 @@
 'use client'
 
-import { createClient } from '@/lib/supabase/client'
+import { createBrowserClient } from '@supabase/ssr'
 import { useRouter, useSearchParams } from 'next/navigation'
-import { Suspense, useEffect, useState, useRef } from 'react'
+import { Suspense, useEffect, useState, useRef, useMemo } from 'react'
 
 function AuthCallbackContent() {
   const [status, setStatus] = useState<'loading' | 'success' | 'error' | 'closing'>('loading')
   const [errorMessage, setErrorMessage] = useState('')
   const router = useRouter()
   const searchParams = useSearchParams()
-  const supabase = createClient()
   const hasRun = useRef(false)
+  
+  // Create Supabase client with detectSessionInUrl disabled to prevent automatic 
+  // code exchange racing with our manual exchange
+  const supabase = useMemo(() => createBrowserClient(
+    process.env.NEXT_PUBLIC_SUPABASE_URL!,
+    process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
+    {
+      auth: {
+        detectSessionInUrl: false, // We handle code exchange manually
+        flowType: 'pkce',
+      }
+    }
+  ), [])
 
   useEffect(() => {
     // Detect popup mode via window.opener (since query params are lost through OAuth)
@@ -60,14 +72,31 @@ function AuthCallbackContent() {
         }
 
         // NON-POPUP MODE: Exchange the code for a session
-        // If no code in URL, try getSession first (might already have session)
+        // If no code in URL, check if we already have a session (e.g., user refreshed page after auth)
         if (!urlCode) {
           const { data, error } = await supabase.auth.getSession()
           if (error || !data.session) {
-            setErrorMessage('No authorization code found')
+            // This can happen if:
+            // 1. User navigated directly to /auth/callback without going through OAuth
+            // 2. The popup auth completed but user refreshed this page
+            // 3. Cross-origin issues prevented proper redirect
+            console.log('No authorization code in URL and no existing session')
+            setErrorMessage('Authentication session expired or invalid. Please try signing in again.')
             setStatus('error')
             return
           }
+          // We have a session but no code - likely user refreshed after successful auth
+          // Redirect them to their destination
+          const returnTo = searchParams.get('returnTo')
+          let redirectPath = '/search'
+          if (returnTo && returnTo.startsWith('/') && !returnTo.startsWith('//')) {
+            redirectPath = returnTo
+          }
+          setStatus('success')
+          setTimeout(() => {
+            router.push(redirectPath)
+          }, 1000)
+          return
         }
 
         // Exchange the auth code for a session (required for PKCE flow)
