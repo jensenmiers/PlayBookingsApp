@@ -137,28 +137,28 @@ export function Navigation() {
                       onClick={() => setDropdownOpen(false)}
                       className="block px-4 py-2 text-sm text-primary-700 transition-colors hover:bg-primary-50"
                     >
-                      Reservations
+                      My Bookings
                     </Link>
                     <Link
                       href="/search"
                       onClick={() => setDropdownOpen(false)}
                       className="block px-4 py-2 text-sm text-primary-700 transition-colors hover:bg-primary-50"
                     >
-                      Find a Court
+                      Book a Time
                     </Link>
                     <Link
                       href="/venues"
                       onClick={() => setDropdownOpen(false)}
                       className="block px-4 py-2 text-sm text-primary-700 transition-colors hover:bg-primary-50"
                     >
-                      Court Directory
+                      Find a Court
                     </Link>
                     <Link
                       href="/become-a-host"
                       onClick={() => setDropdownOpen(false)}
                       className="block px-4 py-2 text-sm text-primary-700 transition-colors hover:bg-primary-50"
                     >
-                      List a Space
+                      Become a Host
                     </Link>
                     <button
                       disabled
@@ -166,6 +166,25 @@ export function Navigation() {
                     >
                       Favorites
                     </button>
+                    {user.is_venue_owner && (
+                      <>
+                        <div className="my-1 border-t border-border/40" />
+                        <Link
+                          href="/dashboard"
+                          onClick={() => setDropdownOpen(false)}
+                          className="block px-4 py-2 text-sm text-primary-700 transition-colors hover:bg-primary-50"
+                        >
+                          Dashboard
+                        </Link>
+                        <Link
+                          href="/calendar"
+                          onClick={() => setDropdownOpen(false)}
+                          className="block px-4 py-2 text-sm text-primary-700 transition-colors hover:bg-primary-50"
+                        >
+                          My Availability
+                        </Link>
+                      </>
+                    )}
                     <div className="my-1 border-t border-border/40" />
                     <button
                       onClick={handleSignOut}

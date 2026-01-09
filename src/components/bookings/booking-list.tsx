@@ -30,6 +30,7 @@ export function BookingList({ initialFilters, className }: BookingListProps) {
     date_to: initialFilters?.date_to,
     page: initialFilters?.page || '1',
     limit: initialFilters?.limit || '20',
+    role_view: initialFilters?.role_view,
   })
   const [showFilters, setShowFilters] = useState(false)
 
@@ -47,6 +48,7 @@ export function BookingList({ initialFilters, className }: BookingListProps) {
     setFilters({
       page: '1',
       limit: '20',
+      role_view: initialFilters?.role_view, // Preserve role_view when clearing
     })
   }
 

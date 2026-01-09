@@ -49,6 +49,7 @@ export const bookingQuerySchema = z.object({
   date_to: z.string().regex(/^\d{4}-\d{2}-\d{2}$/).optional(),
   page: z.string().regex(/^\d+$/).optional().default('1').transform(Number),
   limit: z.string().regex(/^\d+$/).optional().default('20').transform(Number),
+  role_view: z.enum(['renter', 'host']).optional(),
 })
 
 export type CreateBookingInput = z.input<typeof createBookingSchema>

@@ -40,7 +40,7 @@ export type SidebarNavigationProps = {
 const DEFAULT_ITEMS: SidebarNavItem[] = [
   { label: "Dashboard", href: "/dashboard", icon: faChartLine },
   { label: "My Venues", href: "/listings", icon: faBuilding },
-  { label: "My Bookings", href: "/bookings", icon: faClipboardList },
+  { label: "Incoming Bookings", href: "/bookings", icon: faClipboardList },
   { label: "Availability", href: "/calendar", icon: faCalendarDays },
   { label: "Payouts", href: "/payouts", icon: faMoneyBillTransfer },
   { label: "Settings", href: "/settings", icon: faGear },
@@ -54,15 +54,8 @@ export function SidebarNavigation({
   const pathname = usePathname()
 
   return (
-    <aside className="hidden h-screen w-72 flex-none border-r border-border/40 bg-white/95 px-6 py-8 shadow-soft lg:block">
-      <div className="flex items-center gap-3">
-        <div className="flex size-10 items-center justify-center rounded-xl bg-primary text-primary-foreground">
-          <span className="text-lg font-semibold">PB</span>
-        </div>
-        <span className="text-xl font-bold text-primary-800">Play Bookings</span>
-      </div>
-
-      <nav className="mt-10 flex flex-col gap-1">
+    <aside className="hidden h-[calc(100vh-4rem)] w-72 flex-none border-r border-border/40 bg-white/95 px-6 py-8 shadow-soft lg:block">
+      <nav className="flex flex-col gap-1">
         {items.map((item) => {
           const isActive = pathname?.startsWith(item.href)
 

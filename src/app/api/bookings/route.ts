@@ -25,6 +25,7 @@ export async function GET(request: NextRequest) {
       venue_id: query.venue_id,
       date_from: query.date_from,
       date_to: query.date_to,
+      role_view: query.role_view,
     }
 
     const bookingService = new BookingService()

@@ -104,6 +104,7 @@ export interface ListBookingsQueryParams {
   date_to?: string
   page?: string
   limit?: string
+  role_view?: 'renter' | 'host'
 }
 
 export type ListBookingsResponse = PaginatedResponse<Booking>

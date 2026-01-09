@@ -35,6 +35,7 @@ export const bookingApi = {
     if (params?.date_to) queryParams.append('date_to', params.date_to)
     if (params?.page) queryParams.append('page', params.page)
     if (params?.limit) queryParams.append('limit', params.limit)
+    if (params?.role_view) queryParams.append('role_view', params.role_view)
 
     const queryString = queryParams.toString()
     const endpoint = `/bookings${queryString ? `?${queryString}` : ''}`

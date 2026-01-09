@@ -343,7 +343,7 @@ export class BookingService {
   }
 
   /**
-   * List bookings filtered by user role
+   * List bookings filtered by user role or explicit role_view
    */
   async listBookings(
     filters: {
@@ -351,6 +351,7 @@ export class BookingService {
       venue_id?: string
       date_from?: string
       date_to?: string
+      role_view?: 'renter' | 'host'
     },
     userId: string
   ): Promise<Booking[]> {
@@ -361,6 +362,25 @@ export class BookingService {
       .eq('id', userId)
       .single()
 
+    // If role_view is explicitly set, use it
+    if (filters.role_view === 'renter') {
+      // Return bookings made BY this user (renter view)
+      return this.bookingRepo.findByRenter(userId, {
+        status: filters.status,
+        date_from: filters.date_from,
+        date_to: filters.date_to,
+      })
+    }
+
+    if (filters.role_view === 'host') {
+      // Return bookings ON user's venues (host view)
+      if (!user?.is_venue_owner) {
+        return [] // Not a venue owner, return empty
+      }
+      return this.getVenueBookings(userId, filters)
+    }
+
+    // Auto-detect based on user role (legacy behavior)
     // Admins can see all bookings
     if (user?.is_admin) {
       if (filters.venue_id) {
@@ -381,44 +401,9 @@ export class BookingService {
       })
     }
 
-    // Venue owners see their venue's bookings
+    // Venue owners see their venue's bookings by default
     if (user?.is_venue_owner) {
-      const supabaseOwner = await createClient()
-      if (filters.venue_id) {
-        // Verify ownership
-        const { data: venue } = await supabaseOwner
-          .from('venues')
-          .select('owner_id')
-          .eq('id', filters.venue_id)
-          .single()
-
-        if (venue?.owner_id === userId) {
-          return this.bookingRepo.findByVenue(filters.venue_id, {
-            status: filters.status,
-            date_from: filters.date_from,
-            date_to: filters.date_to,
-          })
-        }
-      }
-      // Get all venues owned by user and their bookings
-      const { data: venues } = await supabaseOwner
-        .from('venues')
-        .select('id')
-        .eq('owner_id', userId)
-
-      const venueIds = venues?.map((v) => v.id) || []
-      const allBookings: Booking[] = []
-
-      for (const venueId of venueIds) {
-        const bookings = await this.bookingRepo.findByVenue(venueId, {
-          status: filters.status,
-          date_from: filters.date_from,
-          date_to: filters.date_to,
-        })
-        allBookings.push(...bookings)
-      }
-
-      return allBookings
+      return this.getVenueBookings(userId, filters)
     }
 
     // Renters see their own bookings
@@ -432,6 +417,59 @@ export class BookingService {
 
     // If user has no capabilities, return empty list
     return []
+  }
+
+  /**
+   * Helper to get all bookings on venues owned by a user
+   */
+  private async getVenueBookings(
+    userId: string,
+    filters: {
+      status?: BookingStatus
+      venue_id?: string
+      date_from?: string
+      date_to?: string
+    }
+  ): Promise<Booking[]> {
+    const supabase = await createClient()
+
+    if (filters.venue_id) {
+      // Verify ownership
+      const { data: venue } = await supabase
+        .from('venues')
+        .select('owner_id')
+        .eq('id', filters.venue_id)
+        .single()
+
+      if (venue?.owner_id === userId) {
+        return this.bookingRepo.findByVenue(filters.venue_id, {
+          status: filters.status,
+          date_from: filters.date_from,
+          date_to: filters.date_to,
+        })
+      }
+      return [] // Not owner of this venue
+    }
+
+    // Get all venues owned by user and their bookings
+    const { data: venues } = await supabase
+      .from('venues')
+      .select('id')
+      .eq('owner_id', userId)
+
+    const venueIds = venues?.map((v) => v.id) || []
+    const allBookings: Booking[] = []
+
+    for (const venueId of venueIds) {
+      const bookings = await this.bookingRepo.findByVenue(venueId, {
+        status: filters.status,
+        date_from: filters.date_from,
+        date_to: filters.date_to,
+      })
+      allBookings.push(...bookings)
+    }
+
+    return allBookings
   }
 }
 

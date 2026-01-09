@@ -83,14 +83,17 @@ export default function DashboardLayout({
     )
   }
 
-  // If user is a venue owner, show sidebar layout
+  // If user is a venue owner, show universal nav + sidebar layout
   if (user?.is_venue_owner) {
     return (
-      <div className="flex min-h-screen bg-primary-50">
-        <SidebarNavigation user={sidebarUser} onSignOut={handleSignOut} />
-        <main className="flex-1 overflow-y-auto bg-primary-50 px-6 py-10 lg:px-10">
-          <div className="mx-auto max-w-6xl space-y-10">{children}</div>
-        </main>
+      <div className="min-h-screen bg-primary-50">
+        <Navigation />
+        <div className="flex">
+          <SidebarNavigation user={sidebarUser} onSignOut={handleSignOut} />
+          <main className="flex-1 overflow-y-auto bg-primary-50 px-6 py-10 lg:px-10">
+            <div className="mx-auto max-w-6xl space-y-10">{children}</div>
+          </main>
+        </div>
       </div>
     )
   }
