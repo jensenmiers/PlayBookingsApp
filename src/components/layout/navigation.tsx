@@ -17,6 +17,7 @@ export function Navigation() {
   const { openAuthModal } = useAuthModal()
   const [dropdownOpen, setDropdownOpen] = useState(false)
   const [guestDropdownOpen, setGuestDropdownOpen] = useState(false)
+  const [mobileMenuOpen, setMobileMenuOpen] = useState(false)
   const [avatarError, setAvatarError] = useState(false)
   const dropdownRef = useRef<HTMLDivElement>(null)
   const guestDropdownRef = useRef<HTMLDivElement>(null)
@@ -286,7 +287,12 @@ export function Navigation() {
         </div>
 
         {/* Mobile menu button */}
-        <Button variant="ghost" size="sm" className="md:hidden text-primary-600 hover:text-primary-800">
+        <Button 
+          variant="ghost" 
+          size="sm" 
+          className="md:hidden text-primary-600 hover:text-primary-800"
+          onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
+        >
           <svg
             className="h-6 w-6"
             fill="none"
@@ -302,6 +308,103 @@ export function Navigation() {
           </svg>
         </Button>
       </div>
+
+      {/* Mobile menu panel */}
+      {mobileMenuOpen && (
+        <div className="md:hidden border-t border-border/40 bg-white/95 backdrop-blur">
+          <div className="mx-auto max-w-7xl px-4 py-4 space-y-2">
+            {loading && !userError ? (
+              <div className="h-10 w-full animate-pulse rounded-lg bg-primary-100" />
+            ) : user ? (
+              <>
+                <Link
+                  href="/bookings"
+                  onClick={() => setMobileMenuOpen(false)}
+                  className="block rounded-lg px-4 py-3 text-sm font-medium text-primary-700 transition-colors hover:bg-primary-50"
+                >
+                  My Bookings
+                </Link>
+                <Link
+                  href="/search"
+                  onClick={() => setMobileMenuOpen(false)}
+                  className="block rounded-lg px-4 py-3 text-sm font-medium text-primary-700 transition-colors hover:bg-primary-50"
+                >
+                  Book a Time
+                </Link>
+                <Link
+                  href="/venues"
+                  onClick={() => setMobileMenuOpen(false)}
+                  className="block rounded-lg px-4 py-3 text-sm font-medium text-primary-700 transition-colors hover:bg-primary-50"
+                >
+                  Find a Court
+                </Link>
+                <Link
+                  href="/become-a-host"
+                  onClick={() => setMobileMenuOpen(false)}
+                  className="block rounded-lg px-4 py-3 text-sm font-medium text-primary-700 transition-colors hover:bg-primary-50"
+                >
+                  Become a Host
+                </Link>
+                {user.is_venue_owner && (
+                  <>
+                    <div className="my-2 border-t border-border/40" />
+                    <Link
+                      href="/dashboard"
+                      onClick={() => setMobileMenuOpen(false)}
+                      className="block rounded-lg px-4 py-3 text-sm font-medium text-primary-700 transition-colors hover:bg-primary-50"
+                    >
+                      Dashboard
+                    </Link>
+                    <Link
+                      href="/calendar"
+                      onClick={() => setMobileMenuOpen(false)}
+                      className="block rounded-lg px-4 py-3 text-sm font-medium text-primary-700 transition-colors hover:bg-primary-50"
+                    >
+                      My Availability
+                    </Link>
+                  </>
+                )}
+                <div className="my-2 border-t border-border/40" />
+                <button
+                  onClick={() => {
+                    setMobileMenuOpen(false)
+                    handleSignOut()
+                  }}
+                  className="block w-full rounded-lg px-4 py-3 text-left text-sm font-medium text-primary-700 transition-colors hover:bg-primary-50"
+                >
+                  Log Out
+                </button>
+              </>
+            ) : (
+              <>
+                <button
+                  onClick={() => {
+                    setMobileMenuOpen(false)
+                    openAuthModal()
+                  }}
+                  className="block w-full rounded-lg bg-secondary-600 px-4 py-3 text-center text-sm font-semibold text-white transition-colors hover:bg-secondary-700"
+                >
+                  Log in or Sign up
+                </button>
+                <Link
+                  href="/search"
+                  onClick={() => setMobileMenuOpen(false)}
+                  className="block rounded-lg px-4 py-3 text-sm font-medium text-primary-700 transition-colors hover:bg-primary-50"
+                >
+                  Find a Court
+                </Link>
+                <Link
+                  href="/become-a-host"
+                  onClick={() => setMobileMenuOpen(false)}
+                  className="block rounded-lg px-4 py-3 text-sm font-medium text-primary-700 transition-colors hover:bg-primary-50"
+                >
+                  Become a Host
+                </Link>
+              </>
+            )}
+          </div>
+        </div>
+      )}
     </nav>
   )
 }
