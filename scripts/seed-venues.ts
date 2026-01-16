@@ -23,8 +23,6 @@ import { resolve } from 'path'
 dotenv.config({ path: resolve(process.cwd(), '.env.local') })
 dotenv.config({ path: resolve(process.cwd(), '.env') })
 
-// Supabase project URL for storage
-const SUPABASE_URL = process.env.NEXT_PUBLIC_SUPABASE_URL || ''
 const STORAGE_BUCKET = 'venue-photos'
 
 interface VenueSeed {
@@ -45,14 +43,6 @@ interface VenueSeed {
   amenities: string[]
   is_active: boolean
   owner_id?: string
-}
-
-/**
- * Helper to generate Supabase storage URL for a venue hero image
- * Images should be uploaded to: venue-photos/{venue-slug}/hero.jpg
- */
-function getStorageUrl(venueSlug: string): string {
-  return `${SUPABASE_URL}/storage/v1/object/public/${STORAGE_BUCKET}/${venueSlug}/hero.jpg`
 }
 
 /**
@@ -233,7 +223,6 @@ async function main() {
   )
 
   try {
-    // Step 1: Find owner user (jensenmiers@gmail.com)
     console.log('Looking for owner user (jensenmiers@gmail.com)...')
     const { data: owner, error: ownerError } = await supabase
       .from('users')
@@ -252,7 +241,6 @@ async function main() {
 
     console.log(`✓ Found owner: ${owner.first_name || ''} ${owner.last_name || ''} (${owner.id})\n`)
 
-    // Step 2: Check for existing venues to avoid duplicates
     const { data: existingVenues, error: existingError } = await supabase
       .from('venues')
       .select('name')
@@ -279,7 +267,6 @@ async function main() {
       console.log()
     }
 
-    // Step 3: Prepare venues with owner_id
     const venuesWithOwner = venuesToInsert.map(venue => ({
       ...venue,
       owner_id: owner.id,
@@ -287,7 +274,6 @@ async function main() {
 
     console.log(`Inserting ${venuesWithOwner.length} new venue(s)...`)
 
-    // Step 4: Insert venues
     const { data: insertedVenues, error: insertError } = await supabase
       .from('venues')
       .insert(venuesWithOwner)
@@ -305,7 +291,6 @@ async function main() {
       console.log(`      Slug: ${slugify(venue.name)}`)
     })
 
-    // Step 5: Provide next steps
     console.log('\n📋 Next Steps:')
     console.log('   1. Upload hero images to Supabase Storage:')
     console.log(`      Bucket: ${STORAGE_BUCKET}`)
