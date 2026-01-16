@@ -1,7 +1,7 @@
 # Database Structure - Live Query Results
 
 This document contains the actual database structure as queried via Supabase MCP on **2025-01-15**.
-Last updated: **2026-01-09** (trigger function fix applied).
+Last updated: **2026-01-16** (added weekend_rate column to venues).
 
 ## 📊 Database Overview
 
@@ -70,6 +70,7 @@ Most functions have mutable `search_path` which is a security risk:
 - `longitude` (numeric, nullable)
 - `owner_id` (uuid, NOT NULL) → References `users.id`
 - `hourly_rate` (numeric, NOT NULL, CHECK: > 0)
+- `weekend_rate` (numeric, nullable, CHECK: > 0) — Optional rate for weekend bookings (Sat/Sun). NULL means use standard hourly_rate.
 - `instant_booking` (boolean, DEFAULT: false)
 - `insurance_required` (boolean, DEFAULT: true)
 - `max_advance_booking_days` (integer, DEFAULT: 180, CHECK: > 0)
@@ -297,6 +298,15 @@ $$;
 3. **Postgres Version**: Has outstanding security patches
 
 ## ✅ Recent Fixes
+
+### 2026-01-16: Added `weekend_rate` Column to Venues
+**Migration**: `add_weekend_rate_to_venues`
+
+**Purpose**: Allow venues to charge different rates on weekends (Saturday/Sunday).
+
+**Change**: Added `weekend_rate` column (numeric, nullable, CHECK > 0) to the `venues` table.
+
+**Usage**: If `weekend_rate` is NULL, the venue uses the standard `hourly_rate` for all days. If set, bookings on Saturday or Sunday use this rate instead.
 
 ### 2026-01-09: `handle_new_user()` Trigger Fix
 **Migration**: `fix_handle_new_user_trigger`

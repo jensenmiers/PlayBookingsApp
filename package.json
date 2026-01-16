@@ -11,7 +11,8 @@
     "test:supabase": "node scripts/test-supabase.js",
     "test:auth-redirect": "tsx tests/auth-redirect.test.ts",
     "inspect:schema": "tsx scripts/inspect-schema.ts",
-    "seed:availability": "tsx scripts/seed-availability.ts"
+    "seed:availability": "tsx scripts/seed-availability.ts",
+    "seed:venues": "tsx scripts/seed-venues.ts"
   },
   "dependencies": {
     "@fortawesome/fontawesome-svg-core": "^6.6.0",
