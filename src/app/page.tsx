@@ -12,15 +12,15 @@ export default function Home() {
     <div className="min-h-screen bg-gradient-to-br from-primary-50 via-primary-50/70 to-secondary-50">
       <Navigation />
       {/* Hero Section */}
-      <section className="px-4 py-20 text-center">
-        <div className="mx-auto max-w-4xl space-y-6">
+      <section className="px-4 py-16 text-center md:py-24">
+        <div className="mx-auto max-w-4xl space-y-8">
           <h1 className="text-4xl font-bold text-primary-900 md:text-6xl">
             Book Indoor Courts{' '}
             <span className="bg-gradient-to-r from-primary-500 to-secondary-500 bg-clip-text text-transparent">
               with Ease
             </span>
           </h1>
-          <p className="text-lg text-primary-600 md:text-xl">
+          <p className="mx-auto max-w-2xl text-lg text-primary-600 md:text-xl">
             Effortless booking—reserve spaces in just a few clicks. Find the perfect court for your next game, practice, or event.
           </p>
           <div className="flex flex-col gap-4 sm:flex-row sm:justify-center">
@@ -36,19 +36,13 @@ export default function Home() {
               <Link href="/search">Browse Availability</Link>
             </Button>
           </div>
-
-          <div className="pt-4 text-center">
-            <Link href="/become-a-host" className="text-sm font-semibold text-primary-700 hover:text-secondary-600">
-              Own a court? Become a host →
-            </Link>
-          </div>
         </div>
       </section>
 
       {/* Features Section */}
       <section className="px-4 py-20">
         <div className="mx-auto max-w-6xl">
-          <h2 className="mb-16 text-center text-3xl font-semibold text-primary-900">
+          <h2 className="mb-10 text-center text-3xl font-semibold text-primary-900 md:mb-12">
             Why Choose Play Bookings?
           </h2>
           <div className="grid gap-8 md:grid-cols-2 lg:grid-cols-4">
@@ -112,8 +106,8 @@ export default function Home() {
       </section>
 
       {/* CTA Section */}
-      <section className="px-4 py-20">
-        <div className="mx-auto max-w-4xl space-y-6 rounded-3xl border border-border/40 bg-white/90 p-12 text-center shadow-glass">
+      <section className="px-4 py-12 md:py-16">
+        <div className="mx-auto max-w-4xl space-y-6 rounded-3xl border border-border/40 bg-white/90 px-8 py-10 text-center shadow-glass md:px-12 md:py-12">
           <h2 className="text-3xl font-semibold text-primary-900">
             Ready to Find Your Next Court?
           </h2>

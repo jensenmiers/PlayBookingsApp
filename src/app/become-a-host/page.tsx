@@ -28,17 +28,13 @@ export default function BecomeAHostPage() {
     }
   }
 
-  const handleSignIn = () => {
-    openAuthModal()
-  }
-
   return (
     <div className="min-h-screen bg-gradient-to-br from-primary-50 via-primary-50/70 to-secondary-50">
       <Navigation />
 
       {/* Hero Section */}
-      <section className="px-4 py-20 text-center">
-        <div className="mx-auto max-w-4xl space-y-6">
+      <section className="px-4 py-16 text-center md:py-24">
+        <div className="mx-auto max-w-4xl space-y-8">
           <h1 className="text-4xl font-bold text-primary-900 md:text-6xl">
             Hosting that feels{' '}
             <span className="bg-gradient-to-r from-primary-500 to-secondary-500 bg-clip-text text-transparent">
@@ -46,9 +42,9 @@ export default function BecomeAHostPage() {
             </span>
           </h1>
 
-          <p className="text-lg text-primary-600 md:text-xl">
+          <p className="mx-auto max-w-2xl text-lg text-primary-600 md:text-xl">
             Turn open gym time into reliable revenue—without the back-and-forth. Play Bookings helps you publish availability,
-            manage bookings, and get paid, all from a host dashboard built for real facilities.
+            manage bookings, and get paid.
           </p>
 
           <div className="flex flex-col gap-4 sm:flex-row sm:justify-center">
@@ -69,16 +65,6 @@ export default function BecomeAHostPage() {
               See how hosting works
             </Button>
           </div>
-
-          <p className="text-sm text-primary-500">
-            Already have an account?{' '}
-            <button 
-              className="font-semibold text-primary-700 hover:text-secondary-600"
-              onClick={handleSignIn}
-            >
-              Sign in
-            </button>
-          </p>
         </div>
       </section>
 
@@ -190,8 +176,8 @@ export default function BecomeAHostPage() {
       </section>
 
       {/* CTA Section */}
-      <section className="px-4 py-20">
-        <div className="mx-auto max-w-4xl space-y-6 rounded-3xl border border-border/40 bg-white/90 p-12 text-center shadow-glass">
+      <section className="px-4 py-12 md:py-16">
+        <div className="mx-auto max-w-4xl space-y-6 rounded-3xl border border-border/40 bg-white/90 px-8 py-10 text-center shadow-glass md:px-12 md:py-12">
           <h2 className="text-3xl font-semibold text-primary-900">Ready to host your first booking?</h2>
           <p className="text-lg text-primary-600">Create your host account and start listing your space today.</p>
           <Button 
