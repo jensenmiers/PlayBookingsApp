@@ -12,7 +12,8 @@
     "test:auth-redirect": "tsx tests/auth-redirect.test.ts",
     "inspect:schema": "tsx scripts/inspect-schema.ts",
     "seed:availability": "tsx scripts/seed-availability.ts",
-    "seed:venues": "tsx scripts/seed-venues.ts"
+    "seed:venues": "tsx scripts/seed-venues.ts",
+    "update:venue-photo": "tsx scripts/update-venue-photo.ts"
   },
   "dependencies": {
     "@fortawesome/fontawesome-svg-core": "^6.6.0",
