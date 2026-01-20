@@ -246,9 +246,7 @@ function LoadingFallback() {
       </div>
     </div>
   )
-}
-
-export default function VenuesPage() {
+}export default function VenuesPage() {
   return (
     <Suspense fallback={<LoadingFallback />}>
       <VenuesContent />

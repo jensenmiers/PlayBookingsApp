@@ -1,8 +1,8 @@
 #!/usr/bin/env tsx
 /**
- * Update Venue Photo URL - Direct URL Update
+ * Update All Venue Photos to WebP
  * 
- * Updates a venue's photo with a specific URL
+ * Updates all venue photo URLs to use standardized .webp format
  */
 
 import { createClient } from '@supabase/supabase-js'
@@ -12,46 +12,79 @@ import { resolve } from 'path'
 dotenv.config({ path: resolve(process.cwd(), '.env.local') })
 dotenv.config({ path: resolve(process.cwd(), '.env') })
 
-async function main() {
-  const venueName = 'Terasaki Budokan'
-  const photoUrl = 'https://phwwfimrpbdwiwpkuzwj.supabase.co/storage/v1/object/public/venue-photos/terasaki-budokan/hero.webp'
+const SUPABASE_URL = process.env.NEXT_PUBLIC_SUPABASE_URL || ''
+const STORAGE_BUCKET = 'venue-photos'
 
-  if (!process.env.NEXT_PUBLIC_SUPABASE_URL || !process.env.SUPABASE_SERVICE_ROLE_KEY) {
+// Mapping of venue names to their folder slugs in storage
+const VENUE_SLUGS: Record<string, string> = {
+  'Immaculate Heart': 'immaculate-heart',
+  'Boys & Girls Club of Hollywood': 'boys-girls-club-hollywood',
+  'Crosscourt': 'crosscourt',
+  'Memorial Park': 'memorial-park',
+  'Crossroads School': 'crossroads-school',
+  'JEM Community Center': 'jem-community-center',
+  'First Presbyterian Church of Hollywood': 'first-presbyterian-hollywood',
+  'Terasaki Budokan': 'terasaki-budokan',
+}
+
+function getPhotoUrl(slug: string): string {
+  return `${SUPABASE_URL}/storage/v1/object/public/${STORAGE_BUCKET}/${slug}/hero.webp`
+}
+
+async function main() {
+  console.log('🖼️  Updating all venue photos to .webp format\n')
+
+  if (!SUPABASE_URL || !process.env.SUPABASE_SERVICE_ROLE_KEY) {
     console.error('❌ Missing environment variables')
     process.exit(1)
   }
 
-  const supabase = createClient(
-    process.env.NEXT_PUBLIC_SUPABASE_URL,
-    process.env.SUPABASE_SERVICE_ROLE_KEY
-  )
+  const supabase = createClient(SUPABASE_URL, process.env.SUPABASE_SERVICE_ROLE_KEY)
 
-  const { data: venue, error: fetchError } = await supabase
+  // Fetch all venues
+  const { data: venues, error: fetchError } = await supabase
     .from('venues')
     .select('id, name, photos')
-    .eq('name', venueName)
-    .single()
 
-  if (fetchError || !venue) {
-    console.error(`❌ Venue not found: ${venueName}`)
+  if (fetchError || !venues) {
+    console.error('❌ Failed to fetch venues:', fetchError?.message)
     process.exit(1)
   }
 
-  const { error: updateError } = await supabase
-    .from('venues')
-    .update({ 
-      photos: [photoUrl],
-      updated_at: new Date().toISOString()
-    })
-    .eq('id', venue.id)
+  console.log(`Found ${venues.length} venues\n`)
 
-  if (updateError) {
-    console.error(`❌ Failed to update: ${updateError.message}`)
-    process.exit(1)
+  let updated = 0
+  let skipped = 0
+
+  for (const venue of venues) {
+    const slug = VENUE_SLUGS[venue.name]
+    
+    if (!slug) {
+      console.log(`⚠️  ${venue.name}: No slug mapping found, skipping`)
+      skipped++
+      continue
+    }
+
+    const photoUrl = getPhotoUrl(slug)
+    
+    const { error: updateError } = await supabase
+      .from('venues')
+      .update({ 
+        photos: [photoUrl],
+        updated_at: new Date().toISOString()
+      })
+      .eq('id', venue.id)
+
+    if (updateError) {
+      console.log(`❌ ${venue.name}: ${updateError.message}`)
+    } else {
+      console.log(`✅ ${venue.name}`)
+      console.log(`   ${photoUrl}`)
+      updated++
+    }
   }
 
-  console.log(`✅ Updated ${venueName}`)
-  console.log(`   New photo URL: ${photoUrl}`)
+  console.log(`\n📊 Summary: ${updated} updated, ${skipped} skipped`)
 }
 
 main()
