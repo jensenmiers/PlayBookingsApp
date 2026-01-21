@@ -100,19 +100,13 @@ export function VenueCard({ venue }: VenueCardProps) {
             </div>
           )}
 
-          {/* Action buttons */}
+          {/* Action button */}
           <div className="flex gap-2 mt-auto">
             <Link
               href={`/venue/${venueSlug}`}
-              className="flex-1 bg-white border border-primary-300 text-primary-700 hover:bg-primary-50 font-medium py-2 text-sm rounded-xl transition duration-200 text-center"
-            >
-              View Details
-            </Link>
-            <Link
-              href={`/book?venue=${venue.id}`}
               className="flex-1 bg-primary-600 hover:bg-primary-700 text-white font-medium py-2 text-sm rounded-xl transition duration-200 text-center"
             >
-              Book Now
+              View Details & Book
             </Link>
           </div>
         </div>
