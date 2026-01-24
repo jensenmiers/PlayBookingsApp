@@ -149,6 +149,12 @@ export function AvailabilityView() {
                 : `No slots available for ${formattedDate}.`}
             </p>
             <p className="text-sm mt-2">Try selecting a different date or time.</p>
+            <a 
+              href="/venues" 
+              className="inline-block mt-4 text-primary-700 hover:text-primary-900 font-medium underline"
+            >
+              Or browse all venues
+            </a>
           </div>
         )}
       </section>

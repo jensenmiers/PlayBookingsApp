@@ -7,15 +7,23 @@ import {
   faLocationDot,
   faDollarSign,
   faBolt,
+  faClock,
 } from '@fortawesome/free-solid-svg-icons'
 import type { Venue } from '@/types'
 import { slugify } from '@/lib/utils'
 
-interface VenueCardProps {
-  venue: Venue
+interface NextAvailableInfo {
+  displayText: string  // "Today 3:00 PM" or "Tomorrow 9:00 AM"
+  slotId?: string
 }
 
-export function VenueCard({ venue }: VenueCardProps) {
+interface VenueCardProps {
+  venue: Venue
+  /** Optional next available slot info to display as a badge */
+  nextAvailable?: NextAvailableInfo | null
+}
+
+export function VenueCard({ venue, nextAvailable }: VenueCardProps) {
   const venueSlug = slugify(venue.name)
   const hasPhoto = venue.photos && venue.photos.length > 0
   const descriptionPreview = venue.description
@@ -79,6 +87,16 @@ export function VenueCard({ venue }: VenueCardProps) {
               {venue.city}, {venue.state}
             </span>
           </div>
+
+          {/* Next Available Badge */}
+          {nextAvailable && (
+            <div className="flex items-center gap-1.5 mb-1">
+              <span className="inline-flex items-center gap-1 bg-green-100 text-green-700 text-xs font-medium px-2 py-0.5 rounded-full">
+                <FontAwesomeIcon icon={faClock} className="text-[10px]" />
+                Next: {nextAvailable.displayText}
+              </span>
+            </div>
+          )}
 
           {/* Hourly rate */}
           <div className="flex items-center text-primary-600 text-sm mb-2">

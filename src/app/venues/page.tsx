@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useEffect, Suspense } from 'react'
+import { useState, useEffect, Suspense, useMemo } from 'react'
 import { useSearchParams, useRouter } from 'next/navigation'
 import { Navigation } from '@/components/layout/navigation'
 import { VenueCard } from '@/components/venues/venue-card'
@@ -10,8 +10,51 @@ import { Button } from '@/components/ui/button'
 import { ErrorMessage } from '@/components/ui/error-message'
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome'
 import { faSearch } from '@fortawesome/free-solid-svg-icons'
+import { createClient } from '@/lib/supabase/client'
 import type { Venue } from '@/types'
 import type { PaginatedResponse } from '@/types/api'
+
+// Type for next available slot info
+interface NextAvailableInfo {
+  displayText: string
+  slotId: string
+}
+
+// Helper to format next available display text
+function formatNextAvailable(dateStr: string, timeStr: string): string {
+  const [year, month, day] = dateStr.split('-').map(Number)
+  const slotDate = new Date(year, month - 1, day)
+  
+  const today = new Date()
+  today.setHours(0, 0, 0, 0)
+  
+  const tomorrow = new Date(today)
+  tomorrow.setDate(tomorrow.getDate() + 1)
+
+  const timeParts = timeStr.split(':')
+  const hours = parseInt(timeParts[0], 10)
+  const minutes = parseInt(timeParts[1], 10)
+  
+  const timeDate = new Date()
+  timeDate.setHours(hours, minutes, 0, 0)
+  const formattedTime = timeDate.toLocaleTimeString('en-US', { 
+    hour: 'numeric', 
+    minute: '2-digit',
+    hour12: true 
+  })
+
+  if (slotDate.getTime() === today.getTime()) {
+    return `Today ${formattedTime}`
+  } else if (slotDate.getTime() === tomorrow.getTime()) {
+    return `Tomorrow ${formattedTime}`
+  } else {
+    const formattedDate = slotDate.toLocaleDateString('en-US', { 
+      month: 'short', 
+      day: 'numeric' 
+    })
+    return `${formattedDate} ${formattedTime}`
+  }
+}
 
 function VenuesContent() {
   const router = useRouter()
@@ -27,6 +70,9 @@ function VenuesContent() {
     total: number
     total_pages: number
   } | null>(null)
+  
+  // Store next available info keyed by venue ID
+  const [nextAvailableMap, setNextAvailableMap] = useState<Record<string, NextAvailableInfo>>({})
 
   // Fetch venues from API
   useEffect(() => {
@@ -62,6 +108,48 @@ function VenuesContent() {
 
     fetchVenues()
   }, [currentPage, searchQuery])
+
+  // Fetch next available times for all venues
+  useEffect(() => {
+    const fetchNextAvailable = async () => {
+      try {
+        const supabase = createClient()
+        
+        // Call the RPC function to get next available slots
+        const { data, error: rpcError } = await supabase.rpc(
+          'get_venues_with_next_available',
+          {
+            p_date_filter: null,
+            p_user_lat: null,
+            p_user_lng: null,
+            p_radius_miles: null,
+          }
+        )
+
+        if (rpcError) {
+          console.error('Failed to fetch next available times:', rpcError)
+          return
+        }
+
+        // Build a map of venue_id -> next available info
+        const availabilityMap: Record<string, NextAvailableInfo> = {}
+        for (const row of data || []) {
+          if (row.next_slot_id && row.next_slot_date && row.next_slot_start_time) {
+            availabilityMap[row.venue_id] = {
+              displayText: formatNextAvailable(row.next_slot_date, row.next_slot_start_time),
+              slotId: row.next_slot_id,
+            }
+          }
+        }
+        
+        setNextAvailableMap(availabilityMap)
+      } catch (err) {
+        console.error('Error fetching next available:', err)
+      }
+    }
+
+    fetchNextAvailable()
+  }, []) // Only fetch once on mount
 
   // Handle search input change
   const handleSearchChange = (value: string) => {
@@ -183,7 +271,11 @@ function VenuesContent() {
         {!loading && !error && venues.length > 0 && (
           <div className="space-y-4 mb-6">
             {venues.map((venue) => (
-              <VenueCard key={venue.id} venue={venue} />
+              <VenueCard 
+                key={venue.id} 
+                venue={venue} 
+                nextAvailable={nextAvailableMap[venue.id] || null}
+              />
             ))}
           </div>
         )}

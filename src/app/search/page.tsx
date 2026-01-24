@@ -1,13 +1,13 @@
 'use client'
 
 import { Navigation } from '@/components/layout/navigation'
-import { AvailabilityView } from '@/components/search/availability-view'
+import { SplitAvailabilityView } from '@/components/search/split-availability-view'
 
 export default function SearchPage() {
   return (
-    <div className="min-h-screen bg-gradient-to-br from-primary-50 via-primary-50/70 to-secondary-50">
+    <div className="min-h-screen bg-white">
       <Navigation />
-      <AvailabilityView />
+      <SplitAvailabilityView />
     </div>
   )
 }

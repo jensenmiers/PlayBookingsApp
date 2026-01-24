@@ -380,3 +380,6 @@ export const PAYMENT_STATUS_TRANSITIONS: Record<PaymentStatus, PaymentStatus[]> 
   refunded: [],
   failed: ['pending'],
 }
+
+// Re-export map-related types from the hook for convenience
+export type { MapVenue, NextAvailableSlot } from '@/hooks/useVenuesWithNextAvailable'
