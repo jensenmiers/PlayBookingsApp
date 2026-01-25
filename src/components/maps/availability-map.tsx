@@ -1,7 +1,7 @@
 'use client'
 
 import { useState, useCallback, useMemo } from 'react'
-import Map, { Marker, Popup, NavigationControl } from 'react-map-gl'
+import Map, { Marker, Popup, NavigationControl } from 'react-map-gl/mapbox'
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome'
 import { faLocationDot, faBolt, faClock } from '@fortawesome/free-solid-svg-icons'
 import { Button } from '@/components/ui/button'
