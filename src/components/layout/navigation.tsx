@@ -152,15 +152,17 @@ export function Navigation() {
                       onClick={() => setDropdownOpen(false)}
                       className="block px-4 py-2 text-sm text-primary-700 transition-colors hover:bg-primary-50"
                     >
-                      Find a Court
+                      Discover Courts
                     </Link>
-                    <Link
-                      href="/become-a-host"
-                      onClick={() => setDropdownOpen(false)}
-                      className="block px-4 py-2 text-sm text-primary-700 transition-colors hover:bg-primary-50"
-                    >
-                      Become a Host
-                    </Link>
+                    {!user.is_venue_owner && (
+                      <Link
+                        href="/become-a-host"
+                        onClick={() => setDropdownOpen(false)}
+                        className="block px-4 py-2 text-sm text-primary-700 transition-colors hover:bg-primary-50"
+                      >
+                        Become a Host
+                      </Link>
+                    )}
                     <button
                       disabled
                       className="block w-full px-4 py-2 text-left text-sm text-primary-400 cursor-not-allowed"
@@ -219,7 +221,7 @@ export function Navigation() {
                 href="/search"
                 className="text-sm font-medium text-primary-500 transition-colors hover:text-primary-700"
               >
-                Find a Court
+                Next Availability
               </Link>
               <div className="relative" ref={guestDropdownRef}>
                 <button
@@ -263,7 +265,7 @@ export function Navigation() {
                         onClick={() => setGuestDropdownOpen(false)}
                         className="block px-4 py-2 text-sm text-primary-700 transition-colors hover:bg-primary-50"
                       >
-                        Find a Court
+                        Next Availability
                       </Link>
                       <Link
                         href="/become-a-host"
@@ -336,15 +338,17 @@ export function Navigation() {
                   onClick={() => setMobileMenuOpen(false)}
                   className="block rounded-lg px-4 py-3 text-sm font-medium text-primary-700 transition-colors hover:bg-primary-50"
                 >
-                  Find a Court
+                  Discover Courts
                 </Link>
-                <Link
-                  href="/become-a-host"
-                  onClick={() => setMobileMenuOpen(false)}
-                  className="block rounded-lg px-4 py-3 text-sm font-medium text-primary-700 transition-colors hover:bg-primary-50"
-                >
-                  Become a Host
-                </Link>
+                {!user.is_venue_owner && (
+                  <Link
+                    href="/become-a-host"
+                    onClick={() => setMobileMenuOpen(false)}
+                    className="block rounded-lg px-4 py-3 text-sm font-medium text-primary-700 transition-colors hover:bg-primary-50"
+                  >
+                    Become a Host
+                  </Link>
+                )}
                 {user.is_venue_owner && (
                   <>
                     <div className="my-2 border-t border-border/40" />
@@ -391,7 +395,7 @@ export function Navigation() {
                   onClick={() => setMobileMenuOpen(false)}
                   className="block rounded-lg px-4 py-3 text-sm font-medium text-primary-700 transition-colors hover:bg-primary-50"
                 >
-                  Find a Court
+                  Next Availability
                 </Link>
                 <Link
                   href="/become-a-host"

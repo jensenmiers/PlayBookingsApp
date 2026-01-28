@@ -33,7 +33,7 @@ export default function Home() {
               size="lg"
               className="rounded-xl border-primary-200 bg-white/80 px-10 py-3 text-base text-primary-700 hover:bg-primary-100"
             >
-              <Link href="/search">Browse Availability</Link>
+              <Link href="/search">Next Availability</Link>
             </Button>
           </div>
         </div>
