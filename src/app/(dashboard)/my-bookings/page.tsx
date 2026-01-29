@@ -68,14 +68,9 @@ export default function BookingsPage() {
           onOpenChange={setShowCreateForm}
           onSuccess={() => {
             setShowCreateForm(false)
-            // Optionally redirect to booking details
-            // router.push(`/my-bookings/${bookingId}`)
           }}
         />
       )}
     </div>
   )
 }
-
-
-

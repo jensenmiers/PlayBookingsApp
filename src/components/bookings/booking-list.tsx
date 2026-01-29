@@ -205,5 +205,3 @@ export function BookingList({ initialFilters, className }: BookingListProps) {
     </div>
   )
 }
-
-
