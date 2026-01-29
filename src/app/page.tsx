@@ -25,7 +25,7 @@ export default function Home() {
           </p>
           <div className="flex flex-col gap-4 sm:flex-row sm:justify-center">
             <Button asChild size="lg" className="rounded-xl bg-secondary-600 px-10 py-3 text-base hover:bg-secondary-700">
-              <Link href="/venues">Discover Courts</Link>
+              <Link href="/venues">Discover courts</Link>
             </Button>
             <Button
               asChild
@@ -33,7 +33,7 @@ export default function Home() {
               size="lg"
               className="rounded-xl border-primary-200 bg-white/80 px-10 py-3 text-base text-primary-700 hover:bg-primary-100"
             >
-              <Link href="/search">Next Availability</Link>
+              <Link href="/search">Find next availability</Link>
             </Button>
           </div>
         </div>

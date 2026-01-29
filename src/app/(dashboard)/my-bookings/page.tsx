@@ -26,7 +26,7 @@ export default function BookingsPage() {
     <div className="space-y-10">
       <header className="flex flex-col gap-6 md:flex-row md:items-center md:justify-between">
         <div className="space-y-1">
-          <h1 className="text-2xl font-bold text-primary-800">Bookings</h1>
+          <h1 className="text-2xl font-bold text-primary-800">My Bookings</h1>
           <p className="text-sm text-muted-foreground">
             Manage and view all your bookings.
           </p>
@@ -69,7 +69,7 @@ export default function BookingsPage() {
           onSuccess={() => {
             setShowCreateForm(false)
             // Optionally redirect to booking details
-            // router.push(`/dashboard/bookings/${bookingId}`)
+            // router.push(`/my-bookings/${bookingId}`)
           }}
         />
       )}

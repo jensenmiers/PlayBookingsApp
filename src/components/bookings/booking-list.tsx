@@ -141,7 +141,7 @@ export function BookingList({ initialFilters, className }: BookingListProps) {
           {bookings.map((booking) => (
             <Link
               key={booking.id}
-              href={`/dashboard/bookings/${booking.id}`}
+              href={`/my-bookings/${booking.id}`}
               className="block"
             >
               <div className="rounded-lg border border-border bg-white p-4 hover:shadow-md transition-shadow">

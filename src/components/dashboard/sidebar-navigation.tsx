@@ -40,7 +40,7 @@ export type SidebarNavigationProps = {
 const DEFAULT_ITEMS: SidebarNavItem[] = [
   { label: "Dashboard", href: "/dashboard", icon: faChartLine },
   { label: "My Venues", href: "/listings", icon: faBuilding },
-  { label: "Incoming Bookings", href: "/bookings", icon: faClipboardList },
+  { label: "Incoming Bookings", href: "/my-bookings", icon: faClipboardList },
   { label: "Availability", href: "/calendar", icon: faCalendarDays },
   { label: "Payouts", href: "/payouts", icon: faMoneyBillTransfer },
   { label: "Settings", href: "/settings", icon: faGear },

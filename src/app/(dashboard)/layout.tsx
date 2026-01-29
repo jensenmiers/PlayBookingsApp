@@ -32,7 +32,7 @@ export default function DashboardLayout({
     )
 
     if (isVenueOwnerOnlyRoute && !user?.is_venue_owner) {
-      router.replace('/bookings')
+      router.replace('/my-bookings')
     }
   }, [loading, user, pathname, router])
 

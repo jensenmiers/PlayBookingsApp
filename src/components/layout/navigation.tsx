@@ -134,7 +134,7 @@ export function Navigation() {
                 <div className="absolute right-0 top-full z-50 mt-2 w-56 rounded-xl border border-border/60 bg-white shadow-lg">
                   <div className="py-2">
                     <Link
-                      href="/bookings"
+                      href="/my-bookings"
                       onClick={() => setDropdownOpen(false)}
                       className="block px-4 py-2 text-sm text-primary-700 transition-colors hover:bg-primary-50"
                     >
@@ -145,7 +145,7 @@ export function Navigation() {
                       onClick={() => setDropdownOpen(false)}
                       className="block px-4 py-2 text-sm text-primary-700 transition-colors hover:bg-primary-50"
                     >
-                      Book a Time
+                      Find Next Availability
                     </Link>
                     <Link
                       href="/venues"
@@ -320,7 +320,7 @@ export function Navigation() {
             ) : user ? (
               <>
                 <Link
-                  href="/bookings"
+                  href="/my-bookings"
                   onClick={() => setMobileMenuOpen(false)}
                   className="block rounded-lg px-4 py-3 text-sm font-medium text-primary-700 transition-colors hover:bg-primary-50"
                 >
@@ -331,7 +331,7 @@ export function Navigation() {
                   onClick={() => setMobileMenuOpen(false)}
                   className="block rounded-lg px-4 py-3 text-sm font-medium text-primary-700 transition-colors hover:bg-primary-50"
                 >
-                  Book a Time
+                  Find Next Availability
                 </Link>
                 <Link
                   href="/venues"
