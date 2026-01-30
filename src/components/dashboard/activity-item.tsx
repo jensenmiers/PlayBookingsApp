@@ -20,7 +20,7 @@ export type ActivityItemProps = Omit<ActivityItemData, "type"> & {
 
 const TYPE_STYLES: Record<ActivityType, { container: string; icon: IconDefinition }> = {
   booking: {
-    container: "bg-primary-100 text-primary-700",
+    container: "bg-secondary-100 text-secondary-700",
     icon: faCalendarCheck,
   },
   payment: {
@@ -28,11 +28,11 @@ const TYPE_STYLES: Record<ActivityType, { container: string; icon: IconDefinitio
     icon: faMoneyBillWave,
   },
   message: {
-    container: "bg-secondary-100 text-secondary-700",
+    container: "bg-primary-100 text-primary-700",
     icon: faMessage,
   },
   milestone: {
-    container: "bg-primary-100 text-primary-700",
+    container: "bg-secondary-100 text-secondary-700",
     icon: faCheck,
   },
 }
@@ -63,7 +63,7 @@ export function ActivityItem({
         )}
       </div>
       <div className="flex-1 pb-6">
-        <p className="text-sm font-semibold text-primary-800">{title}</p>
+        <p className="text-sm font-semibold text-secondary-800">{title}</p>
         <p className="mt-1 text-xs text-muted-foreground">{description}</p>
         <p className="mt-1 text-xs text-muted-foreground/80">{timestampLabel}</p>
       </div>

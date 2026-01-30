@@ -169,13 +169,13 @@ export default function DashboardPage() {
     <div className="space-y-10">
       <header className="flex flex-col gap-6 md:flex-row md:items-center md:justify-between">
         <div className="space-y-1">
-          <h1 className="text-2xl font-bold text-primary-800">Dashboard</h1>
+          <h1 className="text-2xl font-bold text-secondary-800">Dashboard</h1>
           <p className="text-sm text-muted-foreground">
             Welcome back, Michael! Here’s what’s happening with your facilities.
           </p>
         </div>
         <div className="flex items-center gap-4">
-          <button className="relative text-primary-700 transition-colors hover:text-primary-900">
+          <button className="relative text-secondary-700 transition-colors hover:text-secondary-900">
             <FontAwesomeIcon icon={faBell} className="size-5" />
             <span className="absolute -top-2 -right-1 flex size-5 items-center justify-center rounded-full bg-accent text-xs font-semibold text-accent-foreground">
               2
@@ -183,7 +183,7 @@ export default function DashboardPage() {
           </button>
           <Button
             variant="outline"
-            className="inline-flex items-center gap-2 rounded-xl border-border/60 bg-white/90 px-4 py-2 text-sm font-semibold text-primary-700 hover:bg-primary-100"
+            className="inline-flex items-center gap-2 rounded-xl border-border/60 bg-white/90 px-4 py-2 text-sm font-semibold text-secondary-700 hover:bg-secondary-100"
           >
             <span>Last 30 days</span>
             <FontAwesomeIcon icon={faChevronDown} className="size-3" />
@@ -200,8 +200,8 @@ export default function DashboardPage() {
       <section className="grid grid-cols-1 gap-8 lg:grid-cols-3">
         <div className="lg:col-span-2 rounded-2xl border border-border/60 bg-white/95 p-6 shadow-soft">
           <div className="mb-6 flex items-center justify-between">
-            <h2 className="text-xl font-semibold text-primary-800">Upcoming Bookings</h2>
-            <button className="text-sm font-medium text-secondary-600 transition-colors hover:text-secondary-700">
+            <h2 className="text-xl font-semibold text-secondary-800">Upcoming Bookings</h2>
+            <button className="text-sm font-medium text-primary-600 transition-colors hover:text-primary-700">
               View All
             </button>
           </div>
@@ -214,8 +214,8 @@ export default function DashboardPage() {
 
         <div className="rounded-2xl border border-border/60 bg-white/95 p-6 shadow-soft">
           <div className="mb-6 flex items-center justify-between">
-            <h2 className="text-xl font-semibold text-primary-800">Recent Messages</h2>
-            <button className="text-sm font-medium text-secondary-600 transition-colors hover:text-secondary-700">
+            <h2 className="text-xl font-semibold text-secondary-800">Recent Messages</h2>
+            <button className="text-sm font-medium text-primary-600 transition-colors hover:text-primary-700">
               View All
             </button>
           </div>
@@ -229,7 +229,7 @@ export default function DashboardPage() {
 
       <section className="grid grid-cols-1 gap-8 lg:grid-cols-3">
         <div className="rounded-2xl border border-border/60 bg-white/95 p-6 shadow-soft">
-          <h2 className="text-xl font-semibold text-primary-800 mb-6">Recent Activity</h2>
+          <h2 className="text-xl font-semibold text-secondary-800 mb-6">Recent Activity</h2>
           <div>
             {recentActivity.map((activity, index) => (
               <ActivityItem
@@ -242,10 +242,10 @@ export default function DashboardPage() {
         </div>
         <div className="lg:col-span-2 rounded-2xl border border-border/60 bg-white/95 p-6 shadow-soft">
           <div className="mb-6 flex items-center justify-between">
-            <h2 className="text-xl font-semibold text-primary-800">Listing Performance</h2>
+            <h2 className="text-xl font-semibold text-secondary-800">Listing Performance</h2>
             <Button
               variant="outline"
-              className="inline-flex items-center gap-2 rounded-xl border-border/60 bg-primary-50 px-4 py-2 text-sm font-semibold text-primary-700 hover:bg-primary-100"
+              className="inline-flex items-center gap-2 rounded-xl border-border/60 bg-secondary-50 px-4 py-2 text-sm font-semibold text-secondary-700 hover:bg-secondary-100"
             >
               <span>Last 30 days</span>
               <FontAwesomeIcon icon={faChevronDown} className="size-3" />

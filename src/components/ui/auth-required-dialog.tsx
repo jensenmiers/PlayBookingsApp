@@ -45,7 +45,7 @@ export function AuthRequiredDialog({
       <DialogContent className="sm:max-w-md">
         <DialogHeader>
           <DialogTitle>{title}</DialogTitle>
-          <DialogDescription className="text-primary-600">
+          <DialogDescription className="text-secondary-600">
             {message}
           </DialogDescription>
         </DialogHeader>

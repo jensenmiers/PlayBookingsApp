@@ -73,7 +73,7 @@ function SheetContent({
         {...props}
       >
         {children}
-        <SheetPrimitive.Close className="ring-offset-background focus:ring-ring/40 data-[state=open]:bg-primary-100 absolute top-4 right-4 inline-flex size-9 items-center justify-center rounded-full bg-primary/10 text-primary-700 transition-colors hover:bg-primary-100 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-offset-2 disabled:pointer-events-none">
+        <SheetPrimitive.Close className="ring-offset-background focus:ring-ring/40 data-[state=open]:bg-secondary-100 absolute top-4 right-4 inline-flex size-9 items-center justify-center rounded-full bg-primary/10 text-secondary-700 transition-colors hover:bg-secondary-100 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-offset-2 disabled:pointer-events-none">
           <FontAwesomeIcon icon={faXmark} className="size-4" />
           <span className="sr-only">Close</span>
         </SheetPrimitive.Close>
@@ -109,7 +109,7 @@ function SheetTitle({
   return (
     <SheetPrimitive.Title
       data-slot="sheet-title"
-      className={cn("text-xl font-semibold text-primary-800", className)}
+      className={cn("text-xl font-semibold text-secondary-800", className)}
       {...props}
     />
   )

@@ -338,7 +338,7 @@ export function CreateBookingForm({
 
             {/* Conflict Warning */}
             {checkingConflicts && (
-              <div className="flex items-center gap-2 text-sm text-primary-600">
+              <div className="flex items-center gap-2 text-sm text-secondary-600">
                 <FontAwesomeIcon icon={faSpinner} className="animate-spin" />
                 <span>Checking availability...</span>
               </div>
@@ -431,9 +431,9 @@ export function CreateBookingForm({
 
             {/* Booking Summary */}
             {venue && watchedDate && watchedStartTime && watchedEndTime && (
-              <div className="rounded-lg border border-border bg-primary-50 p-4">
+              <div className="rounded-lg border border-border bg-secondary-50 p-4">
                 <h4 className="font-semibold text-sm mb-2">Booking Summary</h4>
-                <div className="space-y-1 text-sm text-primary-700">
+                <div className="space-y-1 text-sm text-secondary-700">
                   <p>
                     <span className="font-medium">Venue:</span> {venue.name}
                   </p>

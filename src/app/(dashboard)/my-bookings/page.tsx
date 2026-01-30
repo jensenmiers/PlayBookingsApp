@@ -26,7 +26,7 @@ export default function BookingsPage() {
     <div className="space-y-10">
       <header className="flex flex-col gap-6 md:flex-row md:items-center md:justify-between">
         <div className="space-y-1">
-          <h1 className="text-2xl font-bold text-primary-800">My Bookings</h1>
+          <h1 className="text-2xl font-bold text-secondary-800">My Bookings</h1>
           <p className="text-sm text-muted-foreground">
             Manage and view all your bookings.
           </p>
@@ -41,7 +41,7 @@ export default function BookingsPage() {
 
       {userLoading ? (
         <div className="flex items-center justify-center p-8">
-          <FontAwesomeIcon icon={faSpinner} className="animate-spin text-primary-600" size="2x" />
+          <FontAwesomeIcon icon={faSpinner} className="animate-spin text-secondary-600" size="2x" />
         </div>
       ) : showHostTab ? (
         // Show tabs for users who are both renters and hosts

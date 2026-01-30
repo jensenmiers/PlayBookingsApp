@@ -100,11 +100,11 @@ export function AvailabilityMap({
   // If no Mapbox token, show fallback
   if (!mapboxToken) {
     return (
-      <div className={`flex items-center justify-center bg-primary-100 rounded-xl ${className}`}>
+      <div className={`flex items-center justify-center bg-secondary-100 rounded-xl ${className}`}>
         <div className="text-center p-8">
-          <FontAwesomeIcon icon={faLocationDot} className="text-4xl text-primary-400 mb-4" />
-          <p className="text-primary-600 font-medium">Map unavailable</p>
-          <p className="text-primary-500 text-sm mt-1">
+          <FontAwesomeIcon icon={faLocationDot} className="text-4xl text-secondary-400 mb-4" />
+          <p className="text-secondary-600 font-medium">Map unavailable</p>
+          <p className="text-secondary-500 text-sm mt-1">
             Mapbox token not configured
           </p>
         </div>
@@ -161,7 +161,7 @@ export function AvailabilityMap({
 
       {/* Venues count badge */}
       <div className="absolute top-4 left-4 bg-white/90 backdrop-blur-sm rounded-lg px-3 py-1.5 shadow-md">
-        <span className="text-sm font-medium text-primary-700">
+        <span className="text-sm font-medium text-secondary-700">
           {venues.length} venue{venues.length !== 1 ? 's' : ''}
         </span>
       </div>
@@ -193,7 +193,7 @@ function VenueMarker({ venue, isSelected }: { venue: MapVenue; isSelected: boole
           className={`
             rounded-full p-2 shadow-lg border-2
             ${hasAvailability 
-              ? 'bg-secondary-500 border-secondary-600' 
+              ? 'bg-primary-500 border-primary-600' 
               : 'bg-gray-400 border-gray-500'
             }
             ${isSelected ? 'ring-2 ring-white ring-offset-2' : ''}
@@ -208,7 +208,7 @@ function VenueMarker({ venue, isSelected }: { venue: MapVenue; isSelected: boole
         {/* Availability badge */}
         {hasAvailability && (
           <div className="absolute -bottom-6 left-1/2 -translate-x-1/2 whitespace-nowrap">
-            <span className="bg-white text-primary-700 text-xs font-medium px-2 py-0.5 rounded-full shadow-md border border-primary-200">
+            <span className="bg-white text-secondary-700 text-xs font-medium px-2 py-0.5 rounded-full shadow-md border border-secondary-200">
               {venue.nextAvailable?.displayText}
             </span>
           </div>
@@ -228,7 +228,7 @@ function VenuePopupContent({ venue }: { venue: MapVenue }) {
     <div className="p-1 min-w-[220px]">
       {/* Venue name and instant booking badge */}
       <div className="flex items-start justify-between gap-2 mb-2">
-        <h3 className="font-semibold text-primary-800 text-sm leading-tight">
+        <h3 className="font-semibold text-secondary-800 text-sm leading-tight">
           {venue.name}
         </h3>
         {venue.instantBooking && (
@@ -240,20 +240,20 @@ function VenuePopupContent({ venue }: { venue: MapVenue }) {
       </div>
 
       {/* Location */}
-      <p className="text-primary-600 text-xs mb-2">
+      <p className="text-secondary-600 text-xs mb-2">
         {venue.city}, {venue.state}
       </p>
 
       {/* Distance if available */}
       {venue.distanceMiles !== null && (
-        <p className="text-primary-500 text-xs mb-2">
+        <p className="text-secondary-500 text-xs mb-2">
           {venue.distanceMiles.toFixed(1)} miles away
         </p>
       )}
 
       {/* Next available slot */}
       {venue.nextAvailable ? (
-        <div className="flex items-center gap-1.5 text-secondary-600 text-sm font-medium mb-3">
+        <div className="flex items-center gap-1.5 text-primary-600 text-sm font-medium mb-3">
           <FontAwesomeIcon icon={faClock} className="text-xs" />
           <span>Next: {venue.nextAvailable.displayText}</span>
         </div>
@@ -263,8 +263,8 @@ function VenuePopupContent({ venue }: { venue: MapVenue }) {
 
       {/* Price and CTA */}
       <div className="flex items-center justify-between gap-2">
-        <span className="text-primary-800 font-semibold">
-          ${venue.hourlyRate}<span className="text-xs font-normal text-primary-600">/hr</span>
+        <span className="text-secondary-800 font-semibold">
+          ${venue.hourlyRate}<span className="text-xs font-normal text-secondary-600">/hr</span>
         </span>
         <Button asChild size="sm" className="rounded-lg text-xs px-3 py-1 h-7">
           <Link href={`/venue/${venueSlug}`}>

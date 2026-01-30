@@ -55,7 +55,7 @@ export function BookingList({ initialFilters, className }: BookingListProps) {
   if (loading && !bookings) {
     return (
       <div className={cn('flex items-center justify-center p-8', className)}>
-        <FontAwesomeIcon icon={faSpinner} className="animate-spin text-primary-600" size="2x" />
+        <FontAwesomeIcon icon={faSpinner} className="animate-spin text-secondary-600" size="2x" />
       </div>
     )
   }
@@ -134,7 +134,7 @@ export function BookingList({ initialFilters, className }: BookingListProps) {
       {/* Booking List */}
       {!bookings || bookings.length === 0 ? (
         <div className="rounded-lg border border-border bg-white p-8 text-center">
-          <p className="text-primary-600">No bookings found</p>
+          <p className="text-secondary-600">No bookings found</p>
         </div>
       ) : (
         <div className="space-y-3">
@@ -147,17 +147,17 @@ export function BookingList({ initialFilters, className }: BookingListProps) {
               <div className="rounded-lg border border-border bg-white p-4 hover:shadow-md transition-shadow">
                 <div className="flex items-start justify-between mb-3">
                   <div>
-                    <h3 className="font-semibold text-primary-800">
+                    <h3 className="font-semibold text-secondary-800">
                       {booking.date} • {booking.start_time.slice(0, 5)} - {booking.end_time.slice(0, 5)}
                     </h3>
-                    <p className="text-sm text-primary-600 mt-1">Booking ID: {booking.id.slice(0, 8)}</p>
+                    <p className="text-sm text-secondary-600 mt-1">Booking ID: {booking.id.slice(0, 8)}</p>
                   </div>
                   <BookingStatusBadge status={booking.status} />
                 </div>
                 <div className="flex items-center justify-between">
-                  <p className="text-sm text-primary-600">Total: ${booking.total_amount.toFixed(2)}</p>
+                  <p className="text-sm text-secondary-600">Total: ${booking.total_amount.toFixed(2)}</p>
                   {booking.notes && (
-                    <p className="text-sm text-primary-600 truncate max-w-xs">
+                    <p className="text-sm text-secondary-600 truncate max-w-xs">
                       {booking.notes}
                     </p>
                   )}
@@ -171,7 +171,7 @@ export function BookingList({ initialFilters, className }: BookingListProps) {
       {/* Pagination */}
       {bookings && bookings.length > 0 && (
         <div className="flex items-center justify-between pt-4">
-          <p className="text-sm text-primary-600">
+          <p className="text-sm text-secondary-600">
             Showing {bookings.length} booking{bookings.length !== 1 ? 's' : ''}
           </p>
           <div className="flex items-center gap-2">

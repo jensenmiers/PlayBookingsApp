@@ -70,7 +70,7 @@ function DialogContent({
         {showCloseButton && (
           <DialogPrimitive.Close
             data-slot="dialog-close"
-            className="ring-offset-background focus:ring-ring/40 data-[state=open]:bg-primary-100 data-[state=open]:text-primary-700 absolute top-4 right-4 inline-flex size-9 items-center justify-center rounded-full bg-primary/10 text-primary-700 transition-colors hover:bg-primary-100 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-offset-2 disabled:pointer-events-none [&_svg]:pointer-events-none [&_svg]:shrink-0 [&_svg:not([class*='size-'])]:size-4"
+            className="ring-offset-background focus:ring-ring/40 data-[state=open]:bg-secondary-100 data-[state=open]:text-secondary-700 absolute top-4 right-4 inline-flex size-9 items-center justify-center rounded-full bg-primary/10 text-secondary-700 transition-colors hover:bg-secondary-100 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-offset-2 disabled:pointer-events-none [&_svg]:pointer-events-none [&_svg]:shrink-0 [&_svg:not([class*='size-'])]:size-4"
           >
             <FontAwesomeIcon icon={faXmark} />
             <span className="sr-only">Close</span>
@@ -111,7 +111,7 @@ function DialogTitle({
   return (
     <DialogPrimitive.Title
       data-slot="dialog-title"
-      className={cn("text-xl leading-tight font-semibold text-primary-800", className)}
+      className={cn("text-xl leading-tight font-semibold text-secondary-800", className)}
       {...props}
     />
   )

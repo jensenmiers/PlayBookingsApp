@@ -9,29 +9,29 @@ import { faCalendarDays, faLocationDot, faShieldHalved, faUsers } from '@fortawe
 
 export default function Home() {
   return (
-    <div className="min-h-screen bg-gradient-to-br from-primary-50 via-primary-50/70 to-secondary-50">
+    <div className="min-h-screen bg-gradient-to-br from-secondary-50 via-secondary-50/70 to-primary-50/30">
       <Navigation />
       {/* Hero Section */}
       <section className="px-4 py-16 text-center md:py-24">
         <div className="mx-auto max-w-4xl space-y-8">
-          <h1 className="text-4xl font-bold text-primary-900 md:text-6xl">
+          <h1 className="text-4xl font-bold text-secondary-900 md:text-6xl">
             Book Indoor Courts{' '}
-            <span className="bg-gradient-to-r from-primary-500 to-secondary-500 bg-clip-text text-transparent">
+            <span className="bg-gradient-to-r from-primary-500 to-accent-500 bg-clip-text text-transparent">
               with Ease
             </span>
           </h1>
-          <p className="mx-auto max-w-2xl text-lg text-primary-600 md:text-xl">
+          <p className="mx-auto max-w-2xl text-lg text-secondary-600 md:text-xl">
             Effortless booking—reserve spaces in just a few clicks. Find the perfect court for your next game, practice, or event.
           </p>
           <div className="flex flex-col gap-4 sm:flex-row sm:justify-center">
-            <Button asChild size="lg" className="rounded-xl bg-secondary-600 px-10 py-3 text-base hover:bg-secondary-700">
+            <Button asChild size="lg" className="rounded-xl bg-primary-600 px-10 py-3 text-base hover:bg-primary-700">
               <Link href="/venues">Discover courts</Link>
             </Button>
             <Button
               asChild
               variant="outline"
               size="lg"
-              className="rounded-xl border-primary-200 bg-white/80 px-10 py-3 text-base text-primary-700 hover:bg-primary-100"
+              className="rounded-xl border-secondary-200 bg-white/80 px-10 py-3 text-base text-secondary-700 hover:bg-secondary-100"
             >
               <Link href="/search">Find next availability</Link>
             </Button>
@@ -42,7 +42,7 @@ export default function Home() {
       {/* Features Section */}
       <section className="px-4 py-20">
         <div className="mx-auto max-w-6xl">
-          <h2 className="mb-10 text-center text-3xl font-semibold text-primary-900 md:mb-12">
+          <h2 className="mb-10 text-center text-3xl font-semibold text-secondary-900 md:mb-12">
             Why Choose Play Bookings?
           </h2>
           <div className="grid gap-8 md:grid-cols-2 lg:grid-cols-4">
@@ -54,7 +54,7 @@ export default function Home() {
                 <CardTitle>Instant Booking</CardTitle>
               </CardHeader>
               <CardContent>
-                <CardDescription className="text-primary-600">
+                <CardDescription className="text-secondary-600">
                   Browse available time slots and book instantly. No phone calls, no waiting for callbacks.
                 </CardDescription>
               </CardContent>
@@ -62,13 +62,13 @@ export default function Home() {
 
             <Card className="border-border/60 bg-white/95 p-6 text-center shadow-soft">
               <CardHeader>
-                <div className="mx-auto mb-4 flex h-16 w-16 items-center justify-center rounded-full bg-secondary-100 text-secondary-600">
+                <div className="mx-auto mb-4 flex h-16 w-16 items-center justify-center rounded-full bg-primary-100 text-primary-600">
                   <FontAwesomeIcon icon={faShieldHalved} className="h-8 w-8" />
                 </div>
                 <CardTitle>Verified Venues</CardTitle>
               </CardHeader>
               <CardContent>
-                <CardDescription className="text-primary-600">
+                <CardDescription className="text-secondary-600">
                   Every court is verified with accurate photos and amenities, so you know exactly what you&apos;re getting.
                 </CardDescription>
               </CardContent>
@@ -82,7 +82,7 @@ export default function Home() {
                 <CardTitle>Find Your Game</CardTitle>
               </CardHeader>
               <CardContent>
-                <CardDescription className="text-primary-600">
+                <CardDescription className="text-secondary-600">
                   Discover courts near you—whether it&apos;s for pickup games, team practices, or private sessions.
                 </CardDescription>
               </CardContent>
@@ -96,7 +96,7 @@ export default function Home() {
                 <CardTitle>Courts Nearby</CardTitle>
               </CardHeader>
               <CardContent>
-                <CardDescription className="text-primary-600">
+                <CardDescription className="text-secondary-600">
                   Explore indoor courts across Los Angeles County and throughout Southern California.
                 </CardDescription>
               </CardContent>
@@ -108,13 +108,13 @@ export default function Home() {
       {/* CTA Section */}
       <section className="px-4 py-12 md:py-16">
         <div className="mx-auto max-w-4xl space-y-6 rounded-3xl border border-border/40 bg-white/90 px-8 py-10 text-center shadow-glass md:px-12 md:py-12">
-          <h2 className="text-3xl font-semibold text-primary-900">
+          <h2 className="text-3xl font-semibold text-secondary-900">
             Ready to Find Your Next Court?
           </h2>
-          <p className="text-lg text-primary-600">
+          <p className="text-lg text-secondary-600">
             Browse available courts and book your next game in minutes.
           </p>
-          <Button asChild size="lg" className="rounded-xl bg-secondary-600 px-10 py-3 text-base hover:bg-secondary-700">
+          <Button asChild size="lg" className="rounded-xl bg-primary-600 px-10 py-3 text-base hover:bg-primary-700">
             <Link href="/search">Start Searching</Link>
           </Button>
         </div>

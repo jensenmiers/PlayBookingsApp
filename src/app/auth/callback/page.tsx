@@ -203,15 +203,15 @@ function AuthCallbackContent() {
   // Popup closing state - show minimal UI
   if (status === 'closing') {
     return (
-      <div className="flex min-h-screen items-center justify-center bg-gradient-to-br from-primary-50 via-primary-50/80 to-secondary-50">
+      <div className="flex min-h-screen items-center justify-center bg-gradient-to-br from-secondary-50 via-secondary-50/80 to-primary-50">
         <div className="space-y-4 text-center">
-          <div className="mx-auto flex h-16 w-16 items-center justify-center rounded-full bg-secondary-100 text-secondary-600">
+          <div className="mx-auto flex h-16 w-16 items-center justify-center rounded-full bg-primary-100 text-primary-600">
             <svg className="h-8 w-8" fill="none" stroke="currentColor" viewBox="0 0 24 24">
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
             </svg>
           </div>
-          <h2 className="text-xl font-semibold text-primary-800">Success!</h2>
-          <p className="text-primary-600">Closing this window...</p>
+          <h2 className="text-xl font-semibold text-secondary-800">Success!</h2>
+          <p className="text-secondary-600">Closing this window...</p>
         </div>
       </div>
     )
@@ -219,11 +219,11 @@ function AuthCallbackContent() {
 
   if (status === 'loading') {
     return (
-      <div className="flex min-h-screen items-center justify-center bg-gradient-to-br from-primary-50 via-primary-50/80 to-secondary-50">
+      <div className="flex min-h-screen items-center justify-center bg-gradient-to-br from-secondary-50 via-secondary-50/80 to-primary-50">
         <div className="space-y-4 text-center">
-          <div className="mx-auto h-8 w-8 animate-spin rounded-full border-4 border-secondary-600 border-t-transparent" />
-          <h2 className="text-xl font-semibold text-primary-800">Signing you in...</h2>
-          <p className="text-primary-600">Please wait while we complete your authentication.</p>
+          <div className="mx-auto h-8 w-8 animate-spin rounded-full border-4 border-primary-600 border-t-transparent" />
+          <h2 className="text-xl font-semibold text-secondary-800">Signing you in...</h2>
+          <p className="text-secondary-600">Please wait while we complete your authentication.</p>
         </div>
       </div>
     )
@@ -231,15 +231,15 @@ function AuthCallbackContent() {
 
   if (status === 'success') {
     return (
-      <div className="flex min-h-screen items-center justify-center bg-gradient-to-br from-primary-50 via-primary-50/80 to-secondary-50">
+      <div className="flex min-h-screen items-center justify-center bg-gradient-to-br from-secondary-50 via-secondary-50/80 to-primary-50">
         <div className="space-y-4 text-center">
-          <div className="mx-auto flex h-16 w-16 items-center justify-center rounded-full bg-secondary-100 text-secondary-600">
+          <div className="mx-auto flex h-16 w-16 items-center justify-center rounded-full bg-primary-100 text-primary-600">
             <svg className="h-8 w-8" fill="none" stroke="currentColor" viewBox="0 0 24 24">
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
             </svg>
           </div>
-          <h2 className="text-xl font-semibold text-primary-800">Welcome to Play Bookings!</h2>
-          <p className="text-primary-600">
+          <h2 className="text-xl font-semibold text-secondary-800">Welcome to Play Bookings!</h2>
+          <p className="text-secondary-600">
             {searchParams.get('intent') === 'host' 
               ? 'Setting up your host account...' 
               : 'Let\'s find you a venue to book...'}
@@ -251,18 +251,18 @@ function AuthCallbackContent() {
 
   if (status === 'error') {
     return (
-      <div className="flex min-h-screen items-center justify-center bg-gradient-to-br from-primary-50 via-primary-50/80 to-secondary-50">
+      <div className="flex min-h-screen items-center justify-center bg-gradient-to-br from-secondary-50 via-secondary-50/80 to-primary-50">
         <div className="mx-auto max-w-md space-y-4 rounded-2xl border border-border/50 bg-white/95 p-8 text-center shadow-soft">
           <div className="mx-auto flex h-16 w-16 items-center justify-center rounded-full bg-accent-100 text-accent-600">
             <svg className="h-8 w-8" fill="none" stroke="currentColor" viewBox="0 0 24 24">
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
             </svg>
           </div>
-          <h2 className="text-xl font-semibold text-primary-800">Authentication Error</h2>
-          <p className="text-primary-600">{errorMessage}</p>
+          <h2 className="text-xl font-semibold text-secondary-800">Authentication Error</h2>
+          <p className="text-secondary-600">{errorMessage}</p>
           <button
             onClick={() => router.push('/auth/login')}
-            className="inline-flex items-center justify-center gap-2 rounded-xl bg-secondary-600 px-5 py-2 text-sm font-semibold text-white transition-colors hover:bg-secondary-700 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-secondary-400 focus-visible:ring-offset-2"
+            className="inline-flex items-center justify-center gap-2 rounded-xl bg-primary-600 px-5 py-2 text-sm font-semibold text-white transition-colors hover:bg-primary-700 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary-400 focus-visible:ring-offset-2"
           >
             Try Again
           </button>
@@ -276,10 +276,10 @@ function AuthCallbackContent() {
 
 function LoadingFallback() {
   return (
-    <div className="flex min-h-screen items-center justify-center bg-gradient-to-br from-primary-50 via-primary-50/80 to-secondary-50">
+    <div className="flex min-h-screen items-center justify-center bg-gradient-to-br from-secondary-50 via-secondary-50/80 to-primary-50">
       <div className="space-y-4 text-center">
-        <div className="mx-auto h-8 w-8 animate-spin rounded-full border-4 border-secondary-600 border-t-transparent" />
-        <h2 className="text-xl font-semibold text-primary-800">Loading...</h2>
+        <div className="mx-auto h-8 w-8 animate-spin rounded-full border-4 border-primary-600 border-t-transparent" />
+        <h2 className="text-xl font-semibold text-secondary-800">Loading...</h2>
       </div>
     </div>
   )

@@ -42,13 +42,13 @@ export function MessageCard({
   return (
     <div
       className={cn(
-        "flex flex-col gap-3 rounded-xl border border-border/50 bg-white/90 p-4 shadow-soft transition-colors hover:bg-primary-50",
+        "flex flex-col gap-3 rounded-xl border border-border/50 bg-white/90 p-4 shadow-soft transition-colors hover:bg-secondary-50",
         className
       )}
     >
       <div className="flex items-center justify-between gap-3">
         <div className="flex items-center gap-3">
-          <div className="relative size-8 overflow-hidden rounded-full bg-primary-200">
+          <div className="relative size-8 overflow-hidden rounded-full bg-secondary-200">
             {senderAvatarUrl ? (
               <Image
                 src={senderAvatarUrl}
@@ -58,7 +58,7 @@ export function MessageCard({
                 sizes="32px"
               />
             ) : (
-              <span className="grid size-full place-items-center text-xs font-semibold uppercase text-primary-700">
+              <span className="grid size-full place-items-center text-xs font-semibold uppercase text-secondary-700">
                 {senderName
                   .split(" ")
                   .map((part) => part[0])
@@ -67,11 +67,11 @@ export function MessageCard({
               </span>
             )}
           </div>
-          <span className="text-sm font-semibold text-primary-800">{senderName}</span>
+          <span className="text-sm font-semibold text-secondary-800">{senderName}</span>
         </div>
         <span className="text-xs text-muted-foreground">{timestampLabel}</span>
       </div>
-      <p className="text-sm leading-relaxed text-primary-700/80">{messagePreview}</p>
+      <p className="text-sm leading-relaxed text-secondary-700/80">{messagePreview}</p>
       {actions.length > 0 && (
         <div className="flex flex-wrap items-center justify-end gap-2">
           {actions.map((action) => (
@@ -81,8 +81,8 @@ export function MessageCard({
               variant={action.type === "accept" ? "secondary" : action.type === "decline" ? "outline" : "ghost"}
               onClick={action.onClick}
               className={cn(
-                action.type === "accept" && "bg-secondary-600 hover:bg-secondary-700 text-white",
-                action.type === "decline" && "border border-border/70 text-primary-700 hover:bg-primary-100"
+                action.type === "accept" && "bg-primary-600 hover:bg-primary-700 text-white",
+                action.type === "decline" && "border border-border/70 text-secondary-700 hover:bg-secondary-100"
               )}
             >
               <span className="inline-flex items-center gap-1 text-xs font-semibold">

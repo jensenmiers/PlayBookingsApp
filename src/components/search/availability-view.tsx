@@ -49,17 +49,17 @@ export function AvailabilityView() {
   const isToday = selectedDate === format(today, 'yyyy-MM-dd')
 
   return (
-    <div className="min-h-screen bg-primary-50">
+    <div className="min-h-screen bg-secondary-50">
       {/* Search and Filter Section */}
       <section className="px-4 pt-6 pb-4">
         <div className="mb-4">
-          <h2 className="text-2xl font-bold text-primary-800 mb-2">Find Available Slots</h2>
-          <p className="text-primary-600">Browse and book available time slots</p>
+          <h2 className="text-2xl font-bold text-secondary-800 mb-2">Find Available Slots</h2>
+          <p className="text-secondary-600">Browse and book available time slots</p>
         </div>
 
         <div className="relative mb-4">
           <div className="absolute inset-y-0 left-0 pl-4 flex items-center pointer-events-none">
-            <FontAwesomeIcon icon={faSearch} className="text-primary-300" />
+            <FontAwesomeIcon icon={faSearch} className="text-secondary-300" />
           </div>
           <Input
             type="text"
@@ -75,15 +75,15 @@ export function AvailabilityView() {
               variant="ghost"
               size="icon"
               onClick={() => handleDateChange('prev')}
-              className="h-10 w-10 rounded-xl bg-white shadow-soft text-primary-700 hover:bg-primary-50"
+              className="h-10 w-10 rounded-xl bg-white shadow-soft text-secondary-700 hover:bg-secondary-50"
             >
               <FontAwesomeIcon icon={faChevronLeft} className="text-xs" />
             </Button>
             <Button
-              className="flex items-center space-x-2 bg-white rounded-xl px-4 py-3 shadow-soft text-primary-700 hover:bg-primary-50 whitespace-nowrap"
+              className="flex items-center space-x-2 bg-white rounded-xl px-4 py-3 shadow-soft text-secondary-700 hover:bg-secondary-50 whitespace-nowrap"
               onClick={handleTodayClick}
             >
-              <FontAwesomeIcon icon={faCalendarDays} className="text-primary-600" />
+              <FontAwesomeIcon icon={faCalendarDays} className="text-secondary-600" />
               <span>{formattedDate}</span>
               <FontAwesomeIcon icon={faChevronDown} className="text-xs ml-1" />
             </Button>
@@ -91,7 +91,7 @@ export function AvailabilityView() {
               variant="ghost"
               size="icon"
               onClick={() => handleDateChange('next')}
-              className="h-10 w-10 rounded-xl bg-white shadow-soft text-primary-700 hover:bg-primary-50"
+              className="h-10 w-10 rounded-xl bg-white shadow-soft text-secondary-700 hover:bg-secondary-50"
             >
               <FontAwesomeIcon icon={faChevronRight} className="text-xs" />
             </Button>
@@ -99,8 +99,8 @@ export function AvailabilityView() {
 
           {/* Time Filter Button */}
           <div className="flex-shrink-0">
-            <Button className="flex items-center space-x-2 bg-white rounded-xl px-4 py-3 shadow-soft text-primary-700 hover:bg-primary-50">
-              <FontAwesomeIcon icon={faClock} className="text-primary-600" />
+            <Button className="flex items-center space-x-2 bg-white rounded-xl px-4 py-3 shadow-soft text-secondary-700 hover:bg-secondary-50">
+              <FontAwesomeIcon icon={faClock} className="text-secondary-600" />
               <span className="whitespace-nowrap">{selectedTime}</span>
               <FontAwesomeIcon icon={faChevronDown} className="text-xs ml-1" />
             </Button>
@@ -108,8 +108,8 @@ export function AvailabilityView() {
 
           {/* Filters Button */}
           <div className="flex-shrink-0">
-            <Button className="flex items-center space-x-2 bg-white rounded-xl px-4 py-3 shadow-soft text-primary-700 hover:bg-primary-50">
-              <FontAwesomeIcon icon={faSliders} className="text-primary-600" />
+            <Button className="flex items-center space-x-2 bg-white rounded-xl px-4 py-3 shadow-soft text-secondary-700 hover:bg-secondary-50">
+              <FontAwesomeIcon icon={faSliders} className="text-secondary-600" />
               <span className="whitespace-nowrap">Filters</span>
             </Button>
           </div>
@@ -129,7 +129,7 @@ export function AvailabilityView() {
             <ErrorMessage error={error} title="Failed to load availability slots" />
             <Button
               onClick={() => refetch()}
-              className="w-full bg-primary-600 hover:bg-primary-700 text-white font-medium py-3 rounded-xl transition duration-200"
+              className="w-full bg-secondary-600 hover:bg-secondary-700 text-white font-medium py-3 rounded-xl transition duration-200"
             >
               Try Again
             </Button>
@@ -141,7 +141,7 @@ export function AvailabilityView() {
             ))}
           </div>
         ) : (
-          <div className="text-center py-8 text-primary-600">
+          <div className="text-center py-8 text-secondary-600">
             <p className="text-lg font-medium mb-2">No available slots found</p>
             <p className="text-sm">
               {isToday
@@ -151,7 +151,7 @@ export function AvailabilityView() {
             <p className="text-sm mt-2">Try selecting a different date or time.</p>
             <a 
               href="/venues" 
-              className="inline-block mt-4 text-primary-700 hover:text-primary-900 font-medium underline"
+              className="inline-block mt-4 text-secondary-700 hover:text-secondary-900 font-medium underline"
             >
               Or browse all venues
             </a>

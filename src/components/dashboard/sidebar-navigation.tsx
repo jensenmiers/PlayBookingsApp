@@ -60,21 +60,21 @@ export function SidebarNavigation({
           const isActive = pathname?.startsWith(item.href)
 
           return (
-            <Link
+              <Link
               key={item.href}
               href={item.href}
               className={cn(
                 "group flex items-center gap-3 rounded-xl px-4 py-3 text-sm font-medium transition-colors",
                 isActive
-                  ? "bg-primary-50 text-primary-800"
-                  : "text-muted-foreground hover:bg-primary-50 hover:text-primary-700"
+                  ? "bg-secondary-50 text-secondary-800"
+                  : "text-muted-foreground hover:bg-secondary-50 hover:text-secondary-700"
               )}
             >
               <FontAwesomeIcon
                 icon={item.icon}
                 className={cn(
                   "size-4",
-                  isActive ? "text-primary-600" : "text-muted-foreground"
+                  isActive ? "text-secondary-600" : "text-muted-foreground"
                 )}
               />
               <span className="flex-1">{item.label}</span>
@@ -91,7 +91,7 @@ export function SidebarNavigation({
       <div className="mt-auto border-t border-border/40 pt-6">
         {user && (
           <div className="mb-4 flex items-center gap-3">
-            <div className="relative size-10 overflow-hidden rounded-full bg-primary-200">
+            <div className="relative size-10 overflow-hidden rounded-full bg-secondary-200">
               {user.avatarUrl ? (
                 <Image
                   src={user.avatarUrl}
@@ -101,7 +101,7 @@ export function SidebarNavigation({
                   sizes="40px"
                 />
               ) : (
-                <span className="grid size-full place-items-center text-sm font-semibold uppercase text-primary-700">
+                <span className="grid size-full place-items-center text-sm font-semibold uppercase text-secondary-700">
                   {user.name
                     .split(" ")
                     .map((part) => part[0])
@@ -111,7 +111,7 @@ export function SidebarNavigation({
               )}
             </div>
             <div>
-              <p className="text-sm font-semibold text-primary-800">{user.name}</p>
+              <p className="text-sm font-semibold text-secondary-800">{user.name}</p>
               {user.role && (
                 <p className="text-xs text-muted-foreground">{user.role}</p>
               )}
@@ -122,7 +122,7 @@ export function SidebarNavigation({
         <Button
           onClick={onSignOut}
           variant="outline"
-          className="w-full justify-center gap-2 rounded-xl border-border/60 bg-primary-50 text-primary-700 hover:bg-primary-100"
+          className="w-full justify-center gap-2 rounded-xl border-border/60 bg-secondary-50 text-secondary-700 hover:bg-secondary-100"
         >
           <FontAwesomeIcon icon={faArrowRightFromBracket} className="size-4" />
           <span>Sign Out</span>

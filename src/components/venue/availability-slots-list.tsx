@@ -91,8 +91,8 @@ export function AvailabilitySlotsList({ venue }: AvailabilitySlotsListProps) {
   if (loading) {
     return (
       <div className="bg-white rounded-2xl shadow-soft p-8 text-center">
-        <FontAwesomeIcon icon={faSpinner} className="animate-spin text-primary-600 text-2xl mb-4" />
-        <p className="text-primary-600">Loading availability...</p>
+        <FontAwesomeIcon icon={faSpinner} className="animate-spin text-secondary-600 text-2xl mb-4" />
+        <p className="text-secondary-600">Loading availability...</p>
       </div>
     )
   }
@@ -108,9 +108,9 @@ export function AvailabilitySlotsList({ venue }: AvailabilitySlotsListProps) {
   if (sortedDates.length === 0) {
     return (
       <div className="bg-white rounded-2xl shadow-soft p-8 text-center">
-        <FontAwesomeIcon icon={faCalendarDays} className="text-primary-300 text-4xl mb-4" />
-        <p className="text-primary-600 font-medium mb-2">No availability found</p>
-        <p className="text-primary-500 text-sm">
+        <FontAwesomeIcon icon={faCalendarDays} className="text-secondary-300 text-4xl mb-4" />
+        <p className="text-secondary-600 font-medium mb-2">No availability found</p>
+        <p className="text-secondary-500 text-sm">
           There are no available time slots for this venue in the next 14 days.
         </p>
       </div>
@@ -120,8 +120,8 @@ export function AvailabilitySlotsList({ venue }: AvailabilitySlotsListProps) {
   return (
     <>
       <div className="bg-white rounded-2xl shadow-soft p-6">
-        <h3 className="text-xl font-bold text-primary-800 mb-4">Available Time Slots</h3>
-        <p className="text-sm text-primary-600 mb-6">
+        <h3 className="text-xl font-bold text-secondary-800 mb-4">Available Time Slots</h3>
+        <p className="text-sm text-secondary-600 mb-6">
           Select a time slot and click &quot;Book Now&quot; to reserve this venue.
         </p>
 
@@ -131,10 +131,10 @@ export function AvailabilitySlotsList({ venue }: AvailabilitySlotsListProps) {
             const displayDate = format(parseLocalDate(date), 'EEEE, MMMM d, yyyy')
 
             return (
-              <div key={date} className="border-b border-primary-100 last:border-b-0 pb-6 last:pb-0">
+              <div key={date} className="border-b border-secondary-100 last:border-b-0 pb-6 last:pb-0">
                 <div className="flex items-center gap-2 mb-4">
-                  <FontAwesomeIcon icon={faCalendarDays} className="text-primary-600" />
-                  <h4 className="font-semibold text-primary-800">{displayDate}</h4>
+                  <FontAwesomeIcon icon={faCalendarDays} className="text-secondary-600" />
+                  <h4 className="font-semibold text-secondary-800">{displayDate}</h4>
                 </div>
 
                 <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
@@ -147,19 +147,19 @@ export function AvailabilitySlotsList({ venue }: AvailabilitySlotsListProps) {
                     return (
                       <div
                         key={`${slot.date}-${slot.start_time}-${idx}`}
-                        className={`flex items-center justify-between p-4 bg-primary-50 rounded-xl border border-primary-200 transition-colors ${
+                        className={`flex items-center justify-between p-4 bg-secondary-50 rounded-xl border border-secondary-200 transition-colors ${
                           isBookable
-                            ? 'hover:border-primary-300'
+                            ? 'hover:border-secondary-300'
                             : 'opacity-50 cursor-not-allowed'
                         }`}
                       >
                         <div className="flex items-center gap-3">
                           <FontAwesomeIcon
                             icon={faClock}
-                            className={isBookable ? 'text-primary-600' : 'text-primary-400'}
+                            className={isBookable ? 'text-secondary-600' : 'text-secondary-400'}
                           />
                           <span
-                            className={`font-medium ${isBookable ? 'text-primary-800' : 'text-primary-500'}`}
+                            className={`font-medium ${isBookable ? 'text-secondary-800' : 'text-secondary-500'}`}
                           >
                             {timeDisplay}
                           </span>
@@ -167,7 +167,7 @@ export function AvailabilitySlotsList({ venue }: AvailabilitySlotsListProps) {
                         <Button
                           onClick={() => handleBookNow(slot)}
                           disabled={!isBookable}
-                          className="bg-primary-600 hover:bg-primary-700 text-white text-sm px-4 py-2 rounded-lg disabled:opacity-50 disabled:cursor-not-allowed"
+                          className="bg-secondary-600 hover:bg-secondary-700 text-white text-sm px-4 py-2 rounded-lg disabled:opacity-50 disabled:cursor-not-allowed"
                         >
                           Book Now
                         </Button>

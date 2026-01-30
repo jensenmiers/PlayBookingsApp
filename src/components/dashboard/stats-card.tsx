@@ -28,12 +28,12 @@ export function StatsCard({
   return (
     <Card className={cn("bg-card text-card-foreground border-border/60 shadow-soft", className)}>
       <CardHeader className="flex items-start justify-between gap-4 p-0">
-        <CardTitle className="text-sm font-medium text-primary-600">{title}</CardTitle>
+        <CardTitle className="text-sm font-medium text-secondary-600">{title}</CardTitle>
         {formattedDelta && trendDirection && (
           <span
             className={cn(
               "inline-flex items-center gap-1 rounded-full px-2.5 py-1 text-xs font-semibold",
-              trendDirection === "up" && "bg-secondary-100 text-secondary-700",
+              trendDirection === "up" && "bg-primary-100 text-primary-700",
               trendDirection === "down" && "bg-accent-100 text-accent-700",
               trendDirection === "flat" && "bg-muted text-muted-foreground"
             )}
@@ -51,7 +51,7 @@ export function StatsCard({
       </CardHeader>
       <CardContent className="flex items-end justify-between gap-6 p-0">
         <div>
-          <p className="text-3xl font-semibold text-primary-800">{value}</p>
+          <p className="text-3xl font-semibold text-secondary-800">{value}</p>
           {subtext && <p className="mt-1 text-sm text-muted-foreground">{subtext}</p>}
         </div>
         <div className="h-20 w-28">

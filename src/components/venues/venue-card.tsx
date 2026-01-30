@@ -49,8 +49,8 @@ export function VenueCard({ venue, nextAvailable }: VenueCardProps) {
               sizes="(max-width: 768px) 33vw, 140px"
             />
           ) : (
-            <div className="w-full h-full bg-primary-100 flex items-center justify-center">
-              <span className="text-primary-400 text-xs">No Image</span>
+            <div className="w-full h-full bg-secondary-100 flex items-center justify-center">
+              <span className="text-secondary-400 text-xs">No Image</span>
             </div>
           )}
         </Link>
@@ -61,7 +61,7 @@ export function VenueCard({ venue, nextAvailable }: VenueCardProps) {
           <div className="flex justify-between items-start mb-1">
             <Link
               href={`/venue/${venueSlug}`}
-              className="font-bold text-primary-800 hover:text-primary-600 transition-colors cursor-pointer line-clamp-1"
+              className="font-bold text-secondary-800 hover:text-secondary-600 transition-colors cursor-pointer line-clamp-1"
             >
               {venue.name}
             </Link>
@@ -75,14 +75,14 @@ export function VenueCard({ venue, nextAvailable }: VenueCardProps) {
 
           {/* Description preview - truncated to 2 lines */}
           {descriptionPreview && (
-            <p className="text-primary-600 text-sm mb-2 line-clamp-2">
+            <p className="text-secondary-600 text-sm mb-2 line-clamp-2">
               {descriptionPreview}
             </p>
           )}
 
           {/* Location */}
-          <div className="flex items-center text-primary-600 text-sm mb-1">
-            <FontAwesomeIcon icon={faLocationDot} className="mr-2 text-primary-500" />
+          <div className="flex items-center text-secondary-600 text-sm mb-1">
+            <FontAwesomeIcon icon={faLocationDot} className="mr-2 text-secondary-500" />
             <span>
               {venue.city}, {venue.state}
             </span>
@@ -99,8 +99,8 @@ export function VenueCard({ venue, nextAvailable }: VenueCardProps) {
           )}
 
           {/* Hourly rate */}
-          <div className="flex items-center text-primary-600 text-sm mb-2">
-            <FontAwesomeIcon icon={faDollarSign} className="mr-2 text-primary-500" />
+          <div className="flex items-center text-secondary-600 text-sm mb-2">
+            <FontAwesomeIcon icon={faDollarSign} className="mr-2 text-secondary-500" />
             <span className="font-medium">${venue.hourly_rate}/hour</span>
           </div>
 
@@ -110,7 +110,7 @@ export function VenueCard({ venue, nextAvailable }: VenueCardProps) {
               {venue.amenities.slice(0, 4).map((amenity, idx) => (
                 <span
                   key={idx}
-                  className="bg-primary-100 text-primary-600 text-xs px-2 py-1 rounded-full"
+                  className="bg-secondary-100 text-secondary-600 text-xs px-2 py-1 rounded-full"
                 >
                   {amenity}
                 </span>
@@ -122,7 +122,7 @@ export function VenueCard({ venue, nextAvailable }: VenueCardProps) {
           <div className="flex gap-2 mt-auto">
             <Link
               href={`/venue/${venueSlug}`}
-              className="flex-1 bg-primary-600 hover:bg-primary-700 text-white font-medium py-2 text-sm rounded-xl transition duration-200 text-center"
+              className="flex-1 bg-secondary-600 hover:bg-secondary-700 text-white font-medium py-2 text-sm rounded-xl transition duration-200 text-center"
             >
               View Details & Book
             </Link>

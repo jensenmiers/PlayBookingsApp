@@ -57,34 +57,34 @@ export function TimeSlotConfirmationDialog({
         <div className="space-y-4 py-4">
           {/* Venue Info */}
           <div className="space-y-1">
-            <p className="text-sm font-semibold text-primary-800">Venue</p>
-            <p className="text-sm text-primary-600">{venue.name}</p>
-            <p className="text-xs text-primary-500">
+            <p className="text-sm font-semibold text-secondary-800">Venue</p>
+            <p className="text-sm text-secondary-600">{venue.name}</p>
+            <p className="text-xs text-secondary-500">
               {venue.city}, {venue.state}
             </p>
           </div>
 
           {/* Date & Time */}
           <div className="space-y-1">
-            <p className="text-sm font-semibold text-primary-800">Date & Time</p>
-            <p className="text-sm text-primary-600">
+            <p className="text-sm font-semibold text-secondary-800">Date & Time</p>
+            <p className="text-sm text-secondary-600">
               {format(date, 'EEEE, MMMM d, yyyy')}
             </p>
-            <p className="text-sm text-primary-600">
+            <p className="text-sm text-secondary-600">
               {formatTime(timeSlot.start)} - {formatTime(timeSlot.end)}
             </p>
           </div>
 
           {/* Pricing */}
           <div className="space-y-1">
-            <p className="text-sm font-semibold text-primary-800">Pricing</p>
+            <p className="text-sm font-semibold text-secondary-800">Pricing</p>
             <div className="flex justify-between items-center">
-              <span className="text-sm text-primary-600">Hourly Rate (1 hour)</span>
-              <span className="text-sm font-medium text-primary-800">${hourlyRate.toFixed(2)}</span>
+              <span className="text-sm text-secondary-600">Hourly Rate (1 hour)</span>
+              <span className="text-sm font-medium text-secondary-800">${hourlyRate.toFixed(2)}</span>
             </div>
-            <div className="flex justify-between items-center pt-2 border-t border-primary-200">
-              <span className="text-sm font-semibold text-primary-800">Estimated Total</span>
-              <span className="text-base font-bold text-primary-900">
+            <div className="flex justify-between items-center pt-2 border-t border-secondary-200">
+              <span className="text-sm font-semibold text-secondary-800">Estimated Total</span>
+              <span className="text-base font-bold text-secondary-900">
                 ${estimatedTotal.toFixed(2)}
               </span>
             </div>
@@ -115,7 +115,7 @@ export function TimeSlotConfirmationDialog({
               onConfirm()
               onOpenChange(false)
             }}
-            className="flex-1 bg-primary-600 hover:bg-primary-700 text-white"
+            className="flex-1 bg-secondary-600 hover:bg-secondary-700 text-white"
           >
             Confirm
           </Button>

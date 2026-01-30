@@ -27,12 +27,12 @@ export function VenueDetailPage({ slug }: VenueDetailPageProps) {
 
   if (loading) {
     return (
-      <div className="min-h-screen bg-gradient-to-br from-primary-50 via-primary-50/70 to-secondary-50">
+      <div className="min-h-screen bg-gradient-to-br from-secondary-50 via-secondary-50/70 to-primary-50">
         <Navigation />
         <div className="flex items-center justify-center min-h-[60vh]">
           <div className="text-center">
-            <FontAwesomeIcon icon={faSpinner} className="animate-spin text-primary-600 text-4xl mb-4" />
-            <p className="text-primary-600">Loading venue details...</p>
+            <FontAwesomeIcon icon={faSpinner} className="animate-spin text-secondary-600 text-4xl mb-4" />
+            <p className="text-secondary-600">Loading venue details...</p>
           </div>
         </div>
       </div>
@@ -41,14 +41,14 @@ export function VenueDetailPage({ slug }: VenueDetailPageProps) {
 
   if (error || !venue) {
     return (
-      <div className="min-h-screen bg-gradient-to-br from-primary-50 via-primary-50/70 to-secondary-50">
+      <div className="min-h-screen bg-gradient-to-br from-secondary-50 via-secondary-50/70 to-primary-50">
         <Navigation />
         <div className="px-4 py-8">
           <div className="max-w-4xl mx-auto">
             <Button
               onClick={() => router.back()}
               variant="ghost"
-              className="mb-6 text-primary-600 hover:text-primary-800"
+              className="mb-6 text-secondary-600 hover:text-secondary-800"
             >
               <FontAwesomeIcon icon={faArrowLeft} className="mr-2" />
               Back
@@ -66,7 +66,7 @@ export function VenueDetailPage({ slug }: VenueDetailPageProps) {
   const primaryPhoto = venue.photos && venue.photos.length > 0 ? venue.photos[0] : null
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-primary-50 via-primary-50/70 to-secondary-50">
+    <div className="min-h-screen bg-gradient-to-br from-secondary-50 via-secondary-50/70 to-primary-50">
       <Navigation />
 
       <div className="px-4 py-6 max-w-6xl mx-auto">
@@ -74,7 +74,7 @@ export function VenueDetailPage({ slug }: VenueDetailPageProps) {
         <Button
           onClick={() => router.back()}
           variant="ghost"
-          className="mb-6 text-primary-600 hover:text-primary-800"
+          className="mb-6 text-secondary-600 hover:text-secondary-800"
         >
           <FontAwesomeIcon icon={faArrowLeft} className="mr-2" />
           Back
@@ -95,42 +95,42 @@ export function VenueDetailPage({ slug }: VenueDetailPageProps) {
               />
             </div>
           ) : (
-            <div className="w-full h-64 md:h-96 bg-primary-100 flex items-center justify-center">
-              <span className="text-primary-400 text-lg">No Image Available</span>
+            <div className="w-full h-64 md:h-96 bg-secondary-100 flex items-center justify-center">
+              <span className="text-secondary-400 text-lg">No Image Available</span>
             </div>
           )}
 
           {/* Venue Info */}
           <div className="p-6">
-            <h1 className="text-3xl font-bold text-primary-800 mb-4">{venue.name}</h1>
+            <h1 className="text-3xl font-bold text-secondary-800 mb-4">{venue.name}</h1>
 
             <div className="space-y-3 mb-6">
               {/* Location */}
-              <div className="flex items-center text-primary-600">
-                <FontAwesomeIcon icon={faLocationDot} className="mr-3 text-primary-500" />
+              <div className="flex items-center text-secondary-600">
+                <FontAwesomeIcon icon={faLocationDot} className="mr-3 text-secondary-500" />
                 <span>
                   {venue.address}, {venue.city}, {venue.state} {venue.zip_code}
                 </span>
               </div>
 
               {/* Hourly Rate */}
-              <div className="flex items-center text-primary-600">
-                <FontAwesomeIcon icon={faDollarSign} className="mr-3 text-primary-500" />
-                <span className="font-semibold text-primary-800">${venue.hourly_rate}</span>
+              <div className="flex items-center text-secondary-600">
+                <FontAwesomeIcon icon={faDollarSign} className="mr-3 text-secondary-500" />
+                <span className="font-semibold text-secondary-800">${venue.hourly_rate}</span>
                 <span className="ml-1">per hour</span>
               </div>
 
               {/* Features */}
               <div className="flex flex-wrap gap-4 mt-4">
                 {venue.instant_booking && (
-                  <div className="flex items-center text-primary-600">
-                    <FontAwesomeIcon icon={faBolt} className="mr-2 text-primary-500" />
+                  <div className="flex items-center text-secondary-600">
+                    <FontAwesomeIcon icon={faBolt} className="mr-2 text-secondary-500" />
                     <span className="text-sm">Instant Booking</span>
                   </div>
                 )}
                 {venue.insurance_required && (
-                  <div className="flex items-center text-primary-600">
-                    <FontAwesomeIcon icon={faShield} className="mr-2 text-primary-500" />
+                  <div className="flex items-center text-secondary-600">
+                    <FontAwesomeIcon icon={faShield} className="mr-2 text-secondary-500" />
                     <span className="text-sm">Insurance Required</span>
                   </div>
                 )}
@@ -139,21 +139,21 @@ export function VenueDetailPage({ slug }: VenueDetailPageProps) {
 
             {/* Description */}
             {venue.description && (
-              <div className="border-t border-primary-100 pt-6">
-                <h2 className="text-lg font-semibold text-primary-800 mb-2">About</h2>
-                <p className="text-primary-700 leading-relaxed">{venue.description}</p>
+              <div className="border-t border-secondary-100 pt-6">
+                <h2 className="text-lg font-semibold text-secondary-800 mb-2">About</h2>
+                <p className="text-secondary-700 leading-relaxed">{venue.description}</p>
               </div>
             )}
 
             {/* Amenities */}
             {venue.amenities && venue.amenities.length > 0 && (
-              <div className="border-t border-primary-100 pt-6 mt-6">
-                <h2 className="text-lg font-semibold text-primary-800 mb-3">Amenities</h2>
+              <div className="border-t border-secondary-100 pt-6 mt-6">
+                <h2 className="text-lg font-semibold text-secondary-800 mb-3">Amenities</h2>
                 <div className="flex flex-wrap gap-2">
                   {venue.amenities.map((amenity, idx) => (
                     <span
                       key={idx}
-                      className="bg-primary-100 text-primary-700 text-sm px-3 py-1 rounded-full"
+                      className="bg-secondary-100 text-secondary-700 text-sm px-3 py-1 rounded-full"
                     >
                       {amenity}
                     </span>

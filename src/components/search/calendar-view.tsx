@@ -105,15 +105,15 @@ export function CalendarView() {
   }, [venues, selectedVenueId])
 
   return (
-    <div className="min-h-screen bg-primary-50">
+    <div className="min-h-screen bg-secondary-50">
       {/* Venue Selection & Location Bar */}
       <section className="px-4 pt-6 pb-4">
         <div className="space-y-4">
           <div>
-            <label className="text-sm font-medium text-primary-700 mb-2 block">Select Venue</label>
+            <label className="text-sm font-medium text-secondary-700 mb-2 block">Select Venue</label>
             {venuesLoading ? (
               <div className="flex items-center justify-center py-4">
-                <FontAwesomeIcon icon={faSpinner} className="animate-spin text-primary-600" />
+                <FontAwesomeIcon icon={faSpinner} className="animate-spin text-secondary-600" />
               </div>
             ) : (
               <select
@@ -131,8 +131,8 @@ export function CalendarView() {
             )}
           </div>
           {selectedVenueId && venues && (
-            <Button className="w-full bg-white rounded-full px-6 py-4 shadow-soft flex items-center justify-center space-x-3 hover:bg-primary-50 transition duration-200 text-primary-800 font-medium">
-              <FontAwesomeIcon icon={faLocationDot} className="text-primary-600" />
+            <Button className="w-full bg-white rounded-full px-6 py-4 shadow-soft flex items-center justify-center space-x-3 hover:bg-secondary-50 transition duration-200 text-secondary-800 font-medium">
+              <FontAwesomeIcon icon={faLocationDot} className="text-secondary-600" />
               <span>
                 {venues.find((v) => v.id === selectedVenueId)?.name || 'Current location'}
               </span>
@@ -144,23 +144,23 @@ export function CalendarView() {
       {/* Availability Grid */}
       <section className="px-4 pb-6">
         {!selectedVenueId ? (
-          <div className="bg-white rounded-2xl shadow-soft p-8 text-center text-primary-600">
+          <div className="bg-white rounded-2xl shadow-soft p-8 text-center text-secondary-600">
             Please select a venue to view availability
           </div>
         ) : (
           <div className="bg-white rounded-2xl shadow-soft overflow-hidden">
             {/* Grid Header */}
-            <div className="grid grid-cols-5 bg-primary-100">
-              <div className="p-4 border-r border-primary-200"></div>
+            <div className="grid grid-cols-5 bg-secondary-100">
+              <div className="p-4 border-r border-secondary-200"></div>
               {days.map((day) => (
                 <div
                   key={day.toISOString()}
-                  className="p-4 text-center border-r border-primary-200 last:border-r-0"
+                  className="p-4 text-center border-r border-secondary-200 last:border-r-0"
                 >
-                  <h3 className="font-bold text-primary-800 text-sm">
+                  <h3 className="font-bold text-secondary-800 text-sm">
                     {format(day, 'EEE')}
                   </h3>
-                  <p className="text-xs text-primary-600 mt-1">{format(day, 'MMM d')}</p>
+                  <p className="text-xs text-secondary-600 mt-1">{format(day, 'MMM d')}</p>
                 </div>
               ))}
             </div>
@@ -169,12 +169,12 @@ export function CalendarView() {
             {timeSlots.map((timeSlot) => (
               <div
                 key={timeSlot.label}
-                className="grid grid-cols-5 border-b border-primary-100 last:border-b-0"
+                className="grid grid-cols-5 border-b border-secondary-100 last:border-b-0"
                 style={{ minHeight: '80px' }}
               >
                 {/* Time Label */}
-                <div className="p-4 bg-primary-50 border-r border-primary-200 flex items-center">
-                  <span className="text-sm font-medium text-primary-700">{timeSlot.label}</span>
+                <div className="p-4 bg-secondary-50 border-r border-secondary-200 flex items-center">
+                  <span className="text-sm font-medium text-secondary-700">{timeSlot.label}</span>
                 </div>
 
                 {/* Day Cells */}
@@ -185,23 +185,23 @@ export function CalendarView() {
                   return (
                     <div
                       key={`${timeSlot.label}-${day.toISOString()}`}
-                      className={`p-3 border-r border-primary-100 last:border-r-0 ${
-                        hasAvailability ? '' : 'bg-gradient-to-br from-primary-50/50 to-primary-100/50'
+                      className={`p-3 border-r border-secondary-100 last:border-r-0 ${
+                        hasAvailability ? '' : 'bg-gradient-to-br from-secondary-50/50 to-secondary-100/50'
                       } ${isToday ? 'bg-blue-50/50' : ''}`}
                       style={!hasAvailability ? stripedBgStyle : undefined}
                     >
                       {hasAvailability ? (
                         <Button
                           onClick={() => handleAvailabilityClick(day, timeSlot)}
-                          className="w-full h-full bg-white rounded-xl shadow-soft hover:shadow-glass transition duration-200 flex items-center justify-center min-h-[50px] border-2 border-transparent hover:border-primary-300"
+                          className="w-full h-full bg-white rounded-xl shadow-soft hover:shadow-glass transition duration-200 flex items-center justify-center min-h-[50px] border-2 border-transparent hover:border-secondary-300"
                         >
-                          <span className="text-xs font-medium text-primary-700 text-center px-2">
+                          <span className="text-xs font-medium text-secondary-700 text-center px-2">
                             Available
                           </span>
                         </Button>
                       ) : (
                         <div className="w-full h-full min-h-[50px] flex items-center justify-center">
-                          <span className="text-xs text-primary-400">Unavailable</span>
+                          <span className="text-xs text-secondary-400">Unavailable</span>
                         </div>
                       )}
                     </div>

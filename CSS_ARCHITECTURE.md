@@ -59,13 +59,22 @@ Design tokens defined as CSS variables:
 
 ```css
 :root {
-  /* Palette shades */
-  --primary-50: oklch(0.966 0.007 67.744);
-  --primary-600: oklch(0.508 0.052 56.590);
+  /* Primary palette (Gatorade Green) */
+  --primary-500: oklch(0.44 0.130 160);  /* #00693F anchor */
+  --primary-600: oklch(0.38 0.115 160);
+  
+  /* Secondary palette (Warm Neutrals) */
+  --secondary-50: oklch(0.97 0.010 60);   /* warm cream */
+  --secondary-700: oklch(0.35 0.038 45);  /* warm asphalt */
+  
+  /* Accent palette (Gatorade Orange) */
+  --accent-500: oklch(0.65 0.230 33);     /* #fc4c03 anchor */
   
   /* Semantic tokens */
+  --background: var(--secondary-50);
+  --foreground: var(--secondary-900);
   --primary: var(--primary-500);
-  --primary-foreground: oklch(0.989 0.004 83.593);
+  --primary-foreground: var(--secondary-50);
 }
 ```
 
@@ -100,31 +109,55 @@ export function cn(...inputs) {
 
 ## Color System
 
+The color system is inspired by retro Gatorade branding mixed with traditional basketball aesthetics (leather, gym floors, asphalt).
+
+### Design Philosophy
+
+- **Energy**: Vibrant green and orange convey sports energy
+- **Sports Heritage**: Warm neutrals evoke basketball leather and gym floors
+- **Familiarity**: Classic sports brand colors create instant recognition
+
 ### Palettes
 
-| Palette | Hue | Usage |
-|---------|-----|-------|
-| Primary | Brown/Tan | Text, borders, backgrounds |
-| Secondary | Green/Teal | CTAs, accents, interactive elements |
-| Accent | Orange/Coral | Highlights, warnings |
+| Palette | Base Color | Hue (OKLCH) | Usage |
+|---------|------------|-------------|-------|
+| **Primary** | Gatorade Green (#00693F) | ~160° | CTAs, buttons, brand elements, links |
+| **Secondary** | Warm Neutrals | ~50-60° | Text, backgrounds, borders, surfaces |
+| **Accent** | Gatorade Orange (#fc4c03) | ~33° | Decorative highlights, badges, energy moments |
+
+### Reference Inspirations
+
+- **Primary (Green)**: Classic Gatorade bottle green
+- **Secondary (Neutrals)**: Maple gym floors (golden-tan), worn basketball leather (cognac), warm asphalt (charcoal)
+- **Accent (Orange)**: Retro Gatorade orange, high-energy "electric" feel
 
 ### Shade Scale
 
 Each palette has 10 shades (50-900):
 - 50-200: Light backgrounds, subtle elements
 - 300-400: Borders, disabled states
-- 500: Base color
+- 500: Base color (anchor point)
 - 600-700: Interactive states, hover
 - 800-900: Text, dark backgrounds
 
 ### Semantic Tokens
 
-| Token | Light Mode | Dark Mode |
-|-------|------------|-----------|
-| `--background` | primary-50 | primary-900 |
-| `--foreground` | primary-900 | near-white |
-| `--primary` | primary-500 | primary-300 |
-| `--primary-foreground` | near-white | primary-900 |
+| Token | Light Mode | Dark Mode | Purpose |
+|-------|------------|-----------|---------|
+| `--background` | secondary-50 | secondary-900 | Page background (warm cream) |
+| `--foreground` | secondary-900 | near-white | Primary text (warm charcoal) |
+| `--primary` | primary-500 | primary-400 | Brand color (Gatorade green) |
+| `--primary-foreground` | secondary-50 | secondary-900 | Text on green surfaces |
+| `--secondary` | secondary-500 | secondary-400 | Neutral accent (cognac) |
+| `--accent` | accent-500 | accent-400 | Highlight color (Gatorade orange) |
+| `--muted` | secondary-100 | secondary-700 | Subtle backgrounds |
+| `--border` | secondary-200 | secondary-800 | Borders and dividers |
+
+### Accessibility Notes
+
+- **Green (#00693F)**: ~5.5:1 contrast on white — passes WCAG AA for all text sizes
+- **Orange (#fc4c03)**: ~3.1:1 contrast on white — decorative only, not for text
+- **Body text**: Use secondary-700 or darker on secondary-50 for 4.5:1+ contrast
 
 ## Known Issues & Gotchas
 

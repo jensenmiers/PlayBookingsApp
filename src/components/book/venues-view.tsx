@@ -34,17 +34,17 @@ export function VenuesView() {
   const nearbyVenues = venues || []
 
   return (
-    <div className="min-h-screen bg-primary-50">
+    <div className="min-h-screen bg-secondary-50">
       {/* Search and Filter Section */}
       <section className="px-4 pt-6 pb-4">
         <div className="mb-4">
-          <h2 className="text-2xl font-bold text-primary-800 mb-2">Find a Court</h2>
-          <p className="text-primary-600">Discover nearby basketball courts for your next game</p>
+          <h2 className="text-2xl font-bold text-secondary-800 mb-2">Find a Court</h2>
+          <p className="text-secondary-600">Discover nearby basketball courts for your next game</p>
         </div>
 
         <div className="relative mb-4">
           <div className="absolute inset-y-0 left-0 pl-4 flex items-center pointer-events-none">
-            <FontAwesomeIcon icon={faSearch} className="text-primary-300" />
+            <FontAwesomeIcon icon={faSearch} className="text-secondary-300" />
           </div>
           <Input
             type="text"
@@ -55,22 +55,22 @@ export function VenuesView() {
 
         <div className="flex space-x-3 mb-6 overflow-x-auto pb-2">
           <div className="flex-shrink-0">
-            <Button className="flex items-center space-x-2 bg-white rounded-xl px-4 py-3 shadow-soft text-primary-700 hover:bg-primary-50">
-              <FontAwesomeIcon icon={faCalendarDays} className="text-primary-600" />
+            <Button className="flex items-center space-x-2 bg-white rounded-xl px-4 py-3 shadow-soft text-secondary-700 hover:bg-secondary-50">
+              <FontAwesomeIcon icon={faCalendarDays} className="text-secondary-600" />
               <span className="whitespace-nowrap">May 26, 2023</span>
               <FontAwesomeIcon icon={faChevronDown} className="text-xs ml-1" />
             </Button>
           </div>
           <div className="flex-shrink-0">
-            <Button className="flex items-center space-x-2 bg-white rounded-xl px-4 py-3 shadow-soft text-primary-700 hover:bg-primary-50">
-              <FontAwesomeIcon icon={faClock} className="text-primary-600" />
+            <Button className="flex items-center space-x-2 bg-white rounded-xl px-4 py-3 shadow-soft text-secondary-700 hover:bg-secondary-50">
+              <FontAwesomeIcon icon={faClock} className="text-secondary-600" />
               <span className="whitespace-nowrap">7:00 PM</span>
               <FontAwesomeIcon icon={faChevronDown} className="text-xs ml-1" />
             </Button>
           </div>
           <div className="flex-shrink-0">
-            <Button className="flex items-center space-x-2 bg-white rounded-xl px-4 py-3 shadow-soft text-primary-700 hover:bg-primary-50">
-              <FontAwesomeIcon icon={faSliders} className="text-primary-600" />
+            <Button className="flex items-center space-x-2 bg-white rounded-xl px-4 py-3 shadow-soft text-secondary-700 hover:bg-secondary-50">
+              <FontAwesomeIcon icon={faSliders} className="text-secondary-600" />
               <span className="whitespace-nowrap">Filters</span>
             </Button>
           </div>
@@ -80,8 +80,8 @@ export function VenuesView() {
       {/* Nearby Courts Section */}
       <section className="px-4 pb-6">
         <div className="flex items-center justify-between mb-4">
-          <h3 className="text-lg font-bold text-primary-800">Nearby Courts</h3>
-          <span className="text-secondary-600 font-medium text-sm cursor-pointer hover:text-secondary-700">
+          <h3 className="text-lg font-bold text-secondary-800">Nearby Courts</h3>
+          <span className="text-primary-600 font-medium text-sm cursor-pointer hover:text-primary-700">
             View Map
           </span>
         </div>
@@ -98,7 +98,7 @@ export function VenuesView() {
               <ErrorMessage error={error} title="Failed to load venues" />
               <Button
                 onClick={() => refetch()}
-                className="w-full bg-primary-600 hover:bg-primary-700 text-white font-medium py-3 rounded-xl transition duration-200"
+                className="w-full bg-secondary-600 hover:bg-secondary-700 text-white font-medium py-3 rounded-xl transition duration-200"
               >
                 Try Again
               </Button>
@@ -122,8 +122,8 @@ export function VenuesView() {
                           sizes="120px"
                         />
                       ) : (
-                        <div className="w-full h-full bg-primary-100 flex items-center justify-center">
-                          <span className="text-primary-400 text-xs">No Image</span>
+                        <div className="w-full h-full bg-secondary-100 flex items-center justify-center">
+                          <span className="text-secondary-400 text-xs">No Image</span>
                         </div>
                       )}
                     </Link>
@@ -131,17 +131,17 @@ export function VenuesView() {
                       <div className="flex justify-between items-start mb-1">
                         <Link
                           href={`/venue/${venueSlug}`}
-                          className="font-bold text-primary-800 hover:text-primary-600 transition-colors cursor-pointer"
+                          className="font-bold text-secondary-800 hover:text-secondary-600 transition-colors cursor-pointer"
                         >
                           {venue.name}
                         </Link>
                       </div>
-                      <div className="flex items-center text-primary-600 text-sm mb-1">
-                        <FontAwesomeIcon icon={faLocationDot} className="mr-2 text-primary-500" />
+                      <div className="flex items-center text-secondary-600 text-sm mb-1">
+                        <FontAwesomeIcon icon={faLocationDot} className="mr-2 text-secondary-500" />
                         <span>{venue.city}, {venue.state}</span>
                       </div>
-                      <div className="flex items-center text-primary-600 text-sm mb-2">
-                        <FontAwesomeIcon icon={faDollarSign} className="mr-2 text-primary-500" />
+                      <div className="flex items-center text-secondary-600 text-sm mb-2">
+                        <FontAwesomeIcon icon={faDollarSign} className="mr-2 text-secondary-500" />
                         <span>${venue.hourly_rate}/hour</span>
                       </div>
                       {venue.amenities && venue.amenities.length > 0 && (
@@ -149,7 +149,7 @@ export function VenuesView() {
                           {venue.amenities.slice(0, 3).map((amenity, idx) => (
                             <span
                               key={idx}
-                              className="bg-primary-100 text-primary-600 text-xs px-2 py-1 rounded-full"
+                              className="bg-secondary-100 text-secondary-600 text-xs px-2 py-1 rounded-full"
                             >
                               {amenity}
                             </span>
@@ -159,13 +159,13 @@ export function VenuesView() {
                       <div className="flex gap-2">
                         <Link
                           href={`/venue/${venueSlug}`}
-                          className="flex-1 bg-white border border-primary-300 text-primary-700 hover:bg-primary-50 font-medium py-2 text-sm rounded-xl transition duration-200 text-center"
+                          className="flex-1 bg-white border border-secondary-300 text-secondary-700 hover:bg-secondary-50 font-medium py-2 text-sm rounded-xl transition duration-200 text-center"
                         >
                           View Details
                         </Link>
                         <Button
                           onClick={() => handleBookNow(venue.id)}
-                          className="flex-1 bg-primary-600 hover:bg-primary-700 text-white font-medium py-2 text-sm rounded-xl transition duration-200"
+                          className="flex-1 bg-secondary-600 hover:bg-secondary-700 text-white font-medium py-2 text-sm rounded-xl transition duration-200"
                         >
                           Book Now
                         </Button>
@@ -176,13 +176,13 @@ export function VenuesView() {
               )
             })
           ) : (
-            <div className="text-center py-8 text-primary-600">
+            <div className="text-center py-8 text-secondary-600">
               No nearby venues available
             </div>
           )}
         </div>
 
-        <Button className="w-full mt-4 bg-white border border-primary-300 text-primary-700 font-medium py-3 rounded-xl hover:bg-primary-50 transition duration-200">
+        <Button className="w-full mt-4 bg-white border border-secondary-300 text-secondary-700 font-medium py-3 rounded-xl hover:bg-secondary-50 transition duration-200">
           Load More Courts
         </Button>
       </section>
@@ -190,14 +190,14 @@ export function VenuesView() {
       {/* Recently Viewed Section */}
       <section className="px-4 pb-20">
         <div className="flex items-center justify-between mb-4">
-          <h3 className="text-lg font-bold text-primary-800">Recently Viewed</h3>
-          <span className="text-secondary-600 font-medium text-sm cursor-pointer hover:text-secondary-700">
+          <h3 className="text-lg font-bold text-secondary-800">Recently Viewed</h3>
+          <span className="text-primary-600 font-medium text-sm cursor-pointer hover:text-primary-700">
             Clear All
           </span>
         </div>
 
         <div className="flex overflow-x-auto space-x-4 pb-4">
-          <div className="text-center py-8 text-primary-600 w-full">
+          <div className="text-center py-8 text-secondary-600 w-full">
             No recently viewed venues
           </div>
         </div>
