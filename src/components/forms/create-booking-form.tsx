@@ -25,6 +25,7 @@ function normalizeToLocalMidnight(d: Date): Date {
   return new Date(d.getFullYear(), d.getMonth(), d.getDate())
 }
 import { createBookingSchema, type CreateBookingInput } from '@/lib/validations/booking'
+import { formatTime } from '@/utils/dateHelpers'
 import { useCreateBooking, useCheckConflicts } from '@/hooks/useBookings'
 import { useVenues, useVenue } from '@/hooks/useVenues'
 import {
@@ -442,8 +443,8 @@ export function CreateBookingForm({
                     {selectedDate ? format(selectedDate, 'MMMM d, yyyy') : watchedDate}
                   </p>
                   <p>
-                    <span className="font-medium">Time:</span> {watchedStartTime.slice(0, 5)} -{' '}
-                    {watchedEndTime.slice(0, 5)}
+                    <span className="font-medium">Time:</span> {formatTime(watchedStartTime)} -{' '}
+                    {formatTime(watchedEndTime)}
                   </p>
                   <p>
                     <span className="font-medium">Rate:</span> ${venue.hourly_rate}/hour

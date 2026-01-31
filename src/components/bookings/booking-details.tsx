@@ -12,6 +12,7 @@ import { BookingActions } from './booking-actions'
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome'
 import { faSpinner, faCalendarDays, faClock, faDollarSign, faMapMarkerAlt } from '@fortawesome/free-solid-svg-icons'
 import { format } from 'date-fns'
+import { formatTime } from '@/utils/dateHelpers'
 import { cn } from '@/lib/utils'
 
 interface BookingDetailsProps {
@@ -51,8 +52,8 @@ export function BookingDetails({
   }
 
   const bookingDate = new Date(booking.date)
-  const startTime = booking.start_time.slice(0, 5)
-  const endTime = booking.end_time.slice(0, 5)
+  const startTime = formatTime(booking.start_time)
+  const endTime = formatTime(booking.end_time)
 
   return (
     <div className={cn('space-y-6', className)}>

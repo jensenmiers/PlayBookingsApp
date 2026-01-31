@@ -15,6 +15,7 @@ import { faSpinner, faFilter } from '@fortawesome/free-solid-svg-icons'
 import { cn } from '@/lib/utils'
 import type { BookingStatus } from '@/types'
 import type { ListBookingsQueryParams } from '@/types/api'
+import { formatTime } from '@/utils/dateHelpers'
 import Link from 'next/link'
 
 interface BookingListProps {
@@ -148,7 +149,7 @@ export function BookingList({ initialFilters, className }: BookingListProps) {
                 <div className="flex items-start justify-between mb-3">
                   <div>
                     <h3 className="font-semibold text-secondary-800">
-                      {booking.date} • {booking.start_time.slice(0, 5)} - {booking.end_time.slice(0, 5)}
+                      {booking.date} • {formatTime(booking.start_time)} - {formatTime(booking.end_time)}
                     </h3>
                     <p className="text-sm text-secondary-600 mt-1">Booking ID: {booking.id.slice(0, 8)}</p>
                   </div>

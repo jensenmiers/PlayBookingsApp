@@ -17,6 +17,7 @@ import { Button } from '@/components/ui/button'
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome'
 import { faCalendarDays, faClock, faDollarSign, faMapMarkerAlt } from '@fortawesome/free-solid-svg-icons'
 import { format } from 'date-fns'
+import { formatTime } from '@/utils/dateHelpers'
 import type { Venue, CreateBookingInput } from '@/types'
 
 interface BookingConfirmationDialogProps {
@@ -39,8 +40,8 @@ export function BookingConfirmationDialog({
   totalAmount,
 }: BookingConfirmationDialogProps) {
   const bookingDate = bookingData.date ? new Date(bookingData.date) : null
-  const startTime = bookingData.start_time?.slice(0, 5) || ''
-  const endTime = bookingData.end_time?.slice(0, 5) || ''
+  const startTime = bookingData.start_time ? formatTime(bookingData.start_time) : ''
+  const endTime = bookingData.end_time ? formatTime(bookingData.end_time) : ''
 
   // Calculate duration in hours
   const calculateDuration = () => {
