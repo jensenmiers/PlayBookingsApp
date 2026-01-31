@@ -22,6 +22,7 @@ import { AvailabilityCard } from '@/components/search/availability-card'
 import { VenueCardSkeleton } from '@/components/search/venue-card-skeleton'
 import { ErrorMessage } from '@/components/ui/error-message'
 import Link from 'next/link'
+import { slugify } from '@/lib/utils'
 
 type ViewMode = 'map' | 'list'
 
@@ -363,7 +364,7 @@ function MapVenueCard({
             )}
           </div>
           <Link
-            href={`/venue/${venue.name.toLowerCase().replace(/\s+/g, '-')}`}
+            href={`/venue/${slugify(venue.name)}`}
             className="text-sm font-medium text-secondary-600 hover:text-secondary-800"
             onClick={(e) => e.stopPropagation()}
           >
