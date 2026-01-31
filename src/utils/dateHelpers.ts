@@ -100,10 +100,19 @@ export function addMonths(date: Date | string, months: number): Date {
 }
 
 /**
- * Format time for display (HH:MM)
+ * Format time for display (12-hour, e.g. "2:00 PM")
+ * Accepts HH:MM or HH:MM:SS.
  */
 export function formatTime(time: string): string {
-  return time.substring(0, 5) // Ensure HH:MM format
+  const parts = time.split(':')
+  const hours = parseInt(parts[0], 10)
+  const minutes = parseInt(parts[1], 10) || 0
+  const date = new Date(2000, 0, 1, hours, minutes, 0, 0)
+  return date.toLocaleTimeString('en-US', {
+    hour: 'numeric',
+    minute: '2-digit',
+    hour12: true,
+  })
 }
 
 /**
