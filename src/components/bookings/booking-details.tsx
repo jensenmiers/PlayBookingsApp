@@ -74,7 +74,7 @@ export function BookingDetails({
             <span className="text-sm font-medium">Date</span>
           </div>
           <p className="text-lg font-semibold text-secondary-800">
-            {format(bookingDate, 'MMMM d, yyyy')}
+            {format(bookingDate, 'EEEE, MMMM d, yyyy')}
           </p>
         </div>
 
