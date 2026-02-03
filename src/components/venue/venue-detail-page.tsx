@@ -9,59 +9,18 @@ import {
   faShield,
   faBolt,
   faArrowLeft,
-  faSpinner,
 } from '@fortawesome/free-solid-svg-icons'
-import { useVenueBySlug } from '@/hooks/useVenues'
 import { AvailabilitySlotsList } from './availability-slots-list'
 import { Button } from '@/components/ui/button'
-import { ErrorMessage } from '@/components/ui/error-message'
 import { Navigation } from '@/components/layout/navigation'
+import type { Venue } from '@/types'
 
 interface VenueDetailPageProps {
-  slug: string
+  venue: Venue
 }
 
-export function VenueDetailPage({ slug }: VenueDetailPageProps) {
+export function VenueDetailPage({ venue }: VenueDetailPageProps) {
   const router = useRouter()
-  const { data: venue, loading, error } = useVenueBySlug(slug)
-
-  if (loading) {
-    return (
-      <div className="min-h-screen bg-gradient-to-br from-secondary-50 via-secondary-50/70 to-primary-50">
-        <Navigation />
-        <div className="flex items-center justify-center min-h-[60vh]">
-          <div className="text-center">
-            <FontAwesomeIcon icon={faSpinner} className="animate-spin text-secondary-600 text-4xl mb-4" />
-            <p className="text-secondary-600">Loading venue details...</p>
-          </div>
-        </div>
-      </div>
-    )
-  }
-
-  if (error || !venue) {
-    return (
-      <div className="min-h-screen bg-gradient-to-br from-secondary-50 via-secondary-50/70 to-primary-50">
-        <Navigation />
-        <div className="px-4 py-8">
-          <div className="max-w-4xl mx-auto">
-            <Button
-              onClick={() => router.back()}
-              variant="ghost"
-              className="mb-6 text-secondary-600 hover:text-secondary-800"
-            >
-              <FontAwesomeIcon icon={faArrowLeft} className="mr-2" />
-              Back
-            </Button>
-            <ErrorMessage
-              error={error || 'Venue not found'}
-              title="Unable to load venue"
-            />
-          </div>
-        </div>
-      </div>
-    )
-  }
 
   const primaryPhoto = venue.photos && venue.photos.length > 0 ? venue.photos[0] : null
 
