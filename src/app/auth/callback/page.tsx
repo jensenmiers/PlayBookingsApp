@@ -35,25 +35,20 @@ function AuthCallbackContent() {
 
     const handleAuthCallback = async () => {
       try {
-        // POPUP MODE: Exchange the code and close the popup
-        // The PKCE code_verifier is in localStorage which is shared between popup and main window
+        // POPUP MODE: Send code to parent window, let parent do the exchange
+        // The popup cannot access the PKCE code_verifier stored in the main window's localStorage
         if (isPopup && urlCode) {
-          // Try to exchange the code for a session
-          const { data: popupExchangeData, error: popupExchangeError } = await supabase.auth.exchangeCodeForSession(urlCode)
-
-          if (popupExchangeError) {
-            // Code exchange failed - send the code to the main window as a fallback
-            if (window.opener) {
-              window.opener.postMessage(
-                { type: 'AUTH_CODE', code: urlCode, returnTo: searchParams.get('returnTo'), intent: searchParams.get('intent') },
-                window.location.origin
-              )
-            }
+          // Send the auth code to the parent window for exchange
+          if (window.opener) {
+            window.opener.postMessage(
+              { type: 'AUTH_CODE', code: urlCode, returnTo: searchParams.get('returnTo'), intent: searchParams.get('intent') },
+              window.location.origin
+            )
           }
 
           setStatus('closing')
           
-          // Close the popup after a short delay to ensure exchange completes
+          // Close the popup after a short delay
           setTimeout(() => {
             try {
               window.close()

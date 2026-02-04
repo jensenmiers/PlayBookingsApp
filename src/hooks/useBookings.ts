@@ -6,7 +6,7 @@
 
 import { useState, useEffect, useCallback, useRef } from 'react'
 import { bookingApi } from '@/lib/api/bookings'
-import type { Booking } from '@/types'
+import type { Booking, BookingWithPaymentInfo } from '@/types'
 import type {
   CreateBookingRequest,
   UpdateBookingRequest,
@@ -125,20 +125,21 @@ export function useBooking(id: string | null) {
 
 /**
  * Mutation hook for creating bookings
+ * Returns BookingWithPaymentInfo which includes payment flow flags
  */
 export function useCreateBooking() {
-  const [state, setState] = useState<Omit<UseMutationState<Booking>, 'mutate' | 'reset'>>({
+  const [state, setState] = useState<Omit<UseMutationState<BookingWithPaymentInfo>, 'mutate' | 'reset'>>({
     data: null,
     loading: false,
     error: null,
   })
 
-  const mutate = useCallback(async (data: CreateBookingRequest): Promise<{ data: Booking | null; error: string | null }> => {
+  const mutate = useCallback(async (data: CreateBookingRequest): Promise<{ data: BookingWithPaymentInfo | null; error: string | null }> => {
     setState({ data: null, loading: true, error: null })
     try {
       const booking = await bookingApi.createBooking(data)
-      setState({ data: booking, loading: false, error: null })
-      return { data: booking, error: null }
+      setState({ data: booking as BookingWithPaymentInfo, loading: false, error: null })
+      return { data: booking as BookingWithPaymentInfo, error: null }
     } catch (error) {
       const message = error instanceof Error ? error.message : 'Failed to create booking'
       setState({ data: null, loading: false, error: message })
@@ -154,6 +155,52 @@ export function useCreateBooking() {
     ...state,
     mutate,
     reset,
+  }
+}
+
+/**
+ * Hook for initiating Stripe checkout for a booking
+ */
+export function usePaymentCheckout() {
+  const [state, setState] = useState<{
+    loading: boolean
+    error: string | null
+  }>({
+    loading: false,
+    error: null,
+  })
+
+  const initiateCheckout = useCallback(async (bookingId: string): Promise<{ url: string | null; error: string | null }> => {
+    setState({ loading: true, error: null })
+    try {
+      const response = await fetch('/api/payments/checkout', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({ booking_id: bookingId }),
+      })
+
+      const result = await response.json()
+
+      if (!response.ok) {
+        const message = result.message || 'Failed to initiate checkout'
+        setState({ loading: false, error: message })
+        return { url: null, error: message }
+      }
+
+      setState({ loading: false, error: null })
+      return { url: result.data.url, error: null }
+    } catch (error) {
+      const message = error instanceof Error ? error.message : 'Failed to initiate checkout'
+      setState({ loading: false, error: message })
+      return { url: null, error: message }
+    }
+  }, [])
+
+  return {
+    ...state,
+    initiateCheckout,
   }
 }
 

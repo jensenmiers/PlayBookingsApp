@@ -192,6 +192,21 @@ export interface InsuranceDocumentWithDetails extends InsuranceDocument {
   reviewer?: User
 }
 
+// Payment flow response types
+export interface BookingWithPaymentInfo extends Booking {
+  requiresImmediatePayment?: boolean
+  requiresPayment?: boolean
+  awaitingOwnerApproval?: boolean
+  awaitingInsuranceApproval?: boolean
+}
+
+export interface CancellationResult {
+  booking: Booking
+  refundIssued: boolean
+  refundAmount?: number
+  refundId?: string
+}
+
 // Form interfaces for creating/updating records
 export interface CreateVenueForm {
   name: string

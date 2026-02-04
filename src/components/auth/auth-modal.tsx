@@ -33,7 +33,8 @@ export function AuthModal() {
     return () => clearInterval(checkPopupClosed)
   }, [popupWindow])
 
-  // Listen for auth code from popup (fallback if popup can't do PKCE exchange)
+  // Listen for auth code from popup - parent window handles PKCE exchange
+  // (popup cannot access localStorage where code_verifier is stored)
   useEffect(() => {
     const handleMessage = async (event: MessageEvent) => {
       // Verify origin
@@ -43,10 +44,11 @@ export function AuthModal() {
         const supabase = createClient()
         const { error } = await supabase.auth.exchangeCodeForSession(event.data.code)
         
-        if (!error) {
-          // Success! Modal will auto-close via useCurrentUser hook
-          setLoading(false)
+        if (error) {
+          console.error('Code exchange failed:', error)
         }
+        // Always reset loading - modal auto-closes via useCurrentUser hook on success
+        setLoading(false)
       }
     }
 

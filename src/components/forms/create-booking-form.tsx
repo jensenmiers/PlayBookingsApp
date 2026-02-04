@@ -26,7 +26,7 @@ function normalizeToLocalMidnight(d: Date): Date {
 }
 import { createBookingSchema, type CreateBookingInput } from '@/lib/validations/booking'
 import { formatTime } from '@/utils/dateHelpers'
-import { useCreateBooking, useCheckConflicts } from '@/hooks/useBookings'
+import { useCreateBooking, useCheckConflicts, usePaymentCheckout } from '@/hooks/useBookings'
 import { useVenues, useVenue } from '@/hooks/useVenues'
 import {
   Form,
@@ -84,6 +84,7 @@ export function CreateBookingForm({
   const { data: selectedVenue } = useVenue(initialVenueId || null)
   const createBooking = useCreateBooking()
   const { check: checkConflicts, data: conflictData, loading: checkingConflicts } = useCheckConflicts()
+  const { initiateCheckout, loading: checkoutLoading } = usePaymentCheckout()
 
   // Format time to HH:MM:SS if needed
   const formatTimeForForm = (time?: string): string => {
@@ -179,6 +180,22 @@ export function CreateBookingForm({
 
     const result = await createBooking.mutate(data)
     if (result.data) {
+      // Check if immediate payment is required (instant booking without insurance)
+      if (result.data.requiresImmediatePayment) {
+        // Redirect to Stripe checkout
+        const checkoutResult = await initiateCheckout(result.data.id)
+        if (checkoutResult.url) {
+          window.location.href = checkoutResult.url
+          return
+        } else if (checkoutResult.error) {
+          form.setError('root', {
+            message: `Booking created but payment failed: ${checkoutResult.error}`,
+          })
+          return
+        }
+      }
+
+      // For non-immediate payment bookings, show success
       onSuccess?.(result.data.id)
       form.reset()
       setConflictChecked(false)
@@ -461,18 +478,23 @@ export function CreateBookingForm({
                   onCancel?.()
                   onOpenChange?.(false)
                 }}
-                disabled={createBooking.loading}
+                disabled={createBooking.loading || checkoutLoading}
               >
                 Cancel
               </Button>
               <Button
                 type="submit"
-                disabled={createBooking.loading || hasConflict || checkingConflicts}
+                disabled={createBooking.loading || checkoutLoading || hasConflict || checkingConflicts}
               >
                 {createBooking.loading ? (
                   <>
                     <FontAwesomeIcon icon={faSpinner} className="animate-spin mr-2" />
                     Creating...
+                  </>
+                ) : checkoutLoading ? (
+                  <>
+                    <FontAwesomeIcon icon={faSpinner} className="animate-spin mr-2" />
+                    Redirecting to payment...
                   </>
                 ) : (
                   'Create Booking'

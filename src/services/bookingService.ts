@@ -5,22 +5,25 @@
 import { BookingRepository } from '@/repositories/bookingRepository'
 import { AvailabilityRepository } from '@/repositories/availabilityRepository'
 import { AuditService } from './auditService'
+import { PaymentService } from './paymentService'
 import { checkBookingConflicts } from '@/utils/conflictDetection'
 import { calculateRecurringDates } from '@/utils/recurringGenerator'
-import { isWithinAdvanceWindow, isWithinCancellationWindow, calculateDuration } from '@/utils/dateHelpers'
+import { isWithinAdvanceWindow, getCancellationInfo, calculateDuration } from '@/utils/dateHelpers'
 import { conflict, badRequest, notFound } from '@/utils/errorHandling'
-import type { Booking, RecurringBooking, CreateBookingForm, BookingStatus } from '@/types'
+import type { Booking, RecurringBooking, CreateBookingForm, BookingStatus, BookingWithPaymentInfo, CancellationResult } from '@/types'
 import { createClient } from '@/lib/supabase/server'
 
 export class BookingService {
   private bookingRepo = new BookingRepository()
   private availabilityRepo = new AvailabilityRepository()
   private auditService = new AuditService()
+  private paymentService = new PaymentService()
 
   /**
    * Create a new booking with full validation
+   * Returns booking with payment flow flags
    */
-  async createBooking(data: CreateBookingForm, userId: string): Promise<Booking> {
+  async createBooking(data: CreateBookingForm, userId: string): Promise<BookingWithPaymentInfo> {
     const supabase = await createClient()
     // Get venue to check advance booking window and calculate amount
     const { data: venue, error: venueError } = await supabase
@@ -80,7 +83,17 @@ export class BookingService {
       await this.generateRecurringBookings(booking)
     }
 
-    return booking
+    // Determine payment flow flags based on venue settings
+    const requiresImmediatePayment = venue.instant_booking && !venue.insurance_required
+    const awaitingInsuranceApproval = venue.insurance_required && !booking.insurance_approved
+    const awaitingOwnerApproval = !venue.instant_booking
+
+    return {
+      ...booking,
+      requiresImmediatePayment,
+      awaitingOwnerApproval: awaitingOwnerApproval && !awaitingInsuranceApproval,
+      awaitingInsuranceApproval,
+    }
   }
 
   /**
@@ -148,9 +161,9 @@ export class BookingService {
   }
 
   /**
-   * Cancel booking with 48-hour policy validation
+   * Cancel booking with 48-hour policy and refund processing
    */
-  async cancelBooking(bookingId: string, userId: string): Promise<Booking> {
+  async cancelBooking(bookingId: string, userId: string): Promise<CancellationResult> {
     const supabase = await createClient()
     const booking = await this.bookingRepo.findById(bookingId)
 
@@ -158,7 +171,8 @@ export class BookingService {
       throw notFound('Booking not found')
     }
 
-    // Check authorization
+    // Check authorization and determine if owner-initiated
+    let isOwnerInitiated = false
     if (booking.renter_id !== userId) {
       // Check if user is venue owner or admin
       const { data: venue } = await supabase
@@ -176,11 +190,17 @@ export class BookingService {
       if (venue?.owner_id !== userId && !user?.is_admin) {
         throw badRequest('You do not have permission to cancel this booking')
       }
+      
+      // Owner or admin is cancelling
+      isOwnerInitiated = venue?.owner_id === userId
     }
 
-    // Check cancellation policy (48 hours)
-    if (!isWithinCancellationWindow(booking.date)) {
-      throw badRequest('Cancellations must be made at least 48 hours in advance')
+    // Get cancellation info
+    const cancellationInfo = getCancellationInfo(booking.date, booking.start_time)
+
+    // Renters can only cancel if booking hasn't started
+    if (!cancellationInfo.canCancel) {
+      throw badRequest('Cannot cancel a booking that has already started')
     }
 
     // Update booking status
@@ -196,13 +216,32 @@ export class BookingService {
       updated as unknown as Record<string, unknown>
     )
 
-    return updated
+    // Process refund if applicable
+    let refundResult: { refundId: string; amount: number } | null = null
+    
+    // Owner cancellation always gets full refund, renter only if within 48-hour window
+    const shouldRefund = isOwnerInitiated || cancellationInfo.eligibleForRefund
+    
+    if (shouldRefund) {
+      const refund = await this.paymentService.processRefund(bookingId, userId, isOwnerInitiated)
+      if (refund) {
+        refundResult = { refundId: refund.refundId, amount: refund.amount }
+      }
+    }
+
+    return {
+      booking: updated,
+      refundIssued: refundResult !== null,
+      refundAmount: refundResult?.amount,
+      refundId: refundResult?.refundId,
+    }
   }
 
   /**
-   * Confirm booking with insurance validation
+   * Approve booking (owner confirms) - triggers payment flow
+   * Note: Status becomes 'confirmed' only after payment succeeds via webhook
    */
-  async confirmBooking(bookingId: string, userId: string): Promise<Booking> {
+  async confirmBooking(bookingId: string, userId: string): Promise<BookingWithPaymentInfo> {
     const supabase = await createClient()
     const booking = await this.bookingRepo.findById(bookingId)
 
@@ -213,7 +252,7 @@ export class BookingService {
     // Check if user is venue owner or admin
     const { data: venue } = await supabase
       .from('venues')
-      .select('owner_id, insurance_required')
+      .select('owner_id, insurance_required, instant_booking')
       .eq('id', booking.venue_id)
       .single()
 
@@ -236,20 +275,40 @@ export class BookingService {
       throw badRequest('Insurance approval required before confirming booking')
     }
 
-    // Update booking status
-    const oldValues = { ...booking }
-    const updated = await this.bookingRepo.update(bookingId, { status: 'confirmed' })
+    // Check if payment already exists and is paid
+    const existingPayment = await this.paymentService.getPaymentByBookingId(bookingId)
+    if (existingPayment?.status === 'paid') {
+      // Payment already completed, update status to confirmed
+      const updated = await this.bookingRepo.update(bookingId, { status: 'confirmed' })
+      
+      await this.auditService.logUpdate(
+        'bookings',
+        bookingId,
+        userId,
+        booking as unknown as Record<string, unknown>,
+        updated as unknown as Record<string, unknown>
+      )
+      
+      return { ...updated, requiresPayment: false }
+    }
 
-    // Log audit
+    // For non-instant bookings that require owner approval,
+    // we don't change status yet - it stays pending until payment succeeds
+    // Just return the booking with requiresPayment flag
+    
+    // Log the approval action (but don't change status)
     await this.auditService.logUpdate(
       'bookings',
       bookingId,
       userId,
-      oldValues as unknown as Record<string, unknown>,
-      updated as unknown as Record<string, unknown>
+      { action: 'owner_approved' } as unknown as Record<string, unknown>,
+      { booking_id: bookingId, approved_by: userId } as unknown as Record<string, unknown>
     )
 
-    return updated
+    return {
+      ...booking,
+      requiresPayment: true,
+    }
   }
 
   /**

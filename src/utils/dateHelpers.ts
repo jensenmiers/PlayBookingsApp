@@ -48,6 +48,53 @@ export function isWithinCancellationWindow(
 }
 
 /**
+ * Get detailed cancellation info including refund eligibility
+ */
+export interface CancellationInfo {
+  canCancel: boolean
+  eligibleForRefund: boolean
+  hoursUntilBooking: number
+  refundDeadline: Date
+}
+
+export function getCancellationInfo(
+  bookingDate: Date | string,
+  bookingStartTime?: string,
+  hoursBefore: number = BUSINESS_RULES.CANCELLATION_NOTICE_HOURS
+): CancellationInfo {
+  let bookingDateTime: Date
+  
+  if (typeof bookingDate === 'string') {
+    bookingDateTime = new Date(bookingDate)
+  } else {
+    bookingDateTime = new Date(bookingDate)
+  }
+  
+  // If start time is provided, set the hours
+  if (bookingStartTime) {
+    const [hours, minutes] = bookingStartTime.split(':').map(Number)
+    bookingDateTime.setHours(hours, minutes || 0, 0, 0)
+  }
+  
+  const now = new Date()
+  const refundDeadline = new Date(bookingDateTime)
+  refundDeadline.setHours(refundDeadline.getHours() - hoursBefore)
+  
+  const hoursUntilBooking = (bookingDateTime.getTime() - now.getTime()) / (1000 * 60 * 60)
+  const eligibleForRefund = now < refundDeadline
+  
+  // Can always cancel if booking hasn't started yet
+  const canCancel = now < bookingDateTime
+  
+  return {
+    canCancel,
+    eligibleForRefund,
+    hoursUntilBooking,
+    refundDeadline,
+  }
+}
+
+/**
  * Format booking date for display
  */
 export function formatBookingDate(date: Date | string): string {
