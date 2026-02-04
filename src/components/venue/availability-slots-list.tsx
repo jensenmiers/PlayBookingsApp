@@ -11,7 +11,7 @@ function parseLocalDate(dateStr: string): Date {
   return new Date(year, month - 1, day) // month is 0-indexed
 }
 import { Button } from '@/components/ui/button'
-import { CreateBookingForm } from '@/components/forms/create-booking-form'
+import { SlotBookingConfirmation } from '@/components/booking/slot-booking-confirmation'
 import { useVenueAvailabilityRange } from '@/hooks/useVenues'
 import { formatTime, getNextTopOfHour } from '@/utils/dateHelpers'
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome'
@@ -181,13 +181,13 @@ export function AvailabilitySlotsList({ venue }: AvailabilitySlotsListProps) {
         </div>
       </div>
 
-      {/* Booking Form Dialog */}
+      {/* Booking Confirmation Dialog */}
       {showBookingForm && selectedSlot && (
-        <CreateBookingForm
-          venueId={venue.id}
-          initialDate={parseLocalDate(selectedSlot.date)}
-          initialStartTime={selectedSlot.start_time}
-          initialEndTime={selectedSlot.end_time}
+        <SlotBookingConfirmation
+          venue={venue}
+          date={selectedSlot.date}
+          startTime={selectedSlot.start_time}
+          endTime={selectedSlot.end_time}
           open={showBookingForm}
           onOpenChange={setShowBookingForm}
           onSuccess={handleBookingSuccess}
