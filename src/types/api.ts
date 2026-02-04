@@ -109,5 +109,22 @@ export interface ListBookingsQueryParams {
 
 export type ListBookingsResponse = PaginatedResponse<Booking>
 
+/**
+ * Venue availability API types
+ */
+export interface AvailableSlot {
+  date: string
+  start_time: string
+  end_time: string
+  venue_id: string
+  availability_id: string
+}
+
+export interface GetAvailabilityParams {
+  date_from: string
+  date_to: string
+}
+
+export type GetAvailabilityResponse = ApiResponse<AvailableSlot[]>
 
 

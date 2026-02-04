@@ -4,9 +4,7 @@ import React, { useState, useMemo } from 'react'
 import { Button } from '@/components/ui/button'
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome'
 import { faLocationDot, faSpinner } from '@fortawesome/free-solid-svg-icons'
-import { useVenues } from '@/hooks/useVenues'
-import { useVenueAvailabilityRange } from '@/hooks/useVenues'
-import { useBookings } from '@/hooks/useBookings'
+import { useVenues, useVenueAvailabilityRange, ComputedAvailabilitySlot } from '@/hooks/useVenues'
 import { CreateBookingForm } from '@/components/forms/create-booking-form'
 import { format, addDays, isSameDay } from 'date-fns'
 
@@ -50,41 +48,19 @@ export function CalendarView() {
     dateTo
   )
 
-  // Get bookings for the selected venue to check conflicts
-  const { data: bookings } = useBookings({
-    venue_id: selectedVenueId || undefined,
-    date_from: dateFrom,
-    date_to: dateTo,
-  })
-
-  // Check if a time slot is available
   const isSlotAvailable = (day: Date, timeSlot: typeof timeSlots[0]) => {
     if (!selectedVenueId) return false
 
     const dayStr = format(day, 'yyyy-MM-dd')
     
-    // Check if there's availability for this day and time
     const hasAvailability = availability?.some(
-      (avail) =>
+      (avail: ComputedAvailabilitySlot) =>
         avail.date === dayStr &&
         avail.start_time <= timeSlot.start &&
-        avail.end_time >= timeSlot.end &&
-        avail.is_available
+        avail.end_time >= timeSlot.end
     )
 
-    // Check if there's a conflicting booking
-    const hasConflict = bookings?.some((booking) => {
-      if (booking.date !== dayStr) return false
-      const bookingStart = booking.start_time
-      const bookingEnd = booking.end_time
-      // Check for overlap
-      return (
-        (bookingStart < timeSlot.end && bookingEnd > timeSlot.start) &&
-        booking.status !== 'cancelled'
-      )
-    })
-
-    return hasAvailability && !hasConflict
+    return hasAvailability ?? false
   }
 
   const handleAvailabilityClick = (day: Date, timeSlot: typeof timeSlots[0]) => {

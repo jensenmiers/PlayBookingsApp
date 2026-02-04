@@ -12,11 +12,11 @@ function parseLocalDate(dateStr: string): Date {
 }
 import { Button } from '@/components/ui/button'
 import { SlotBookingConfirmation } from '@/components/booking/slot-booking-confirmation'
-import { useVenueAvailabilityRange } from '@/hooks/useVenues'
+import { useVenueAvailabilityRange, ComputedAvailabilitySlot } from '@/hooks/useVenues'
 import { formatTime, getNextTopOfHour } from '@/utils/dateHelpers'
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome'
 import { faClock, faCalendarDays, faSpinner } from '@fortawesome/free-solid-svg-icons'
-import type { Venue, Availability } from '@/types'
+import type { Venue } from '@/types'
 
 interface AvailabilitySlotsListProps {
   venue: Venue
@@ -26,7 +26,7 @@ interface BookingSlot {
   date: string
   start_time: string
   end_time: string
-  availability: Availability
+  slot: ComputedAvailabilitySlot
 }
 
 export function AvailabilitySlotsList({ venue }: AvailabilitySlotsListProps) {
@@ -37,7 +37,7 @@ export function AvailabilitySlotsList({ venue }: AvailabilitySlotsListProps) {
   const dateFrom = format(today, 'yyyy-MM-dd')
   const dateTo = format(new Date(today.getTime() + 14 * 24 * 60 * 60 * 1000), 'yyyy-MM-dd')
 
-  const { data: availability, loading, error } = useVenueAvailabilityRange(
+  const { data: availability, loading, error, refetch } = useVenueAvailabilityRange(
     venue.id,
     dateFrom,
     dateTo
@@ -46,15 +46,15 @@ export function AvailabilitySlotsList({ venue }: AvailabilitySlotsListProps) {
   // Group availability by date and format for display
   const groupedSlots: Record<string, BookingSlot[]> = {}
   if (availability) {
-    availability.forEach((avail) => {
-      if (!groupedSlots[avail.date]) {
-        groupedSlots[avail.date] = []
+    availability.forEach((slot) => {
+      if (!groupedSlots[slot.date]) {
+        groupedSlots[slot.date] = []
       }
-      groupedSlots[avail.date].push({
-        date: avail.date,
-        start_time: avail.start_time,
-        end_time: avail.end_time,
-        availability: avail,
+      groupedSlots[slot.date].push({
+        date: slot.date,
+        start_time: slot.start_time,
+        end_time: slot.end_time,
+        slot: slot,
       })
     })
   }
@@ -86,6 +86,8 @@ export function AvailabilitySlotsList({ venue }: AvailabilitySlotsListProps) {
   const handleBookingSuccess = () => {
     setShowBookingForm(false)
     setSelectedSlot(null)
+    // Refetch availability to reflect the new booking
+    refetch()
   }
 
   if (loading) {

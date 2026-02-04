@@ -4,15 +4,11 @@ import React, { useState, useMemo } from 'react'
 import { Button } from '@/components/ui/button'
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome'
 import { faLocationDot, faSpinner } from '@fortawesome/free-solid-svg-icons'
-import { useVenues, useVenue } from '@/hooks/useVenues'
-import { useVenueAvailabilityRange } from '@/hooks/useVenues'
-import { useBookings } from '@/hooks/useBookings'
+import { useVenues, useVenue, useVenueAvailabilityRange, ComputedAvailabilitySlot } from '@/hooks/useVenues'
 import { TimeSlotGrid, type TimeSlot } from '@/components/book/time-slot-grid'
 import { TimeSlotConfirmationDialog } from '@/components/book/time-slot-confirmation-dialog'
 import { EmptyAvailabilityState } from '@/components/book/empty-availability-state'
 import { format, addDays, isToday } from 'date-fns'
-import { checkTimeOverlap } from '@/utils/conflictDetection'
-import type { Availability, Booking } from '@/types'
 
 function generateHourlySlots(): TimeSlot[] {
   const slots: TimeSlot[] = []
@@ -37,8 +33,7 @@ function generateHourlySlots(): TimeSlot[] {
 function isSlotAvailable(
   slot: TimeSlot,
   date: Date,
-  availability: Availability[] | null,
-  bookings: Booking[] | null
+  availability: ComputedAvailabilitySlot[] | null
 ): boolean {
   const dateStr = format(date, 'yyyy-MM-dd')
   
@@ -46,20 +41,10 @@ function isSlotAvailable(
     (avail) =>
       avail.date === dateStr &&
       avail.start_time <= slot.start &&
-      avail.end_time >= slot.end &&
-      avail.is_available
+      avail.end_time >= slot.end
   ) ?? false
 
   if (!hasAvailability) return false
-
-  const hasConflict = bookings?.some((booking) => {
-    if (booking.date !== dateStr) return false
-    if (booking.status !== 'pending' && booking.status !== 'confirmed') return false
-    
-    return checkTimeOverlap(slot.start, slot.end, booking.start_time, booking.end_time)
-  }) ?? false
-
-  if (hasConflict) return false
 
   if (isToday(date)) {
     const now = new Date()
@@ -94,21 +79,15 @@ export function CalendarView() {
     dateTo
   )
 
-  const { data: bookings } = useBookings({
-    venue_id: selectedVenueId || undefined,
-    date_from: dateFrom,
-    date_to: dateTo,
-  })
-
   const allSlots = useMemo(() => generateHourlySlots(), [])
 
   const availableSlots = useMemo(() => {
     if (!selectedVenueId || !selectedDate) return []
     
     return allSlots.filter((slot) =>
-      isSlotAvailable(slot, selectedDate, availability, bookings)
+      isSlotAvailable(slot, selectedDate, availability)
     )
-  }, [allSlots, selectedDate, availability, bookings, selectedVenueId])
+  }, [allSlots, selectedDate, availability, selectedVenueId])
 
   const handleTimeSlotSelect = (slot: TimeSlot) => {
     setSelectedTimeSlot(slot)

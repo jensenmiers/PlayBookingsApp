@@ -217,52 +217,84 @@ export function useVenueAvailability(venueId: string | null, date: string | null
 }
 
 /**
- * Fetch availability for a venue within a date range
+ * Computed available slot from the availability API
+ * This type matches what the API returns after filtering out booked slots
+ */
+export interface ComputedAvailabilitySlot {
+  date: string
+  start_time: string
+  end_time: string
+  venue_id: string
+  availability_id: string
+}
+
+/**
+ * Fetch true availability for a venue within a date range
+ * Uses the API route that filters out existing bookings
+ * Includes refetch-on-focus behavior for freshness
  */
 export function useVenueAvailabilityRange(
   venueId: string | null,
   dateFrom: string | null,
   dateTo: string | null
 ) {
-  const [state, setState] = useState<UseAsyncState<Availability[]>>({
+  const [state, setState] = useState<UseAsyncState<ComputedAvailabilitySlot[]>>({
     data: null,
     loading: true,
     error: null,
   })
 
-  useEffect(() => {
+  const fetchAvailabilityRange = useCallback(async () => {
     if (!venueId || !dateFrom || !dateTo) {
       setState({ data: null, loading: false, error: null })
       return
     }
 
-    const fetchAvailabilityRange = async () => {
-      setState((prev) => ({ ...prev, loading: true, error: null }))
-      try {
-        const supabase = createClient()
-        const { data, error } = await supabase
-          .from('availability')
-          .select('*')
-          .eq('venue_id', venueId)
-          .gte('date', dateFrom)
-          .lte('date', dateTo)
-          .eq('is_available', true)
-          .order('date', { ascending: true })
-          .order('start_time', { ascending: true })
+    setState((prev) => ({ ...prev, loading: true, error: null }))
+    try {
+      const params = new URLSearchParams({
+        date_from: dateFrom,
+        date_to: dateTo,
+      })
+      
+      const response = await fetch(`/api/venues/${venueId}/availability?${params}`)
+      const result = await response.json()
 
-        if (error) throw error
-        setState({ data: data || [], loading: false, error: null })
-      } catch (error) {
-        console.error('Availability range fetch error:', error)
-        const message = error instanceof Error ? error.message : 'Failed to fetch availability'
-        setState({ data: null, loading: false, error: message })
+      if (!response.ok || !result.success) {
+        throw new Error(result.error?.message || 'Failed to fetch availability')
+      }
+
+      setState({ data: result.data || [], loading: false, error: null })
+    } catch (error) {
+      console.error('Availability range fetch error:', error)
+      const message = error instanceof Error ? error.message : 'Failed to fetch availability'
+      setState({ data: null, loading: false, error: message })
+    }
+  }, [venueId, dateFrom, dateTo])
+
+  // Initial fetch
+  useEffect(() => {
+    fetchAvailabilityRange()
+  }, [fetchAvailabilityRange])
+
+  // Refetch on window focus (visibility change)
+  useEffect(() => {
+    const handleVisibilityChange = () => {
+      if (document.visibilityState === 'visible' && venueId && dateFrom && dateTo) {
+        fetchAvailabilityRange()
       }
     }
 
-    fetchAvailabilityRange()
-  }, [venueId, dateFrom, dateTo])
+    document.addEventListener('visibilitychange', handleVisibilityChange)
+    return () => {
+      document.removeEventListener('visibilitychange', handleVisibilityChange)
+    }
+  }, [fetchAvailabilityRange, venueId, dateFrom, dateTo])
 
-  return state
+  return {
+    ...state,
+    refetch: fetchAvailabilityRange,
+  }
 }
 
 /**
