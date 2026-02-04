@@ -12,6 +12,7 @@ import { Button } from '@/components/ui/button'
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome'
 import { faSpinner } from '@fortawesome/free-solid-svg-icons'
 import { useCreateBooking } from '@/hooks/useBookings'
+import { useCurrentUser } from '@/hooks/useCurrentUser'
 import { useAuthModal } from '@/contexts/AuthModalContext'
 import { formatTime } from '@/utils/dateHelpers'
 import type { Venue } from '@/types'
@@ -55,9 +56,15 @@ export function SlotBookingConfirmation({
   onSuccess,
 }: SlotBookingConfirmationProps) {
   const createBooking = useCreateBooking()
+  const { user } = useCurrentUser()
   const { openAuthModal } = useAuthModal()
 
   const handleConfirm = async () => {
+    if (!user) {
+      openAuthModal({ contextMessage: 'Sign in to complete your booking' })
+      return
+    }
+
     const result = await createBooking.mutate({
       venue_id: venue.id,
       date,
@@ -69,15 +76,6 @@ export function SlotBookingConfirmation({
     if (result.data) {
       onSuccess?.(result.data.id)
       onOpenChange(false)
-    } else if (result.error) {
-      const errorMessage = result.error.toLowerCase()
-      if (
-        errorMessage.includes('authentication required') ||
-        errorMessage.includes('unauthorized') ||
-        errorMessage.includes('sign in')
-      ) {
-        openAuthModal({ contextMessage: 'Sign in to complete your booking' })
-      }
     }
   }
 
