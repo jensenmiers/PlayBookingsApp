@@ -3,7 +3,7 @@
  */
 
 import { createClient } from '@/lib/supabase/server'
-import type { Booking, RecurringBooking, BookingStatus } from '@/types'
+import type { Booking, RecurringBooking, BookingStatus, BookingWithVenue } from '@/types'
 
 export class BookingRepository {
   /**
@@ -99,6 +99,51 @@ export class BookingRepository {
     }
 
     return (data || []) as Booking[]
+  }
+
+  /**
+   * Find bookings by renter with venue data
+   */
+  async findByRenterWithVenue(renterId: string, filters?: {
+    status?: BookingStatus
+    date_from?: string
+    date_to?: string
+  }): Promise<BookingWithVenue[]> {
+    const supabase = await createClient()
+    let query = supabase
+      .from('bookings')
+      .select(`
+        *,
+        venue:venues!bookings_venue_id_fkey (
+          id,
+          name,
+          instant_booking,
+          insurance_required
+        )
+      `)
+      .eq('renter_id', renterId)
+      .order('date', { ascending: false })
+      .order('start_time', { ascending: false })
+
+    if (filters?.status) {
+      query = query.eq('status', filters.status)
+    }
+
+    if (filters?.date_from) {
+      query = query.gte('date', filters.date_from)
+    }
+
+    if (filters?.date_to) {
+      query = query.lte('date', filters.date_to)
+    }
+
+    const { data, error } = await query
+
+    if (error) {
+      throw new Error(`Failed to fetch bookings with venue: ${error.message}`)
+    }
+
+    return (data || []) as BookingWithVenue[]
   }
 
   /**

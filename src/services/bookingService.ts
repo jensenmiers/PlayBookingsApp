@@ -10,7 +10,7 @@ import { checkBookingConflicts } from '@/utils/conflictDetection'
 import { calculateRecurringDates } from '@/utils/recurringGenerator'
 import { isWithinAdvanceWindow, getCancellationInfo, calculateDuration } from '@/utils/dateHelpers'
 import { conflict, badRequest, notFound } from '@/utils/errorHandling'
-import type { Booking, RecurringBooking, CreateBookingForm, BookingStatus, BookingWithPaymentInfo, CancellationResult } from '@/types'
+import type { Booking, RecurringBooking, CreateBookingForm, BookingStatus, BookingWithPaymentInfo, CancellationResult, BookingWithVenue } from '@/types'
 import { createClient } from '@/lib/supabase/server'
 
 export class BookingService {
@@ -413,7 +413,7 @@ export class BookingService {
       role_view?: 'renter' | 'host'
     },
     userId: string
-  ): Promise<Booking[]> {
+  ): Promise<Booking[] | BookingWithVenue[]> {
     const supabase = await createClient()
     const { data: user } = await supabase
       .from('users')
@@ -424,7 +424,7 @@ export class BookingService {
     // If role_view is explicitly set, use it
     if (filters.role_view === 'renter') {
       // Return bookings made BY this user (renter view)
-      return this.bookingRepo.findByRenter(userId, {
+      return this.bookingRepo.findByRenterWithVenue(userId, {
         status: filters.status,
         date_from: filters.date_from,
         date_to: filters.date_to,
@@ -467,7 +467,7 @@ export class BookingService {
 
     // Renters see their own bookings
     if (user?.is_renter) {
-      return this.bookingRepo.findByRenter(userId, {
+      return this.bookingRepo.findByRenterWithVenue(userId, {
         status: filters.status,
         date_from: filters.date_from,
         date_to: filters.date_to,

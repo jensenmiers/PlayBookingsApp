@@ -1,19 +1,19 @@
 /**
  * Booking List Component
- * List of bookings with filters and pagination
  */
 
 'use client'
 
-import { useState } from 'react'
-import { useBookings } from '@/hooks/useBookings'
+import { useState, useCallback } from 'react'
+import { useBookings, useCancelBooking } from '@/hooks/useBookings'
 import { BookingStatusBadge } from './booking-status-badge'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
+import { PaymentModal } from '@/components/payments/payment-modal'
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome'
-import { faSpinner, faFilter } from '@fortawesome/free-solid-svg-icons'
+import { faSpinner, faFilter, faCreditCard, faXmark, faEye } from '@fortawesome/free-solid-svg-icons'
 import { cn } from '@/lib/utils'
-import type { BookingStatus } from '@/types'
+import type { BookingWithVenue } from '@/types'
 import type { ListBookingsQueryParams } from '@/types/api'
 import { formatTime } from '@/utils/dateHelpers'
 import { format } from 'date-fns'
@@ -35,8 +35,44 @@ export function BookingList({ initialFilters, className }: BookingListProps) {
     role_view: initialFilters?.role_view,
   })
   const [showFilters, setShowFilters] = useState(false)
+  const [paymentModalOpen, setPaymentModalOpen] = useState(false)
+  const [selectedBooking, setSelectedBooking] = useState<BookingWithVenue | null>(null)
+  const [cancellingId, setCancellingId] = useState<string | null>(null)
 
   const { data: bookings, loading, error, refetch } = useBookings(filters)
+  const { mutate: cancelBooking, loading: cancelLoading } = useCancelBooking()
+
+  const handlePayNow = useCallback((booking: BookingWithVenue) => {
+    setSelectedBooking(booking)
+    setPaymentModalOpen(true)
+  }, [])
+
+  const handlePaymentSuccess = useCallback(() => {
+    setPaymentModalOpen(false)
+    setSelectedBooking(null)
+    refetch()
+  }, [refetch])
+
+  const handleCancel = useCallback(async (bookingId: string) => {
+    setCancellingId(bookingId)
+    await cancelBooking(bookingId)
+    setCancellingId(null)
+    refetch()
+  }, [cancelBooking, refetch])
+
+  const canPay = (booking: BookingWithVenue): boolean => {
+    if (booking.status === 'cancelled' || booking.status === 'completed') {
+      return false
+    }
+    if (booking.venue?.insurance_required && !booking.insurance_approved) {
+      return false
+    }
+    return booking.status === 'pending'
+  }
+
+  const canCancel = (booking: BookingWithVenue): boolean => {
+    return booking.status === 'pending' || booking.status === 'confirmed'
+  }
 
   const handleFilterChange = (key: keyof ListBookingsQueryParams, value: string | undefined) => {
     setFilters((prev) => ({
@@ -140,34 +176,78 @@ export function BookingList({ initialFilters, className }: BookingListProps) {
         </div>
       ) : (
         <div className="space-y-3">
-          {bookings.map((booking) => (
-            <Link
-              key={booking.id}
-              href={`/my-bookings/${booking.id}`}
-              className="block"
-            >
-              <div className="rounded-lg border border-border bg-white p-4 hover:shadow-md transition-shadow">
+          {bookings.map((booking) => {
+            const bookingWithVenue = booking as BookingWithVenue
+            const venueName = bookingWithVenue.venue?.name || 'Unknown Venue'
+            
+            return (
+              <div
+                key={booking.id}
+                className="rounded-lg border border-border bg-white p-4 hover:shadow-md transition-shadow"
+              >
                 <div className="flex items-start justify-between mb-3">
                   <div>
                     <h3 className="font-semibold text-secondary-800">
-                      {format(new Date(booking.date), 'EEE, MMM d, yyyy')} • {formatTime(booking.start_time)} - {formatTime(booking.end_time)}
+                      {venueName}
                     </h3>
-                    <p className="text-sm text-secondary-600 mt-1">Booking ID: {booking.id.slice(0, 8)}</p>
+                    <p className="text-sm text-secondary-600 mt-1">
+                      {format(new Date(booking.date), 'EEE, MMM d, yyyy')} • {formatTime(booking.start_time)} - {formatTime(booking.end_time)}
+                    </p>
                   </div>
                   <BookingStatusBadge status={booking.status} />
                 </div>
                 <div className="flex items-center justify-between">
-                  <p className="text-sm text-secondary-600">Total: ${booking.total_amount.toFixed(2)}</p>
-                  {booking.notes && (
-                    <p className="text-sm text-secondary-600 truncate max-w-xs">
-                      {booking.notes}
-                    </p>
-                  )}
+                  <p className="text-lg font-medium text-secondary-800">${booking.total_amount.toFixed(2)}</p>
+                  <div className="flex items-center gap-2">
+                    {canPay(bookingWithVenue) && (
+                      <Button
+                        size="sm"
+                        variant="default"
+                        onClick={() => handlePayNow(bookingWithVenue)}
+                      >
+                        <FontAwesomeIcon icon={faCreditCard} className="mr-2 h-3 w-3" />
+                        Pay Now
+                      </Button>
+                    )}
+                    {canCancel(bookingWithVenue) && (
+                      <Button
+                        size="sm"
+                        variant="outline"
+                        onClick={() => handleCancel(booking.id)}
+                        disabled={cancelLoading && cancellingId === booking.id}
+                      >
+                        {cancelLoading && cancellingId === booking.id ? (
+                          <FontAwesomeIcon icon={faSpinner} className="mr-2 h-3 w-3 animate-spin" />
+                        ) : (
+                          <FontAwesomeIcon icon={faXmark} className="mr-2 h-3 w-3" />
+                        )}
+                        Cancel
+                      </Button>
+                    )}
+                    <Link href={`/my-bookings/${booking.id}`}>
+                      <Button size="sm" variant="ghost">
+                        <FontAwesomeIcon icon={faEye} className="mr-2 h-3 w-3" />
+                        View
+                      </Button>
+                    </Link>
+                  </div>
                 </div>
               </div>
-            </Link>
-          ))}
+            )
+          })}
         </div>
+      )}
+
+      {/* Payment Modal */}
+      {selectedBooking && (
+        <PaymentModal
+          bookingId={selectedBooking.id}
+          amount={selectedBooking.total_amount}
+          venueName={selectedBooking.venue?.name || 'Venue'}
+          open={paymentModalOpen}
+          onOpenChange={setPaymentModalOpen}
+          onSuccess={handlePaymentSuccess}
+        />
       )}
 
       {/* Pagination */}

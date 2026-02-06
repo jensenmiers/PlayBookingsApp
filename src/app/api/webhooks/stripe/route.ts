@@ -67,6 +67,14 @@ export async function POST(request: NextRequest) {
         break
       }
 
+      case 'payment_intent.succeeded': {
+        const paymentIntent = event.data.object as Stripe.PaymentIntent
+        console.log(`Processing payment_intent.succeeded: ${paymentIntent.id}`)
+        await paymentService.processPaymentSuccess(paymentIntent.id)
+        console.log(`Payment processed successfully for intent ${paymentIntent.id}`)
+        break
+      }
+
       case 'payment_intent.payment_failed': {
         const paymentIntent = event.data.object as Stripe.PaymentIntent
         console.log(`Payment failed for intent: ${paymentIntent.id}`)

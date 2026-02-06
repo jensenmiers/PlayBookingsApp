@@ -21,6 +21,12 @@ export interface RefundResult {
   status: string
 }
 
+export interface PaymentIntentResult {
+  clientSecret: string
+  paymentId: string
+  amount: number
+}
+
 export class PaymentService {
   private paymentRepo = new PaymentRepository()
   private bookingRepo = new BookingRepository()
@@ -173,17 +179,117 @@ export class PaymentService {
   }
 
   /**
+   * Create a Stripe PaymentIntent for embedded payment flow
+   */
+  async createPaymentIntent(
+    bookingId: string,
+    userId: string
+  ): Promise<PaymentIntentResult> {
+    const supabase = await createClient()
+
+    // Fetch booking
+    const booking = await this.bookingRepo.findById(bookingId)
+    if (!booking) {
+      throw notFound('Booking not found')
+    }
+
+    // Verify user owns the booking
+    if (booking.renter_id !== userId) {
+      throw badRequest('You do not have permission to pay for this booking')
+    }
+
+    // Check booking status
+    if (booking.status === 'cancelled') {
+      throw badRequest('Cannot pay for a cancelled booking')
+    }
+
+    if (booking.status === 'completed') {
+      throw badRequest('This booking is already completed')
+    }
+
+    // Check if already paid
+    const existingPayment = await this.paymentRepo.findByBookingId(bookingId)
+    if (existingPayment?.status === 'paid') {
+      throw badRequest('This booking has already been paid')
+    }
+
+    // Fetch venue
+    const { data: venue, error: venueError } = await supabase
+      .from('venues')
+      .select('*')
+      .eq('id', booking.venue_id)
+      .single()
+
+    if (venueError || !venue) {
+      throw notFound('Venue not found')
+    }
+
+    // Check if booking is ready for payment
+    if (!this.isBookingReadyForPayment(booking, venue)) {
+      if (venue.insurance_required && !booking.insurance_approved) {
+        throw badRequest('Insurance must be approved before payment')
+      }
+      throw badRequest('Booking is not ready for payment')
+    }
+
+    // Calculate amounts (0% platform fee for MVP)
+    const amount = booking.total_amount
+    const platformFee = 0
+    const venueOwnerAmount = amount
+
+    // Create Stripe PaymentIntent
+    const paymentIntent = await stripe.paymentIntents.create({
+      amount: Math.round(amount * 100), // Convert to cents
+      currency: 'usd',
+      automatic_payment_methods: {
+        enabled: true,
+      },
+      metadata: {
+        booking_id: bookingId,
+        venue_id: booking.venue_id,
+        renter_id: userId,
+      },
+    })
+
+    // Create or update payment record
+    let payment: Payment
+    if (existingPayment) {
+      payment = await this.paymentRepo.update(existingPayment.id, {
+        stripe_payment_intent_id: paymentIntent.id,
+        status: 'pending',
+      })
+    } else {
+      payment = await this.paymentRepo.create({
+        booking_id: bookingId,
+        renter_id: userId,
+        venue_id: booking.venue_id,
+        amount,
+        platform_fee: platformFee,
+        venue_owner_amount: venueOwnerAmount,
+        stripe_payment_intent_id: paymentIntent.id,
+        status: 'pending',
+      })
+    }
+
+    return {
+      clientSecret: paymentIntent.client_secret!,
+      paymentId: payment.id,
+      amount,
+    }
+  }
+
+  /**
    * Process successful payment (called from webhook)
    */
   async processPaymentSuccess(
     paymentIntentId: string,
-    checkoutSessionId: string
+    checkoutSessionId?: string
   ): Promise<{ payment: Payment; booking: Booking }> {
     // Find payment by payment intent ID
     let payment = await this.paymentRepo.findByStripePaymentIntentId(paymentIntentId)
 
     // If not found by payment intent, try to get from checkout session metadata
-    if (!payment) {
+    if (!payment && checkoutSessionId) {
       const session = await stripe.checkout.sessions.retrieve(checkoutSessionId)
       const bookingId = session.metadata?.booking_id
       if (bookingId) {
@@ -231,13 +337,8 @@ export class PaymentService {
       return null
     }
 
-    // Can only refund paid payments
+    // Can only refund paid payments (not pending, failed, or already refunded)
     if (payment.status !== 'paid') {
-      return null
-    }
-
-    // Check if already refunded
-    if (payment.status === 'refunded') {
       return null
     }
 

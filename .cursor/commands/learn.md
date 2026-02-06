@@ -26,3 +26,7 @@ Review my chat threads/conversations, git commits, file changes, and work from t
 Write in a style that makes it easy for an AI agent to quickly parse and apply these learnings when working on future tasks in this codebase.
 
 Keep entries concise but actionable - these learnings should compound over time to make the AI agent more effective at helping me build PlayBookings.
+
+---
+
+This approach lets us build institutional knowledge directly into the project so Cursor/Claude can reference, making the AI progressively better at understanding this specific codebase and decisions.

@@ -26,7 +26,8 @@ function normalizeToLocalMidnight(d: Date): Date {
 }
 import { createBookingSchema, type CreateBookingInput } from '@/lib/validations/booking'
 import { formatTime } from '@/utils/dateHelpers'
-import { useCreateBooking, useCheckConflicts, usePaymentCheckout } from '@/hooks/useBookings'
+import { useCreateBooking, useCheckConflicts } from '@/hooks/useBookings'
+import { PaymentModal } from '@/components/payments/payment-modal'
 import { useVenues, useVenue } from '@/hooks/useVenues'
 import {
   Form,
@@ -84,7 +85,10 @@ export function CreateBookingForm({
   const { data: selectedVenue } = useVenue(initialVenueId || null)
   const createBooking = useCreateBooking()
   const { check: checkConflicts, data: conflictData, loading: checkingConflicts } = useCheckConflicts()
-  const { initiateCheckout, loading: checkoutLoading } = usePaymentCheckout()
+  
+  const [paymentModalOpen, setPaymentModalOpen] = useState(false)
+  const [pendingBookingId, setPendingBookingId] = useState<string | null>(null)
+  const [pendingBookingAmount, setPendingBookingAmount] = useState<number>(0)
 
   // Format time to HH:MM:SS if needed
   const formatTimeForForm = (time?: string): string => {
@@ -180,28 +184,18 @@ export function CreateBookingForm({
 
     const result = await createBooking.mutate(data)
     if (result.data) {
-      // Check if immediate payment is required (instant booking without insurance)
       if (result.data.requiresImmediatePayment) {
-        // Redirect to Stripe checkout
-        const checkoutResult = await initiateCheckout(result.data.id)
-        if (checkoutResult.url) {
-          window.location.href = checkoutResult.url
-          return
-        } else if (checkoutResult.error) {
-          form.setError('root', {
-            message: `Booking created but payment failed: ${checkoutResult.error}`,
-          })
-          return
-        }
+        setPendingBookingId(result.data.id)
+        setPendingBookingAmount(result.data.total_amount)
+        setPaymentModalOpen(true)
+        return
       }
 
-      // For non-immediate payment bookings, show success
       onSuccess?.(result.data.id)
       form.reset()
       setConflictChecked(false)
       onOpenChange?.(false)
     } else if (result.error) {
-      // Check if error is authentication-related
       const errorMessage = result.error.toLowerCase()
       if (
         errorMessage.includes('authentication required') ||
@@ -219,6 +213,32 @@ export function CreateBookingForm({
 
   const hasConflict = conflictData?.hasConflict || false
   const venue = venues?.find((v) => v.id === watchedVenueId) || selectedVenue
+
+  const handlePaymentSuccess = () => {
+    setPaymentModalOpen(false)
+    setPendingBookingId(null)
+    setPendingBookingAmount(0)
+    if (pendingBookingId) {
+      onSuccess?.(pendingBookingId)
+    }
+    form.reset()
+    setConflictChecked(false)
+    onOpenChange?.(false)
+  }
+
+  const handlePaymentModalChange = (open: boolean) => {
+    setPaymentModalOpen(open)
+    if (!open) {
+      if (pendingBookingId) {
+        onSuccess?.(pendingBookingId)
+      }
+      setPendingBookingId(null)
+      setPendingBookingAmount(0)
+      form.reset()
+      setConflictChecked(false)
+      onOpenChange?.(false)
+    }
+  }
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
@@ -478,23 +498,18 @@ export function CreateBookingForm({
                   onCancel?.()
                   onOpenChange?.(false)
                 }}
-                disabled={createBooking.loading || checkoutLoading}
+                disabled={createBooking.loading}
               >
                 Cancel
               </Button>
               <Button
                 type="submit"
-                disabled={createBooking.loading || checkoutLoading || hasConflict || checkingConflicts}
+                disabled={createBooking.loading || hasConflict || checkingConflicts}
               >
                 {createBooking.loading ? (
                   <>
                     <FontAwesomeIcon icon={faSpinner} className="animate-spin mr-2" />
                     Creating...
-                  </>
-                ) : checkoutLoading ? (
-                  <>
-                    <FontAwesomeIcon icon={faSpinner} className="animate-spin mr-2" />
-                    Redirecting to payment...
                   </>
                 ) : (
                   'Create Booking'
@@ -504,6 +519,17 @@ export function CreateBookingForm({
           </form>
         </Form>
       </DialogContent>
+
+      {pendingBookingId && venue && (
+        <PaymentModal
+          bookingId={pendingBookingId}
+          amount={pendingBookingAmount}
+          venueName={venue.name}
+          open={paymentModalOpen}
+          onOpenChange={handlePaymentModalChange}
+          onSuccess={handlePaymentSuccess}
+        />
+      )}
     </Dialog>
   )
 }

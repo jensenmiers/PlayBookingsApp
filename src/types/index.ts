@@ -192,6 +192,15 @@ export interface InsuranceDocumentWithDetails extends InsuranceDocument {
   reviewer?: User
 }
 
+export interface BookingWithVenue extends Booking {
+  venue: {
+    id: string
+    name: string
+    instant_booking: boolean
+    insurance_required: boolean
+  }
+}
+
 // Payment flow response types
 export interface BookingWithPaymentInfo extends Booking {
   requiresImmediatePayment?: boolean

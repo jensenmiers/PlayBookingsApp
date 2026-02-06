@@ -77,12 +77,14 @@ export async function DELETE(request: NextRequest, context: RouteContext) {
 
     const bookingService = new BookingService()
     // Soft delete by cancelling
-    const booking = await bookingService.cancelBooking(id, auth.userId)
+    const result = await bookingService.cancelBooking(id, auth.userId)
 
     const response: ApiResponse<Booking> = {
       success: true,
-      data: booking,
-      message: 'Booking cancelled successfully',
+      data: result.booking,
+      message: result.refundIssued 
+        ? `Booking cancelled successfully. Refund of $${result.refundAmount?.toFixed(2)} issued.`
+        : 'Booking cancelled successfully',
     }
 
     return Response.json(response)

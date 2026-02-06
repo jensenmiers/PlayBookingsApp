@@ -9,6 +9,16 @@ jest.mock('@/repositories/bookingRepository')
 jest.mock('@/repositories/availabilityRepository')
 jest.mock('../auditService')
 jest.mock('../paymentService')
+jest.mock('@/utils/conflictDetection', () => ({
+  checkBookingConflicts: jest.fn().mockReturnValue({ hasConflict: false }),
+}))
+jest.mock('@/lib/stripe', () => ({
+  stripe: {
+    paymentIntents: { create: jest.fn() },
+    checkout: { sessions: { create: jest.fn(), retrieve: jest.fn() } },
+    refunds: { create: jest.fn() },
+  },
+}))
 jest.mock('@/lib/supabase/server', () => ({
   createClient: jest.fn(),
 }))
