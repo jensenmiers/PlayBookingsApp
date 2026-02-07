@@ -137,6 +137,7 @@ export function useCurrentUser() {
       mounted = false
       subscription.unsubscribe()
     }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [])
 
   return state
