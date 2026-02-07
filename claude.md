@@ -101,3 +101,62 @@ Strong success criteria let you loop independently. Weak criteria ("make it work
 - Services: `src/services/availabilityService.ts` — server-side with Supabase client
 - Utils: `src/utils/slotSplitting.ts` — pure functions for time range manipulation
 - Hooks: `src/hooks/useVenues.ts` exports `useVenueAvailabilityRange` with refetch-on-focus
+
+### 2026-02-05 — Debug Instrumentation for Auth/Session Flow
+
+**Context:** Debugging auth/session behavior (e.g. middleware vs client session, loading states) by adding structured logs to middleware, `useCurrentUser`, and Navigation.
+
+**Key Learnings:**
+
+1. **Structured debug logging pattern**
+   - Use a local ingest endpoint (e.g. `http://127.0.0.1:7242/ingest/<id>`) with POST + JSON body: `{ location, message, data, timestamp, sessionId, hypothesisId }`
+   - Wrap blocks in `// #region agent log` / `// #endregion` so they can be found and removed (or gated) before shipping
+   - Use fire-and-forget `fetch(...).catch(() => {})` so logging never throws or blocks the app
+
+2. **Auth flow observability**
+   - Instrument both middleware (`supabase.auth.getUser()`) and client hook (`useCurrentUser` + `onAuthStateChange`) plus the consuming component (e.g. Navigation render). Correlating these shows: session in middleware vs client loading vs UI state (e.g. "middleware has user but UI still loading").
+   - Use consistent `hypothesisId` values (e.g. H1–H5) in logs to tie events to specific hypotheses when analyzing traces.
+
+3. **Cleanup before commit**
+   - Debug `fetch` calls to a local ingest URL and `#region agent log` blocks are temporary. Remove them or gate behind an env flag before merging so production never hits the debug endpoint or leaks PII in logs.
+
+**Code Patterns:**
+- Middleware: log after `getUser()` with `hasUser`, `path`
+- useCurrentUser: log effect mount, profile fetch success, `onAuthStateChange` (event, hasSession), and null-session path
+- Components: log render with `loading`, `hasUser`, `userError` to see UI state at render time
+
+### 2026-02-02 — Embedded Stripe PaymentElement + Deslop Cleanup
+
+**Context:** Implemented embedded Stripe PaymentElement for in-app payments (vs redirect Checkout), added inline Pay/Cancel buttons to booking list, then ran deslop to clean AI-generated code slop.
+
+**Key Learnings:**
+
+1. **Stripe PaymentElement vs Checkout Sessions**
+   - PaymentElement: embedded UI, user stays on-site, uses PaymentIntent directly
+   - Checkout Sessions: redirect to Stripe-hosted page, uses session.payment_intent
+   - Both flows converge at webhook handlers (`payment_intent.succeeded`, `checkout.session.completed`)
+   - `processPaymentSuccess(paymentIntentId, checkoutSessionId?)` handles both—find payment by intent ID, fallback to session metadata
+
+2. **PaymentIntent API Pattern**
+   - API route: `POST /api/payments/create-intent` → returns `{ client_secret, payment_id, amount }`
+   - Client hook: `useCreatePaymentIntent()` calls API, stores `clientSecret` in state
+   - Modal: `PaymentModal` wraps `Elements` provider with `clientSecret`, renders `PaymentElement`
+   - On success: `stripe.confirmPayment()` with `redirect: 'if_required'` keeps user on-page
+
+3. **Deslop Patterns — What to Remove**
+   - Narration comments: `// Payment modal state`, `// Handle payment success`, `// Create PaymentIntent when modal opens`
+   - Redundant JSDoc restating the obvious: `/** Inner payment form that has access to Stripe context */`
+   - "Initialize outside component" comments on module-level const (self-evident from placement)
+   - Verbose inline doc: `// Can pay if: status is pending or confirmed...` when code is self-documenting
+   - Keep: comments that explain *why* (business rules), match existing file's comment style
+
+4. **Inline Booking Actions UX**
+   - `canPay(booking)`: pending status + insurance approved (if required)
+   - `canCancel(booking)`: pending or confirmed status
+   - Show venue name by joining `venues` table in `findByRenterWithVenue()` repository method
+
+**Code Patterns:**
+- `src/services/paymentService.ts` — `createPaymentIntent()` mirrors `createCheckoutSession()` structure
+- `src/components/payments/payment-modal.tsx` — separate `PaymentForm` (uses hooks) from `PaymentModal` (manages Elements)
+- `src/hooks/usePaymentIntent.ts` — fetch-based hook with `{ data, loading, error, createIntent, reset }`
+- Webhook route: add `case 'payment_intent.succeeded':` alongside existing `checkout.session.completed`
