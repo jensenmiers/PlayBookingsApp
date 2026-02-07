@@ -18,7 +18,6 @@ import {
 } from '@fortawesome/free-solid-svg-icons'
 import { useVenuesWithNextAvailable, useUserLocation, type MapVenue } from '@/hooks/useVenuesWithNextAvailable'
 import { AvailabilityMap } from '@/components/maps/availability-map'
-import { AvailabilityCard } from '@/components/search/availability-card'
 import { VenueCardSkeleton } from '@/components/search/venue-card-skeleton'
 import { ErrorMessage } from '@/components/ui/error-message'
 import Link from 'next/link'
@@ -34,7 +33,7 @@ type ViewMode = 'map' | 'list'
 export function SplitAvailabilityView() {
   const today = new Date()
   const [selectedDate, setSelectedDate] = useState<string | null>(null) // null = any date (show absolute next)
-  const [selectedTime, setSelectedTime] = useState<string>('Any time')
+  const [selectedTime] = useState<string>('Any time')
   const [viewMode, setViewMode] = useState<ViewMode>('map')
   const [selectedVenueId, setSelectedVenueId] = useState<string | null>(null)
   const [searchQuery, setSearchQuery] = useState('')

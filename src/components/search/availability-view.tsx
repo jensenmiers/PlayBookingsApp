@@ -23,7 +23,7 @@ import { addDays, subDays } from 'date-fns'
 export function AvailabilityView() {
   const today = new Date()
   const [selectedDate, setSelectedDate] = useState<string>(format(today, 'yyyy-MM-dd'))
-  const [selectedTime, setSelectedTime] = useState<string>('Any time')
+  const [selectedTime] = useState<string>('Any time')
 
   const { data: availabilitySlots, loading, error, refetch } = useAvailabilitySlots({
     date: selectedDate,

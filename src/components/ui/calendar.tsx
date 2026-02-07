@@ -140,15 +140,16 @@ function Calendar({
             />
           )
         },
-        Chevron: ({ className, orientation, size: _size, disabled: _disabled, ...props }) => {
-          // Extract size and disabled to avoid passing them to FontAwesomeIcon
-          // as they have incompatible types
+        Chevron: ({ className, orientation, ...restProps }) => {
+          // Omit size and disabled which have incompatible types with FontAwesomeIcon
+          // eslint-disable-next-line @typescript-eslint/no-unused-vars
+          const { size, disabled, ...iconProps } = restProps as Record<string, unknown>
           if (orientation === "left") {
             return (
               <FontAwesomeIcon
                 icon={faChevronLeft}
                 className={cn("size-4", className)}
-                {...props}
+                {...iconProps}
               />
             )
           }
@@ -158,7 +159,7 @@ function Calendar({
               <FontAwesomeIcon
                 icon={faChevronRight}
                 className={cn("size-4", className)}
-                {...props}
+                {...iconProps}
               />
             )
           }
@@ -167,7 +168,7 @@ function Calendar({
             <FontAwesomeIcon
               icon={faChevronDown}
               className={cn("size-4", className)}
-              {...props}
+              {...iconProps}
             />
           )
         },

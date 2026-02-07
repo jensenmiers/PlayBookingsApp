@@ -1,5 +1,4 @@
 import * as z from 'zod'
-import { BookingStatus, RecurringType } from '@/types'
 
 export const createBookingSchema = z.object({
   venue_id: z.string().uuid('Invalid venue ID'),

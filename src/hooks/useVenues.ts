@@ -8,7 +8,7 @@
 import { useState, useEffect, useCallback } from 'react'
 import { createClient } from '@/lib/supabase/client'
 import type { Venue, Availability, VenueSearchFilters, AvailabilityWithVenue } from '@/types'
-import { getNextTopOfHour, timeStringToDate, calculateDuration } from '@/utils/dateHelpers'
+import { getNextTopOfHour, timeStringToDate } from '@/utils/dateHelpers'
 import { slugify } from '@/lib/utils'
 import { format } from 'date-fns'
 

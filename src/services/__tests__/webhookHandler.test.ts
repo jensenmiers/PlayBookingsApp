@@ -75,11 +75,11 @@ jest.mock('next/server', () => ({
 describe('Stripe Webhook Handler', () => {
   let POST: (request: unknown) => Promise<{ status: number; json: () => Promise<unknown> }>
 
-  beforeAll(() => {
-    // Set env var BEFORE requiring the route module
+  beforeAll(async () => {
+    // Set env var BEFORE importing the route module
     process.env.STRIPE_WEBHOOK_SECRET = 'whsec_test_secret'
-    // Dynamic require so webhookSecret captures the env var
-    const route = require('@/app/api/webhooks/stripe/route')
+    // Dynamic import so webhookSecret captures the env var
+    const route = await import('@/app/api/webhooks/stripe/route')
     POST = route.POST
   })
 
