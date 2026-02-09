@@ -80,8 +80,14 @@ export function useCurrentUser() {
           avatar_url: finalAvatarUrl,
         }
 
+        // #region agent log
+        fetch('http://127.0.0.1:7242/ingest/97bc146d-eee9-4dbd-a863-843c469f9d99',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'useCurrentUser.ts:fetchUserProfile:success',message:'User profile fetched successfully',data:{userId:userWithAvatar.id,email:userWithAvatar.email},timestamp:Date.now(),hypothesisId:'H3'})}).catch(()=>{});
+        // #endregion
         setState({ user: userWithAvatar, loading: false, error: null })
       } catch (error) {
+        // #region agent log
+        fetch('http://127.0.0.1:7242/ingest/97bc146d-eee9-4dbd-a863-843c469f9d99',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'useCurrentUser.ts:fetchUserProfile:error',message:'User profile fetch failed',data:{errorMessage:error instanceof Error ? error.message : String(error)},timestamp:Date.now(),hypothesisId:'H3'})}).catch(()=>{});
+        // #endregion
         if (!mounted) return
         const message = error instanceof Error ? error.message : 'Failed to fetch user'
         console.error('Error fetching user profile:', error)
@@ -92,6 +98,10 @@ export function useCurrentUser() {
     const {
       data: { subscription },
     } = supabase.auth.onAuthStateChange(async (_event, session) => {
+      // #region agent log
+      fetch('http://127.0.0.1:7242/ingest/97bc146d-eee9-4dbd-a863-843c469f9d99',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'useCurrentUser.ts:onAuthStateChange',message:'Auth state changed',data:{event:_event,hasSession:!!session,userId:session?.user?.id,mounted},timestamp:Date.now(),hypothesisId:'H2,H4'})}).catch(()=>{});
+      // #endregion
+
       if (!mounted) return
 
       if (session?.user) {

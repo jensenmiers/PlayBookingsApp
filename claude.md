@@ -125,6 +125,36 @@ Strong success criteria let you loop independently. Weak criteria ("make it work
 - useCurrentUser: log effect mount, profile fetch success, `onAuthStateChange` (event, hasSession), and null-session path
 - Components: log render with `loading`, `hasUser`, `userError` to see UI state at render time
 
+### 2026-02-06 — Vercel Build Failures: ESLint Errors vs Warnings
+
+**Context:** Production Vercel deployment failed on ESLint errors. Build logs showed one error (forbidden `require()`) and multiple warnings (unused imports/variables).
+
+**Key Learnings:**
+
+1. **ESLint Errors Fail Vercel Builds**
+   - Warnings don't fail the build, but errors do
+   - Rule `@typescript-eslint/no-require-imports` treats `require()` as an error in TypeScript/ESM projects
+   - Fix: Convert `const route = require('@/...')` to `const route = await import('@/...')` and make the function `async`
+
+2. **Dynamic Import for Test Module Loading**
+   - When tests need env vars set BEFORE module evaluation (e.g., `STRIPE_WEBHOOK_SECRET` captured at module scope), use dynamic `import()` in `beforeAll(async () => {...})`
+   - Pattern: `process.env.X = 'value'; const module = await import('@/path'); POST = module.POST`
+
+3. **Unused Destructured Props Pattern**
+   - When a component receives props you must accept but can't use (e.g., `size`, `disabled` passed to FontAwesomeIcon with incompatible types):
+   - Pattern: `({ className, orientation, ...restProps }) => { const { size, disabled, ...iconProps } = restProps; ... }`
+   - Add `// eslint-disable-next-line @typescript-eslint/no-unused-vars` if destructured vars are intentionally discarded
+
+4. **Unused Import Cleanup Checklist**
+   - Check `useState` destructuring: `[value, setValue]` → `[value]` if setter unused
+   - Check type-only imports: remove if only used for type annotations that were deleted
+   - Run `npm run build` locally before pushing to catch ESLint issues early
+
+**Code Patterns:**
+- Test files: `beforeAll(async () => { process.env.X = 'val'; const mod = await import('@/...'); })`
+- Component props: destructure unused props into a discard variable with eslint-disable comment
+- Pre-push check: `npm run build` catches what `npm run lint` might miss in strict mode
+
 ### 2026-02-02 — Embedded Stripe PaymentElement + Deslop Cleanup
 
 **Context:** Implemented embedded Stripe PaymentElement for in-app payments (vs redirect Checkout), added inline Pay/Cancel buttons to booking list, then ran deslop to clean AI-generated code slop.

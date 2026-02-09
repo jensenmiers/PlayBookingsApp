@@ -25,9 +25,15 @@ function AuthCallbackContent() {
   ), [])
 
   useEffect(() => {
-    // Detect popup mode via window.opener (since query params are lost through OAuth)
-    const isPopup = typeof window !== 'undefined' && window.opener !== null
+    // Detect popup mode via window.name (set when popup is opened in auth-modal.tsx).
+    // window.opener is unreliable because Google's COOP headers sever it during OAuth.
+    // window.name persists across cross-origin navigations.
+    const isPopup = typeof window !== 'undefined' && window.name === 'PlayBookingsAuth'
     const urlCode = typeof window !== 'undefined' ? new URL(window.location.href).searchParams.get('code') : null
+
+    // #region agent log
+    fetch('http://127.0.0.1:7242/ingest/97bc146d-eee9-4dbd-a863-843c469f9d99',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'auth/callback:useEffect:start',message:'Callback page loaded',data:{isPopup,windowName:typeof window!=='undefined'?window.name:null,hasOpener:typeof window!=='undefined'?window.opener!==null:null,hasCode:!!urlCode,codeLength:urlCode?.length,href:typeof window!=='undefined'?window.location.href.substring(0,100):null},timestamp:Date.now(),hypothesisId:'H7'})}).catch(()=>{});
+    // #endregion
 
     // Prevent double execution in strict mode
     if (hasRun.current) return
@@ -35,10 +41,37 @@ function AuthCallbackContent() {
 
     const handleAuthCallback = async () => {
       try {
-        // POPUP MODE: Send code to parent window, let parent do the exchange
-        // The popup cannot access the PKCE code_verifier stored in the main window's localStorage
+        // POPUP MODE: Exchange code here, then notify parent via BroadcastChannel
+        // window.opener is unreliable (COOP headers from Google sever the reference),
+        // so we exchange the code in the popup and use BroadcastChannel to signal the parent.
         if (isPopup && urlCode) {
-          // Send the auth code to the parent window for exchange
+          // #region agent log
+          fetch('http://127.0.0.1:7242/ingest/97bc146d-eee9-4dbd-a863-843c469f9d99',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'auth/callback:popup',message:'Popup exchanging code and notifying parent via BroadcastChannel',data:{hasOpener:!!window.opener,origin:window.location.origin,codeLength:urlCode.length},timestamp:Date.now(),hypothesisId:'H7'})}).catch(()=>{});
+          // #endregion
+
+          const { error: exchangeErr } = await supabase.auth.exchangeCodeForSession(urlCode)
+
+          // #region agent log
+          fetch('http://127.0.0.1:7242/ingest/97bc146d-eee9-4dbd-a863-843c469f9d99',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'auth/callback:popup:exchangeResult',message:'Popup code exchange result',data:{success:!exchangeErr,errorMessage:exchangeErr?.message},timestamp:Date.now(),hypothesisId:'H7'})}).catch(()=>{});
+          // #endregion
+
+          if (exchangeErr) {
+            console.error('Popup code exchange failed:', exchangeErr)
+            setErrorMessage(exchangeErr.message)
+            setStatus('error')
+            return
+          }
+
+          // Notify parent window via BroadcastChannel (works even when window.opener is null)
+          try {
+            const channel = new BroadcastChannel('play-bookings-auth')
+            channel.postMessage({ type: 'AUTH_COMPLETE' })
+            channel.close()
+          } catch {
+            // BroadcastChannel not supported - try postMessage as fallback
+          }
+
+          // Also try postMessage as fallback (works when window.opener is preserved)
           if (window.opener) {
             window.opener.postMessage(
               { type: 'AUTH_CODE', code: urlCode, returnTo: searchParams.get('returnTo'), intent: searchParams.get('intent') },
@@ -48,12 +81,10 @@ function AuthCallbackContent() {
 
           setStatus('closing')
           
-          // Close the popup after a short delay
           setTimeout(() => {
             try {
               window.close()
             } catch {
-              // If window.close fails, redirect as fallback
               const returnTo = searchParams.get('returnTo')
               let redirectPath = '/search'
               if (returnTo && returnTo.startsWith('/') && !returnTo.startsWith('//')) {

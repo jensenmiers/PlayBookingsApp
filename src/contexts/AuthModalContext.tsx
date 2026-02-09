@@ -51,6 +51,9 @@ export function AuthModalProvider({ children }: AuthModalProviderProps) {
 
   // Auto-close modal when user becomes authenticated
   useEffect(() => {
+    // #region agent log
+    fetch('http://127.0.0.1:7242/ingest/97bc146d-eee9-4dbd-a863-843c469f9d99',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'AuthModalContext.tsx:autoCloseEffect',message:'Checking auto-close condition',data:{hasUser:!!user,userId:user?.id,isOpen:state.isOpen,willClose:!!user && state.isOpen},timestamp:Date.now(),hypothesisId:'H4'})}).catch(()=>{});
+    // #endregion
     if (user && state.isOpen) {
       setState(prev => ({ ...prev, isOpen: false }))
     }

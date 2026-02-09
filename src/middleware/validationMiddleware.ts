@@ -15,6 +15,9 @@ export async function validateRequest<T>(
 ): Promise<T> {
   try {
     const body = await request.json()
+    // #region agent log
+    fetch('http://127.0.0.1:7242/ingest/97bc146d-eee9-4dbd-a863-843c469f9d99',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'validationMiddleware.ts:validateRequest',message:'Raw request body received',data:{body,url:request.url},timestamp:Date.now(),hypothesisId:'H1,H2,H3,H5'})}).catch(()=>{});
+    // #endregion
     return schema.parse(body)
   } catch (error) {
     if (error instanceof z.ZodError) {
@@ -22,6 +25,9 @@ export async function validateRequest<T>(
         field: err.path.join('.'),
         message: err.message,
       }))
+      // #region agent log
+      fetch('http://127.0.0.1:7242/ingest/97bc146d-eee9-4dbd-a863-843c469f9d99',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'validationMiddleware.ts:validateRequest:zodError',message:'Zod validation failed',data:{details,issueCount:error.issues.length,issues:error.issues},timestamp:Date.now(),hypothesisId:'H1,H2,H3,H4'})}).catch(()=>{});
+      // #endregion
       throw badRequest('Validation failed', details)
     }
     throw badRequest('Invalid request body')

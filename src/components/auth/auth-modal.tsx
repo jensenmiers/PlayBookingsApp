@@ -18,42 +18,118 @@ export function AuthModal() {
   const [popupBlocked, setPopupBlocked] = useState(false)
   const [popupWindow, setPopupWindow] = useState<Window | null>(null)
 
-  // Monitor popup window - close loading state if popup is closed manually
+  // Monitor popup window - when it closes, check if auth succeeded.
+  // If not (e.g. cross-origin redirect from Supabase), fall back to redirect flow.
   useEffect(() => {
     if (!popupWindow) return
 
-    const checkPopupClosed = setInterval(() => {
+    const checkPopupClosed = setInterval(async () => {
       if (popupWindow.closed) {
-        setLoading(false)
-        setPopupWindow(null)
         clearInterval(checkPopupClosed)
+        setPopupWindow(null)
+
+        // Give a moment for BroadcastChannel/postMessage to arrive
+        await new Promise(r => setTimeout(r, 500))
+
+        // Check if session was established (same-origin popup success)
+        const supabase = createClient()
+        const { data } = await supabase.auth.getSession()
+
+        // #region agent log
+        fetch('http://127.0.0.1:7242/ingest/97bc146d-eee9-4dbd-a863-843c469f9d99',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'auth-modal.tsx:popupClosed',message:'Popup closed, checking session',data:{hasSession:!!data?.session,hasUser:!!data?.session?.user},timestamp:Date.now(),hypothesisId:'H8'})}).catch(()=>{});
+        // #endregion
+
+        if (data?.session) {
+          // Session found - trigger onAuthStateChange
+          await supabase.auth.setSession({
+            access_token: data.session.access_token,
+            refresh_token: data.session.refresh_token,
+          })
+          setLoading(false)
+        } else {
+          // No session — popup likely redirected to a different origin.
+          // Fall back to redirect-based auth (full page redirect).
+          // #region agent log
+          fetch('http://127.0.0.1:7242/ingest/97bc146d-eee9-4dbd-a863-843c469f9d99',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'auth-modal.tsx:popupClosed:fallback',message:'No session after popup, falling back to redirect auth',timestamp:Date.now(),hypothesisId:'H8'})}).catch(()=>{});
+          // #endregion
+
+          const callbackUrl = buildAuthUrl().replace('popup=true', 'popup=false')
+          await supabase.auth.signInWithOAuth({
+            provider: 'google',
+            options: { redirectTo: callbackUrl },
+          })
+        }
       }
     }, 500)
 
     return () => clearInterval(checkPopupClosed)
-  }, [popupWindow])
+  }, [popupWindow, buildAuthUrl])
 
-  // Listen for auth code from popup - parent window handles PKCE exchange
-  // (popup cannot access localStorage where code_verifier is stored)
+  // Listen for auth completion from popup via BroadcastChannel + postMessage fallback
   useEffect(() => {
-    const handleMessage = async (event: MessageEvent) => {
-      // Verify origin
-      if (event.origin !== window.location.origin) return
-      
-      if (event.data?.type === 'AUTH_CODE' && event.data?.code) {
-        const supabase = createClient()
-        const { error } = await supabase.auth.exchangeCodeForSession(event.data.code)
-        
-        if (error) {
-          console.error('Code exchange failed:', error)
-        }
-        // Always reset loading - modal auto-closes via useCurrentUser hook on success
-        setLoading(false)
+    // #region agent log
+    fetch('http://127.0.0.1:7242/ingest/97bc146d-eee9-4dbd-a863-843c469f9d99',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'auth-modal.tsx:useEffect:listenerSetup',message:'Setting up BroadcastChannel + message listener',data:{origin:window.location.origin},timestamp:Date.now(),hypothesisId:'H7'})}).catch(()=>{});
+    // #endregion
+
+    const refreshSession = async () => {
+      // #region agent log
+      fetch('http://127.0.0.1:7242/ingest/97bc146d-eee9-4dbd-a863-843c469f9d99',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'auth-modal.tsx:refreshSession',message:'Refreshing session after popup auth',timestamp:Date.now(),hypothesisId:'H7'})}).catch(()=>{});
+      // #endregion
+
+      const supabase = createClient()
+      // Read session from cookies (set by popup's code exchange)
+      const { data: sessionData } = await supabase.auth.getSession()
+
+      // #region agent log
+      fetch('http://127.0.0.1:7242/ingest/97bc146d-eee9-4dbd-a863-843c469f9d99',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'auth-modal.tsx:refreshSession:result',message:'Session refresh result',data:{hasSession:!!sessionData?.session,hasUser:!!sessionData?.session?.user,userId:sessionData?.session?.user?.id},timestamp:Date.now(),hypothesisId:'H7'})}).catch(()=>{});
+      // #endregion
+
+      if (sessionData?.session) {
+        // Explicitly set the session to trigger onAuthStateChange in useCurrentUser
+        await supabase.auth.setSession({
+          access_token: sessionData.session.access_token,
+          refresh_token: sessionData.session.refresh_token,
+        })
       }
+
+      setLoading(false)
+    }
+
+    // Primary: BroadcastChannel (works when window.opener is severed by COOP)
+    let channel: BroadcastChannel | null = null
+    try {
+      channel = new BroadcastChannel('play-bookings-auth')
+      channel.onmessage = (event) => {
+        if (event.data?.type === 'AUTH_COMPLETE') {
+          refreshSession()
+        }
+      }
+    } catch {
+      // BroadcastChannel not supported
+    }
+
+    // Fallback: postMessage (works when window.opener is preserved)
+    const handleMessage = async (event: MessageEvent) => {
+      if (event.origin !== window.location.origin) return
+      if (event.data?.type !== 'AUTH_CODE' || !event.data?.code) return
+
+      // #region agent log
+      fetch('http://127.0.0.1:7242/ingest/97bc146d-eee9-4dbd-a863-843c469f9d99',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'auth-modal.tsx:handleMessage:AUTH_CODE',message:'Received AUTH_CODE via postMessage',timestamp:Date.now(),hypothesisId:'H7'})}).catch(()=>{});
+      // #endregion
+
+      const supabase = createClient()
+      const { error } = await supabase.auth.exchangeCodeForSession(event.data.code)
+      if (error) {
+        console.error('Code exchange failed:', error)
+      }
+      setLoading(false)
     }
 
     window.addEventListener('message', handleMessage)
-    return () => window.removeEventListener('message', handleMessage)
+    return () => {
+      window.removeEventListener('message', handleMessage)
+      channel?.close()
+    }
   }, [])
 
   // Reset state when modal closes
