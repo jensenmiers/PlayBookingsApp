@@ -213,3 +213,64 @@ Strong success criteria let you loop independently. Weak criteria ("make it work
 - `src/components/providers/providers.tsx` — `AuthModalProvider` → `{children}`, `AuthModal`, `Toaster`
 - `src/components/ui/use-toast.ts` — reducer + `toast()`, `dismiss()`, `toastTimeouts` for remove delay
 - Slot booking: check user before API call → `openAuthModal()` if unauthenticated; use `toast()` for success/error after booking
+
+### 2026-02-10 — Next 16 Upgrade, Proxy, Node 20, Supabase MCP
+
+**Context:** Upgraded to Next.js 16, migrated middleware to Proxy, set Node 20 requirement; tested Supabase MCP; located instant_booking/insurance_required in codebase and DB.
+
+**Key Learnings:**
+
+1. **Next 16: Middleware → Proxy**
+   - Rename `middleware.ts` to `proxy.ts` and export `proxy(request)` instead of `middleware(request)`. Same API (NextRequest, NextResponse, config.matcher). No runtime or config renames needed for this codebase. Proxy runs on Node by default in 16.
+
+2. **Next 16 + Node**
+   - Next 16 requires Node >= 20.9.0 (build enforces it). Add `"engines": { "node": ">=20" }` to package.json for consistency. Set Vercel project Node version to 20.x in Settings → General. Local: use nvm/fnm and `nvm use 20` or `.nvmrc` with `20`.
+
+3. **App Router route handler body parsing**
+   - App Router does not parse the body by default. Remove deprecated `export const config = { api: { bodyParser: false } }` from route handlers; using `request.text()` or `request.json()` is sufficient and the deprecation warning goes away.
+
+4. **Supabase MCP and CLI**
+   - MCP: `list_tables` and `execute_sql` hit the linked Supabase project. If `execute_sql` fails with "crypto is not defined", it’s a server-side MCP/runtime issue. CLI: `supabase logout` then `supabase login` to switch accounts; `supabase link --project-ref <ref>` to link repo to the correct project. Query venues with e.g. `SELECT id, name, instant_booking, insurance_required FROM public.venues`.
+
+5. **Instant booking and insurance in this codebase**
+   - **DB:** `public.venues.instant_booking`, `public.venues.insurance_required`; `bookings.insurance_required` (from venue), `bookings.insurance_approved`. **Logic:** `bookingService.ts` (create booking, status/approval), `paymentService.ts` (canPay, when to create PaymentIntent/Checkout). **UI:** venue cards/detail (badges), time-slot confirmation/grid, slot-booking-confirmation, booking-list (Pay when insurance approved if required); **filters:** `useVenues.ts` (`filters.instant_booking`, `filters.insurance_required`).
+
+**Code Patterns:**
+- `src/proxy.ts` — Supabase createServerClient + cookie adapter, `getUser()`, same matcher as prior middleware
+- Deslop: drop narration comments like "Refresh session if expired - required for Server Components" when the call is self-explanatory
+
+### 2026-02-10 — Mobile Payment Modal, Stripe PaymentElement, Unit Tests
+
+**Context:** Optimized payment modal for mobile viewports, configured Stripe PaymentElement payment methods, created comprehensive unit tests for the unified payment flow.
+
+**Key Learnings:**
+
+1. **Responsive Modal Padding with Tailwind**
+   - DialogContent base styles may have desktop-first padding (e.g. `p-8`). Override with mobile-first responsive classes directly on the component: `p-4 sm:p-8 gap-3 sm:gap-5`
+   - Combine venue name + price horizontally on mobile with separator: `Crosscourt · $120.00` saves vertical space
+   - Pattern: wrap elements in flex container with `sm:flex-col sm:gap-0` to stack on desktop, inline on mobile
+
+2. **Stripe PaymentElement Configuration**
+   - `payment_method_types: ['card']` in PaymentIntent/SetupIntent creation controls what shows in PaymentElement
+   - `'card'` automatically includes Apple Pay/Google Pay when available (wallet detection by Stripe)
+   - PayPal requires explicit dashboard activation and specific Stripe account configuration—don't add `'paypal'` without verifying dashboard setup first
+   - Layout options: `'accordion'` is more compact than `'tabs'` for mobile
+
+3. **Unit Testing Patterns in This Codebase**
+   - Test files in `__tests__/` adjacent to source: `src/services/__tests__/paymentService.setupIntent.test.ts`
+   - Mock pattern: declare mocks before imports (`jest.mock('@/lib/stripe', ...)`), then access via `(stripe.setupIntents.create as jest.Mock)`
+   - Repository tests: mock Supabase chain (`from().select().eq().single()`) with return value `{ data, error }`
+   - Hook tests: `Response` not available in jsdom—create helper: `createMockResponse(body, { status })` returning `{ ok, status, json: () => Promise.resolve(body) }`
+   - Use `renderHook`, `act`, `waitFor` from `@testing-library/react` for hook tests
+
+4. **SetupIntent vs PaymentIntent Flow**
+   - PaymentIntent: immediate charge for instant booking + no insurance venues
+   - SetupIntent: card-on-file authorization for deferred payment (owner/insurance approval required)
+   - `capturePayment()`: retrieves SetupIntent, gets `payment_method`, creates + confirms PaymentIntent with `off_session: true`
+   - Payment status flow: `pending` → `authorized` (SetupIntent) → `paid` (after capture)
+
+**Code Patterns:**
+- `src/services/paymentService.ts` — `createSetupIntent()`, `capturePayment()`, `cancelSetupIntent()`
+- `src/services/bookingService.ts` — `deleteUnpaidBooking()` for payment abandonment cleanup
+- `src/hooks/usePaymentIntent.ts` — `useCreateSetupIntent()`, `useDeleteUnpaidBooking()` hooks
+- Tests: factory functions `createBooking()`, `createVenue()`, `createPayment()` for consistent test data

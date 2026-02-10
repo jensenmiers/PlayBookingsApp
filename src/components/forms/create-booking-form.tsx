@@ -296,7 +296,7 @@ export function CreateBookingForm({
 
   return (
     <Dialog open={open} onOpenChange={handleDialogClose}>
-      <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
+      <DialogContent className="p-4 sm:p-8 gap-3 sm:gap-5 max-w-2xl max-h-[90vh] overflow-y-auto">
         <DialogHeader>
           <DialogTitle>
             {currentStep === 'form' ? 'Create New Booking' : 'Complete Payment'}
@@ -308,13 +308,16 @@ export function CreateBookingForm({
 
         {/* Payment Step */}
         {currentStep === 'payment' && clientSecret && venue && (
-          <div className="space-y-4">
-            <div className="text-center mb-4">
-              <p className="text-sm text-muted-foreground">Booking at</p>
-              <p className="text-lg font-medium text-secondary-800">{venue.name}</p>
-              <p className="text-2xl font-bold text-primary mt-2">
-                ${pendingBookingAmount.toFixed(2)}
-              </p>
+          <div className="space-y-3 sm:space-y-4">
+            <div className="text-center mb-2 sm:mb-4">
+              <p className="text-xs sm:text-sm text-muted-foreground">Booking at</p>
+              <div className="flex items-center justify-center gap-2 sm:flex-col sm:gap-0">
+                <p className="text-base sm:text-lg font-medium text-secondary-800">{venue.name}</p>
+                <span className="text-muted-foreground sm:hidden">·</span>
+                <p className="text-lg sm:text-2xl font-bold text-primary sm:mt-2">
+                  ${pendingBookingAmount.toFixed(2)}
+                </p>
+              </div>
               {isSetupIntent && (
                 <p className="text-xs text-muted-foreground mt-1">
                   Your card will be charged after approval
@@ -638,7 +641,7 @@ function WizardStepIndicator({ currentStep }: { currentStep: 'form' | 'payment' 
   const currentIndex = currentStep === 'form' ? 0 : 1
 
   return (
-    <div className="flex items-center justify-center gap-2 mb-4 pb-4 border-b border-secondary-200">
+    <div className="flex items-center justify-center gap-2 mb-2 sm:mb-4 pb-2 sm:pb-4 border-b border-secondary-200">
       {steps.map((step, index) => (
         <div key={step.key} className="flex items-center">
           <div

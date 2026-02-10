@@ -144,13 +144,16 @@ function StripePaymentForm({
   }, [stripe, elements, isSetupIntent, onSuccess])
 
   return (
-    <form onSubmit={handleSubmit} className="space-y-6">
-      <div className="text-center mb-4">
-        <p className="text-sm text-muted-foreground">Booking at</p>
-        <p className="text-lg font-medium text-secondary-800">{venueName}</p>
-        <p className="text-2xl font-bold text-primary mt-2">
-          ${amount.toFixed(2)}
-        </p>
+    <form onSubmit={handleSubmit} className="space-y-1 sm:space-y-6">
+      <div className="text-center mb-2 sm:mb-4">
+        <p className="text-xs sm:text-sm text-muted-foreground">Booking at</p>
+        <div className="flex items-center justify-center gap-2 sm:flex-col sm:gap-0">
+          <p className="text-base sm:text-lg font-medium text-secondary-800">{venueName}</p>
+          <span className="text-muted-foreground sm:hidden">·</span>
+          <p className="text-lg sm:text-2xl font-bold text-primary sm:mt-2">
+            ${amount.toFixed(2)}
+          </p>
+        </div>
         {isSetupIntent && (
           <p className="text-xs text-muted-foreground mt-1">
             Your card will be charged after approval
@@ -170,7 +173,7 @@ function StripePaymentForm({
         </div>
       )}
 
-      <DialogFooter className="flex gap-3 sm:flex-row">
+      <DialogFooter className="flex gap-2 sm:gap-3 sm:flex-row">
         {showBackButton && onBack ? (
           <Button
             type="button"
@@ -343,7 +346,7 @@ function StepIndicator({ currentStep }: { currentStep: FlowStep }) {
   const currentIndex = currentStep === 'details' ? 0 : currentStep === 'payment' ? 1 : 2
 
   return (
-    <div className="flex items-center justify-center gap-2 mb-4">
+    <div className="flex items-center justify-center gap-2 mb-2 sm:mb-4">
       {steps.map((step, index) => (
         <div key={step.key} className="flex items-center">
           <div
@@ -523,7 +526,7 @@ export function BookingPaymentFlow({
 
   return (
     <Dialog open={open} onOpenChange={handleCancel}>
-      <DialogContent className="sm:max-w-md">
+      <DialogContent className="p-4 sm:p-8 gap-3 sm:gap-5 sm:max-w-md">
         <DialogHeader>
           <DialogTitle>{getDialogTitle()}</DialogTitle>
           {step === 'payment' && (
