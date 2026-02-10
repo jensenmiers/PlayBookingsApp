@@ -251,13 +251,12 @@ export class PaymentService {
     const platformFee = 0
     const venueOwnerAmount = amount
 
-    // Create Stripe PaymentIntent
+    // Create Stripe PaymentIntent with explicit payment methods
+    // Card includes Apple Pay/Google Pay when detected by Stripe
     const paymentIntent = await stripe.paymentIntents.create({
       amount: Math.round(amount * 100), // Convert to cents
       currency: 'usd',
-      automatic_payment_methods: {
-        enabled: true,
-      },
+      payment_method_types: ['card', 'paypal'],
       metadata: {
         booking_id: bookingId,
         venue_id: booking.venue_id,
@@ -348,10 +347,9 @@ export class PaymentService {
     const venueOwnerAmount = amount
 
     // Create Stripe SetupIntent - this authorizes the card without charging
+    // Card includes Apple Pay/Google Pay when detected by Stripe
     const setupIntent = await stripe.setupIntents.create({
-      automatic_payment_methods: {
-        enabled: true,
-      },
+      payment_method_types: ['card', 'paypal'],
       metadata: {
         booking_id: bookingId,
         venue_id: booking.venue_id,

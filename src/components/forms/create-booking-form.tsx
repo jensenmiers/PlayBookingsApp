@@ -752,7 +752,7 @@ function WizardPaymentForm({
     <form onSubmit={handleSubmit} className="space-y-6">
       <PaymentElement
         options={{
-          layout: 'tabs',
+          layout: 'accordion',  // More compact for mobile
         }}
       />
 

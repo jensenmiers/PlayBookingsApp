@@ -160,7 +160,7 @@ function StripePaymentForm({
 
       <PaymentElement
         options={{
-          layout: 'tabs',
+          layout: 'accordion',  // More compact for mobile
         }}
       />
 
