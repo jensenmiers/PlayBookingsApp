@@ -238,6 +238,45 @@ export class BookingService {
   }
 
   /**
+   * Hard delete an unpaid booking (used when user abandons payment flow)
+   * Only allows deletion if booking is pending and has no paid payment
+   */
+  async deleteUnpaidBooking(bookingId: string, userId: string): Promise<void> {
+    const booking = await this.bookingRepo.findById(bookingId)
+
+    if (!booking) {
+      throw notFound('Booking not found')
+    }
+
+    // Only the renter can delete their own unpaid booking
+    if (booking.renter_id !== userId) {
+      throw badRequest('You do not have permission to delete this booking')
+    }
+
+    // Only allow deletion of pending bookings
+    if (booking.status !== 'pending') {
+      throw badRequest('Only pending bookings can be deleted')
+    }
+
+    // Check if there's a paid payment - if so, don't allow deletion
+    const payment = await this.paymentService.getPaymentByBookingId(bookingId)
+    if (payment?.status === 'paid') {
+      throw badRequest('Cannot delete a paid booking. Use cancel instead.')
+    }
+
+    // Cancel any authorized payment (release card hold)
+    if (payment?.status === 'authorized') {
+      await this.paymentService.cancelSetupIntent(bookingId, userId)
+    }
+
+    // Log audit before deletion
+    await this.auditService.logDelete('bookings', bookingId, userId, booking as unknown as Record<string, unknown>)
+
+    // Hard delete the booking
+    await this.bookingRepo.delete(bookingId)
+  }
+
+  /**
    * Approve booking (owner confirms) - triggers payment flow
    * Note: Status becomes 'confirmed' only after payment succeeds via webhook
    */

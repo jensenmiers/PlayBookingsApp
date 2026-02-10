@@ -76,7 +76,24 @@ export async function DELETE(request: NextRequest, context: RouteContext) {
     await requireBookingAccess(supabase, id, auth)
 
     const bookingService = new BookingService()
-    // Soft delete by cancelling
+    
+    // Check if hard delete is requested (for unpaid bookings during payment abandonment)
+    const { searchParams } = new URL(request.url)
+    const hardDelete = searchParams.get('hard') === 'true'
+
+    if (hardDelete) {
+      // Hard delete for unpaid bookings (payment abandonment)
+      await bookingService.deleteUnpaidBooking(id, auth.userId)
+      
+      const response: ApiResponse<null> = {
+        success: true,
+        data: null,
+        message: 'Booking deleted successfully',
+      }
+      return Response.json(response)
+    }
+
+    // Soft delete by cancelling (default behavior)
     const result = await bookingService.cancelBooking(id, auth.userId)
 
     const response: ApiResponse<Booking> = {

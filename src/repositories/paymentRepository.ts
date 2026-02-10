@@ -13,11 +13,13 @@ export interface CreatePaymentData {
   platform_fee: number
   venue_owner_amount: number
   stripe_payment_intent_id?: string
+  stripe_setup_intent_id?: string
   status?: PaymentStatus
 }
 
 export interface UpdatePaymentData {
   stripe_payment_intent_id?: string
+  stripe_setup_intent_id?: string
   stripe_transfer_id?: string
   status?: PaymentStatus
   paid_at?: string
@@ -98,6 +100,27 @@ export class PaymentRepository {
       .from('payments')
       .select('*')
       .eq('stripe_payment_intent_id', paymentIntentId)
+      .single()
+
+    if (error) {
+      if (error.code === 'PGRST116') {
+        return null // Not found
+      }
+      throw new Error(`Failed to fetch payment: ${error.message}`)
+    }
+
+    return data as Payment
+  }
+
+  /**
+   * Find payment by Stripe setup intent ID (for card-on-file authorization)
+   */
+  async findByStripeSetupIntentId(setupIntentId: string): Promise<Payment | null> {
+    const supabase = await createClient()
+    const { data, error } = await supabase
+      .from('payments')
+      .select('*')
+      .eq('stripe_setup_intent_id', setupIntentId)
       .single()
 
     if (error) {

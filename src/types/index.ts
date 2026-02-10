@@ -2,7 +2,7 @@ export type BookingStatus = 'pending' | 'confirmed' | 'cancelled' | 'completed'
 
 export type InsuranceStatus = 'pending' | 'approved' | 'rejected' | 'needs_changes'
 
-export type PaymentStatus = 'pending' | 'paid' | 'refunded' | 'failed'
+export type PaymentStatus = 'pending' | 'authorized' | 'paid' | 'refunded' | 'failed'
 
 export type RecurringType = 'none' | 'weekly' | 'monthly'
 
@@ -110,6 +110,7 @@ export interface Payment {
   renter_id: string
   venue_id: string
   stripe_payment_intent_id?: string
+  stripe_setup_intent_id?: string
   stripe_transfer_id?: string
   amount: number
   platform_fee: number
@@ -399,7 +400,8 @@ export const INSURANCE_STATUS_TRANSITIONS: Record<InsuranceStatus, InsuranceStat
 }
 
 export const PAYMENT_STATUS_TRANSITIONS: Record<PaymentStatus, PaymentStatus[]> = {
-  pending: ['paid', 'failed'],
+  pending: ['authorized', 'paid', 'failed'],
+  authorized: ['paid', 'failed'],
   paid: ['refunded'],
   refunded: [],
   failed: ['pending'],
