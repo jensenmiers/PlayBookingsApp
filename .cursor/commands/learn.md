@@ -1,9 +1,9 @@
 
 **Update claude.md with Today's Engineering Learnings**
 
-Please help me document today's engineering learnings by updating the `claude.md` file in the root of this project.
+Please help me document the last 24-48 hours' engineering learnings by updating the `claude.md` file in the root of this project.
 
-Review my chat threads/conversations, git commits, file changes, and work from today and add a new learning entry to the appropriate section of `claude.md`.
+Review my chat threads/conversations, git commits, file changes, and work from the last 24-48 hours and add a new learning entry (if not already documented previously) to the appropriate section of `claude.md`.
 
 **Instructions:**
 

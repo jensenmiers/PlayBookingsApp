@@ -110,10 +110,3 @@ export async function POST(request: NextRequest) {
     return Response.json({ received: true, error: message })
   }
 }
-
-// Stripe webhooks must bypass the default body parsing
-export const config = {
-  api: {
-    bodyParser: false,
-  },
-}
