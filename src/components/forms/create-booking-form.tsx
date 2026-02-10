@@ -27,8 +27,13 @@ function normalizeToLocalMidnight(d: Date): Date {
 import { createBookingSchema, type CreateBookingInput } from '@/lib/validations/booking'
 import { formatTime } from '@/utils/dateHelpers'
 import { useCreateBooking, useCheckConflicts } from '@/hooks/useBookings'
-import { PaymentModal } from '@/components/payments/payment-modal'
+import { useCreatePaymentIntent, useCreateSetupIntent, useDeleteUnpaidBooking } from '@/hooks/usePaymentIntent'
 import { useVenues, useVenue } from '@/hooks/useVenues'
+import { loadStripe } from '@stripe/stripe-js'
+import { Elements, PaymentElement, useStripe, useElements } from '@stripe/react-stripe-js'
+import { faCheck, faCreditCard, faCalendarCheck, faArrowLeft } from '@fortawesome/free-solid-svg-icons'
+
+const stripePromise = loadStripe(process.env.NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY!)
 import {
   Form,
   FormField,
@@ -86,9 +91,15 @@ export function CreateBookingForm({
   const createBooking = useCreateBooking()
   const { check: checkConflicts, data: conflictData, loading: checkingConflicts } = useCheckConflicts()
   
-  const [paymentModalOpen, setPaymentModalOpen] = useState(false)
+  const [currentStep, setCurrentStep] = useState<'form' | 'payment'>('form')
   const [pendingBookingId, setPendingBookingId] = useState<string | null>(null)
   const [pendingBookingAmount, setPendingBookingAmount] = useState<number>(0)
+  const [clientSecret, setClientSecret] = useState<string | null>(null)
+  const [isSetupIntent, setIsSetupIntent] = useState(false)
+
+  const { createIntent } = useCreatePaymentIntent()
+  const { createSetupIntent } = useCreateSetupIntent()
+  const { deleteBooking } = useDeleteUnpaidBooking()
 
   // Format time to HH:MM:SS if needed
   const formatTimeForForm = (time?: string): string => {
@@ -184,17 +195,32 @@ export function CreateBookingForm({
 
     const result = await createBooking.mutate(data)
     if (result.data) {
-      if (result.data.requiresImmediatePayment) {
-        setPendingBookingId(result.data.id)
-        setPendingBookingAmount(result.data.total_amount)
-        setPaymentModalOpen(true)
-        return
+      // All bookings now require payment info collection
+      setPendingBookingId(result.data.id)
+      setPendingBookingAmount(result.data.total_amount)
+      
+      // Determine if immediate payment or deferred (setup intent)
+      const venueData = venues?.find(v => v.id === data.venue_id)
+      const requiresImmediatePayment = venueData?.instant_booking && !venueData?.insurance_required
+      
+      if (requiresImmediatePayment) {
+        // Create PaymentIntent for immediate charge
+        const intentResult = await createIntent(result.data.id)
+        if (intentResult.data) {
+          setClientSecret(intentResult.data.clientSecret)
+          setIsSetupIntent(false)
+          setCurrentStep('payment')
+        }
+      } else {
+        // Create SetupIntent for deferred charge
+        const setupResult = await createSetupIntent(result.data.id)
+        if (setupResult.data) {
+          setClientSecret(setupResult.data.clientSecret)
+          setIsSetupIntent(true)
+          setCurrentStep('payment')
+        }
       }
-
-      onSuccess?.(result.data.id)
-      form.reset()
-      setConflictChecked(false)
-      onOpenChange?.(false)
+      return
     } else if (result.error) {
       const errorMessage = result.error.toLowerCase()
       if (
@@ -215,38 +241,114 @@ export function CreateBookingForm({
   const venue = venues?.find((v) => v.id === watchedVenueId) || selectedVenue
 
   const handlePaymentSuccess = () => {
-    setPaymentModalOpen(false)
+    const bookingId = pendingBookingId
+    setCurrentStep('form')
+    setClientSecret(null)
     setPendingBookingId(null)
     setPendingBookingAmount(0)
-    if (pendingBookingId) {
-      onSuccess?.(pendingBookingId)
+    setIsSetupIntent(false)
+    if (bookingId) {
+      onSuccess?.(bookingId)
     }
     form.reset()
     setConflictChecked(false)
     onOpenChange?.(false)
   }
 
-  const handlePaymentModalChange = (open: boolean) => {
-    setPaymentModalOpen(open)
-    if (!open) {
-      if (pendingBookingId) {
-        onSuccess?.(pendingBookingId)
-      }
+  const handlePaymentCancel = () => {
+    // Delete the unpaid booking
+    if (pendingBookingId) {
+      deleteBooking(pendingBookingId)
+    }
+    setCurrentStep('form')
+    setClientSecret(null)
+    setPendingBookingId(null)
+    setPendingBookingAmount(0)
+    setIsSetupIntent(false)
+  }
+
+  const handleBackToForm = () => {
+    // Delete the unpaid booking and go back to form
+    if (pendingBookingId) {
+      deleteBooking(pendingBookingId)
+    }
+    setCurrentStep('form')
+    setClientSecret(null)
+    setPendingBookingId(null)
+    setPendingBookingAmount(0)
+    setIsSetupIntent(false)
+  }
+
+  const handleDialogClose = (isOpen: boolean) => {
+    if (!isOpen && currentStep === 'payment' && pendingBookingId) {
+      // User closing during payment - delete booking
+      deleteBooking(pendingBookingId)
+    }
+    if (!isOpen) {
+      setCurrentStep('form')
+      setClientSecret(null)
       setPendingBookingId(null)
       setPendingBookingAmount(0)
-      form.reset()
-      setConflictChecked(false)
-      onOpenChange?.(false)
+      setIsSetupIntent(false)
     }
+    onOpenChange?.(isOpen)
   }
 
   return (
-    <Dialog open={open} onOpenChange={onOpenChange}>
+    <Dialog open={open} onOpenChange={handleDialogClose}>
       <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
         <DialogHeader>
-          <DialogTitle>Create New Booking</DialogTitle>
+          <DialogTitle>
+            {currentStep === 'form' ? 'Create New Booking' : 'Complete Payment'}
+          </DialogTitle>
         </DialogHeader>
 
+        {/* Wizard Step Indicator */}
+        <WizardStepIndicator currentStep={currentStep} />
+
+        {/* Payment Step */}
+        {currentStep === 'payment' && clientSecret && venue && (
+          <div className="space-y-4">
+            <div className="text-center mb-4">
+              <p className="text-sm text-muted-foreground">Booking at</p>
+              <p className="text-lg font-medium text-secondary-800">{venue.name}</p>
+              <p className="text-2xl font-bold text-primary mt-2">
+                ${pendingBookingAmount.toFixed(2)}
+              </p>
+              {isSetupIntent && (
+                <p className="text-xs text-muted-foreground mt-1">
+                  Your card will be charged after approval
+                </p>
+              )}
+            </div>
+
+            <Elements
+              stripe={stripePromise}
+              options={{
+                clientSecret,
+                appearance: {
+                  theme: 'stripe',
+                  variables: {
+                    colorPrimary: '#0066cc',
+                    fontFamily: 'system-ui, sans-serif',
+                    borderRadius: '8px',
+                  },
+                },
+              }}
+            >
+              <WizardPaymentForm
+                isSetupIntent={isSetupIntent}
+                amount={pendingBookingAmount}
+                onSuccess={handlePaymentSuccess}
+                onCancel={handlePaymentCancel}
+                onBack={handleBackToForm}
+              />
+            </Elements>
+          </div>
+        )}
+
+        {/* Form Step */}
+        {currentStep === 'form' && (
         <Form {...form}>
           <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-6">
             {/* Venue Selection */}
@@ -512,25 +614,183 @@ export function CreateBookingForm({
                     Creating...
                   </>
                 ) : (
-                  'Create Booking'
+                  'Continue to Payment'
                 )}
               </Button>
             </DialogFooter>
           </form>
         </Form>
+        )}
       </DialogContent>
-
-      {pendingBookingId && venue && (
-        <PaymentModal
-          bookingId={pendingBookingId}
-          amount={pendingBookingAmount}
-          venueName={venue.name}
-          open={paymentModalOpen}
-          onOpenChange={handlePaymentModalChange}
-          onSuccess={handlePaymentSuccess}
-        />
-      )}
     </Dialog>
+  )
+}
+
+/**
+ * Wizard Step Indicator Component
+ */
+function WizardStepIndicator({ currentStep }: { currentStep: 'form' | 'payment' }) {
+  const steps = [
+    { key: 'form', label: 'Booking Details', icon: faCalendarCheck },
+    { key: 'payment', label: 'Payment', icon: faCreditCard },
+  ]
+
+  const currentIndex = currentStep === 'form' ? 0 : 1
+
+  return (
+    <div className="flex items-center justify-center gap-2 mb-4 pb-4 border-b border-secondary-200">
+      {steps.map((step, index) => (
+        <div key={step.key} className="flex items-center">
+          <div
+            className={`flex items-center justify-center w-8 h-8 rounded-full text-sm font-medium ${
+              index < currentIndex
+                ? 'bg-green-500 text-white'
+                : index === currentIndex
+                ? 'bg-secondary-600 text-white'
+                : 'bg-secondary-200 text-secondary-500'
+            }`}
+          >
+            {index < currentIndex ? (
+              <FontAwesomeIcon icon={faCheck} className="w-4 h-4" />
+            ) : (
+              <FontAwesomeIcon icon={step.icon} className="w-4 h-4" />
+            )}
+          </div>
+          <span
+            className={`ml-2 text-sm ${
+              index <= currentIndex ? 'text-secondary-800 font-medium' : 'text-secondary-400'
+            }`}
+          >
+            {step.label}
+          </span>
+          {index < steps.length - 1 && (
+            <div
+              className={`w-8 h-0.5 mx-3 ${
+                index < currentIndex ? 'bg-green-500' : 'bg-secondary-200'
+              }`}
+            />
+          )}
+        </div>
+      ))}
+    </div>
+  )
+}
+
+/**
+ * Wizard Payment Form Component
+ */
+function WizardPaymentForm({
+  isSetupIntent,
+  amount,
+  onSuccess,
+  onCancel,
+  onBack,
+}: {
+  isSetupIntent: boolean
+  amount: number
+  onSuccess: () => void
+  onCancel: () => void
+  onBack: () => void
+}) {
+  const stripe = useStripe()
+  const elements = useElements()
+  const [isProcessing, setIsProcessing] = useState(false)
+  const [errorMessage, setErrorMessage] = useState<string | null>(null)
+
+  const handleSubmit = async (e: React.FormEvent) => {
+    e.preventDefault()
+
+    if (!stripe || !elements) {
+      return
+    }
+
+    setIsProcessing(true)
+    setErrorMessage(null)
+
+    if (isSetupIntent) {
+      const { error } = await stripe.confirmSetup({
+        elements,
+        confirmParams: {
+          return_url: `${window.location.origin}/booking/success`,
+        },
+        redirect: 'if_required',
+      })
+
+      if (error) {
+        if (error.type === 'card_error' || error.type === 'validation_error') {
+          setErrorMessage(error.message || 'Card authorization failed')
+        } else {
+          setErrorMessage('An unexpected error occurred')
+        }
+        setIsProcessing(false)
+      } else {
+        onSuccess()
+      }
+    } else {
+      const { error } = await stripe.confirmPayment({
+        elements,
+        confirmParams: {
+          return_url: `${window.location.origin}/booking/success`,
+        },
+        redirect: 'if_required',
+      })
+
+      if (error) {
+        if (error.type === 'card_error' || error.type === 'validation_error') {
+          setErrorMessage(error.message || 'Payment failed')
+        } else {
+          setErrorMessage('An unexpected error occurred')
+        }
+        setIsProcessing(false)
+      } else {
+        onSuccess()
+      }
+    }
+  }
+
+  return (
+    <form onSubmit={handleSubmit} className="space-y-6">
+      <PaymentElement
+        options={{
+          layout: 'tabs',
+        }}
+      />
+
+      {errorMessage && (
+        <div className="text-red-600 text-sm text-center p-2 bg-red-50 rounded-lg">
+          {errorMessage}
+        </div>
+      )}
+
+      <DialogFooter className="flex gap-3 sm:flex-row">
+        <Button
+          type="button"
+          variant="outline"
+          onClick={onBack}
+          disabled={isProcessing}
+          className="flex-1"
+        >
+          <FontAwesomeIcon icon={faArrowLeft} className="mr-2" />
+          Back
+        </Button>
+        <Button
+          type="submit"
+          disabled={!stripe || !elements || isProcessing}
+          className="flex-1"
+        >
+          {isProcessing ? (
+            <>
+              <FontAwesomeIcon icon={faSpinner} className="animate-spin mr-2" />
+              Processing...
+            </>
+          ) : isSetupIntent ? (
+            'Authorize Card'
+          ) : (
+            `Pay $${amount.toFixed(2)}`
+          )}
+        </Button>
+      </DialogFooter>
+    </form>
   )
 }
 
