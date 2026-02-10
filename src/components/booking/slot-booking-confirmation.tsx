@@ -14,6 +14,7 @@ import { faSpinner } from '@fortawesome/free-solid-svg-icons'
 import { useCreateBooking } from '@/hooks/useBookings'
 import { useCurrentUser } from '@/hooks/useCurrentUser'
 import { useAuthModal } from '@/contexts/AuthModalContext'
+import { useToast } from '@/components/ui/use-toast'
 import { formatTime } from '@/utils/dateHelpers'
 import type { Venue } from '@/types'
 
@@ -58,6 +59,7 @@ export function SlotBookingConfirmation({
   const createBooking = useCreateBooking()
   const { user } = useCurrentUser()
   const { openAuthModal } = useAuthModal()
+  const { toast } = useToast()
 
   const handleConfirm = async () => {
     if (!user) {
@@ -65,24 +67,20 @@ export function SlotBookingConfirmation({
       return
     }
 
-    // #region agent log
-    const bookingPayload = {
+    const result = await createBooking.mutate({
       venue_id: venue.id,
       date,
       start_time: startTime,
       end_time: endTime,
       recurring_type: 'none',
-    }
-    fetch('http://127.0.0.1:7242/ingest/97bc146d-eee9-4dbd-a863-843c469f9d99',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'slot-booking-confirmation.tsx:handleConfirm',message:'Booking payload before API call',data:{payload:bookingPayload,venueIdType:typeof venue.id,startTimeLength:startTime?.length,endTimeLength:endTime?.length},timestamp:Date.now(),hypothesisId:'H1,H2,H3'})}).catch(()=>{});
-    // #endregion
-
-    const result = await createBooking.mutate(bookingPayload)
-
-    // #region agent log
-    fetch('http://127.0.0.1:7242/ingest/97bc146d-eee9-4dbd-a863-843c469f9d99',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'slot-booking-confirmation.tsx:handleConfirm:result',message:'API result',data:{hasData:!!result.data,error:result.error,dataId:result.data?.id},timestamp:Date.now(),hypothesisId:'H4,H5'})}).catch(()=>{});
-    // #endregion
+    })
 
     if (result.data) {
+      toast({
+        title: 'Booking confirmed!',
+        description: `${venue.name} on ${displayDate}`,
+        variant: 'success',
+      })
       onSuccess?.(result.data.id)
       onOpenChange(false)
     }

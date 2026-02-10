@@ -18,8 +18,21 @@ export function AuthModal() {
   const [popupBlocked, setPopupBlocked] = useState(false)
   const [popupWindow, setPopupWindow] = useState<Window | null>(null)
 
+  const buildAuthUrl = useCallback(() => {
+    const callbackParams = new URLSearchParams()
+    callbackParams.set('popup', 'true')
+    
+    if (returnTo) {
+      callbackParams.set('returnTo', returnTo)
+    }
+    if (intent === 'host') {
+      callbackParams.set('intent', 'host')
+    }
+    
+    return `${window.location.origin}/auth/callback?${callbackParams.toString()}`
+  }, [returnTo, intent])
+
   // Monitor popup window - when it closes, check if auth succeeded.
-  // If not (e.g. cross-origin redirect from Supabase), fall back to redirect flow.
   useEffect(() => {
     if (!popupWindow) return
 
@@ -35,54 +48,26 @@ export function AuthModal() {
         const supabase = createClient()
         const { data } = await supabase.auth.getSession()
 
-        // #region agent log
-        fetch('http://127.0.0.1:7242/ingest/97bc146d-eee9-4dbd-a863-843c469f9d99',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'auth-modal.tsx:popupClosed',message:'Popup closed, checking session',data:{hasSession:!!data?.session,hasUser:!!data?.session?.user},timestamp:Date.now(),hypothesisId:'H8'})}).catch(()=>{});
-        // #endregion
-
         if (data?.session) {
           // Session found - trigger onAuthStateChange
           await supabase.auth.setSession({
             access_token: data.session.access_token,
             refresh_token: data.session.refresh_token,
           })
-          setLoading(false)
-        } else {
-          // No session — popup likely redirected to a different origin.
-          // Fall back to redirect-based auth (full page redirect).
-          // #region agent log
-          fetch('http://127.0.0.1:7242/ingest/97bc146d-eee9-4dbd-a863-843c469f9d99',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'auth-modal.tsx:popupClosed:fallback',message:'No session after popup, falling back to redirect auth',timestamp:Date.now(),hypothesisId:'H8'})}).catch(()=>{});
-          // #endregion
-
-          const callbackUrl = buildAuthUrl().replace('popup=true', 'popup=false')
-          await supabase.auth.signInWithOAuth({
-            provider: 'google',
-            options: { redirectTo: callbackUrl },
-          })
         }
+
+        setLoading(false)
       }
     }, 500)
 
     return () => clearInterval(checkPopupClosed)
-  }, [popupWindow, buildAuthUrl])
+  }, [popupWindow])
 
   // Listen for auth completion from popup via BroadcastChannel + postMessage fallback
   useEffect(() => {
-    // #region agent log
-    fetch('http://127.0.0.1:7242/ingest/97bc146d-eee9-4dbd-a863-843c469f9d99',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'auth-modal.tsx:useEffect:listenerSetup',message:'Setting up BroadcastChannel + message listener',data:{origin:window.location.origin},timestamp:Date.now(),hypothesisId:'H7'})}).catch(()=>{});
-    // #endregion
-
     const refreshSession = async () => {
-      // #region agent log
-      fetch('http://127.0.0.1:7242/ingest/97bc146d-eee9-4dbd-a863-843c469f9d99',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'auth-modal.tsx:refreshSession',message:'Refreshing session after popup auth',timestamp:Date.now(),hypothesisId:'H7'})}).catch(()=>{});
-      // #endregion
-
       const supabase = createClient()
-      // Read session from cookies (set by popup's code exchange)
       const { data: sessionData } = await supabase.auth.getSession()
-
-      // #region agent log
-      fetch('http://127.0.0.1:7242/ingest/97bc146d-eee9-4dbd-a863-843c469f9d99',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'auth-modal.tsx:refreshSession:result',message:'Session refresh result',data:{hasSession:!!sessionData?.session,hasUser:!!sessionData?.session?.user,userId:sessionData?.session?.user?.id},timestamp:Date.now(),hypothesisId:'H7'})}).catch(()=>{});
-      // #endregion
 
       if (sessionData?.session) {
         // Explicitly set the session to trigger onAuthStateChange in useCurrentUser
@@ -113,10 +98,6 @@ export function AuthModal() {
       if (event.origin !== window.location.origin) return
       if (event.data?.type !== 'AUTH_CODE' || !event.data?.code) return
 
-      // #region agent log
-      fetch('http://127.0.0.1:7242/ingest/97bc146d-eee9-4dbd-a863-843c469f9d99',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'auth-modal.tsx:handleMessage:AUTH_CODE',message:'Received AUTH_CODE via postMessage',timestamp:Date.now(),hypothesisId:'H7'})}).catch(()=>{});
-      // #endregion
-
       const supabase = createClient()
       const { error } = await supabase.auth.exchangeCodeForSession(event.data.code)
       if (error) {
@@ -140,20 +121,6 @@ export function AuthModal() {
       setPopupWindow(null)
     }
   }, [isOpen])
-
-  const buildAuthUrl = useCallback(() => {
-    const callbackParams = new URLSearchParams()
-    callbackParams.set('popup', 'true')
-    
-    if (returnTo) {
-      callbackParams.set('returnTo', returnTo)
-    }
-    if (intent === 'host') {
-      callbackParams.set('intent', 'host')
-    }
-    
-    return `${window.location.origin}/auth/callback?${callbackParams.toString()}`
-  }, [returnTo, intent])
 
   const handleGoogleAuth = async () => {
     try {

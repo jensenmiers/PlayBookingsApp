@@ -31,10 +31,6 @@ function AuthCallbackContent() {
     const isPopup = typeof window !== 'undefined' && window.name === 'PlayBookingsAuth'
     const urlCode = typeof window !== 'undefined' ? new URL(window.location.href).searchParams.get('code') : null
 
-    // #region agent log
-    fetch('http://127.0.0.1:7242/ingest/97bc146d-eee9-4dbd-a863-843c469f9d99',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'auth/callback:useEffect:start',message:'Callback page loaded',data:{isPopup,windowName:typeof window!=='undefined'?window.name:null,hasOpener:typeof window!=='undefined'?window.opener!==null:null,hasCode:!!urlCode,codeLength:urlCode?.length,href:typeof window!=='undefined'?window.location.href.substring(0,100):null},timestamp:Date.now(),hypothesisId:'H7'})}).catch(()=>{});
-    // #endregion
-
     // Prevent double execution in strict mode
     if (hasRun.current) return
     hasRun.current = true
@@ -45,15 +41,7 @@ function AuthCallbackContent() {
         // window.opener is unreliable (COOP headers from Google sever the reference),
         // so we exchange the code in the popup and use BroadcastChannel to signal the parent.
         if (isPopup && urlCode) {
-          // #region agent log
-          fetch('http://127.0.0.1:7242/ingest/97bc146d-eee9-4dbd-a863-843c469f9d99',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'auth/callback:popup',message:'Popup exchanging code and notifying parent via BroadcastChannel',data:{hasOpener:!!window.opener,origin:window.location.origin,codeLength:urlCode.length},timestamp:Date.now(),hypothesisId:'H7'})}).catch(()=>{});
-          // #endregion
-
           const { error: exchangeErr } = await supabase.auth.exchangeCodeForSession(urlCode)
-
-          // #region agent log
-          fetch('http://127.0.0.1:7242/ingest/97bc146d-eee9-4dbd-a863-843c469f9d99',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'auth/callback:popup:exchangeResult',message:'Popup code exchange result',data:{success:!exchangeErr,errorMessage:exchangeErr?.message},timestamp:Date.now(),hypothesisId:'H7'})}).catch(()=>{});
-          // #endregion
 
           if (exchangeErr) {
             console.error('Popup code exchange failed:', exchangeErr)
@@ -125,19 +113,9 @@ function AuthCallbackContent() {
           return
         }
 
-        // Exchange the auth code for a session (required for PKCE flow)
-        let session = null
-        let exchangeError = null
-        
-        if (urlCode) {
-          const result = await supabase.auth.exchangeCodeForSession(urlCode)
-          session = result.data.session
-          exchangeError = result.error
-        } else {
-          const result = await supabase.auth.getSession()
-          session = result.data.session
-          exchangeError = result.error
-        }
+        const result = await supabase.auth.exchangeCodeForSession(urlCode)
+        const session = result.data.session
+        const exchangeError = result.error
 
         if (exchangeError) {
           console.error('Auth code exchange error:', exchangeError)
