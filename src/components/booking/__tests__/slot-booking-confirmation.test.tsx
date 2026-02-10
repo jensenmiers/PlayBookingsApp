@@ -159,10 +159,9 @@ describe('SlotBookingConfirmation', () => {
   })
 
   it('opens auth modal if user is not logged in', async () => {
-    // Override the mock for this test
-    const useCurrentUser = require('@/hooks/useCurrentUser').useCurrentUser
-    useCurrentUser.mockReturnValueOnce({ user: null, loading: false })
-    
+    const { useCurrentUser } = await import('@/hooks/useCurrentUser')
+    jest.mocked(useCurrentUser).mockReturnValueOnce({ user: null, loading: false })
+
     render(<SlotBookingConfirmation {...defaultProps} />)
     
     fireEvent.click(screen.getByText('Confirm Booking'))

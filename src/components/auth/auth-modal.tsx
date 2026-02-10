@@ -18,6 +18,7 @@ export function AuthModal() {
   const [popupBlocked, setPopupBlocked] = useState(false)
   const [popupWindow, setPopupWindow] = useState<Window | null>(null)
 
+
   const buildAuthUrl = useCallback(() => {
     const callbackParams = new URLSearchParams()
     callbackParams.set('popup', 'true')
