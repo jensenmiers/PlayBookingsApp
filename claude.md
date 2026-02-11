@@ -66,6 +66,19 @@ Strong success criteria let you loop independently. Weak criteria ("make it work
 
 ---
 
+## 5. Mobile-First UI
+
+**Design and test for mobile first. Desktop is the enhancement.**
+
+When building or modifying UI:
+- Test at 375px viewport width BEFORE checking desktop
+- Write Tailwind mobile-first: base classes for mobile, `sm:` prefixes for desktop
+- Vertical space is precious on mobile: reduce padding, combine elements horizontally
+- Touch targets: minimum 44x44px for interactive elements
+- When given a screenshot, assume mobile unless clearly desktop-sized
+
+---
+
 ## Project-Specific Learnings
 
 ### 2026-02-04 — Availability Filtering, Auth UX, Dialog Behavior
@@ -274,3 +287,45 @@ Strong success criteria let you loop independently. Weak criteria ("make it work
 - `src/services/bookingService.ts` — `deleteUnpaidBooking()` for payment abandonment cleanup
 - `src/hooks/usePaymentIntent.ts` — `useCreateSetupIntent()`, `useDeleteUnpaidBooking()` hooks
 - Tests: factory functions `createBooking()`, `createVenue()`, `createPayment()` for consistent test data
+
+### 2026-02-11 — Mobile-First UI Patterns
+
+**Context:** PlayBookings is primarily used on mobile devices. All UI work should be designed and verified mobile-first.
+
+**Key Patterns:**
+
+1. **Tailwind Mobile-First Syntax**
+   - Base classes = mobile, `sm:` = 640px+, `md:` = 768px+, `lg:` = 1024px+
+   - Wrong: `p-8 md:p-4` (desktop-first, shrinks on mobile)
+   - Right: `p-4 sm:p-8` (mobile-first, expands on desktop)
+   - Common: `text-sm sm:text-base`, `gap-2 sm:gap-4`, `space-y-2 sm:space-y-6`
+
+2. **Modal/Dialog Mobile Optimization**
+   - Override DialogContent padding: `p-4 sm:p-8 gap-3 sm:gap-5`
+   - Combine info horizontally: `Venue · $120.00` vs stacking vertically
+   - Use flex with responsive direction: `flex sm:flex-col` (inline on mobile, stacked on desktop)
+   - Reduce margins: `mb-2 sm:mb-4`, `mt-1 sm:mt-2`
+
+3. **Responsive Show/Hide**
+   - `sm:hidden` — visible on mobile only
+   - `hidden sm:block` — visible on desktop only
+   - Use for mobile-specific separators: `<span className="sm:hidden">·</span>`
+
+4. **Testing Checklist**
+   - Browser devtools → responsive mode → 375x667 (iPhone SE)
+   - Verify modals/dialogs fit without scrolling
+   - Check all buttons/links are tappable (44px minimum)
+   - Confirm no horizontal overflow/scroll
+   - Test with actual touch if possible (not just mouse clicks)
+
+5. **Common Mobile Issues to Watch**
+   - Modals taller than viewport (reduce padding, combine elements)
+   - Text too small (minimum 14px / text-sm)
+   - Buttons too close together (add gap-2 minimum)
+   - Form inputs too narrow (use w-full on mobile)
+
+**Code Patterns:**
+- DialogContent: `className="p-4 sm:p-8 gap-3 sm:gap-5"`
+- Compact header: `<div className="flex items-center gap-2 sm:flex-col sm:gap-0">`
+- Responsive text: `text-xs sm:text-sm`, `text-lg sm:text-2xl`
+- Step indicators: `mb-2 sm:mb-4 pb-2 sm:pb-4`
