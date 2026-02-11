@@ -15,6 +15,7 @@ import {
   faChevronRight,
   faMap,
   faList,
+  faLocationDot,
 } from '@fortawesome/free-solid-svg-icons'
 import { useVenuesWithNextAvailable, useUserLocation, type MapVenue } from '@/hooks/useVenuesWithNextAvailable'
 import { AvailabilityMap } from '@/components/maps/availability-map'
@@ -38,8 +39,9 @@ export function SplitAvailabilityView() {
   const [selectedVenueId, setSelectedVenueId] = useState<string | null>(null)
   const [searchQuery, setSearchQuery] = useState('')
 
-  // Get user location for distance-based sorting
-  const { latitude: userLat, longitude: userLng } = useUserLocation()
+  // Get user location for distance-based sorting (opt-in via location icon button)
+  const { latitude: userLat, longitude: userLng, loading: locationLoading, requestLocation } = useUserLocation()
+  const hasLocation = userLat != null && userLng != null
 
   // Fetch venues with next available slots
   const { data: venues, loading, error, refetch } = useVenuesWithNextAvailable({
@@ -152,6 +154,27 @@ export function SplitAvailabilityView() {
               <FontAwesomeIcon icon={faChevronRight} className="text-xs" />
             </Button>
           </div>
+
+          {/* Location (opt-in): sort by distance when enabled */}
+          <Button
+            variant="ghost"
+            size="icon"
+            onClick={() => !hasLocation && !locationLoading && requestLocation()}
+            disabled={locationLoading}
+            title="Use my location"
+            aria-label="Use my location"
+            className={`min-h-[44px] min-w-[44px] h-9 w-9 rounded-lg ${
+              hasLocation
+                ? 'bg-primary-100 text-primary-700 hover:bg-primary-200'
+                : 'bg-secondary-50 text-secondary-700 hover:bg-secondary-100'
+            }`}
+          >
+            {locationLoading ? (
+              <span className="animate-spin rounded-full h-4 w-4 border-2 border-secondary-400 border-t-transparent" />
+            ) : (
+              <FontAwesomeIcon icon={faLocationDot} className="text-sm" />
+            )}
+          </Button>
 
           {/* Time Filter */}
           <Button className="flex-shrink-0 flex items-center gap-2 bg-secondary-50 rounded-lg px-3 py-2 text-sm text-secondary-700 hover:bg-secondary-100">

@@ -189,27 +189,29 @@ export function useVenuesWithNextAvailable(options: UseVenuesOptions = {}): UseV
 }
 
 /**
- * Get user's current location (browser geolocation API)
- * Returns null if geolocation is not available or denied
+ * Get user's current location (browser geolocation API).
+ * Does not request location on mount; call requestLocation() when the user opts in.
+ * Returns null if geolocation is not available or denied.
  */
-export function useUserLocation(): { 
+export function useUserLocation(): {
   latitude: number | null
   longitude: number | null
   loading: boolean
-  error: string | null 
+  error: string | null
+  requestLocation: () => void
 } {
   const [latitude, setLatitude] = useState<number | null>(null)
   const [longitude, setLongitude] = useState<number | null>(null)
-  const [loading, setLoading] = useState(true)
+  const [loading, setLoading] = useState(false)
   const [error, setError] = useState<string | null>(null)
 
-  useEffect(() => {
+  const requestLocation = useCallback(() => {
     if (!navigator.geolocation) {
       setError('Geolocation is not supported')
-      setLoading(false)
       return
     }
-
+    setError(null)
+    setLoading(true)
     navigator.geolocation.getCurrentPosition(
       (position) => {
         setLatitude(position.coords.latitude)
@@ -229,5 +231,5 @@ export function useUserLocation(): {
     )
   }, [])
 
-  return { latitude, longitude, loading, error }
+  return { latitude, longitude, loading, error, requestLocation }
 }

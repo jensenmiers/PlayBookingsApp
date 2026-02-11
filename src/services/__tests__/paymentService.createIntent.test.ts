@@ -142,7 +142,7 @@ describe('PaymentService.createPaymentIntent', () => {
     expect(stripe.paymentIntents.create).toHaveBeenCalledWith({
       amount: 9950, // $99.50 * 100
       currency: 'usd',
-      automatic_payment_methods: { enabled: true },
+      payment_method_types: ['card'],
       metadata: {
         booking_id: 'booking-123',
         venue_id: 'venue-123',
