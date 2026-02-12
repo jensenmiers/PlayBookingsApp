@@ -79,6 +79,32 @@ When building or modifying UI:
 
 ---
 
+## 6. Test-Driven Development
+
+**Tests first, then implementation. All new behavior must be verified by tests before or alongside the code.**
+
+For new code implementations:
+- **Prefer tests first:** For non-trivial logic (services, utils, business rules), write the test before writing implementation. This forces clear specs and catches regressions from the first commit.
+- **Red-Green-Refactor:** Write a failing test for the desired behavior, implement until it passes, then refactor
+- **Test before or with code:** Either write tests first (strict TDD) or add tests in the same change as the implementation—never ship behavior without tests
+- **Colocate tests:** Place test files in `__tests__/` next to the module under test (e.g., `src/utils/__tests__/slotSplitting.test.ts`)
+- **Test the contract, not the implementation:** Focus on inputs/outputs, edge cases, and observable behavior; avoid brittle tests that couple to internal structure
+
+What to test:
+- **Services, repositories, utils:** Unit tests with mocked dependencies (Supabase, Stripe, etc.)
+- **Hooks:** Use `renderHook`, `act`, `waitFor` from `@testing-library/react`; mock fetch/Response where needed
+- **Components:** Integration tests for non-trivial flows (form submission, booking confirmation); use `render`, `screen`, `fireEvent` / `userEvent`
+- **API routes:** Test handler logic with mocked Supabase/Stripe (pattern: dynamic `import()` in `beforeAll` when env vars must be set before module load)
+
+Exceptions (use judgment):
+- Trivial CSS/layout tweaks, copy changes, or config-only updates
+- One-off scripts or migrations not used in production
+- When the only way to verify is manual/E2E and that's documented
+
+Success criteria: `npm run test` passes; new behavior is covered by at least one test that would fail if the behavior were removed.
+
+---
+
 ## Project-Specific Learnings
 
 ### 2026-02-04 — Availability Filtering, Auth UX, Dialog Behavior

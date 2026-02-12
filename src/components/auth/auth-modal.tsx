@@ -85,9 +85,19 @@ export function AuthModal() {
     let channel: BroadcastChannel | null = null
     try {
       channel = new BroadcastChannel('play-bookings-auth')
-      channel.onmessage = (event) => {
+      channel.onmessage = async (event) => {
         if (event.data?.type === 'AUTH_COMPLETE') {
           refreshSession()
+        } else if (event.data?.type === 'AUTH_CODE_TO_EXCHANGE' && event.data?.code) {
+          // Popup lacked code_verifier; main window has it. Exchange here.
+          const supabase = createClient()
+          const { error } = await supabase.auth.exchangeCodeForSession(event.data.code)
+          if (!error) {
+            refreshSession()
+          } else {
+            console.error('Fallback code exchange failed:', error)
+          }
+          setLoading(false)
         }
       }
     } catch {

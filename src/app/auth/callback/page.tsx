@@ -45,6 +45,29 @@ function AuthCallbackContent() {
 
           if (exchangeErr) {
             console.error('Popup code exchange failed:', exchangeErr)
+
+            // Main window has code_verifier (it initiated OAuth). Forward code so it can exchange.
+            // Use BroadcastChannel (window.opener is often null due to COOP headers from Google).
+            if (exchangeErr.message.includes('code verifier')) {
+              try {
+                const fallbackChannel = new BroadcastChannel('play-bookings-auth')
+                fallbackChannel.postMessage({ type: 'AUTH_CODE_TO_EXCHANGE', code: urlCode })
+                fallbackChannel.close()
+              } catch { /* ignore */ }
+              // Also try postMessage when opener exists
+              if (window.opener) {
+                try {
+                  window.opener.postMessage({ type: 'AUTH_CODE', code: urlCode, returnTo: searchParams.get('returnTo'), intent: searchParams.get('intent') }, window.location.origin)
+                } catch { /* ignore */ }
+              }
+              // Popup will show error briefly; main window exchanges and user can close popup
+              setStatus('closing')
+              setTimeout(() => {
+                try { window.close() } catch { /* ignore */ }
+              }, 1500)
+              return
+            }
+
             setErrorMessage(exchangeErr.message)
             setStatus('error')
             return
