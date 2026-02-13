@@ -1,0 +1,357 @@
+# CLAUDE.md
+
+Behavioral guidelines to reduce common LLM coding mistakes. Merge with project-specific instructions as needed.
+
+**Tradeoff:** These guidelines bias toward caution over speed. For trivial tasks, use judgment.
+
+## 1. Think Before Coding
+
+**Don't assume. Don't hide confusion. Surface tradeoffs.**
+
+Before implementing:
+- State your assumptions explicitly. If uncertain, ask.
+- If multiple interpretations exist, present them - don't pick silently.
+- If a simpler approach exists, say so. Push back when warranted.
+- If something is unclear, stop. Name what's confusing. Ask.
+
+## 2. Simplicity First
+
+**Minimum code that solves the problem. Nothing speculative.**
+
+- No features beyond what was asked.
+- No abstractions for single-use code.
+- No "flexibility" or "configurability" that wasn't requested.
+- No error handling for impossible scenarios.
+- If you write 200 lines and it could be 50, rewrite it.
+
+Ask yourself: "Would a senior engineer say this is overcomplicated?" If yes, simplify.
+
+## 3. Surgical Changes
+
+**Touch only what you must. Clean up only your own mess.**
+
+When editing existing code:
+- Don't "improve" adjacent code, comments, or formatting.
+- Don't refactor things that aren't broken.
+- Match existing style, even if you'd do it differently.
+- If you notice unrelated dead code, mention it - don't delete it.
+
+When your changes create orphans:
+- Remove imports/variables/functions that YOUR changes made unused.
+- Don't remove pre-existing dead code unless asked.
+
+The test: Every changed line should trace directly to the user's request.
+
+## 4. Goal-Driven Execution
+
+**Define success criteria. Loop until verified.**
+
+Transform tasks into verifiable goals:
+- "Add validation" → "Write tests for invalid inputs, then make them pass"
+- "Fix the bug" → "Write a test that reproduces it, then make it pass"
+- "Refactor X" → "Ensure tests pass before and after"
+
+For multi-step tasks, state a brief plan:
+```
+1. [Step] → verify: [check]
+2. [Step] → verify: [check]
+3. [Step] → verify: [check]
+```
+
+Strong success criteria let you loop independently. Weak criteria ("make it work") require constant clarification.
+
+---
+
+**These guidelines are working if:** fewer unnecessary changes in diffs, fewer rewrites due to overcomplication, and clarifying questions come before implementation rather than after mistakes.
+
+---
+
+## 5. Mobile-First UI
+
+**Design and test for mobile first. Desktop is the enhancement.**
+
+When building or modifying UI:
+- Test at 375px viewport width BEFORE checking desktop
+- Write Tailwind mobile-first: base classes for mobile, `sm:` prefixes for desktop
+- Vertical space is precious on mobile: reduce padding, combine elements horizontally
+- Touch targets: minimum 44x44px for interactive elements
+- When given a screenshot, assume mobile unless clearly desktop-sized
+
+---
+
+## 6. Test-Driven Development
+
+**Tests first, then implementation. All new behavior must be verified by tests before or alongside the code.**
+
+For new code implementations:
+- **Prefer tests first:** For non-trivial logic (services, utils, business rules), write the test before writing implementation. This forces clear specs and catches regressions from the first commit.
+- **Red-Green-Refactor:** Write a failing test for the desired behavior, implement until it passes, then refactor
+- **Test before or with code:** Either write tests first (strict TDD) or add tests in the same change as the implementation—never ship behavior without tests
+- **Colocate tests:** Place test files in `__tests__/` next to the module under test (e.g., `src/utils/__tests__/slotSplitting.test.ts`)
+- **Test the contract, not the implementation:** Focus on inputs/outputs, edge cases, and observable behavior; avoid brittle tests that couple to internal structure
+
+What to test:
+- **Services, repositories, utils:** Unit tests with mocked dependencies (Supabase, Stripe, etc.)
+- **Hooks:** Use `renderHook`, `act`, `waitFor` from `@testing-library/react`; mock fetch/Response where needed
+- **Components:** Integration tests for non-trivial flows (form submission, booking confirmation); use `render`, `screen`, `fireEvent` / `userEvent`
+- **API routes:** Test handler logic with mocked Supabase/Stripe (pattern: dynamic `import()` in `beforeAll` when env vars must be set before module load)
+
+Exceptions (use judgment):
+- Trivial CSS/layout tweaks, copy changes, or config-only updates
+- One-off scripts or migrations not used in production
+- When the only way to verify is manual/E2E and that's documented
+
+Success criteria: `npm run test` passes; new behavior is covered by at least one test that would fail if the behavior were removed.
+
+---
+
+## Project-Specific Learnings
+
+### 2026-02-04 — Availability Filtering, Auth UX, Dialog Behavior
+
+**Context:** Building venue booking flow with real-time availability, OAuth authentication, and modal dialogs.
+
+**Key Learnings:**
+
+1. **Slot Splitting for True Availability**
+   - Raw `availability` table records represent venue owner's available times, NOT bookable slots
+   - Must filter availability against `bookings` and `recurring_bookings` tables to compute true availability
+   - Use `src/utils/slotSplitting.ts` for time range subtraction (handles partial overlaps, slot splitting)
+   - Pattern: Convert times to minutes-from-midnight for arithmetic, then back to HH:MM strings
+   - Minimum displayable slot: 60 minutes; granularity: 30 minutes
+   - API endpoint: `GET /api/venues/[id]/availability?dateFrom=YYYY-MM-DD&dateTo=YYYY-MM-DD`
+
+2. **Proactive Auth Check Before API Calls**
+   - Don't let booking API calls fail due to missing auth, then show error
+   - Instead: check `useCurrentUser()` BEFORE calling API; if not authenticated, open auth modal directly
+   - Pattern in `slot-booking-confirmation.tsx`: check user first → open `authModal` → return early
+
+3. **Dialog Component Defaults (`modal={false}`)**
+   - Set `modal={false}` on Dialog to allow background scrolling while dialog is open
+   - Tradeoff: clicking outside no longer closes dialog (must use Cancel/X)
+   - This is intentional for booking flows where users may want to reference content behind the modal
+
+4. **OAuth PKCE Flow**
+   - Supabase OAuth uses PKCE with `code_verifier` stored in cookies
+   - Auth callback at `/auth/callback` exchanges code for session
+   - If auth callback fails, check cookie handling and redirect URL configuration in Supabase dashboard
+
+**Code Patterns:**
+- Services: `src/services/availabilityService.ts` — server-side with Supabase client
+- Utils: `src/utils/slotSplitting.ts` — pure functions for time range manipulation
+- Hooks: `src/hooks/useVenues.ts` exports `useVenueAvailabilityRange` with refetch-on-focus
+
+### 2026-02-05 — Debug Instrumentation for Auth/Session Flow
+
+**Context:** Debugging auth/session behavior (e.g. middleware vs client session, loading states) by adding structured logs to middleware, `useCurrentUser`, and Navigation.
+
+**Key Learnings:**
+
+1. **Structured debug logging pattern**
+   - Use a local ingest endpoint (e.g. `http://127.0.0.1:7242/ingest/<id>`) with POST + JSON body: `{ location, message, data, timestamp, sessionId, hypothesisId }`
+   - Wrap blocks in `// #region agent log` / `// #endregion` so they can be found and removed (or gated) before shipping
+   - Use fire-and-forget `fetch(...).catch(() => {})` so logging never throws or blocks the app
+
+2. **Auth flow observability**
+   - Instrument both middleware (`supabase.auth.getUser()`) and client hook (`useCurrentUser` + `onAuthStateChange`) plus the consuming component (e.g. Navigation render). Correlating these shows: session in middleware vs client loading vs UI state (e.g. "middleware has user but UI still loading").
+   - Use consistent `hypothesisId` values (e.g. H1–H5) in logs to tie events to specific hypotheses when analyzing traces.
+
+3. **Cleanup before commit**
+   - Debug `fetch` calls to a local ingest URL and `#region agent log` blocks are temporary. Remove them or gate behind an env flag before merging so production never hits the debug endpoint or leaks PII in logs.
+
+**Code Patterns:**
+- Middleware: log after `getUser()` with `hasUser`, `path`
+- useCurrentUser: log effect mount, profile fetch success, `onAuthStateChange` (event, hasSession), and null-session path
+- Components: log render with `loading`, `hasUser`, `userError` to see UI state at render time
+
+### 2026-02-06 — Vercel Build Failures: ESLint Errors vs Warnings
+
+**Context:** Production Vercel deployment failed on ESLint errors. Build logs showed one error (forbidden `require()`) and multiple warnings (unused imports/variables).
+
+**Key Learnings:**
+
+1. **ESLint Errors Fail Vercel Builds**
+   - Warnings don't fail the build, but errors do
+   - Rule `@typescript-eslint/no-require-imports` treats `require()` as an error in TypeScript/ESM projects
+   - Fix: Convert `const route = require('@/...')` to `const route = await import('@/...')` and make the function `async`
+
+2. **Dynamic Import for Test Module Loading**
+   - When tests need env vars set BEFORE module evaluation (e.g., `STRIPE_WEBHOOK_SECRET` captured at module scope), use dynamic `import()` in `beforeAll(async () => {...})`
+   - Pattern: `process.env.X = 'value'; const module = await import('@/path'); POST = module.POST`
+
+3. **Unused Destructured Props Pattern**
+   - When a component receives props you must accept but can't use (e.g., `size`, `disabled` passed to FontAwesomeIcon with incompatible types):
+   - Pattern: `({ className, orientation, ...restProps }) => { const { size, disabled, ...iconProps } = restProps; ... }`
+   - Add `// eslint-disable-next-line @typescript-eslint/no-unused-vars` if destructured vars are intentionally discarded
+
+4. **Unused Import Cleanup Checklist**
+   - Check `useState` destructuring: `[value, setValue]` → `[value]` if setter unused
+   - Check type-only imports: remove if only used for type annotations that were deleted
+   - Run `npm run build` locally before pushing to catch ESLint issues early
+
+**Code Patterns:**
+- Test files: `beforeAll(async () => { process.env.X = 'val'; const mod = await import('@/...'); })`
+- Component props: destructure unused props into a discard variable with eslint-disable comment
+- Pre-push check: `npm run build` catches what `npm run lint` might miss in strict mode
+
+### 2026-02-02 — Embedded Stripe PaymentElement + Deslop Cleanup
+
+**Context:** Implemented embedded Stripe PaymentElement for in-app payments (vs redirect Checkout), added inline Pay/Cancel buttons to booking list, then ran deslop to clean AI-generated code slop.
+
+**Key Learnings:**
+
+1. **Stripe PaymentElement vs Checkout Sessions**
+   - PaymentElement: embedded UI, user stays on-site, uses PaymentIntent directly
+   - Checkout Sessions: redirect to Stripe-hosted page, uses session.payment_intent
+   - Both flows converge at webhook handlers (`payment_intent.succeeded`, `checkout.session.completed`)
+   - `processPaymentSuccess(paymentIntentId, checkoutSessionId?)` handles both—find payment by intent ID, fallback to session metadata
+
+2. **PaymentIntent API Pattern**
+   - API route: `POST /api/payments/create-intent` → returns `{ client_secret, payment_id, amount }`
+   - Client hook: `useCreatePaymentIntent()` calls API, stores `clientSecret` in state
+   - Modal: `PaymentModal` wraps `Elements` provider with `clientSecret`, renders `PaymentElement`
+   - On success: `stripe.confirmPayment()` with `redirect: 'if_required'` keeps user on-page
+
+3. **Deslop Patterns — What to Remove**
+   - Narration comments: `// Payment modal state`, `// Handle payment success`, `// Create PaymentIntent when modal opens`
+   - Redundant JSDoc restating the obvious: `/** Inner payment form that has access to Stripe context */`
+   - "Initialize outside component" comments on module-level const (self-evident from placement)
+   - Verbose inline doc: `// Can pay if: status is pending or confirmed...` when code is self-documenting
+   - Keep: comments that explain *why* (business rules), match existing file's comment style
+
+4. **Inline Booking Actions UX**
+   - `canPay(booking)`: pending status + insurance approved (if required)
+   - `canCancel(booking)`: pending or confirmed status
+   - Show venue name by joining `venues` table in `findByRenterWithVenue()` repository method
+
+**Code Patterns:**
+- `src/services/paymentService.ts` — `createPaymentIntent()` mirrors `createCheckoutSession()` structure
+- `src/components/payments/payment-modal.tsx` — separate `PaymentForm` (uses hooks) from `PaymentModal` (manages Elements)
+- `src/hooks/usePaymentIntent.ts` — fetch-based hook with `{ data, loading, error, createIntent, reset }`
+- Webhook route: add `case 'payment_intent.succeeded':` alongside existing `checkout.session.completed`
+
+### 2026-02-09 — Toast UI, Tests, Auth/Provider Simplification
+
+**Context:** Added toast UI for user feedback, expanded test coverage (slot-booking-confirmation, toast/use-toast, slotSplitting), and simplified auth/validation code.
+
+**Key Learnings:**
+
+1. **Toast system**
+   - This codebase uses a shadcn-style toast stack. `useToast()` from `@/components/ui/use-toast` is the single API; toasts are rendered by `<Toaster />`. Toaster is mounted once in the root `Providers` (next to `AuthModal`), not per-route. Toast state is a reducer (ADD/UPDATE/DISMISS/REMOVE) with a limit (e.g. 3) and remove delay (e.g. 5s). Use the hook for success/error feedback after booking or auth actions.
+
+2. **Provider layout**
+   - Root client layout uses one wrapper: `AuthModalProvider` wraps `{children}`, `AuthModal`, and `Toaster` as siblings. Global UI (modals, toasts) lives here; don't add duplicate Toaster or AuthModal elsewhere.
+
+3. **Slot splitting (`src/utils/slotSplitting.ts`)**
+   - Availability vs bookings is modeled in minutes-from-midnight. Constants: `MIN_SLOT_DURATION_MINUTES = 60`, `SLOT_GRANULARITY_MINUTES = 30`. Exported helpers include `timeToMinutes`, `minutesToTime`, `roundUpToGranularity`, `roundDownToGranularity`; core logic uses `subtractBookingsFromRange` and produces `ComputedSlot[]` with `date`, `start_time`, `end_time`, `venue_id`, `availability_id`. Tests in `src/utils/__tests__/slotSplitting.test.ts` document edge cases (overlapping bookings, exact boundaries).
+
+4. **Auth modal**
+   - `AuthModalContext` uses `useCurrentUser()` and `usePathname()`; modal open state and intent (e.g. `renter` | `host`) are centralized. Components that need to prompt login use `useAuthModal().openAuthModal({ intent, returnTo, contextMessage })` rather than local modal state.
+
+**Code Patterns:**
+- `src/components/providers/providers.tsx` — `AuthModalProvider` → `{children}`, `AuthModal`, `Toaster`
+- `src/components/ui/use-toast.ts` — reducer + `toast()`, `dismiss()`, `toastTimeouts` for remove delay
+- Slot booking: check user before API call → `openAuthModal()` if unauthenticated; use `toast()` for success/error after booking
+
+### 2026-02-10 — Next 16 Upgrade, Proxy, Node 20, Supabase MCP
+
+**Context:** Upgraded to Next.js 16, migrated middleware to Proxy, set Node 20 requirement; tested Supabase MCP; located instant_booking/insurance_required in codebase and DB.
+
+**Key Learnings:**
+
+1. **Next 16: Middleware → Proxy**
+   - Rename `middleware.ts` to `proxy.ts` and export `proxy(request)` instead of `middleware(request)`. Same API (NextRequest, NextResponse, config.matcher). No runtime or config renames needed for this codebase. Proxy runs on Node by default in 16.
+
+2. **Next 16 + Node**
+   - Next 16 requires Node >= 20.9.0 (build enforces it). Add `"engines": { "node": ">=20" }` to package.json for consistency. Set Vercel project Node version to 20.x in Settings → General. Local: use nvm/fnm and `nvm use 20` or `.nvmrc` with `20`.
+
+3. **App Router route handler body parsing**
+   - App Router does not parse the body by default. Remove deprecated `export const config = { api: { bodyParser: false } }` from route handlers; using `request.text()` or `request.json()` is sufficient and the deprecation warning goes away.
+
+4. **Supabase MCP and CLI**
+   - MCP: `list_tables` and `execute_sql` hit the linked Supabase project. If `execute_sql` fails with "crypto is not defined", it’s a server-side MCP/runtime issue. CLI: `supabase logout` then `supabase login` to switch accounts; `supabase link --project-ref <ref>` to link repo to the correct project. Query venues with e.g. `SELECT id, name, instant_booking, insurance_required FROM public.venues`.
+
+5. **Instant booking and insurance in this codebase**
+   - **DB:** `public.venues.instant_booking`, `public.venues.insurance_required`; `bookings.insurance_required` (from venue), `bookings.insurance_approved`. **Logic:** `bookingService.ts` (create booking, status/approval), `paymentService.ts` (canPay, when to create PaymentIntent/Checkout). **UI:** venue cards/detail (badges), time-slot confirmation/grid, slot-booking-confirmation, booking-list (Pay when insurance approved if required); **filters:** `useVenues.ts` (`filters.instant_booking`, `filters.insurance_required`).
+
+**Code Patterns:**
+- `src/proxy.ts` — Supabase createServerClient + cookie adapter, `getUser()`, same matcher as prior middleware
+- Deslop: drop narration comments like "Refresh session if expired - required for Server Components" when the call is self-explanatory
+
+### 2026-02-10 — Mobile Payment Modal, Stripe PaymentElement, Unit Tests
+
+**Context:** Optimized payment modal for mobile viewports, configured Stripe PaymentElement payment methods, created comprehensive unit tests for the unified payment flow.
+
+**Key Learnings:**
+
+1. **Responsive Modal Padding with Tailwind**
+   - DialogContent base styles may have desktop-first padding (e.g. `p-8`). Override with mobile-first responsive classes directly on the component: `p-4 sm:p-8 gap-3 sm:gap-5`
+   - Combine venue name + price horizontally on mobile with separator: `Crosscourt · $120.00` saves vertical space
+   - Pattern: wrap elements in flex container with `sm:flex-col sm:gap-0` to stack on desktop, inline on mobile
+
+2. **Stripe PaymentElement Configuration**
+   - `payment_method_types: ['card']` in PaymentIntent/SetupIntent creation controls what shows in PaymentElement
+   - `'card'` automatically includes Apple Pay/Google Pay when available (wallet detection by Stripe)
+   - PayPal requires explicit dashboard activation and specific Stripe account configuration—don't add `'paypal'` without verifying dashboard setup first
+   - Layout options: `'accordion'` is more compact than `'tabs'` for mobile
+
+3. **Unit Testing Patterns in This Codebase**
+   - Test files in `__tests__/` adjacent to source: `src/services/__tests__/paymentService.setupIntent.test.ts`
+   - Mock pattern: declare mocks before imports (`jest.mock('@/lib/stripe', ...)`), then access via `(stripe.setupIntents.create as jest.Mock)`
+   - Repository tests: mock Supabase chain (`from().select().eq().single()`) with return value `{ data, error }`
+   - Hook tests: `Response` not available in jsdom—create helper: `createMockResponse(body, { status })` returning `{ ok, status, json: () => Promise.resolve(body) }`
+   - Use `renderHook`, `act`, `waitFor` from `@testing-library/react` for hook tests
+
+4. **SetupIntent vs PaymentIntent Flow**
+   - PaymentIntent: immediate charge for instant booking + no insurance venues
+   - SetupIntent: card-on-file authorization for deferred payment (owner/insurance approval required)
+   - `capturePayment()`: retrieves SetupIntent, gets `payment_method`, creates + confirms PaymentIntent with `off_session: true`
+   - Payment status flow: `pending` → `authorized` (SetupIntent) → `paid` (after capture)
+
+**Code Patterns:**
+- `src/services/paymentService.ts` — `createSetupIntent()`, `capturePayment()`, `cancelSetupIntent()`
+- `src/services/bookingService.ts` — `deleteUnpaidBooking()` for payment abandonment cleanup
+- `src/hooks/usePaymentIntent.ts` — `useCreateSetupIntent()`, `useDeleteUnpaidBooking()` hooks
+- Tests: factory functions `createBooking()`, `createVenue()`, `createPayment()` for consistent test data
+
+### 2026-02-11 — Mobile-First UI Patterns
+
+**Context:** PlayBookings is primarily used on mobile devices. All UI work should be designed and verified mobile-first.
+
+**Key Patterns:**
+
+1. **Tailwind Mobile-First Syntax**
+   - Base classes = mobile, `sm:` = 640px+, `md:` = 768px+, `lg:` = 1024px+
+   - Wrong: `p-8 md:p-4` (desktop-first, shrinks on mobile)
+   - Right: `p-4 sm:p-8` (mobile-first, expands on desktop)
+   - Common: `text-sm sm:text-base`, `gap-2 sm:gap-4`, `space-y-2 sm:space-y-6`
+
+2. **Modal/Dialog Mobile Optimization**
+   - Override DialogContent padding: `p-4 sm:p-8 gap-3 sm:gap-5`
+   - Combine info horizontally: `Venue · $120.00` vs stacking vertically
+   - Use flex with responsive direction: `flex sm:flex-col` (inline on mobile, stacked on desktop)
+   - Reduce margins: `mb-2 sm:mb-4`, `mt-1 sm:mt-2`
+
+3. **Responsive Show/Hide**
+   - `sm:hidden` — visible on mobile only
+   - `hidden sm:block` — visible on desktop only
+   - Use for mobile-specific separators: `<span className="sm:hidden">·</span>`
+
+4. **Testing Checklist**
+   - Browser devtools → responsive mode → 375x667 (iPhone SE)
+   - Verify modals/dialogs fit without scrolling
+   - Check all buttons/links are tappable (44px minimum)
+   - Confirm no horizontal overflow/scroll
+   - Test with actual touch if possible (not just mouse clicks)
+
+5. **Common Mobile Issues to Watch**
+   - Modals taller than viewport (reduce padding, combine elements)
+   - Text too small (minimum 14px / text-sm)
+   - Buttons too close together (add gap-2 minimum)
+   - Form inputs too narrow (use w-full on mobile)
+
+**Code Patterns:**
+- DialogContent: `className="p-4 sm:p-8 gap-3 sm:gap-5"`
+- Compact header: `<div className="flex items-center gap-2 sm:flex-col sm:gap-0">`
+- Responsive text: `text-xs sm:text-sm`, `text-lg sm:text-2xl`
+- Step indicators: `mb-2 sm:mb-4 pb-2 sm:pb-4`
