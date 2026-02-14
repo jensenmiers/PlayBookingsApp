@@ -81,45 +81,19 @@ export function AuthModal() {
       setLoading(false)
     }
 
-    // Primary: BroadcastChannel (works when window.opener is severed by COOP)
     let channel: BroadcastChannel | null = null
     try {
       channel = new BroadcastChannel('play-bookings-auth')
       channel.onmessage = async (event) => {
         if (event.data?.type === 'AUTH_COMPLETE') {
           refreshSession()
-        } else if (event.data?.type === 'AUTH_CODE_TO_EXCHANGE' && event.data?.code) {
-          // Popup lacked code_verifier; main window has it. Exchange here.
-          const supabase = createClient()
-          const { error } = await supabase.auth.exchangeCodeForSession(event.data.code)
-          if (!error) {
-            refreshSession()
-          } else {
-            console.error('Fallback code exchange failed:', error)
-          }
-          setLoading(false)
         }
       }
     } catch {
       // BroadcastChannel not supported
     }
 
-    // Fallback: postMessage (works when window.opener is preserved)
-    const handleMessage = async (event: MessageEvent) => {
-      if (event.origin !== window.location.origin) return
-      if (event.data?.type !== 'AUTH_CODE' || !event.data?.code) return
-
-      const supabase = createClient()
-      const { error } = await supabase.auth.exchangeCodeForSession(event.data.code)
-      if (error) {
-        console.error('Code exchange failed:', error)
-      }
-      setLoading(false)
-    }
-
-    window.addEventListener('message', handleMessage)
     return () => {
-      window.removeEventListener('message', handleMessage)
       channel?.close()
     }
   }, [])
@@ -133,62 +107,35 @@ export function AuthModal() {
     }
   }, [isOpen])
 
-  const handleGoogleAuth = async () => {
-    try {
-      setLoading(true)
-      setPopupBlocked(false)
+  const handleGoogleAuth = () => {
+    setLoading(true)
+    setPopupBlocked(false)
 
-      const supabase = createClient()
-      const callbackUrl = buildAuthUrl()
+    const popupParams = new URLSearchParams()
+    if (returnTo) popupParams.set('returnTo', returnTo)
+    if (intent === 'host') popupParams.set('intent', 'host')
 
-      // Calculate popup position (centered)
-      const width = 500
-      const height = 600
-      const left = window.screenX + (window.outerWidth - width) / 2
-      const top = window.screenY + (window.outerHeight - height) / 2
+    const popupUrl = `${window.location.origin}/api/auth/popup-oauth?${popupParams.toString()}`
 
-      // Get the OAuth URL from Supabase
-      const { data, error } = await supabase.auth.signInWithOAuth({
-        provider: 'google',
-        options: {
-          redirectTo: callbackUrl,
-          skipBrowserRedirect: true, // Prevent automatic redirect, we'll handle it
-        },
-      })
+    const width = 500
+    const height = 600
+    const left = window.screenX + (window.outerWidth - width) / 2
+    const top = window.screenY + (window.outerHeight - height) / 2
 
-      if (error) {
-        console.error('Error getting OAuth URL:', error)
-        setLoading(false)
-        return
-      }
+    const popup = window.open(
+      popupUrl,
+      'PlayBookingsAuth',
+      `width=${width},height=${height},left=${left},top=${top},toolbar=no,menubar=no,scrollbars=yes,resizable=yes`
+    )
 
-      if (!data.url) {
-        console.error('No OAuth URL returned')
-        setLoading(false)
-        return
-      }
-
-      // Open popup window
-      const popup = window.open(
-        data.url,
-        'PlayBookingsAuth',
-        `width=${width},height=${height},left=${left},top=${top},toolbar=no,menubar=no,scrollbars=yes,resizable=yes`
-      )
-
-      if (!popup || popup.closed || typeof popup.closed === 'undefined') {
-        // Popup was blocked
-        setPopupBlocked(true)
-        setLoading(false)
-        return
-      }
-
-      setPopupWindow(popup)
-      popup.focus()
-
-    } catch (error) {
-      console.error('Error during authentication:', error)
+    if (!popup || popup.closed || typeof popup.closed === 'undefined') {
+      setPopupBlocked(true)
       setLoading(false)
+      return
     }
+
+    setPopupWindow(popup)
+    popup.focus()
   }
 
   const handleFallbackRedirect = async () => {

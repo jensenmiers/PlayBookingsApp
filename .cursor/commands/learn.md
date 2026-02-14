@@ -1,13 +1,13 @@
 
-**Update claude.md with Today's Engineering Learnings**
+**Update .cursorrules with Today/Yesterday's Engineering Learnings**
 
-Please help me document the last 24-48 hours' engineering learnings by updating the `claude.md` file in the root of this project.
+Please help me document the last 24-48 hours of engineering learnings by updating the `.cursorrules` file in the root of this project.
 
-Review my chat threads/conversations, git commits, file changes, and work from the last 24-48 hours and add a new learning entry (if not already documented previously) to the appropriate section of `claude.md`.
+Review my chat threads & conversations, git commits, file changes, and work from the last 24-48 hours and add a new learning entry (if not already documented previously) to the appropriate section of `.cursorrules`.
 
 **Instructions:**
 
-1. Read the existing `claude.md` file to understand the current structure and format
+1. Read the existing `.cursorrules` file to understand the current structure and format
 2. Add today's learnings in a way that's most useful for an AI coding agent to reference in future sessions
 3. Focus on learnings that would help the agent understand:
    - Architectural decisions I made and why
@@ -29,4 +29,4 @@ Keep entries concise but actionable - these learnings should compound over time 
 
 ---
 
-This approach lets us build institutional knowledge directly into the project so Cursor/Claude can reference, making the AI progressively better at understanding this specific codebase and decisions.
+The goal is to build institutional knowledge directly into the project so AI agents can reference, making the AI agent progressively better at understanding this specific codebase and decisions.
