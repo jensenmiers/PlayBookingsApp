@@ -355,3 +355,29 @@ Success criteria: `npm run test` passes; new behavior is covered by at least one
 - Compact header: `<div className="flex items-center gap-2 sm:flex-col sm:gap-0">`
 - Responsive text: `text-xs sm:text-sm`, `text-lg sm:text-2xl`
 - Step indicators: `mb-2 sm:mb-4 pb-2 sm:pb-4`
+
+### 2026-02-13 — Auth Flow Refactor: Callback Route, Popup OAuth, TDD Rule
+
+**Context:** Refactored OAuth from full-page redirect to popup flow; moved auth callback from a client page to a route handler; consolidated project rules into `.cursorrules`; added TDD as a project rule.
+
+**Key Learnings:**
+
+1. **Auth callback as Route Handler, not Page**
+   - OAuth callback should be a **route handler** (`src/app/auth/callback/route.ts`) that exchanges the code and redirects, not a client page. A page would run in the browser and expose the code; a route runs on the server and keeps the exchange server-side. Same handler supports both popup and full-window flows via `?popup=true`; popup flow redirects to `/auth/popup-success` for cross-window signaling.
+
+2. **Popup OAuth flow in this codebase**
+   - **Start:** User clicks "Sign in with Google" in `AuthModal` → opens popup to `GET /api/auth/popup-oauth?returnTo=...&intent=...`. That API route calls `signInWithOAuth({ redirectTo: callbackUrl, skipBrowserRedirect: true })` and redirects the popup to the provider.
+   - **Callback:** Provider redirects to `/auth/callback?code=...&popup=true&returnTo=...&intent=...`. Route handler exchanges code for session, then redirects to `/auth/popup-success` (with optional returnTo/intent).
+   - **Cross-window sync:** Popup-success page posts `BroadcastChannel('play-bookings-auth').postMessage({ type: 'AUTH_COMPLETE' })`, then closes. Opener (AuthModal) listens on the same channel and on message calls `supabase.auth.getSession()` then `setSession()` to sync session and trigger `onAuthStateChange`. Fallback: when popup closes, opener polls `getSession()` after a short delay if BroadcastChannel isn't used.
+
+3. **Single callback URL for popup vs full-window**
+   - One callback URL: `/auth/callback`. Query param `popup=true` distinguishes flow. Popup flow skips server-side user profile upsert/redirect logic in the route and redirects to `/auth/popup-success`; full-window flow does profile upsert and redirects to returnTo or upgrade path. Keeps Supabase redirect URL config to a single origin path.
+
+4. **Project rules consolidation**
+   - Project-specific rules and learnings live in `.cursorrules` (root). The "Test-Driven Development" rule was added: tests first (or with code) for non-trivial logic, colocate tests in `__tests__/`, test contract not implementation. Reference `.cursorrules` for AI agents; avoid duplicating rules in `claude.md` or scattered files.
+
+**Code Patterns:**
+- `src/app/auth/callback/route.ts` — GET handler: exchange code, branch on `isPopup`; popup → redirect to popup-success; full-window → upsert user, redirect to returnTo/upgrade.
+- `src/app/api/auth/popup-oauth/route.ts` — builds callback URL with `popup=true`, `signInWithOAuth` with `skipBrowserRedirect: true`, redirects to provider URL.
+- `src/app/auth/popup-success/page.tsx` — posts to BroadcastChannel, then `window.close()` or router.push(returnTo).
+- `src/components/auth/auth-modal.tsx` — opens popup to popup-oauth URL; listens BroadcastChannel for AUTH_COMPLETE; on popup close, optionally re-check getSession/setSession; fallback "Continue in this window" uses same callback URL with `popup=false`.
