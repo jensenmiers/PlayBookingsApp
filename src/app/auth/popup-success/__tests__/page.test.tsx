@@ -93,7 +93,7 @@ describe('PopupSuccessPage', () => {
     closeSpy.mockRestore()
   })
 
-  it('calls router.push with returnTo when window.close throws', async () => {
+  it('shows close-failed UI and does not navigate when window.close throws', async () => {
     mockGet.mockImplementation((key: string) =>
       key === 'error' ? null : key === 'returnTo' ? '/dashboard' : null
     )
@@ -108,15 +108,15 @@ describe('PopupSuccessPage', () => {
     })
 
     await waitFor(() => {
-      expect(mockPush).toHaveBeenCalledWith('/dashboard')
+      expect(screen.getByText('Sign-in Complete')).toBeInTheDocument()
     })
+    expect(screen.getByText('Please close this window to continue.')).toBeInTheDocument()
+    expect(mockPush).not.toHaveBeenCalled()
   })
 
-  it('uses /search when returnTo is missing and close throws', async () => {
+  it('on success does not call router.push when window.close does not throw', async () => {
     mockGet.mockImplementation((key: string) => (key === 'error' ? null : null))
-    jest.spyOn(window, 'close').mockImplementation(() => {
-      throw new Error('close not allowed')
-    })
+    const closeSpy = jest.spyOn(window, 'close').mockImplementation(() => {})
 
     render(<PopupSuccessPage />)
 
@@ -124,8 +124,8 @@ describe('PopupSuccessPage', () => {
       jest.advanceTimersByTime(500)
     })
 
-    await waitFor(() => {
-      expect(mockPush).toHaveBeenCalledWith('/search')
-    })
+    expect(closeSpy).toHaveBeenCalled()
+    expect(mockPush).not.toHaveBeenCalled()
+    closeSpy.mockRestore()
   })
 })

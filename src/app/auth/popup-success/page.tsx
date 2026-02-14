@@ -1,12 +1,11 @@
 'use client'
 
-import { useSearchParams, useRouter } from 'next/navigation'
+import { useSearchParams } from 'next/navigation'
 import { Suspense, useEffect, useState } from 'react'
 
 function PopupSuccessContent() {
   const searchParams = useSearchParams()
-  const router = useRouter()
-  const [status, setStatus] = useState<'success' | 'error'>('success')
+  const [status, setStatus] = useState<'success' | 'error' | 'close-failed'>('success')
   const error = searchParams.get('error')
 
   useEffect(() => {
@@ -27,15 +26,10 @@ function PopupSuccessContent() {
       try {
         window.close()
       } catch {
-        const returnTo = searchParams.get('returnTo')
-        let redirectPath = '/search'
-        if (returnTo && returnTo.startsWith('/') && !returnTo.startsWith('//')) {
-          redirectPath = returnTo
-        }
-        router.push(redirectPath)
+        setStatus('close-failed')
       }
     }, 500)
-  }, [error, searchParams, router])
+  }, [error, searchParams])
 
   if (status === 'error') {
     return (
@@ -54,6 +48,22 @@ function PopupSuccessContent() {
           >
             Try Again
           </button>
+        </div>
+      </div>
+    )
+  }
+
+  if (status === 'close-failed') {
+    return (
+      <div className="flex min-h-screen items-center justify-center bg-gradient-to-br from-secondary-50 via-secondary-50/80 to-primary-50 p-4">
+        <div className="mx-auto max-w-md space-y-4 rounded-2xl border border-border/50 bg-white/95 p-8 text-center shadow-soft">
+          <div className="mx-auto flex h-16 w-16 items-center justify-center rounded-full bg-primary-100 text-primary-600">
+            <svg className="h-8 w-8" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
+            </svg>
+          </div>
+          <h2 className="text-xl font-semibold text-secondary-800">Sign-in Complete</h2>
+          <p className="text-secondary-600">Please close this window to continue.</p>
         </div>
       </div>
     )

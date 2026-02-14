@@ -138,6 +138,46 @@ describe('AuthModal', () => {
     })
   })
 
+  it('does not navigate opener when BroadcastChannel receives AUTH_COMPLETE', async () => {
+    // Opener must only refresh session (getSession + setSession); no location.assign/replace.
+    const session = {
+      access_token: 'token',
+      refresh_token: 'refresh',
+    }
+    mockGetSession.mockResolvedValue({ data: { session }, error: null })
+
+    let channelRef: BroadcastChannel | null = null
+    ;(global as unknown as { BroadcastChannel: unknown }).BroadcastChannel = class MockBC {
+      name: string
+      onmessage: ((ev: { data: unknown }) => void) | null = null
+      constructor(name: string) {
+        this.name = name
+        channelRef = this as unknown as BroadcastChannel
+      }
+      postMessage() {}
+      close() {}
+    }
+
+    render(<AuthModal />)
+
+    await waitFor(() => {
+      expect(channelRef).not.toBeNull()
+    })
+
+    act(() => {
+      ;(channelRef as unknown as { onmessage: (ev: { data: { type: string } }) => void }).onmessage?.(
+        { data: { type: 'AUTH_COMPLETE' } }
+      )
+    })
+
+    await waitFor(() => {
+      expect(mockSetSession).toHaveBeenCalled()
+    })
+
+    expect(mockGetSession).toHaveBeenCalledTimes(1)
+    expect(mockSetSession).toHaveBeenCalledTimes(1)
+  })
+
   it('calls setSession when popup closes and getSession returns session', async () => {
     jest.useFakeTimers()
     const session = {

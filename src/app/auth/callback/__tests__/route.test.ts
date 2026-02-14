@@ -127,6 +127,22 @@ describe('GET /auth/callback', () => {
     expect(location).toContain('intent=host')
   })
 
+  it('popup flow never redirects to in-app path only to popup-success', async () => {
+    mockExchangeCodeForSession.mockResolvedValue({
+      data: { session: { user: {} } },
+      error: null,
+    })
+    const request = createRequest(
+      `${origin}/auth/callback?code=abc&popup=true&returnTo=%2Fsearch`
+    )
+    const response = await GET(request)
+
+    const location = response.headers.get('Location')!
+    expect(location.startsWith(`${origin}/auth/popup-success`)).toBe(true)
+    expect(location).not.toBe(`${origin}/search`)
+    expect(location).not.toBe(`${origin}/dashboard`)
+  })
+
   it('non-popup: new user triggers upsert and redirects to returnTo', async () => {
     mockExchangeCodeForSession.mockResolvedValue({
       data: {
