@@ -18,19 +18,19 @@ export default function BookPage() {
             <TabsList className="w-full grid grid-cols-3 bg-secondary-100 p-1 rounded-xl h-12 border border-secondary-200 shadow-soft">
               <TabsTrigger
                 value="venues"
-                className="rounded-lg border-2 border-transparent data-[state=active]:bg-white data-[state=active]:text-secondary-900 data-[state=active]:font-semibold data-[state=active]:border-secondary-300 data-[state=active]:shadow-md transition-all duration-200 text-secondary-600 hover:text-secondary-800"
+                className="rounded-lg border-2 border-transparent data-[state=active]:bg-white data-[state=active]:text-secondary-900 data-[state=active]:font-semibold data-[state=active]:border-primary-400 data-[state=active]:shadow-md transition-all duration-200 text-secondary-600 hover:text-secondary-800"
               >
                 Venues
               </TabsTrigger>
               <TabsTrigger
                 value="calendar"
-                className="rounded-lg border-2 border-transparent data-[state=active]:bg-white data-[state=active]:text-secondary-900 data-[state=active]:font-semibold data-[state=active]:border-secondary-300 data-[state=active]:shadow-md transition-all duration-200 text-secondary-600 hover:text-secondary-800"
+                className="rounded-lg border-2 border-transparent data-[state=active]:bg-white data-[state=active]:text-secondary-900 data-[state=active]:font-semibold data-[state=active]:border-primary-400 data-[state=active]:shadow-md transition-all duration-200 text-secondary-600 hover:text-secondary-800"
               >
                 Calendar
               </TabsTrigger>
               <TabsTrigger
                 value="map"
-                className="rounded-lg border-2 border-transparent data-[state=active]:bg-white data-[state=active]:text-secondary-900 data-[state=active]:font-semibold data-[state=active]:border-secondary-300 data-[state=active]:shadow-md transition-all duration-200 text-secondary-600 hover:text-secondary-800"
+                className="rounded-lg border-2 border-transparent data-[state=active]:bg-white data-[state=active]:text-secondary-900 data-[state=active]:font-semibold data-[state=active]:border-primary-400 data-[state=active]:shadow-md transition-all duration-200 text-secondary-600 hover:text-secondary-800"
               >
                 Map
               </TabsTrigger>
