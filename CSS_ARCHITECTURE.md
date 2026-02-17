@@ -6,14 +6,14 @@ Play Bookings uses **Tailwind CSS v4** with a CSS-first configuration approach. 
 
 ## Technology Stack
 
-| Technology | Version | Purpose |
-|------------|---------|---------|
-| Tailwind CSS | v4.x | Utility-first CSS framework |
-| PostCSS | via `@tailwindcss/postcss` v4 | CSS processing pipeline |
-| tw-animate-css | v1.3.6 | Animation utilities |
-| class-variance-authority (cva) | v0.7.1 | Component variant management |
-| tailwind-merge | v3.3.1 | Class deduplication |
-| clsx | v2.1.1 | Conditional class joining |
+| Technology | Purpose |
+|------------|---------|
+| Tailwind CSS v4 | Utility-first CSS; config via `@theme` in `globals.css` |
+| PostCSS (`@tailwindcss/postcss` v4) | CSS processing pipeline |
+| Radix UI primitives | Dialog, Tabs, Toast, Label, Slot; styled with Tailwind |
+| tw-animate-css | Animation utilities |
+| class-variance-authority (cva) | Component variant management (Button, Toast, etc.) |
+| tailwind-merge + clsx | Class merging via `cn()` in `@/lib/utils` |
 
 ## File Structure
 
@@ -23,12 +23,13 @@ src/
 │   └── globals.css          # Main CSS entry point, theme definitions
 ├── components/
 │   └── ui/
-│       └── button.tsx       # shadcn/ui components using cva
+│       └── *.tsx            # Radix-based UI components (cva + Tailwind)
 ├── lib/
 │   └── utils.ts             # cn() helper function
-├── tailwind.config.ts       # LEGACY - NOT USED BY TAILWIND V4
 └── postcss.config.mjs       # PostCSS configuration
 ```
+
+There is no `tailwind.config.ts`; Tailwind v4 uses CSS-only configuration.
 
 ## Architecture Hierarchy
 
@@ -41,7 +42,7 @@ src/
 
 ### 2. Theme Configuration (`@theme inline` block)
 
-Tailwind v4 uses CSS-native configuration via `@theme` blocks instead of `tailwind.config.ts`.
+Tailwind v4 uses CSS-native configuration via `@theme` blocks (no `tailwind.config.ts` in this project).
 
 ```css
 @theme inline {
@@ -55,32 +56,11 @@ Tailwind v4 uses CSS-native configuration via `@theme` blocks instead of `tailwi
 
 ### 3. CSS Custom Properties (`:root`)
 
-Design tokens defined as CSS variables:
-
-```css
-:root {
-  /* Primary palette (Gatorade Green) */
-  --primary-500: oklch(0.44 0.130 160);  /* #00693F anchor */
-  --primary-600: oklch(0.38 0.115 160);
-  
-  /* Secondary palette (Warm Neutrals) */
-  --secondary-50: oklch(0.97 0.010 60);   /* warm cream */
-  --secondary-700: oklch(0.35 0.038 45);  /* warm asphalt */
-  
-  /* Accent palette (Gatorade Orange) */
-  --accent-500: oklch(0.65 0.230 33);     /* #fc4c03 anchor */
-  
-  /* Semantic tokens */
-  --background: var(--secondary-50);
-  --foreground: var(--secondary-900);
-  --primary: var(--primary-500);
-  --primary-foreground: var(--secondary-50);
-}
-```
+Design tokens are defined in `globals.css` as CSS variables. Each palette has steps 50–900. Semantic tokens (e.g. `--background`, `--foreground`, `--primary`) reference palette variables. See `globals.css` for current OKLCH values.
 
 ### 4. Component Variants (cva)
 
-shadcn/ui components use `class-variance-authority` for variant management:
+Radix-based UI components use `class-variance-authority` for variant management:
 
 ```tsx
 const buttonVariants = cva(
@@ -109,63 +89,52 @@ export function cn(...inputs) {
 
 ## Color System
 
-The color system is inspired by retro Gatorade branding mixed with traditional basketball aesthetics (leather, gym floors, asphalt).
-
-### Design Philosophy
-
-- **Energy**: Vibrant green and orange convey sports energy
-- **Sports Heritage**: Warm neutrals evoke basketball leather and gym floors
-- **Familiarity**: Classic sports brand colors create instant recognition
+Palettes are Radix-inspired: primary (green/sage to forest), accent (orange), and secondary (warm neutrals). All values live in `globals.css` as OKLCH variables.
 
 ### Palettes
 
-| Palette | Base Color | Hue (OKLCH) | Usage |
-|---------|------------|-------------|-------|
-| **Primary** | Gatorade Green (#00693F) | ~160° | CTAs, buttons, brand elements, links |
-| **Secondary** | Warm Neutrals | ~50-60° | Text, backgrounds, borders, surfaces |
-| **Accent** | Gatorade Orange (#fc4c03) | ~33° | Decorative highlights, badges, energy moments |
-
-### Reference Inspirations
-
-- **Primary (Green)**: Classic Gatorade bottle green
-- **Secondary (Neutrals)**: Maple gym floors (golden-tan), worn basketball leather (cognac), warm asphalt (charcoal)
-- **Accent (Orange)**: Retro Gatorade orange, high-energy "electric" feel
+| Palette | Description | Usage |
+|---------|-------------|-------|
+| **Primary** | Radix Green (sage to forest, ~140–152° hue) | CTAs, buttons, brand elements, links, ring |
+| **Secondary** | Warm neutrals (~45–75° hue) | Text, backgrounds, borders, surfaces, muted |
+| **Accent** | Radix Orange (~32–55° hue) | Badges, highlights, destructive (dark), charts |
 
 ### Shade Scale
 
-Each palette has 10 shades (50-900):
-- 50-200: Light backgrounds, subtle elements
-- 300-400: Borders, disabled states
-- 500: Base color (anchor point)
-- 600-700: Interactive states, hover
-- 800-900: Text, dark backgrounds
+Each palette has steps 50–900 in `globals.css`:
+- 50–200: Light backgrounds, subtle elements
+- 300–400: Borders, disabled states
+- 500: Base (anchor); semantic `--primary` / `--accent` point here in light mode
+- 600–700: Interactive states, hover
+- 800–900: Text, dark backgrounds
 
 ### Semantic Tokens
 
-| Token | Light Mode | Dark Mode | Purpose |
-|-------|------------|-----------|---------|
-| `--background` | secondary-50 | secondary-900 | Page background (warm cream) |
-| `--foreground` | secondary-900 | near-white | Primary text (warm charcoal) |
-| `--primary` | primary-500 | primary-400 | Brand color (Gatorade green) |
-| `--primary-foreground` | secondary-50 | secondary-900 | Text on green surfaces |
-| `--secondary` | secondary-500 | secondary-400 | Neutral accent (cognac) |
-| `--accent` | accent-500 | accent-400 | Highlight color (Gatorade orange) |
+Semantic tokens are set in `:root` and overridden in `.dark`. See `globals.css` for full definitions.
+
+| Token | Light | Dark | Purpose |
+|-------|-------|------|---------|
+| `--background` | secondary-50 | secondary-900 | Page background |
+| `--foreground` | secondary-900 | near-white | Primary text |
+| `--primary` | primary-500 | primary-400 | Brand (green) |
+| `--primary-foreground` | secondary-900 | secondary-900 | Text on primary |
+| `--secondary` | secondary-500 | secondary-400 | Neutral accent |
+| `--accent` | accent-500 | accent-400 | Highlight (orange) |
 | `--muted` | secondary-100 | secondary-700 | Subtle backgrounds |
-| `--border` | secondary-200 | secondary-800 | Borders and dividers |
+| `--border` | secondary-200 | mixed (dark) | Borders, dividers |
 
 ### Accessibility Notes
 
-- **Green (#00693F)**: ~5.5:1 contrast on white — passes WCAG AA for all text sizes
-- **Orange (#fc4c03)**: ~3.1:1 contrast on white — decorative only, not for text
-- **Body text**: Use secondary-700 or darker on secondary-50 for 4.5:1+ contrast
+- Use primary (green) and secondary-700+ on light backgrounds for sufficient contrast.
+- Accent (orange) is used for decorative elements and badges; ensure text on accent meets contrast requirements where used.
 
 ## Known Issues & Gotchas
 
-### 1. `tailwind.config.ts` is IGNORED
+### 1. No JavaScript Tailwind Config
 
-Tailwind v4 does NOT read `tailwind.config.ts` by default. All color definitions in that file are unused. Colors must be defined in `globals.css` via:
-- CSS custom properties in `:root`
-- Mappings in `@theme inline` block
+This project does not use `tailwind.config.ts`. Tailwind v4 uses CSS-only configuration. All theme values (colors, radius, etc.) are defined in `globals.css` via:
+- CSS custom properties in `:root` (and `.dark`)
+- Mappings in the `@theme inline` block
 
 ### 2. Shade Classes Require Explicit Mapping
 
@@ -178,11 +147,9 @@ To use `bg-secondary-600`, you MUST have:
 
 Without this mapping, the class compiles but resolves to transparent.
 
-### 3. cva Variants Override Custom Classes
+### 3. cva Variants vs Custom Classes
 
-The Button component's default variant applies `text-primary-foreground`. When you add `text-white` via className, `tailwind-merge` may not properly override it because they're different utility types.
-
-**Workaround**: Use `!text-white` (important modifier) or inline styles.
+Button (and other cva-based components) apply variant styles that may conflict with passed `className` values. `tailwind-merge` deduplicates by utility type, so a variant class like `text-primary-foreground` might not be overridden by `text-white`. **Workaround**: Use the `!` modifier (e.g. `!text-white`) or inline styles when you need to force an override.
 
 ### 4. OKLCH Color Space
 
@@ -190,11 +157,11 @@ Colors use OKLCH for perceptual uniformity. Browser DevTools may show colors as 
 
 ## Migration Notes
 
-If migrating from Tailwind v3:
-1. Move color definitions from `tailwind.config.ts` to `globals.css`
-2. Add all color shades to `@theme inline` block
-3. Update any hardcoded hex values to use CSS variables
-4. Test all components for color resolution
+If migrating from Tailwind v3 (or a project that used `tailwind.config.ts`):
+1. Define colors and theme in `globals.css` (`:root` and `@theme inline`)
+2. Add all palette steps and semantic tokens to the `@theme inline` block so Tailwind utilities resolve
+3. Replace hardcoded hex with CSS variables
+4. Verify components resolve colors correctly
 
 ## Debugging CSS Issues
 

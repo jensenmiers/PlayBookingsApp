@@ -1,39 +1,27 @@
 # Database Structure - Live Query Results
 
-This document contains the actual database structure as queried via Supabase MCP on **2025-01-15**.
-Last updated: **2026-01-16** (added weekend_rate column to venues).
+This document contains the actual database structure as queried via Supabase MCP.
+Last updated: **2026-02-16** (audit: aligned with live Supabase).
 
 ## 📊 Database Overview
 
 - **Total Tables**: 10 tables in `public` schema
-- **RLS Status**: 8 tables with RLS enabled, 2 tables with RLS disabled ⚠️
+- **RLS Status**: 10 tables with RLS enabled ✅
 - **Extensions**: 
   - `uuid-ossp` (1.1) - UUID generation
   - `pgcrypto` (1.3) - Cryptographic functions
   - `pg_stat_statements` (1.11) - Query statistics
   - `pg_graphql` (1.5.11) - GraphQL support
   - `supabase_vault` (0.3.1) - Vault extension
-
-## 🔴 Critical Security Issues
-
-### RLS Disabled Tables
-1. **`recurring_bookings`** - RLS is **DISABLED** ⚠️
-2. **`payments`** - RLS is **DISABLED** ⚠️
-
-**Action Required**: Enable RLS on these tables immediately!
+  - `postgis` (3.3.7) - Spatial types (geography/geometry) for venue location
 
 ### Function Security Issues
-Most functions have mutable `search_path` which is a security risk:
-- `check_booking_conflicts`
-- `check_recurring_booking_conflicts`
-- `check_insurance_requirements`
-- `update_updated_at_column`
+Some functions have mutable `search_path` (Supabase security advisor):
 - `log_audit_trail`
-- ~~`handle_new_user`~~ ✅ Fixed (2026-01-09)
-- `generate_recurring_bookings`
-- `check_cancellation_policy`
+- `check_insurance_requirements_deprecated`
+- `update_updated_at_column`
 
-**Remediation**: Add `SET search_path = public` to all functions.
+**Remediation**: Add `SET search_path = public` to the above functions. `handle_new_user` and the deprecated conflict/booking functions have already been fixed.
 
 ## 📋 Table Structures
 
@@ -77,6 +65,7 @@ Most functions have mutable `search_path` which is a security risk:
 - `photos` (text[], DEFAULT: '{}')
 - `amenities` (text[], DEFAULT: '{}')
 - `is_active` (boolean, DEFAULT: true)
+- `location` (geography(Point, 4326), nullable) — PostGIS point for spatial queries. Populated from latitude/longitude. Use `ST_X(location::geometry)` for longitude, `ST_Y(location::geometry)` for latitude.
 - `created_at` (timestamptz, DEFAULT: now())
 - `updated_at` (timestamptz, DEFAULT: now())
 
@@ -124,7 +113,7 @@ Most functions have mutable `search_path` which is a security risk:
 **Foreign Keys:**
 - Referenced by: recurring_bookings, insurance_documents, payments, messages
 
-### 5. `recurring_bookings` (RLS: ❌ **DISABLED**, Rows: 0) ⚠️
+### 5. `recurring_bookings` (RLS: ✅ Enabled)
 
 **Columns:**
 - `id` (uuid, PK, DEFAULT: uuid_generate_v4())
@@ -142,8 +131,6 @@ Most functions have mutable `search_path` which is a security risk:
 
 **Constraints:**
 - CHECK: start_time < end_time
-
-**⚠️ SECURITY ISSUE**: RLS is disabled on this table!
 
 ### 6. `insurance_documents` (RLS: ✅ Enabled, Rows: 0)
 
@@ -166,7 +153,7 @@ Most functions have mutable `search_path` which is a security risk:
 **Constraints:**
 - CHECK: effective_date < expiration_date
 
-### 7. `payments` (RLS: ❌ **DISABLED**, Rows: 0) ⚠️
+### 7. `payments` (RLS: ✅ Enabled)
 
 **Columns:**
 - `id` (uuid, PK, DEFAULT: uuid_generate_v4())
@@ -174,18 +161,17 @@ Most functions have mutable `search_path` which is a security risk:
 - `renter_id` (uuid, NOT NULL) → References `users.id`
 - `venue_id` (uuid, NOT NULL) → References `venues.id`
 - `stripe_payment_intent_id` (text, nullable, UNIQUE)
+- `stripe_setup_intent_id` (text, nullable, UNIQUE) — Card-on-file authorization for deferred payment (SetupIntent flow)
 - `stripe_transfer_id` (text, nullable)
 - `amount` (numeric, NOT NULL)
 - `platform_fee` (numeric, NOT NULL, DEFAULT: 0)
 - `venue_owner_amount` (numeric, NOT NULL)
-- `status` (payment_status enum: 'pending' | 'paid' | 'refunded' | 'failed', DEFAULT: 'pending')
+- `status` (payment_status enum: 'pending' | 'authorized' | 'paid' | 'refunded' | 'failed', DEFAULT: 'pending')
 - `paid_at` (timestamptz, nullable)
 - `refunded_at` (timestamptz, nullable)
 - `refund_amount` (numeric, nullable)
 - `created_at` (timestamptz, DEFAULT: now())
 - `updated_at` (timestamptz, DEFAULT: now())
-
-**⚠️ SECURITY ISSUE**: RLS is disabled on this table!
 
 ### 8. `audit_logs` (RLS: ✅ Enabled, Rows: 0)
 
@@ -228,18 +214,15 @@ Most functions have mutable `search_path` which is a security risk:
 - `is_read` (boolean, DEFAULT: false)
 - `created_at` (timestamptz, DEFAULT: now())
 
-## 🔧 Database Functions (from migration files)
+## 🔧 Database Functions (from live DB)
 
-Based on migration files, these functions should exist:
+Functions in `public` schema:
 
 1. **`update_updated_at_column()`** - Auto-updates `updated_at` timestamps
-2. **`check_booking_conflicts()`** - Validates booking time conflicts (deprecated, moved to API)
-3. **`check_recurring_booking_conflicts()`** - Validates recurring booking conflicts (deprecated, moved to API)
-4. **`log_audit_trail()`** - Creates audit log entries
-5. **`handle_new_user()`** - Creates user profile after auth signup ✅ **Fixed 2026-01-09**
-6. **`generate_recurring_bookings()`** - Generates recurring booking instances (deprecated, moved to API)
-7. **`check_cancellation_policy()`** - Validates 48-hour cancellation window (deprecated, moved to API)
-8. **`check_insurance_requirements()`** - Ensures insurance approval before confirmation (deprecated, moved to API)
+2. **`log_audit_trail()`** - Creates audit log entries
+3. **`handle_new_user()`** - Creates user profile after auth signup ✅ **Fixed 2026-01-09**
+4. **`get_venues_with_next_available()`** - Returns active venues with coordinates and next available slot. Supports optional date and radius filtering via PostGIS.
+5. **Deprecated (no longer used by triggers)** - `check_booking_conflicts_deprecated`, `check_recurring_booking_conflicts_deprecated`, `check_insurance_requirements_deprecated`, `check_cancellation_policy_deprecated`, `generate_recurring_bookings_deprecated`
 
 ### `handle_new_user()` Function Details
 
@@ -285,19 +268,31 @@ $$;
 
 **Fix Applied**: The previous version referenced a non-existent `role` column (which was replaced by boolean flags in migration `20251231055310_user_role_booleans`). This caused "Database error saving new user" errors for all new user signups.
 
-## ⚠️ Security Advisors Summary
+## ⚠️ Security Advisors Summary (as of 2026-02-16)
 
-### Critical Issues:
-1. **RLS Disabled**: `recurring_bookings`, `payments` tables
-2. **Function Search Path**: 7 of 8 functions have mutable search_path (1 fixed: `handle_new_user`)
-3. **Postgres Version**: Security patches available (17.4.1.074)
+### Resolved:
+- **RLS**: All 10 tables now have RLS enabled with policies ✅
 
 ### Warnings:
-1. **Auth OTP Expiry**: Email OTP expiry exceeds 1 hour
-2. **Leaked Password Protection**: Disabled
-3. **Postgres Version**: Has outstanding security patches
+1. **Function Search Path**: 3 functions have mutable search_path — `log_audit_trail`, `check_insurance_requirements_deprecated`, `update_updated_at_column`
+2. **Auth OTP Expiry**: Email OTP expiry exceeds 1 hour
+3. **Leaked Password Protection**: Disabled
+4. **Postgres Version**: Security patches available (17.4.1.074)
 
 ## ✅ Recent Fixes
+
+### 2026-02-10: Payment status `authorized` and `stripe_setup_intent_id`
+**Migration**: `add_authorized_payment_status_and_setup_intent`
+
+- Added `authorized` to `payment_status` enum (for card-on-file / SetupIntent flow before capture)
+- Added `stripe_setup_intent_id` column (text, nullable, UNIQUE) to `payments` for deferred payment flows
+
+### 2026-01-21: Venue location (PostGIS) and `get_venues_with_next_available`
+**Migrations**: `enable_postgis`, `add_venue_location_geography`, `create_get_venues_with_next_available`
+
+- PostGIS extension enabled
+- `venues.location` column (geography) added for spatial queries; populated from latitude/longitude
+- `get_venues_with_next_available()` function for radius/distance filtering
 
 ### 2026-01-16: Added `weekend_rate` Column to Venues
 **Migration**: `add_weekend_rate_to_venues`
@@ -319,8 +314,7 @@ $$;
 
 ## 📝 Next Steps
 
-1. **URGENT**: Enable RLS on `recurring_bookings` and `payments` tables
-2. Fix function security by adding `SET search_path = public` to remaining 7 functions
-3. Review and update RLS policies for the two disabled tables
-4. Consider moving business logic from triggers to application code (as discussed)
+1. Fix function security: add `SET search_path = public` to `log_audit_trail`, `check_insurance_requirements_deprecated`, `update_updated_at_column`
+2. Consider enabling Auth OTP expiry < 1 hour and leaked password protection in Supabase dashboard
+3. Plan Postgres upgrade when security patches are available
 
