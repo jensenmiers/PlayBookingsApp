@@ -163,13 +163,13 @@ export default function Home() {
           <div className="absolute inset-0 bg-gradient-to-r from-secondary-900/90 via-transparent to-transparent" />
         </div>
 
-        <div className="relative flex-1 flex min-h-0 flex-col justify-end px-6 pb-6 pt-20 sm:px-10 sm:pt-32 sm:pb-24">
+        <div className="relative flex-1 flex min-h-0 flex-col justify-end px-6 pb-16 sm:px-10 sm:pb-24 pt-32">
           <div className={`transform transition-all duration-1000 ${mounted ? 'translate-y-0 opacity-100' : 'translate-y-12 opacity-0'}`}>
-            <p className="text-accent-400 text-sm sm:text-base font-medium tracking-[0.3em] uppercase mb-2 sm:mb-6">
+            <p className="text-accent-400 text-sm sm:text-base font-medium tracking-[0.3em] uppercase mb-4 sm:mb-6">
               Community Courts, Unlocked
             </p>
             
-            <h1 className="font-serif text-4xl sm:text-7xl md:text-8xl lg:text-[9rem] leading-[0.9] tracking-tight mb-4 sm:mb-12">
+            <h1 className="font-serif text-5xl sm:text-7xl md:text-8xl lg:text-[9rem] leading-[0.9] tracking-tight mb-8 sm:mb-12">
               <span className="block">Find a court.</span>
               <span className="block text-primary-400">Book it.</span>
               <span className="block italic font-light">Go play.</span>
@@ -179,17 +179,17 @@ export default function Home() {
           <div className={`max-w-xl transform transition-all duration-1000 delay-300 ${mounted ? 'translate-y-0 opacity-100' : 'translate-y-12 opacity-0'}`}>
             <Link 
               href="/search"
-              className="group flex items-center justify-between w-full px-5 sm:px-8 py-4 sm:py-6 bg-secondary-50 text-secondary-900 rounded-2xl hover:bg-primary-400 transition-colors"
+              className="group flex items-center justify-between w-full px-6 sm:px-8 py-5 sm:py-6 bg-secondary-50 text-secondary-900 rounded-2xl hover:bg-primary-400 transition-colors"
             >
-              <span className="text-base sm:text-xl font-medium">
+              <span className="text-lg sm:text-xl font-medium">
                 See available courts now
               </span>
-              <svg className="w-5 h-5 sm:w-6 sm:h-6 group-hover:translate-x-2 transition-transform" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+              <svg className="w-6 h-6 group-hover:translate-x-2 transition-transform" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 8l4 4m0 0l-4 4m4-4H3" />
               </svg>
             </Link>
             
-            <p className="mt-2 sm:mt-4 text-secondary-50/60 text-sm sm:text-base">
+            <p className="mt-4 text-secondary-50/60 text-sm sm:text-base">
               No phone calls. No waiting. Just play.
             </p>
           </div>
