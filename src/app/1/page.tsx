@@ -65,52 +65,43 @@ function CourtCard({
       <div className={`relative overflow-hidden rounded-2xl bg-[#2a2520] border border-[#faf4ef]/10 transition-all duration-500 ${
         isHovered ? 'border-[#4ade80]/40 shadow-xl shadow-[#4ade80]/5' : ''
       }`}>
-        {/* Image */}
-        <div className="aspect-[4/3] overflow-hidden">
+        {/* Image with availability badge */}
+        <div className="relative aspect-[4/3] overflow-hidden">
           <div 
             className={`w-full h-full bg-cover bg-center transition-transform duration-700 ${
               isHovered ? 'scale-110' : 'scale-100'
             }`}
             style={{ backgroundImage: `url('${court.image}')` }}
           />
-          {/* Gradient overlay */}
-          <div className="absolute inset-0 bg-gradient-to-t from-[#2a2520] via-[#2a2520]/20 to-transparent" />
-        </div>
-
-        {/* Content */}
-        <div className="relative p-5 sm:p-6 -mt-16">
-          {/* Availability Badge */}
-          <div className="flex items-center gap-2 mb-3">
+          {/* Gradient overlay for badge readability */}
+          <div className="absolute inset-x-0 bottom-0 h-20 bg-gradient-to-t from-[#2a2520]/90 to-transparent" />
+          
+          {/* Availability Badge - positioned at bottom of image */}
+          <div className="absolute bottom-3 left-4 flex items-center gap-2">
             <span className="w-2 h-2 bg-[#4ade80] rounded-full animate-pulse" />
             <span className="text-xs font-medium text-[#4ade80] uppercase tracking-wider">
               Available {court.nextAvailable}
             </span>
           </div>
+        </div>
 
-          {/* Venue Info */}
-          <h3 className="font-serif text-xl sm:text-2xl text-[#faf4ef] mb-1 leading-tight">
-            {court.name}
-          </h3>
-          <p className="text-sm text-[#faf4ef]/50 mb-4">
-            {court.type} · {court.city}
-          </p>
-
-          {/* Price & CTA */}
-          <div className="flex items-center justify-between">
-            <span className="text-lg font-medium text-[#faf4ef]">
+        {/* Content - solid dark area below image */}
+        <div className="p-4 bg-[#2a2520]">
+          {/* Name and Price on same line */}
+          <div className="flex items-baseline justify-between gap-2 mb-1">
+            <h3 className="font-serif text-lg sm:text-xl text-[#faf4ef] leading-tight truncate">
+              {court.name}
+            </h3>
+            <span className="text-base font-medium text-[#faf4ef] whitespace-nowrap">
               ${court.hourlyRate}
               <span className="text-sm text-[#faf4ef]/40">/hr</span>
             </span>
-            
-            <span className={`flex items-center gap-2 text-sm font-medium text-[#4ade80] transition-all duration-300 ${
-              isHovered ? 'opacity-100 translate-x-0' : 'opacity-0 -translate-x-2'
-            }`}>
-              Book Now
-              <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
-              </svg>
-            </span>
           </div>
+          
+          {/* Venue type */}
+          <p className="text-sm text-[#faf4ef]/50">
+            {court.type}
+          </p>
         </div>
 
         {/* Hover Accent Line */}
@@ -137,7 +128,7 @@ function CourtCardsScroll({ courts, mounted }: { courts: typeof SAMPLE_COURTS, m
             <CourtCard court={court} index={i} mounted={mounted} />
           </div>
         ))}
-        {/* Browse All Card */}
+        {/* Browse All Card - matches court card structure */}
         <Link
           href="/venues"
           className={`flex-shrink-0 w-[280px] sm:w-[320px] snap-start transform transition-all duration-700 ${
@@ -145,15 +136,21 @@ function CourtCardsScroll({ courts, mounted }: { courts: typeof SAMPLE_COURTS, m
           }`}
           style={{ transitionDelay: `${400 + courts.length * 150}ms` }}
         >
-          <div className="h-full min-h-[360px] rounded-2xl border-2 border-dashed border-[#faf4ef]/20 flex flex-col items-center justify-center p-6 hover:border-[#4ade80]/40 transition-colors group">
-            <div className="w-16 h-16 rounded-full bg-[#faf4ef]/5 flex items-center justify-center mb-4 group-hover:bg-[#4ade80]/10 transition-colors">
-              <svg className="w-8 h-8 text-[#faf4ef]/40 group-hover:text-[#4ade80] transition-colors" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M17 8l4 4m0 0l-4 4m4-4H3" />
-              </svg>
+          <div className="h-full rounded-2xl border-2 border-dashed border-[#faf4ef]/20 hover:border-[#4ade80]/40 transition-colors group flex flex-col">
+            {/* Match image area height */}
+            <div className="aspect-[4/3] flex items-center justify-center">
+              <div className="w-16 h-16 rounded-full bg-[#faf4ef]/5 flex items-center justify-center group-hover:bg-[#4ade80]/10 transition-colors">
+                <svg className="w-8 h-8 text-[#faf4ef]/40 group-hover:text-[#4ade80] transition-colors" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M17 8l4 4m0 0l-4 4m4-4H3" />
+                </svg>
+              </div>
             </div>
-            <span className="text-[#faf4ef]/60 font-medium group-hover:text-[#4ade80] transition-colors">
-              Browse all courts
-            </span>
+            {/* Match content area */}
+            <div className="p-4 flex items-center justify-center">
+              <span className="text-[#faf4ef]/60 font-medium group-hover:text-[#4ade80] transition-colors">
+                Browse all courts
+              </span>
+            </div>
           </div>
         </Link>
       </div>
