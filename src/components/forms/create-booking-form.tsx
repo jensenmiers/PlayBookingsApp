@@ -312,7 +312,7 @@ export function CreateBookingForm({
             <div className="text-center mb-2 sm:mb-4">
               <p className="text-xs sm:text-sm text-muted-foreground">Booking at</p>
               <div className="flex items-center justify-center gap-2 sm:flex-col sm:gap-0">
-                <p className="text-base sm:text-lg font-medium text-secondary-800">{venue.name}</p>
+                <p className="text-base sm:text-lg font-medium text-secondary-50">{venue.name}</p>
                 <span className="text-muted-foreground sm:hidden">·</span>
                 <p className="text-lg sm:text-2xl font-bold text-primary sm:mt-2">
                   ${pendingBookingAmount.toFixed(2)}
@@ -365,7 +365,7 @@ export function CreateBookingForm({
                     <select
                       {...field}
                       disabled={!!initialVenueId || venuesLoading}
-                      className="flex h-11 w-full rounded-lg border border-input bg-white/80 px-4 py-2 text-sm shadow-xs focus-visible:border-ring focus-visible:ring-ring/40 focus-visible:ring-[3px] disabled:opacity-50"
+                      className="flex h-11 w-full rounded-lg border border-input bg-secondary-800/80 px-4 py-2 text-sm shadow-xs focus-visible:border-ring focus-visible:ring-ring/40 focus-visible:ring-[3px] disabled:opacity-50"
                     >
                       <option value="">Select a venue</option>
                       {venues?.map((v) => (
@@ -414,7 +414,7 @@ export function CreateBookingForm({
                       </div>
                     </FormControl>
                     {showDatePicker && (
-                      <div className="border rounded-lg p-4 bg-white">
+                      <div className="border rounded-lg p-4 bg-secondary-800">
                         <Calendar
                           mode="single"
                           selected={selectedDate}
@@ -481,7 +481,7 @@ export function CreateBookingForm({
 
             {/* Conflict Warning */}
             {checkingConflicts && (
-              <div className="flex items-center gap-2 text-sm text-secondary-600">
+              <div className="flex items-center gap-2 text-sm text-secondary-50/60">
                 <FontAwesomeIcon icon={faSpinner} className="animate-spin" />
                 <span>Checking availability...</span>
               </div>
@@ -502,7 +502,7 @@ export function CreateBookingForm({
                   <FormControl>
                     <select
                       {...field}
-                      className="flex h-11 w-full rounded-lg border border-input bg-white/80 px-4 py-2 text-sm shadow-xs focus-visible:border-ring focus-visible:ring-ring/40 focus-visible:ring-[3px]"
+                      className="flex h-11 w-full rounded-lg border border-input bg-secondary-800/80 px-4 py-2 text-sm shadow-xs focus-visible:border-ring focus-visible:ring-ring/40 focus-visible:ring-[3px]"
                     >
                       <option value="none">One-time booking</option>
                       <option value="weekly">Weekly</option>
@@ -556,7 +556,7 @@ export function CreateBookingForm({
                     <textarea
                       {...field}
                       rows={3}
-                      className="flex w-full rounded-lg border border-input bg-white/80 px-4 py-2 text-sm shadow-xs focus-visible:border-ring focus-visible:ring-ring/40 focus-visible:ring-[3px] resize-none"
+                      className="flex w-full rounded-lg border border-input bg-secondary-800/80 px-4 py-2 text-sm shadow-xs focus-visible:border-ring focus-visible:ring-ring/40 focus-visible:ring-[3px] resize-none"
                       placeholder="Add any special requests or notes..."
                     />
                   </FormControl>
@@ -574,9 +574,9 @@ export function CreateBookingForm({
 
             {/* Booking Summary */}
             {venue && watchedDate && watchedStartTime && watchedEndTime && (
-              <div className="rounded-lg border border-border bg-secondary-50 p-4">
+              <div className="rounded-lg border border-border bg-background p-4">
                 <h4 className="font-semibold text-sm mb-2">Booking Summary</h4>
-                <div className="space-y-1 text-sm text-secondary-700">
+                <div className="space-y-1 text-sm text-secondary-50/70">
                   <p>
                     <span className="font-medium">Venue:</span> {venue.name}
                   </p>
@@ -641,16 +641,16 @@ function WizardStepIndicator({ currentStep }: { currentStep: 'form' | 'payment' 
   const currentIndex = currentStep === 'form' ? 0 : 1
 
   return (
-    <div className="flex items-center justify-center gap-2 mb-2 sm:mb-4 pb-2 sm:pb-4 border-b border-secondary-200">
+    <div className="flex items-center justify-center gap-2 mb-2 sm:mb-4 pb-2 sm:pb-4 border-b border-secondary-50/10">
       {steps.map((step, index) => (
         <div key={step.key} className="flex items-center">
           <div
             className={`flex items-center justify-center w-8 h-8 rounded-full text-sm font-medium ${
               index < currentIndex
-                ? 'bg-green-500 text-white'
+                ? 'bg-primary-400 text-secondary-900'
                 : index === currentIndex
-                ? 'bg-secondary-600 text-white'
-                : 'bg-secondary-200 text-secondary-500'
+                ? 'bg-primary-400 text-secondary-900'
+                : 'bg-secondary-50/10 text-secondary-50/50'
             }`}
           >
             {index < currentIndex ? (
@@ -661,7 +661,7 @@ function WizardStepIndicator({ currentStep }: { currentStep: 'form' | 'payment' 
           </div>
           <span
             className={`ml-2 text-sm ${
-              index <= currentIndex ? 'text-secondary-800 font-medium' : 'text-secondary-400'
+              index <= currentIndex ? 'text-secondary-50 font-medium' : 'text-secondary-400'
             }`}
           >
             {step.label}
@@ -669,7 +669,7 @@ function WizardStepIndicator({ currentStep }: { currentStep: 'form' | 'payment' 
           {index < steps.length - 1 && (
             <div
               className={`w-8 h-0.5 mx-3 ${
-                index < currentIndex ? 'bg-green-500' : 'bg-secondary-200'
+                index < currentIndex ? 'bg-primary-400' : 'bg-secondary-50/10'
               }`}
             />
           )}
@@ -760,7 +760,7 @@ function WizardPaymentForm({
       />
 
       {errorMessage && (
-        <div className="text-red-600 text-sm text-center p-2 bg-red-50 rounded-lg">
+        <div className="text-destructive text-sm text-center p-2 bg-destructive/15 rounded-lg">
           {errorMessage}
         </div>
       )}

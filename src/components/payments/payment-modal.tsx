@@ -79,7 +79,7 @@ function PaymentForm({
     <form onSubmit={handleSubmit} className="space-y-6">
       <div className="text-center mb-4">
         <p className="text-sm text-muted-foreground">Booking at</p>
-        <p className="text-lg font-medium text-secondary-800">{venueName}</p>
+        <p className="text-lg font-medium text-secondary-50">{venueName}</p>
         <p className="text-2xl font-bold text-primary mt-2">
           ${amount.toFixed(2)}
         </p>
@@ -92,7 +92,7 @@ function PaymentForm({
       />
 
       {errorMessage && (
-        <div className="text-red-600 text-sm text-center p-2 bg-red-50 rounded-lg">
+        <div className="text-destructive text-sm text-center p-2 bg-destructive/15 rounded-lg">
           {errorMessage}
         </div>
       )}
@@ -175,7 +175,7 @@ export function PaymentModal({
 
         {intentError && (
           <div className="py-4 text-center">
-            <p className="text-red-600 text-sm">{intentError}</p>
+            <p className="text-destructive text-sm">{intentError}</p>
             <Button
               variant="outline"
               onClick={() => createIntent(bookingId)}

@@ -148,7 +148,7 @@ function StripePaymentForm({
       <div className="text-center mb-2 sm:mb-4">
         <p className="text-xs sm:text-sm text-muted-foreground">Booking at</p>
         <div className="flex items-center justify-center gap-2 sm:flex-col sm:gap-0">
-          <p className="text-base sm:text-lg font-medium text-secondary-800">{venueName}</p>
+          <p className="text-base sm:text-lg font-medium text-secondary-50">{venueName}</p>
           <span className="text-muted-foreground sm:hidden">·</span>
           <p className="text-lg sm:text-2xl font-bold text-primary sm:mt-2">
             ${amount.toFixed(2)}
@@ -168,7 +168,7 @@ function StripePaymentForm({
       />
 
       {errorMessage && (
-        <div className="text-red-600 text-sm text-center p-2 bg-red-50 rounded-lg">
+        <div className="text-destructive text-sm text-center p-2 bg-destructive/15 rounded-lg">
           {errorMessage}
         </div>
       )}
@@ -250,44 +250,44 @@ function BookingDetailsView({
       <div className="space-y-4 py-4">
         {/* Venue Info */}
         <div className="space-y-1">
-          <p className="text-sm font-semibold text-secondary-800">Venue</p>
-          <p className="text-sm text-secondary-600">{venue.name}</p>
-          <p className="text-xs text-secondary-500">
+          <p className="text-sm font-semibold text-secondary-50">Venue</p>
+          <p className="text-sm text-secondary-50/60">{venue.name}</p>
+          <p className="text-xs text-secondary-50/50">
             {venue.city}, {venue.state}
           </p>
         </div>
 
         {/* Date & Time */}
         <div className="space-y-1">
-          <p className="text-sm font-semibold text-secondary-800">Date & Time</p>
-          <p className="text-sm text-secondary-600">{displayDate}</p>
-          <p className="text-sm text-secondary-600">
+          <p className="text-sm font-semibold text-secondary-50">Date & Time</p>
+          <p className="text-sm text-secondary-50/60">{displayDate}</p>
+          <p className="text-sm text-secondary-50/60">
             {formatTime(startTime)} - {formatTime(endTime)}
           </p>
         </div>
 
         {/* Pricing */}
         <div className="space-y-1">
-          <p className="text-sm font-semibold text-secondary-800">Pricing</p>
+          <p className="text-sm font-semibold text-secondary-50">Pricing</p>
           <div className="flex justify-between items-center">
-            <span className="text-sm text-secondary-600">
+            <span className="text-sm text-secondary-50/60">
               ${venue.hourly_rate}/hr × {durationHours} hour{durationHours !== 1 ? 's' : ''}
             </span>
-            <span className="text-sm font-medium text-secondary-800">
+            <span className="text-sm font-medium text-secondary-50">
               ${estimatedTotal.toFixed(2)}
             </span>
           </div>
-          <div className="flex justify-between items-center pt-2 border-t border-secondary-200">
-            <span className="text-sm font-semibold text-secondary-800">Total</span>
-            <span className="text-base font-bold text-secondary-900">
+          <div className="flex justify-between items-center pt-2 border-t border-secondary-50/10">
+            <span className="text-sm font-semibold text-secondary-50">Total</span>
+            <span className="text-base font-bold text-secondary-50">
               ${estimatedTotal.toFixed(2)}
             </span>
           </div>
         </div>
 
         {/* Payment Info Notice */}
-        <div className="p-3 bg-blue-50 border border-blue-200 rounded-lg">
-          <p className="text-xs text-blue-800">
+        <div className="p-3 bg-primary-400/15 border border-primary-400/30 rounded-lg">
+          <p className="text-xs text-primary-400">
             <FontAwesomeIcon icon={faCreditCard} className="mr-1" />
             <span className="font-semibold">Payment Required:</span>{' '}
             {venue.instant_booking && !venue.insurance_required
@@ -316,7 +316,7 @@ function BookingDetailsView({
         <Button
           onClick={onConfirm}
           disabled={isLoading}
-          className="flex-1 bg-secondary-600 hover:bg-secondary-700 text-white"
+          className="flex-1 bg-primary-400 text-secondary-900 hover:bg-primary-500"
         >
           {isLoading ? (
             <>
@@ -352,10 +352,10 @@ function StepIndicator({ currentStep }: { currentStep: FlowStep }) {
           <div
             className={`flex items-center justify-center w-8 h-8 rounded-full text-sm font-medium ${
               index < currentIndex
-                ? 'bg-green-500 text-white'
+                ? 'bg-primary-400 text-secondary-900'
                 : index === currentIndex
-                ? 'bg-secondary-600 text-white'
-                : 'bg-secondary-200 text-secondary-500'
+                ? 'bg-primary-400 text-secondary-900'
+                : 'bg-secondary-50/10 text-secondary-50/50'
             }`}
           >
             {index < currentIndex ? (
@@ -366,7 +366,7 @@ function StepIndicator({ currentStep }: { currentStep: FlowStep }) {
           </div>
           <span
             className={`ml-2 text-sm ${
-              index <= currentIndex ? 'text-secondary-800 font-medium' : 'text-secondary-400'
+              index <= currentIndex ? 'text-secondary-50 font-medium' : 'text-secondary-400'
             }`}
           >
             {step.label}
@@ -374,7 +374,7 @@ function StepIndicator({ currentStep }: { currentStep: FlowStep }) {
           {index < steps.length - 1 && (
             <div
               className={`w-8 h-0.5 mx-2 ${
-                index < currentIndex ? 'bg-green-500' : 'bg-secondary-200'
+                index < currentIndex ? 'bg-primary-400' : 'bg-secondary-50/10'
               }`}
             />
           )}

@@ -8,11 +8,11 @@ interface EmptyAvailabilityStateProps {
 
 export function EmptyAvailabilityState({ onViewTomorrow }: EmptyAvailabilityStateProps) {
   return (
-    <div className="bg-white rounded-2xl shadow-soft p-8 text-center">
+    <div className="bg-secondary-800 rounded-2xl shadow-soft p-8 text-center">
       <div className="space-y-4">
-        <div className="text-secondary-600">
+        <div className="text-secondary-50/60">
           <p className="text-lg font-medium mb-2">No available times today</p>
-          <p className="text-sm text-secondary-500">
+          <p className="text-sm text-secondary-50/50">
             This venue doesn&apos;t have any available time slots for today.
           </p>
         </div>

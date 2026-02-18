@@ -29,9 +29,9 @@ const toastVariants = cva(
   {
     variants: {
       variant: {
-        default: 'border-secondary-200 bg-white text-secondary-800',
-        success: 'border-green-200 bg-green-50 text-green-800',
-        error: 'border-red-200 bg-red-50 text-red-800',
+        default: 'border-secondary-50/10 bg-secondary-800 text-secondary-50',
+        success: 'border-primary-400/20 bg-primary-400/10 text-primary-400',
+        error: 'border-destructive/20 bg-destructive/10 text-destructive',
       },
     },
     defaultVariants: {
@@ -62,7 +62,7 @@ const ToastAction = React.forwardRef<
   <ToastPrimitives.Action
     ref={ref}
     className={cn(
-      'inline-flex h-8 shrink-0 items-center justify-center rounded-md border bg-transparent px-3 text-sm font-medium ring-offset-background transition-colors hover:bg-secondary-100 focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2 disabled:pointer-events-none disabled:opacity-50',
+      'inline-flex h-8 shrink-0 items-center justify-center rounded-md border bg-transparent px-3 text-sm font-medium ring-offset-background transition-colors hover:bg-secondary-50/10 focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2 disabled:pointer-events-none disabled:opacity-50',
       className
     )}
     {...props}
@@ -77,7 +77,7 @@ const ToastClose = React.forwardRef<
   <ToastPrimitives.Close
     ref={ref}
     className={cn(
-      'absolute right-2 top-2 rounded-md p-1 text-secondary-500 opacity-0 transition-opacity hover:text-secondary-900 focus:opacity-100 focus:outline-none focus:ring-2 group-hover:opacity-100',
+      'absolute right-2 top-2 rounded-md p-1 text-secondary-50/50 opacity-0 transition-opacity hover:text-secondary-50 focus:opacity-100 focus:outline-none focus:ring-2 group-hover:opacity-100',
       className
     )}
     {...props}
@@ -114,14 +114,14 @@ ToastDescription.displayName = ToastPrimitives.Description.displayName
 function ToastIcon({ variant }: { variant?: 'default' | 'success' | 'error' | null }) {
   if (variant === 'success') {
     return (
-      <div className="flex h-6 w-6 shrink-0 items-center justify-center rounded-full bg-green-500">
+      <div className="flex h-6 w-6 shrink-0 items-center justify-center rounded-full bg-primary-400">
         <FontAwesomeIcon icon={faCheck} className="h-3 w-3 text-white" />
       </div>
     )
   }
   if (variant === 'error') {
     return (
-      <div className="flex h-6 w-6 shrink-0 items-center justify-center rounded-full bg-red-500">
+      <div className="flex h-6 w-6 shrink-0 items-center justify-center rounded-full bg-destructive">
         <FontAwesomeIcon icon={faCircleExclamation} className="h-3 w-3 text-white" />
       </div>
     )

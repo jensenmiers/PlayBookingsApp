@@ -39,27 +39,27 @@ export function AvailabilityCard({ availability }: AvailabilityCardProps) {
 
   return (
     <>
-      <div className="bg-white rounded-2xl shadow-soft overflow-hidden border border-secondary-100">
+      <div className="bg-secondary-800 rounded-2xl shadow-soft overflow-hidden border border-secondary-50/10">
         <div className="flex items-center p-4 gap-4">
           {/* Left Column: Time and Duration */}
           <div className="flex-shrink-0 w-24">
-            <div className="text-lg font-bold text-secondary-800">{startTimeDisplay}</div>
-            <div className="text-sm text-secondary-600">{durationDisplay}</div>
+            <div className="text-lg font-bold text-secondary-50">{startTimeDisplay}</div>
+            <div className="text-sm text-secondary-50/60">{durationDisplay}</div>
           </div>
 
           {/* Middle Column: Venue Details */}
           <div className="flex-1 min-w-0">
-            <div className="font-semibold text-secondary-800 mb-1 truncate">{venue.name}</div>
-            <div className="text-sm text-secondary-600">
+            <div className="font-semibold text-secondary-50 mb-1 truncate">{venue.name}</div>
+            <div className="text-sm text-secondary-50/60">
               {venue.city}, {venue.state}
             </div>
           </div>
 
           {/* Right Column: Price and Book Button */}
           <div className="flex-shrink-0 flex flex-col items-end gap-2">
-            <div className="text-lg font-bold text-secondary-800">
+            <div className="text-lg font-bold text-secondary-50">
               ${venue.hourly_rate}
-              <span className="text-sm font-normal text-secondary-600">/hour</span>
+              <span className="text-sm font-normal text-secondary-50/60">/hour</span>
             </div>
             <Button
               onClick={() => setShowBookingForm(true)}

@@ -17,7 +17,7 @@ export default function BookingDetailPage() {
   if (userLoading) {
     return (
       <div className="flex items-center justify-center p-8">
-        <FontAwesomeIcon icon={faSpinner} className="animate-spin text-secondary-600" size="2x" />
+        <FontAwesomeIcon icon={faSpinner} className="animate-spin text-secondary-50/60" size="2x" />
       </div>
     )
   }
@@ -27,7 +27,7 @@ export default function BookingDetailPage() {
       <Button
         variant="ghost"
         onClick={() => router.push('/my-bookings')}
-        className="text-secondary-600 hover:text-secondary-800"
+        className="text-secondary-50/60 hover:text-secondary-50"
       >
         <FontAwesomeIcon icon={faArrowLeft} className="mr-2" />
         Back to My Bookings

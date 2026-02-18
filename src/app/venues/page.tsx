@@ -196,35 +196,35 @@ function VenuesContent() {
   }
 
   return (
-    <div className="min-h-screen bg-secondary-50">
+    <div className="min-h-screen bg-background">
       <Navigation />
 
       <div className="mx-auto max-w-6xl px-4 py-6">
         {/* Header */}
         <div className="mb-6">
-          <h1 className="text-3xl font-bold text-secondary-800 mb-2">All Venues</h1>
-          <p className="text-secondary-600">Discover basketball courts available for booking</p>
+          <h1 className="text-3xl font-bold font-serif text-secondary-50 mb-2">All Venues</h1>
+          <p className="text-secondary-50/60">Discover basketball courts available for booking</p>
         </div>
 
         {/* Search Section */}
         <form onSubmit={handleSearchSubmit} className="mb-6">
           <div className="relative">
             <div className="absolute inset-y-0 left-0 pl-4 flex items-center pointer-events-none">
-              <FontAwesomeIcon icon={faSearch} className="text-secondary-300" />
+              <FontAwesomeIcon icon={faSearch} className="text-secondary-50/50" />
             </div>
             <Input
               type="text"
               placeholder="Search by venue name, city, or address..."
               value={searchQuery}
               onChange={(e) => handleSearchChange(e.target.value)}
-              className="w-full pl-12 pr-4 py-3 bg-white rounded-xl shadow-soft"
+              className="w-full pl-12 pr-4 py-3 bg-secondary-800 rounded-xl shadow-soft"
             />
           </div>
         </form>
 
         {/* Results Count */}
         {pagination && !loading && (
-          <div className="mb-4 text-secondary-600 text-sm">
+          <div className="mb-4 text-secondary-50/60 text-sm">
             {pagination.total > 0 ? (
               <>
                 Showing {(pagination.page - 1) * pagination.limit + 1}-
@@ -283,9 +283,9 @@ function VenuesContent() {
         {/* Empty State */}
         {!loading && !error && venues.length === 0 && (
           <div className="text-center py-12">
-            <p className="text-secondary-600 text-lg mb-2">No venues found</p>
+            <p className="text-secondary-50/60 text-lg mb-2">No venues found</p>
             {searchQuery && (
-              <p className="text-secondary-500 text-sm mb-4">
+              <p className="text-secondary-50/50 text-sm mb-4">
                 Try adjusting your search terms
               </p>
             )}
@@ -303,7 +303,7 @@ function VenuesContent() {
             >
               Previous
             </Button>
-            <span className="text-secondary-600 text-sm">
+            <span className="text-secondary-50/60 text-sm">
               Page {pagination.page} of {pagination.total_pages}
             </span>
             <Button
@@ -323,12 +323,12 @@ function VenuesContent() {
 
 function LoadingFallback() {
   return (
-    <div className="min-h-screen bg-secondary-50">
+    <div className="min-h-screen bg-background">
       <Navigation />
       <div className="mx-auto max-w-6xl px-4 py-6">
         <div className="mb-6">
-          <h1 className="text-3xl font-bold text-secondary-800 mb-2">All Venues</h1>
-          <p className="text-secondary-600">Discover basketball courts available for booking</p>
+          <h1 className="text-3xl font-bold font-serif text-secondary-50 mb-2">All Venues</h1>
+          <p className="text-secondary-50/60">Discover basketball courts available for booking</p>
         </div>
         <div className="space-y-4">
           <VenueCardSkeleton />

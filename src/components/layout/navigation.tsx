@@ -74,28 +74,26 @@ export function Navigation() {
   }
 
   return (
-    <nav className="relative z-40 border-b border-border/40 bg-white/90 backdrop-blur supports-[backdrop-filter]:bg-white/70">
-      <div className="mx-auto flex h-16 max-w-7xl items-center justify-between px-4">
-        <Link href="/" className="flex items-center space-x-2">
-          <div className="h-9 w-9 rounded-xl bg-gradient-to-br from-primary-500 to-accent-500" />
-          <span className="text-xl font-bold text-secondary-800">Play Bookings</span>
+    <nav className="relative z-40 border-b border-secondary-50/10 bg-secondary-900/90 backdrop-blur supports-[backdrop-filter]:bg-secondary-900/70">
+      <div className="mx-auto flex h-16 max-w-7xl items-center justify-between px-4 sm:px-10">
+        <Link href="/" className="font-semibold text-lg tracking-tight text-secondary-50/90">
+          Play Bookings
         </Link>
 
         <div className="hidden md:flex md:items-center md:space-x-6">
           {loading && !userError ? (
             <>
-              <div className="h-9 w-20 animate-pulse rounded-xl bg-secondary-100" />
-              <div className="h-9 w-24 animate-pulse rounded-xl bg-secondary-100" />
+              <div className="h-9 w-20 animate-pulse rounded-full bg-secondary-50/10" />
+              <div className="h-9 w-24 animate-pulse rounded-full bg-secondary-50/10" />
             </>
           ) : user ? (
             <div className="relative" ref={dropdownRef}>
               <button
                 onClick={() => setDropdownOpen(!dropdownOpen)}
-                className="flex items-center gap-3 rounded-full border border-secondary-200 bg-white/80 px-4 py-2 transition-colors hover:bg-white hover:border-secondary-300"
+                className="flex items-center gap-3 rounded-full border border-secondary-50/10 bg-secondary-800/80 px-4 py-2 transition-colors hover:bg-secondary-700 hover:border-secondary-50/20"
               >
-                {/* Hamburger icon */}
                 <svg
-                  className="h-5 w-5 text-secondary-600"
+                  className="h-5 w-5 text-secondary-50/60"
                   fill="none"
                   stroke="currentColor"
                   viewBox="0 0 24 24"
@@ -107,7 +105,6 @@ export function Navigation() {
                     d="M4 6h16M4 12h16M4 18h16"
                   />
                 </svg>
-                {/* User profile photo or initials */}
                 {user.avatar_url && !avatarError ? (
                   <Image
                     src={user.avatar_url}
@@ -119,38 +116,36 @@ export function Navigation() {
                     unoptimized
                   />
                 ) : (
-                  <div className="flex h-8 w-8 items-center justify-center rounded-full bg-primary-100 text-sm font-semibold text-secondary-50">
+                  <div className="flex h-8 w-8 items-center justify-center rounded-full bg-primary-400/20 text-sm font-semibold text-primary-400">
                     {getUserInitials()}
                   </div>
                 )}
-                {/* User name */}
-                <span className="text-sm font-medium text-secondary-700">
+                <span className="text-sm font-medium text-secondary-50/80">
                   {getUserDisplayName()}
                 </span>
               </button>
 
-              {/* Dropdown menu */}
               {dropdownOpen && (
-                <div className="absolute right-0 top-full z-50 mt-2 w-56 rounded-xl border border-border/60 bg-white shadow-lg">
+                <div className="absolute right-0 top-full z-50 mt-2 w-56 rounded-xl border border-secondary-50/10 bg-secondary-800 shadow-lg">
                   <div className="py-2">
                     <Link
                       href="/my-bookings"
                       onClick={() => setDropdownOpen(false)}
-                      className="block px-4 py-2 text-sm text-secondary-700 transition-colors hover:bg-secondary-50"
+                      className="block px-4 py-2 text-sm text-secondary-50/70 transition-colors hover:bg-secondary-50/10 hover:text-secondary-50"
                     >
                       My Bookings
                     </Link>
                     <Link
                       href="/search"
                       onClick={() => setDropdownOpen(false)}
-                      className="block px-4 py-2 text-sm text-secondary-700 transition-colors hover:bg-secondary-50"
+                      className="block px-4 py-2 text-sm text-secondary-50/70 transition-colors hover:bg-secondary-50/10 hover:text-secondary-50"
                     >
                       Find Next Availability
                     </Link>
                     <Link
                       href="/venues"
                       onClick={() => setDropdownOpen(false)}
-                      className="block px-4 py-2 text-sm text-secondary-700 transition-colors hover:bg-secondary-50"
+                      className="block px-4 py-2 text-sm text-secondary-50/70 transition-colors hover:bg-secondary-50/10 hover:text-secondary-50"
                     >
                       Discover Courts
                     </Link>
@@ -158,40 +153,40 @@ export function Navigation() {
                       <Link
                         href="/become-a-host"
                         onClick={() => setDropdownOpen(false)}
-                        className="block px-4 py-2 text-sm text-secondary-700 transition-colors hover:bg-secondary-50"
+                        className="block px-4 py-2 text-sm text-secondary-50/70 transition-colors hover:bg-secondary-50/10 hover:text-secondary-50"
                       >
                         Become a Host
                       </Link>
                     )}
                     <button
                       disabled
-                      className="block w-full px-4 py-2 text-left text-sm text-secondary-400 cursor-not-allowed"
+                      className="block w-full px-4 py-2 text-left text-sm text-secondary-50/30 cursor-not-allowed"
                     >
                       Favorites
                     </button>
                     {user.is_venue_owner && (
                       <>
-                        <div className="my-1 border-t border-border/40" />
+                        <div className="my-1 border-t border-secondary-50/10" />
                         <Link
                           href="/dashboard"
                           onClick={() => setDropdownOpen(false)}
-                          className="block px-4 py-2 text-sm text-secondary-700 transition-colors hover:bg-secondary-50"
+                          className="block px-4 py-2 text-sm text-secondary-50/70 transition-colors hover:bg-secondary-50/10 hover:text-secondary-50"
                         >
                           Dashboard
                         </Link>
                         <Link
                           href="/calendar"
                           onClick={() => setDropdownOpen(false)}
-                          className="block px-4 py-2 text-sm text-secondary-700 transition-colors hover:bg-secondary-50"
+                          className="block px-4 py-2 text-sm text-secondary-50/70 transition-colors hover:bg-secondary-50/10 hover:text-secondary-50"
                         >
                           My Availability
                         </Link>
                       </>
                     )}
-                    <div className="my-1 border-t border-border/40" />
+                    <div className="my-1 border-t border-secondary-50/10" />
                     <button
                       onClick={handleSignOut}
-                      className="block w-full px-4 py-2 text-left text-sm text-secondary-700 transition-colors hover:bg-secondary-50"
+                      className="block w-full px-4 py-2 text-left text-sm text-secondary-50/70 transition-colors hover:bg-secondary-50/10 hover:text-secondary-50"
                     >
                       Log Out
                     </button>
@@ -203,13 +198,13 @@ export function Navigation() {
             <>
               <Link
                 href="/search"
-                className="text-sm font-medium text-secondary-500 transition-colors hover:text-secondary-700"
+                className="text-sm font-medium text-secondary-50/50 transition-colors hover:text-primary-400"
               >
                 For Renters
               </Link>
               <Button 
                 size="lg" 
-                className="rounded-xl bg-primary-600 px-10 py-3 text-base hover:bg-primary-700"
+                className="px-10 py-3 text-base"
                 onClick={() => openAuthModal({ intent: 'host' })}
               >
                 Get Started
@@ -219,18 +214,17 @@ export function Navigation() {
             <>
               <Link
                 href="/search"
-                className="text-sm font-medium text-secondary-500 transition-colors hover:text-secondary-700"
+                className="text-sm font-medium text-secondary-50/50 transition-colors hover:text-primary-400"
               >
                 Next Availability
               </Link>
               <div className="relative" ref={guestDropdownRef}>
                 <button
                   onClick={() => setGuestDropdownOpen(!guestDropdownOpen)}
-                  className="flex items-center gap-3 rounded-full border border-secondary-200 bg-white/80 px-4 py-2 transition-colors hover:bg-white hover:border-secondary-300"
+                  className="flex items-center gap-3 rounded-full border border-secondary-50/10 bg-secondary-800/80 px-4 py-2 transition-colors hover:bg-secondary-700 hover:border-secondary-50/20"
                 >
-                  {/* Hamburger icon */}
                   <svg
-                    className="h-5 w-5 text-secondary-600"
+                    className="h-5 w-5 text-secondary-50/60"
                     fill="none"
                     stroke="currentColor"
                     viewBox="0 0 24 24"
@@ -242,41 +236,40 @@ export function Navigation() {
                       d="M4 6h16M4 12h16M4 18h16"
                     />
                   </svg>
-                  <span className="text-sm font-medium text-secondary-700">Sign Up</span>
+                  <span className="text-sm font-medium text-secondary-50/80">Sign Up</span>
                 </button>
 
-                {/* Guest dropdown menu */}
                 {guestDropdownOpen && (
-                  <div className="absolute right-0 top-full z-50 mt-2 w-56 rounded-xl border border-border/60 bg-white shadow-lg">
+                  <div className="absolute right-0 top-full z-50 mt-2 w-56 rounded-xl border border-secondary-50/10 bg-secondary-800 shadow-lg">
                     <div className="p-3">
                       <button
                         onClick={() => {
                           setGuestDropdownOpen(false)
                           openAuthModal()
                         }}
-                        className="block w-full rounded-lg bg-primary-600 px-4 py-2.5 text-center text-sm font-semibold text-white transition-colors hover:bg-primary-700"
+                        className="block w-full rounded-lg bg-primary-400 px-4 py-2.5 text-center text-sm font-semibold text-secondary-900 transition-colors hover:bg-primary-500"
                       >
                         Log in or Sign up
                       </button>
                     </div>
-                    <div className="border-t border-border/40 py-2">
+                    <div className="border-t border-secondary-50/10 py-2">
                       <Link
                         href="/search"
                         onClick={() => setGuestDropdownOpen(false)}
-                        className="block px-4 py-2 text-sm text-secondary-700 transition-colors hover:bg-secondary-50"
+                        className="block px-4 py-2 text-sm text-secondary-50/70 transition-colors hover:bg-secondary-50/10 hover:text-secondary-50"
                       >
                         Next Availability
                       </Link>
                       <Link
                         href="/become-a-host"
                         onClick={() => setGuestDropdownOpen(false)}
-                        className="block px-4 py-2 text-sm text-secondary-700 transition-colors hover:bg-secondary-50"
+                        className="block px-4 py-2 text-sm text-secondary-50/70 transition-colors hover:bg-secondary-50/10 hover:text-secondary-50"
                       >
                         Become a Host
                       </Link>
                       <button
                         disabled
-                        className="block w-full px-4 py-2 text-left text-sm text-secondary-400 cursor-not-allowed"
+                        className="block w-full px-4 py-2 text-left text-sm text-secondary-50/30 cursor-not-allowed"
                       >
                         Contact
                       </button>
@@ -288,11 +281,10 @@ export function Navigation() {
           )}
         </div>
 
-        {/* Mobile menu button */}
         <Button 
           variant="ghost" 
           size="sm" 
-          className="md:hidden text-secondary-600 hover:text-secondary-800"
+          className="md:hidden text-secondary-50/60 hover:text-secondary-50"
           onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
         >
           <svg
@@ -311,32 +303,31 @@ export function Navigation() {
         </Button>
       </div>
 
-      {/* Mobile menu panel */}
       {mobileMenuOpen && (
-        <div className="md:hidden border-t border-border/40 bg-white/95 backdrop-blur">
+        <div className="md:hidden border-t border-secondary-50/10 bg-secondary-900/95 backdrop-blur">
           <div className="mx-auto max-w-7xl px-4 py-4 space-y-2">
             {loading && !userError ? (
-              <div className="h-10 w-full animate-pulse rounded-lg bg-secondary-100" />
+              <div className="h-10 w-full animate-pulse rounded-lg bg-secondary-50/10" />
             ) : user ? (
               <>
                 <Link
                   href="/my-bookings"
                   onClick={() => setMobileMenuOpen(false)}
-                  className="block rounded-lg px-4 py-3 text-sm font-medium text-secondary-700 transition-colors hover:bg-secondary-50"
+                  className="block rounded-lg px-4 py-3 text-sm font-medium text-secondary-50/70 transition-colors hover:bg-secondary-50/10 hover:text-secondary-50"
                 >
                   My Bookings
                 </Link>
                 <Link
                   href="/search"
                   onClick={() => setMobileMenuOpen(false)}
-                  className="block rounded-lg px-4 py-3 text-sm font-medium text-secondary-700 transition-colors hover:bg-secondary-50"
+                  className="block rounded-lg px-4 py-3 text-sm font-medium text-secondary-50/70 transition-colors hover:bg-secondary-50/10 hover:text-secondary-50"
                 >
                   Find Next Availability
                 </Link>
                 <Link
                   href="/venues"
                   onClick={() => setMobileMenuOpen(false)}
-                  className="block rounded-lg px-4 py-3 text-sm font-medium text-secondary-700 transition-colors hover:bg-secondary-50"
+                  className="block rounded-lg px-4 py-3 text-sm font-medium text-secondary-50/70 transition-colors hover:bg-secondary-50/10 hover:text-secondary-50"
                 >
                   Discover Courts
                 </Link>
@@ -344,37 +335,37 @@ export function Navigation() {
                   <Link
                     href="/become-a-host"
                     onClick={() => setMobileMenuOpen(false)}
-                    className="block rounded-lg px-4 py-3 text-sm font-medium text-secondary-700 transition-colors hover:bg-secondary-50"
+                    className="block rounded-lg px-4 py-3 text-sm font-medium text-secondary-50/70 transition-colors hover:bg-secondary-50/10 hover:text-secondary-50"
                   >
                     Become a Host
                   </Link>
                 )}
                 {user.is_venue_owner && (
                   <>
-                    <div className="my-2 border-t border-border/40" />
+                    <div className="my-2 border-t border-secondary-50/10" />
                     <Link
                       href="/dashboard"
                       onClick={() => setMobileMenuOpen(false)}
-                      className="block rounded-lg px-4 py-3 text-sm font-medium text-secondary-700 transition-colors hover:bg-secondary-50"
+                      className="block rounded-lg px-4 py-3 text-sm font-medium text-secondary-50/70 transition-colors hover:bg-secondary-50/10 hover:text-secondary-50"
                     >
                       Dashboard
                     </Link>
                     <Link
                       href="/calendar"
                       onClick={() => setMobileMenuOpen(false)}
-                      className="block rounded-lg px-4 py-3 text-sm font-medium text-secondary-700 transition-colors hover:bg-secondary-50"
+                      className="block rounded-lg px-4 py-3 text-sm font-medium text-secondary-50/70 transition-colors hover:bg-secondary-50/10 hover:text-secondary-50"
                     >
                       My Availability
                     </Link>
                   </>
                 )}
-                <div className="my-2 border-t border-border/40" />
+                <div className="my-2 border-t border-secondary-50/10" />
                 <button
                   onClick={() => {
                     setMobileMenuOpen(false)
                     handleSignOut()
                   }}
-                  className="block w-full rounded-lg px-4 py-3 text-left text-sm font-medium text-secondary-700 transition-colors hover:bg-secondary-50"
+                  className="block w-full rounded-lg px-4 py-3 text-left text-sm font-medium text-secondary-50/70 transition-colors hover:bg-secondary-50/10 hover:text-secondary-50"
                 >
                   Log Out
                 </button>
@@ -386,21 +377,21 @@ export function Navigation() {
                     setMobileMenuOpen(false)
                     openAuthModal()
                   }}
-                  className="block w-full rounded-lg bg-primary-600 px-4 py-3 text-center text-sm font-semibold text-white transition-colors hover:bg-primary-700"
+                  className="block w-full rounded-lg bg-primary-400 px-4 py-3 text-center text-sm font-semibold text-secondary-900 transition-colors hover:bg-primary-500"
                 >
                   Log in or Sign up
                 </button>
                 <Link
                   href="/search"
                   onClick={() => setMobileMenuOpen(false)}
-                  className="block rounded-lg px-4 py-3 text-sm font-medium text-secondary-700 transition-colors hover:bg-secondary-50"
+                  className="block rounded-lg px-4 py-3 text-sm font-medium text-secondary-50/70 transition-colors hover:bg-secondary-50/10 hover:text-secondary-50"
                 >
                   Next Availability
                 </Link>
                 <Link
                   href="/become-a-host"
                   onClick={() => setMobileMenuOpen(false)}
-                  className="block rounded-lg px-4 py-3 text-sm font-medium text-secondary-700 transition-colors hover:bg-secondary-50"
+                  className="block rounded-lg px-4 py-3 text-sm font-medium text-secondary-50/70 transition-colors hover:bg-secondary-50/10 hover:text-secondary-50"
                 >
                   Become a Host
                 </Link>

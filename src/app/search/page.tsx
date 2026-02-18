@@ -5,7 +5,7 @@ import { SplitAvailabilityView } from '@/components/search/split-availability-vi
 
 export default function SearchPage() {
   return (
-    <div className="min-h-screen bg-white">
+    <div className="min-h-screen bg-secondary-800">
       <Navigation />
       <SplitAvailabilityView />
     </div>

@@ -56,21 +56,21 @@ function UpgradeToHostContent() {
   }
 
   return (
-    <div className="flex min-h-screen items-center justify-center bg-gradient-to-br from-secondary-50 via-secondary-50/80 to-primary-50 p-4">
-      <Card className="w-full max-w-md border-border/60 bg-white/95 p-8 shadow-soft">
+    <div className="flex min-h-screen items-center justify-center bg-background p-4">
+      <Card className="w-full max-w-md border-secondary-50/10 bg-secondary-800 p-8 shadow-soft">
         <CardHeader className="space-y-3 text-center">
-          <div className="mx-auto flex h-16 w-16 items-center justify-center rounded-full bg-primary-100 text-primary-600">
+          <div className="mx-auto flex h-16 w-16 items-center justify-center rounded-full bg-primary-400/15 text-primary-400">
             <svg className="h-8 w-8" fill="none" stroke="currentColor" viewBox="0 0 24 24">
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 10V3L4 14h7v7l9-11h-7z" />
             </svg>
           </div>
-          <CardTitle className="text-2xl font-bold text-secondary-800">Add Host Capabilities?</CardTitle>
-          <CardDescription className="text-secondary-600">
+          <CardTitle className="text-2xl font-bold font-serif text-secondary-50">Add Host Capabilities?</CardTitle>
+          <CardDescription className="text-secondary-50/60">
             You already have a renter account. Would you like to add hosting capabilities so you can list your courts?
           </CardDescription>
         </CardHeader>
         <CardContent className="space-y-4">
-          <div className="rounded-lg bg-secondary-50 p-4 text-sm text-secondary-700">
+          <div className="rounded-lg bg-secondary-50/5 p-4 text-sm text-secondary-50/70">
             <p className="font-semibold mb-2">With hosting capabilities, you can:</p>
             <ul className="list-disc list-inside space-y-1 ml-2">
               <li>List your courts and set availability</li>
@@ -84,7 +84,7 @@ function UpgradeToHostContent() {
             <Button
               onClick={handleConfirmUpgrade}
               disabled={loading}
-              className="w-full rounded-xl bg-primary-600 py-3 text-base text-white hover:bg-primary-700"
+              className="w-full rounded-xl bg-primary-400 py-3 text-base text-secondary-900 hover:bg-primary-500"
               size="lg"
             >
               {loading ? (
@@ -101,7 +101,7 @@ function UpgradeToHostContent() {
               onClick={handleCancel}
               disabled={loading}
               variant="outline"
-              className="w-full rounded-xl border-secondary-200 bg-white/80 py-3 text-base text-secondary-700 hover:bg-secondary-100"
+              className="w-full rounded-xl border-secondary-50/10 bg-secondary-800 py-3 text-base text-secondary-50/70 hover:bg-secondary-50/10"
               size="lg"
             >
               No, Keep as Renter Only
@@ -109,7 +109,7 @@ function UpgradeToHostContent() {
           </div>
 
           <div className="text-center pt-2">
-            <Link href="/venues" className="text-sm font-medium text-secondary-500 hover:text-secondary-700">
+            <Link href="/venues" className="text-sm font-medium text-secondary-50/50 hover:text-secondary-50/70">
               Browse Courts Instead
             </Link>
           </div>
@@ -121,8 +121,8 @@ function UpgradeToHostContent() {
 
 function LoadingFallback() {
   return (
-    <div className="flex min-h-screen items-center justify-center bg-gradient-to-br from-secondary-50 via-secondary-50/80 to-primary-50 p-4">
-      <div className="h-8 w-8 animate-spin rounded-full border-4 border-primary-600 border-t-transparent" />
+    <div className="flex min-h-screen items-center justify-center bg-background p-4">
+      <div className="h-8 w-8 animate-spin rounded-full border-4 border-primary-400 border-t-transparent" />
     </div>
   )
 }

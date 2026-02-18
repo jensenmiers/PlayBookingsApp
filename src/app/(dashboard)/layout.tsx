@@ -57,10 +57,10 @@ export default function DashboardLayout({
   // Show loading state
   if (loading) {
     return (
-      <div className="flex min-h-screen items-center justify-center bg-secondary-50">
+      <div className="flex min-h-screen items-center justify-center bg-background">
         <div className="flex flex-col items-center gap-4">
-          <FontAwesomeIcon icon={faSpinner} className="animate-spin text-secondary-600" size="2x" />
-          <p className="text-secondary-600">Loading...</p>
+          <FontAwesomeIcon icon={faSpinner} className="animate-spin text-secondary-50/60" size="2x" />
+          <p className="text-secondary-50/60">Loading...</p>
         </div>
       </div>
     )
@@ -74,10 +74,10 @@ export default function DashboardLayout({
   // Don't render content while redirect is happening
   if (isVenueOwnerOnlyRoute && !user?.is_venue_owner) {
     return (
-      <div className="flex min-h-screen items-center justify-center bg-secondary-50">
+      <div className="flex min-h-screen items-center justify-center bg-background">
         <div className="flex flex-col items-center gap-4">
-          <FontAwesomeIcon icon={faSpinner} className="animate-spin text-secondary-600" size="2x" />
-          <p className="text-secondary-600">Redirecting...</p>
+          <FontAwesomeIcon icon={faSpinner} className="animate-spin text-secondary-50/60" size="2x" />
+          <p className="text-secondary-50/60">Redirecting...</p>
         </div>
       </div>
     )
@@ -86,11 +86,11 @@ export default function DashboardLayout({
   // If user is a venue owner, show universal nav + sidebar layout
   if (user?.is_venue_owner) {
     return (
-      <div className="min-h-screen bg-secondary-50">
+      <div className="min-h-screen bg-background">
         <Navigation />
         <div className="flex">
           <SidebarNavigation user={sidebarUser} onSignOut={handleSignOut} />
-          <main className="flex-1 overflow-y-auto bg-secondary-50 px-6 py-10 lg:px-10">
+          <main className="flex-1 overflow-y-auto bg-background px-6 py-10 lg:px-10">
             <div className="mx-auto max-w-6xl space-y-10">{children}</div>
           </main>
         </div>
@@ -100,7 +100,7 @@ export default function DashboardLayout({
 
   // For renters (or non-venue owners), use universal navbar
   return (
-    <div className="min-h-screen bg-secondary-50">
+    <div className="min-h-screen bg-background">
       <Navigation />
       <main className="mx-auto max-w-6xl px-6 py-10 lg:px-10">
         <div className="space-y-10">{children}</div>

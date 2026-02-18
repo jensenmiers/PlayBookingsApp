@@ -47,11 +47,11 @@ function LoginContent() {
   }
 
   return (
-    <div className="flex min-h-screen items-center justify-center bg-gradient-to-br from-secondary-50 via-secondary-50/80 to-primary-50 p-4">
-      <Card className="w-full max-w-md border-border/60 bg-white/95 p-8 shadow-soft">
+    <div className="flex min-h-screen items-center justify-center bg-background p-4">
+      <Card className="w-full max-w-md border-secondary-50/10 bg-secondary-800 p-8 shadow-soft">
         <CardHeader className="space-y-3 text-center">
-          <CardTitle className="text-2xl font-bold text-secondary-800">Welcome Back</CardTitle>
-          <CardDescription className="text-secondary-600">
+          <CardTitle className="text-2xl font-bold font-serif text-secondary-50">Welcome Back</CardTitle>
+          <CardDescription className="text-secondary-50/60">
             Sign in to your Play Bookings account
           </CardDescription>
         </CardHeader>
@@ -59,7 +59,7 @@ function LoginContent() {
           <Button
             onClick={handleGoogleLogin}
             disabled={loading}
-            className="w-full rounded-xl bg-primary-600 py-3 text-base text-white hover:bg-primary-700"
+            className="w-full rounded-xl bg-primary-400 py-3 text-base text-secondary-900 hover:bg-primary-500"
             size="lg"
           >
             {loading ? (
@@ -80,15 +80,15 @@ function LoginContent() {
             )}
           </Button>
 
-          <div className="text-center text-sm text-secondary-600">
+          <div className="text-center text-sm text-secondary-50/60">
             Don&apos;t have an account?{' '}
-            <Link href="/auth/register" className="font-semibold text-secondary-700 hover:text-primary-600">
+            <Link href="/auth/register" className="font-semibold text-secondary-50/70 hover:text-primary-400">
               Sign up here
             </Link>
           </div>
 
           <div className="text-center">
-            <Link href="/marketing" className="text-sm font-medium text-secondary-500 hover:text-secondary-700">
+            <Link href="/marketing" className="text-sm font-medium text-secondary-50/50 hover:text-secondary-50/70">
               Back to Home
             </Link>
           </div>
@@ -100,8 +100,8 @@ function LoginContent() {
 
 function LoadingFallback() {
   return (
-    <div className="flex min-h-screen items-center justify-center bg-gradient-to-br from-secondary-50 via-secondary-50/80 to-primary-50 p-4">
-      <div className="h-8 w-8 animate-spin rounded-full border-4 border-primary-600 border-t-transparent" />
+    <div className="flex min-h-screen items-center justify-center bg-background p-4">
+      <div className="h-8 w-8 animate-spin rounded-full border-4 border-primary-400 border-t-transparent" />
     </div>
   )
 }

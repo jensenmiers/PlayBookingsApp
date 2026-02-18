@@ -2,7 +2,7 @@ import { Skeleton } from '@/components/ui/skeleton'
 
 export function VenueCardSkeleton() {
   return (
-    <div className="bg-white rounded-2xl shadow-soft overflow-hidden">
+    <div className="bg-secondary-800 rounded-2xl shadow-soft overflow-hidden">
       <div className="flex">
         {/* Image skeleton - left 1/3 */}
         <div className="w-1/3 h-[120px] relative">

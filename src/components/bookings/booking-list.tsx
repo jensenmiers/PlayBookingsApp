@@ -93,7 +93,7 @@ export function BookingList({ initialFilters, className }: BookingListProps) {
   if (loading && !bookings) {
     return (
       <div className={cn('flex items-center justify-center p-8', className)}>
-        <FontAwesomeIcon icon={faSpinner} className="animate-spin text-secondary-600" size="2x" />
+        <FontAwesomeIcon icon={faSpinner} className="animate-spin text-secondary-50/60" size="2x" />
       </div>
     )
   }
@@ -129,7 +129,7 @@ export function BookingList({ initialFilters, className }: BookingListProps) {
       </div>
 
       {showFilters && (
-        <div className="rounded-lg border border-border bg-white p-4 space-y-4">
+        <div className="rounded-lg border border-border bg-secondary-800 p-4 space-y-4">
           <div className="grid gap-4 md:grid-cols-3">
             <div>
               <label className="text-sm font-medium mb-2 block">Status</label>
@@ -138,7 +138,7 @@ export function BookingList({ initialFilters, className }: BookingListProps) {
                 onChange={(e) =>
                   handleFilterChange('status', e.target.value || undefined)
                 }
-                className="flex h-11 w-full rounded-lg border border-input bg-white/80 px-4 py-2 text-sm shadow-xs"
+                className="flex h-11 w-full rounded-lg border border-input bg-secondary-800/80 px-4 py-2 text-sm shadow-xs"
               >
                 <option value="">All Statuses</option>
                 <option value="pending">Pending</option>
@@ -171,8 +171,8 @@ export function BookingList({ initialFilters, className }: BookingListProps) {
 
       {/* Booking List */}
       {!bookings || bookings.length === 0 ? (
-        <div className="rounded-lg border border-border bg-white p-8 text-center">
-          <p className="text-secondary-600">No bookings found</p>
+        <div className="rounded-lg border border-border bg-secondary-800 p-8 text-center">
+          <p className="text-secondary-50/60">No bookings found</p>
         </div>
       ) : (
         <div className="space-y-3">
@@ -183,21 +183,21 @@ export function BookingList({ initialFilters, className }: BookingListProps) {
             return (
               <div
                 key={booking.id}
-                className="rounded-lg border border-border bg-white p-4 hover:shadow-md transition-shadow"
+                className="rounded-lg border border-border bg-secondary-800 p-4 hover:shadow-md transition-shadow"
               >
                 <div className="flex items-start justify-between mb-3">
                   <div>
-                    <h3 className="font-semibold text-secondary-800">
+                    <h3 className="font-semibold text-secondary-50">
                       {venueName}
                     </h3>
-                    <p className="text-sm text-secondary-600 mt-1">
+                    <p className="text-sm text-secondary-50/60 mt-1">
                       {format(new Date(booking.date), 'EEE, MMM d, yyyy')} • {formatTime(booking.start_time)} - {formatTime(booking.end_time)}
                     </p>
                   </div>
                   <BookingStatusBadge status={booking.status} />
                 </div>
                 <div className="flex items-center justify-between">
-                  <p className="text-lg font-medium text-secondary-800">${booking.total_amount.toFixed(2)}</p>
+                  <p className="text-lg font-medium text-secondary-50">${booking.total_amount.toFixed(2)}</p>
                   <div className="flex items-center gap-2">
                     {canPay(bookingWithVenue) && (
                       <Button
@@ -253,7 +253,7 @@ export function BookingList({ initialFilters, className }: BookingListProps) {
       {/* Pagination */}
       {bookings && bookings.length > 0 && (
         <div className="flex items-center justify-between pt-4">
-          <p className="text-sm text-secondary-600">
+          <p className="text-sm text-secondary-50/60">
             Showing {bookings.length} booking{bookings.length !== 1 ? 's' : ''}
           </p>
           <div className="flex items-center gap-2">

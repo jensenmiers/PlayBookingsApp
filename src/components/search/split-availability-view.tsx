@@ -106,7 +106,7 @@ export function SplitAvailabilityView() {
   return (
     <div className="flex flex-col h-[calc(100vh-64px)]">
       {/* Search and Filter Bar */}
-      <div className="flex-shrink-0 px-4 pt-4 pb-3 bg-white border-b border-secondary-100">
+      <div className="flex-shrink-0 px-4 pt-4 pb-3 bg-secondary-800 border-b border-secondary-50/10">
         {/* Search Input */}
         <div className="relative mb-3">
           <div className="absolute inset-y-0 left-0 pl-4 flex items-center pointer-events-none">
@@ -117,7 +117,7 @@ export function SplitAvailabilityView() {
             placeholder="Search by location or venue name"
             value={searchQuery}
             onChange={(e) => setSearchQuery(e.target.value)}
-            className="w-full pl-12 pr-4 py-3 bg-secondary-50 rounded-xl border-secondary-100"
+            className="w-full pl-12 pr-4 py-3 bg-background rounded-xl border-secondary-50/10"
           />
         </div>
 
@@ -129,7 +129,7 @@ export function SplitAvailabilityView() {
               variant="ghost"
               size="icon"
               onClick={() => handleDateChange('prev')}
-              className="h-9 w-9 rounded-lg bg-secondary-50 text-secondary-700 hover:bg-secondary-100"
+              className="h-9 w-9 rounded-lg bg-secondary-50/5 text-secondary-50/70 hover:bg-secondary-50/10"
             >
               <FontAwesomeIcon icon={faChevronLeft} className="text-xs" />
             </Button>
@@ -137,8 +137,8 @@ export function SplitAvailabilityView() {
               onClick={handleTodayClick}
               className={`flex items-center gap-2 rounded-lg px-3 py-2 text-sm whitespace-nowrap ${
                 selectedDate 
-                  ? 'bg-primary-100 text-primary-700 hover:bg-primary-200' 
-                  : 'bg-secondary-50 text-secondary-700 hover:bg-secondary-100'
+                  ? 'bg-primary-400/15 text-primary-400 hover:bg-primary-400/25' 
+                  : 'bg-secondary-50/5 text-secondary-50/70 hover:bg-secondary-50/10'
               }`}
             >
               <FontAwesomeIcon icon={faCalendarDays} className="text-xs" />
@@ -149,7 +149,7 @@ export function SplitAvailabilityView() {
               variant="ghost"
               size="icon"
               onClick={() => handleDateChange('next')}
-              className="h-9 w-9 rounded-lg bg-secondary-50 text-secondary-700 hover:bg-secondary-100"
+              className="h-9 w-9 rounded-lg bg-secondary-50/5 text-secondary-50/70 hover:bg-secondary-50/10"
             >
               <FontAwesomeIcon icon={faChevronRight} className="text-xs" />
             </Button>
@@ -165,8 +165,8 @@ export function SplitAvailabilityView() {
             aria-label="Use my location"
             className={`min-h-[44px] min-w-[44px] h-9 w-9 rounded-lg ${
               hasLocation
-                ? 'bg-primary-100 text-primary-700 hover:bg-primary-200'
-                : 'bg-secondary-50 text-secondary-700 hover:bg-secondary-100'
+                ? 'bg-primary-400/15 text-primary-400 hover:bg-primary-400/25'
+                : 'bg-secondary-50/5 text-secondary-50/70 hover:bg-secondary-50/10'
             }`}
           >
             {locationLoading ? (
@@ -177,28 +177,28 @@ export function SplitAvailabilityView() {
           </Button>
 
           {/* Time Filter */}
-          <Button className="flex-shrink-0 flex items-center gap-2 bg-secondary-50 rounded-lg px-3 py-2 text-sm text-secondary-700 hover:bg-secondary-100">
+          <Button className="flex-shrink-0 flex items-center gap-2 bg-secondary-50/5 rounded-lg px-3 py-2 text-sm text-secondary-50/70 hover:bg-secondary-50/10">
             <FontAwesomeIcon icon={faClock} className="text-xs" />
             <span className="whitespace-nowrap">{selectedTime}</span>
             <FontAwesomeIcon icon={faChevronDown} className="text-xs" />
           </Button>
 
           {/* Filters Button */}
-          <Button className="flex-shrink-0 flex items-center gap-2 bg-secondary-50 rounded-lg px-3 py-2 text-sm text-secondary-700 hover:bg-secondary-100">
+          <Button className="flex-shrink-0 flex items-center gap-2 bg-secondary-50/5 rounded-lg px-3 py-2 text-sm text-secondary-50/70 hover:bg-secondary-50/10">
             <FontAwesomeIcon icon={faSliders} className="text-xs" />
             <span className="whitespace-nowrap">Filters</span>
           </Button>
 
           {/* Mobile View Toggle */}
           <div className="flex-shrink-0 lg:hidden ml-auto">
-            <div className="flex bg-secondary-100 rounded-lg p-0.5">
+            <div className="flex bg-secondary-50/5 rounded-lg p-0.5">
               <Button
                 size="sm"
                 onClick={() => setViewMode('map')}
                 className={`rounded-md px-3 py-1.5 text-xs ${
                   viewMode === 'map'
-                    ? 'bg-white text-secondary-700 shadow-sm'
-                    : 'bg-transparent text-secondary-500 hover:text-secondary-700'
+                    ? 'bg-secondary-800 text-secondary-50/70 shadow-sm'
+                    : 'bg-transparent text-secondary-50/50 hover:text-secondary-50/70'
                 }`}
               >
                 <FontAwesomeIcon icon={faMap} className="mr-1.5" />
@@ -209,8 +209,8 @@ export function SplitAvailabilityView() {
                 onClick={() => setViewMode('list')}
                 className={`rounded-md px-3 py-1.5 text-xs ${
                   viewMode === 'list'
-                    ? 'bg-white text-secondary-700 shadow-sm'
-                    : 'bg-transparent text-secondary-500 hover:text-secondary-700'
+                    ? 'bg-secondary-800 text-secondary-50/70 shadow-sm'
+                    : 'bg-transparent text-secondary-50/50 hover:text-secondary-50/70'
                 }`}
               >
                 <FontAwesomeIcon icon={faList} className="mr-1.5" />
@@ -231,14 +231,14 @@ export function SplitAvailabilityView() {
           `}
         >
           {loading ? (
-            <div className="w-full h-full flex items-center justify-center bg-secondary-50">
+            <div className="w-full h-full flex items-center justify-center bg-background">
               <div className="text-center">
-                <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-secondary-600 mx-auto mb-2"></div>
-                <p className="text-secondary-600 text-sm">Loading map...</p>
+                <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-secondary-50/60 mx-auto mb-2"></div>
+                <p className="text-secondary-50/60 text-sm">Loading map...</p>
               </div>
             </div>
           ) : error ? (
-            <div className="w-full h-full flex items-center justify-center bg-secondary-50 p-4">
+            <div className="w-full h-full flex items-center justify-center bg-background p-4">
               <ErrorMessage error={error} title="Failed to load venues" />
             </div>
           ) : (
@@ -255,16 +255,16 @@ export function SplitAvailabilityView() {
         <div 
           className={`
             ${viewMode === 'map' ? 'hidden lg:block' : 'block'} 
-            lg:w-[40%] w-full h-full overflow-y-auto bg-secondary-50 border-l border-secondary-100
+            lg:w-[40%] w-full h-full overflow-y-auto bg-background border-l border-secondary-50/10
           `}
         >
           <div className="p-4">
             {/* Results Header */}
             <div className="mb-4">
-              <h2 className="text-lg font-semibold text-secondary-800">
+              <h2 className="text-lg font-semibold text-secondary-50">
                 {selectedDate ? 'Available Slots' : 'Next Available Times'}
               </h2>
-              <p className="text-sm text-secondary-600">
+              <p className="text-sm text-secondary-50/60">
                 {loading 
                   ? 'Loading...' 
                   : `${venuesWithAvailability.length} venue${venuesWithAvailability.length !== 1 ? 's' : ''} with availability`
@@ -314,10 +314,10 @@ export function SplitAvailabilityView() {
             )}
 
             {/* Explore All Venues Link */}
-            <div className="mt-6 pt-4 border-t border-secondary-200 text-center">
+            <div className="mt-6 pt-4 border-t border-secondary-50/10 text-center">
               <Link 
                 href="/venues" 
-                className="text-secondary-600 hover:text-secondary-800 text-sm font-medium hover:underline"
+                className="text-secondary-50/60 hover:text-secondary-50 text-sm font-medium hover:underline"
               >
                 Explore all venues →
               </Link>
@@ -345,21 +345,21 @@ function MapVenueCard({
     <div 
       onClick={onClick}
       className={`
-        bg-white rounded-xl p-4 cursor-pointer transition-all
+        bg-secondary-800 rounded-xl p-4 cursor-pointer transition-all
         border-2 shadow-sm hover:shadow-md
         ${isSelected 
           ? 'border-primary-400 ring-1 ring-primary-200' 
-          : 'border-transparent hover:border-secondary-200'
+          : 'border-transparent hover:border-secondary-50/10'
         }
       `}
     >
       <div className="flex items-start justify-between gap-3">
         {/* Left: Venue info */}
         <div className="flex-1 min-w-0">
-          <h3 className="font-semibold text-secondary-800 truncate">{venue.name}</h3>
-          <p className="text-sm text-secondary-600">{venue.city}, {venue.state}</p>
+          <h3 className="font-semibold text-secondary-50 truncate">{venue.name}</h3>
+          <p className="text-sm text-secondary-50/60">{venue.city}, {venue.state}</p>
           {venue.distanceMiles !== null && (
-            <p className="text-xs text-secondary-500 mt-1">
+            <p className="text-xs text-secondary-50/50 mt-1">
               {venue.distanceMiles.toFixed(1)} miles away
             </p>
           )}
@@ -367,8 +367,8 @@ function MapVenueCard({
 
         {/* Right: Price */}
         <div className="text-right flex-shrink-0">
-          <span className="font-bold text-secondary-800">${venue.hourlyRate}</span>
-          <span className="text-xs text-secondary-600">/hr</span>
+          <span className="font-bold text-secondary-50">${venue.hourlyRate}</span>
+          <span className="text-xs text-secondary-50/60">/hr</span>
         </div>
       </div>
 
@@ -376,18 +376,18 @@ function MapVenueCard({
       {venue.nextAvailable && (
         <div className="mt-3 flex items-center justify-between">
           <div className="flex items-center gap-2">
-            <span className="bg-primary-100 text-primary-700 text-sm font-medium px-2.5 py-1 rounded-lg">
+            <span className="bg-primary-400/15 text-primary-400 text-sm font-medium px-2.5 py-1 rounded-lg">
               {venue.nextAvailable.displayText}
             </span>
             {venue.instantBooking && (
-              <span className="bg-accent-100 text-accent-700 text-xs px-2 py-0.5 rounded-full">
+              <span className="bg-accent-400/15 text-accent-400 text-xs px-2 py-0.5 rounded-full">
                 Instant
               </span>
             )}
           </div>
           <Link
             href={`/venue/${slugify(venue.name)}`}
-            className="text-sm font-medium text-secondary-600 hover:text-secondary-800"
+            className="text-sm font-medium text-secondary-50/60 hover:text-secondary-50"
             onClick={(e) => e.stopPropagation()}
           >
             Book →
@@ -410,14 +410,14 @@ function EmptyState({
 }) {
   return (
     <div className="text-center py-8">
-      <div className="bg-secondary-100 rounded-full p-4 w-16 h-16 mx-auto mb-4 flex items-center justify-center">
+      <div className="bg-secondary-50/5 rounded-full p-4 w-16 h-16 mx-auto mb-4 flex items-center justify-center">
         <FontAwesomeIcon icon={faCalendarDays} className="text-2xl text-secondary-400" />
       </div>
       
       {hasVenues ? (
         <>
-          <p className="text-secondary-800 font-medium mb-2">No availability found</p>
-          <p className="text-secondary-600 text-sm mb-4">
+          <p className="text-secondary-50 font-medium mb-2">No availability found</p>
+          <p className="text-secondary-50/60 text-sm mb-4">
             {dateFilter 
               ? 'No slots available for this date. Try a different day.'
               : 'No upcoming availability at this time.'
@@ -426,8 +426,8 @@ function EmptyState({
         </>
       ) : (
         <>
-          <p className="text-secondary-800 font-medium mb-2">No venues found</p>
-          <p className="text-secondary-600 text-sm mb-4">
+          <p className="text-secondary-50 font-medium mb-2">No venues found</p>
+          <p className="text-secondary-50/60 text-sm mb-4">
             Try adjusting your search or filters.
           </p>
         </>
@@ -435,7 +435,7 @@ function EmptyState({
 
       <Link 
         href="/venues"
-        className="inline-block bg-secondary-600 hover:bg-secondary-700 text-white font-medium px-6 py-2.5 rounded-xl transition-colors"
+        className="inline-block bg-primary-400 hover:bg-primary-500 text-secondary-900 font-medium px-6 py-2.5 rounded-xl transition-colors"
       >
         Browse all venues
       </Link>

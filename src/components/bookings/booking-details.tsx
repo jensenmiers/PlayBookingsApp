@@ -38,7 +38,7 @@ export function BookingDetails({
   if (loading) {
     return (
       <div className={cn('flex items-center justify-center p-8', className)}>
-        <FontAwesomeIcon icon={faSpinner} className="animate-spin text-secondary-600" size="2x" />
+        <FontAwesomeIcon icon={faSpinner} className="animate-spin text-secondary-50/60" size="2x" />
       </div>
     )
   }
@@ -60,68 +60,68 @@ export function BookingDetails({
       {/* Header */}
       <div className="flex items-start justify-between">
         <div>
-          <h2 className="text-2xl font-bold text-secondary-800">Booking Details</h2>
-          <p className="text-sm text-secondary-600 mt-1">ID: {booking.id}</p>
+          <h2 className="text-2xl font-bold text-secondary-50">Booking Details</h2>
+          <p className="text-sm text-secondary-50/60 mt-1">ID: {booking.id}</p>
         </div>
         <BookingStatusBadge status={booking.status} />
       </div>
 
       {/* Booking Info */}
       <div className="grid gap-4 md:grid-cols-2">
-        <div className="rounded-lg border border-border bg-white p-4">
-          <div className="flex items-center gap-2 text-secondary-600 mb-2">
+        <div className="rounded-lg border border-border bg-secondary-800 p-4">
+          <div className="flex items-center gap-2 text-secondary-50/60 mb-2">
             <FontAwesomeIcon icon={faCalendarDays} />
             <span className="text-sm font-medium">Date</span>
           </div>
-          <p className="text-lg font-semibold text-secondary-800">
+          <p className="text-lg font-semibold text-secondary-50">
             {format(bookingDate, 'EEEE, MMMM d, yyyy')}
           </p>
         </div>
 
-        <div className="rounded-lg border border-border bg-white p-4">
-          <div className="flex items-center gap-2 text-secondary-600 mb-2">
+        <div className="rounded-lg border border-border bg-secondary-800 p-4">
+          <div className="flex items-center gap-2 text-secondary-50/60 mb-2">
             <FontAwesomeIcon icon={faClock} />
             <span className="text-sm font-medium">Time</span>
           </div>
-          <p className="text-lg font-semibold text-secondary-800">
+          <p className="text-lg font-semibold text-secondary-50">
             {startTime} - {endTime}
           </p>
         </div>
 
         {venue && (
-          <div className="rounded-lg border border-border bg-white p-4">
-            <div className="flex items-center gap-2 text-secondary-600 mb-2">
+          <div className="rounded-lg border border-border bg-secondary-800 p-4">
+            <div className="flex items-center gap-2 text-secondary-50/60 mb-2">
               <FontAwesomeIcon icon={faMapMarkerAlt} />
               <span className="text-sm font-medium">Venue</span>
             </div>
-            <p className="text-lg font-semibold text-secondary-800">{venue.name}</p>
-            <p className="text-sm text-secondary-600 mt-1">
+            <p className="text-lg font-semibold text-secondary-50">{venue.name}</p>
+            <p className="text-sm text-secondary-50/60 mt-1">
               {venue.address}, {venue.city}, {venue.state}
             </p>
           </div>
         )}
 
-        <div className="rounded-lg border border-border bg-white p-4">
-          <div className="flex items-center gap-2 text-secondary-600 mb-2">
+        <div className="rounded-lg border border-border bg-secondary-800 p-4">
+          <div className="flex items-center gap-2 text-secondary-50/60 mb-2">
             <FontAwesomeIcon icon={faDollarSign} />
             <span className="text-sm font-medium">Total Amount</span>
           </div>
-          <p className="text-lg font-semibold text-secondary-800">${booking.total_amount.toFixed(2)}</p>
+          <p className="text-lg font-semibold text-secondary-50">${booking.total_amount.toFixed(2)}</p>
         </div>
       </div>
 
       {/* Additional Info */}
       {booking.notes && (
-        <div className="rounded-lg border border-border bg-white p-4">
-          <h3 className="text-sm font-medium text-secondary-600 mb-2">Notes</h3>
-          <p className="text-secondary-800">{booking.notes}</p>
+        <div className="rounded-lg border border-border bg-secondary-800 p-4">
+          <h3 className="text-sm font-medium text-secondary-50/60 mb-2">Notes</h3>
+          <p className="text-secondary-50">{booking.notes}</p>
         </div>
       )}
 
       {booking.recurring_type !== 'none' && (
-        <div className="rounded-lg border border-border bg-white p-4">
-          <h3 className="text-sm font-medium text-secondary-600 mb-2">Recurring Booking</h3>
-          <p className="text-secondary-800">
+        <div className="rounded-lg border border-border bg-secondary-800 p-4">
+          <h3 className="text-sm font-medium text-secondary-50/60 mb-2">Recurring Booking</h3>
+          <p className="text-secondary-50">
             {booking.recurring_type === 'weekly' ? 'Weekly' : 'Monthly'} recurring booking
             {booking.recurring_end_date && (
               <> until {format(new Date(booking.recurring_end_date), 'MMMM d, yyyy')}</>

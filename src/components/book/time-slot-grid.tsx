@@ -27,7 +27,7 @@ export function TimeSlotGrid({
 }: TimeSlotGridProps) {
   if (loading) {
     return (
-      <div className="bg-white rounded-2xl shadow-soft p-8 text-center text-secondary-600">
+      <div className="bg-secondary-800 rounded-2xl shadow-soft p-8 text-center text-secondary-50/60">
         <p>Loading availability...</p>
       </div>
     )
@@ -45,7 +45,7 @@ export function TimeSlotGrid({
 
     return (
       <div className="mb-6 last:mb-0">
-        <h3 className="text-sm font-semibold text-secondary-700 mb-3 px-2">{label}</h3>
+        <h3 className="text-sm font-semibold text-secondary-50/70 mb-3 px-2">{label}</h3>
         <div className="grid grid-cols-3 sm:grid-cols-4 gap-3">
           {groupSlots.map((slot) => {
             const isSelected = selectedSlot?.start === slot.start && selectedSlot?.end === slot.end
@@ -56,7 +56,7 @@ export function TimeSlotGrid({
                 className={`min-h-[44px] rounded-xl shadow-soft transition duration-200 ${
                   isSelected
                     ? 'bg-secondary-600 text-white hover:bg-secondary-700 border-2 border-secondary-700'
-                    : 'bg-white text-secondary-700 hover:bg-secondary-50 border-2 border-transparent hover:border-secondary-300'
+                    : 'bg-secondary-800 text-secondary-50/70 hover:bg-secondary-50/10 border-2 border-transparent hover:border-secondary-50/10'
                 }`}
               >
                 <span className="text-sm font-medium">{slot.display}</span>
@@ -69,7 +69,7 @@ export function TimeSlotGrid({
   }
 
   return (
-    <div className="bg-white rounded-2xl shadow-soft p-6">
+    <div className="bg-secondary-800 rounded-2xl shadow-soft p-6">
       {venue && !venue.instant_booking && (
         <div className="mb-4 p-3 bg-amber-50 border border-amber-200 rounded-lg">
           <p className="text-xs text-amber-800">

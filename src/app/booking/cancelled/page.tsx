@@ -16,22 +16,22 @@ export default async function BookingCancelledPage({ searchParams }: CancelledPa
   const bookingId = params.booking_id
 
   return (
-    <div className="min-h-screen bg-gradient-to-b from-secondary-50 to-white flex items-center justify-center p-4">
-      <div className="max-w-md w-full bg-white rounded-2xl shadow-lg p-8 text-center">
+    <div className="min-h-screen bg-background flex items-center justify-center p-4">
+      <div className="max-w-md w-full bg-secondary-800 rounded-2xl shadow-lg p-8 text-center">
         <div className="mb-6">
-          <div className="inline-flex items-center justify-center w-16 h-16 bg-secondary-100 rounded-full mb-4">
-            <FontAwesomeIcon icon={faTimesCircle} className="text-secondary-500 text-3xl" />
+          <div className="inline-flex items-center justify-center w-16 h-16 bg-secondary-50/5 rounded-full mb-4">
+            <FontAwesomeIcon icon={faTimesCircle} className="text-secondary-50/50 text-3xl" />
           </div>
-          <h1 className="text-2xl font-bold text-secondary-900 mb-2">
+          <h1 className="text-2xl font-bold font-serif text-secondary-50 mb-2">
             Payment Cancelled
           </h1>
-          <p className="text-secondary-600">
+          <p className="text-secondary-50/60">
             Your payment was cancelled. Your booking is still pending and the time slot is reserved for you.
           </p>
         </div>
 
-        <div className="bg-amber-50 border border-amber-200 rounded-lg p-4 mb-6">
-          <p className="text-sm text-amber-800">
+        <div className="bg-amber-400/15 border border-secondary-50/10 rounded-lg p-4 mb-6">
+          <p className="text-sm text-amber-400">
             You can complete your payment anytime from your bookings dashboard to confirm your reservation.
           </p>
         </div>
@@ -40,21 +40,21 @@ export default async function BookingCancelledPage({ searchParams }: CancelledPa
           {bookingId && (
             <Link
               href={`/dashboard/my-bookings/${bookingId}`}
-              className="block w-full bg-primary-600 text-white py-3 px-4 rounded-lg font-medium hover:bg-primary-700 transition-colors"
+              className="block w-full bg-primary-400 text-secondary-900 py-3 px-4 rounded-lg font-medium hover:bg-primary-500 transition-colors"
             >
               Complete Payment
             </Link>
           )}
           <Link
             href="/dashboard/my-bookings"
-            className="block w-full bg-secondary-100 text-secondary-700 py-3 px-4 rounded-lg font-medium hover:bg-secondary-200 transition-colors"
+            className="block w-full bg-secondary-50/5 text-secondary-50/70 py-3 px-4 rounded-lg font-medium hover:bg-secondary-50/10 transition-colors"
           >
             <FontAwesomeIcon icon={faArrowLeft} className="mr-2" />
             View My Bookings
           </Link>
           <Link
             href="/book"
-            className="block w-full text-secondary-500 py-2 px-4 font-medium hover:text-secondary-700 transition-colors"
+            className="block w-full text-secondary-50/50 py-2 px-4 font-medium hover:text-secondary-50/70 transition-colors"
           >
             Browse Venues
           </Link>

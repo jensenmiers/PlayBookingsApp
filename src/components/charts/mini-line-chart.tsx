@@ -24,7 +24,7 @@ export type MiniLineChartProps = {
 const CustomTooltip = ({ active, payload }: TooltipProps<ValueType, NameType>) => {
   if (active && payload && payload.length) {
     return (
-      <div className="rounded-lg border border-border/60 bg-card px-3 py-2 text-xs text-secondary-700 shadow-soft">
+      <div className="rounded-lg border border-secondary-50/10 bg-card px-3 py-2 text-xs text-secondary-50/70 shadow-soft">
         <span className="font-semibold">{payload[0].value}</span>
       </div>
     )

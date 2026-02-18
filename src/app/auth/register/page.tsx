@@ -51,22 +51,22 @@ function RegisterContent() {
   }
 
   return (
-    <div className="flex min-h-screen items-center justify-center bg-gradient-to-br from-secondary-50 via-secondary-50/80 to-primary-50 p-4">
-      <Card className="w-full max-w-md border-border/60 bg-white/95 p-8 shadow-soft">
+    <div className="flex min-h-screen items-center justify-center bg-background p-4">
+      <Card className="w-full max-w-md border-secondary-50/10 bg-secondary-800 p-8 shadow-soft">
         <CardHeader className="space-y-3 text-center">
           {isHostSignup && (
-            <div className="mx-auto mb-2 inline-flex items-center gap-2 rounded-full bg-primary-100 px-4 py-1.5 text-sm font-semibold text-primary-700">
+            <div className="mx-auto mb-2 inline-flex items-center gap-2 rounded-full bg-primary-400/15 px-4 py-1.5 text-sm font-semibold text-primary-400">
               <svg className="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 10V3L4 14h7v7l9-11h-7z" />
               </svg>
               Host Registration
             </div>
           )}
-          <CardTitle className="text-2xl font-bold text-secondary-800">
+          <CardTitle className="text-2xl font-bold font-serif text-secondary-50">
             {isHostSignup ? 'Become a Host' : 'Welcome to Play Bookings!'}
           </CardTitle>
           {isHostSignup && (
-            <CardDescription className="text-secondary-600">
+            <CardDescription className="text-secondary-50/60">
               Create your host account to list your courts and start earning revenue
             </CardDescription>
           )}
@@ -75,7 +75,7 @@ function RegisterContent() {
           <Button
             onClick={handleGoogleSignup}
             disabled={loading}
-            className="w-full rounded-xl bg-primary-600 py-3 text-base text-white hover:bg-primary-700"
+            className="w-full rounded-xl bg-primary-400 py-3 text-base text-secondary-900 hover:bg-primary-500"
             size="lg"
           >
             {loading ? (
@@ -97,7 +97,7 @@ function RegisterContent() {
           </Button>
 
           <div className="text-center">
-            <Link href="/" className="text-sm font-medium text-secondary-500 hover:text-secondary-700">
+            <Link href="/" className="text-sm font-medium text-secondary-50/50 hover:text-secondary-50/70">
               Back to Home
             </Link>
           </div>
@@ -109,8 +109,8 @@ function RegisterContent() {
 
 function LoadingFallback() {
   return (
-    <div className="flex min-h-screen items-center justify-center bg-gradient-to-br from-secondary-50 via-secondary-50/80 to-primary-50 p-4">
-      <div className="h-8 w-8 animate-spin rounded-full border-4 border-primary-600 border-t-transparent" />
+    <div className="flex min-h-screen items-center justify-center bg-background p-4">
+      <div className="h-8 w-8 animate-spin rounded-full border-4 border-primary-400 border-t-transparent" />
     </div>
   )
 }
