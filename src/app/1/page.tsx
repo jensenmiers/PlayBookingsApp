@@ -1,13 +1,167 @@
 'use client'
 
 import Link from 'next/link'
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useRef } from 'react'
 
-// Design 1: Editorial Magazine
+// Design 1: Editorial Magazine (Enhanced)
 // Bold typography with dramatic scale contrast, full-bleed photography,
 // asymmetric grid-breaking layout, warm amber/court floor tones
+// Enhanced with: floating court cards, hover interactions, split hero
 
-export default function Design1() {
+// Sample court data for demo (MVP - no real venues yet)
+const SAMPLE_COURTS = [
+  { 
+    id: '1', 
+    name: 'Lincoln MS Gym', 
+    type: 'School Gymnasium',
+    hourlyRate: 65,
+    city: 'Pasadena',
+    nextAvailable: '6:00 PM',
+    image: 'https://images.unsplash.com/photo-1504450758481-7338eba7524a?w=600&q=80'
+  },
+  { 
+    id: '2', 
+    name: 'Jefferson Rec Center', 
+    type: 'Recreation Center',
+    hourlyRate: 55,
+    city: 'Los Angeles',
+    nextAvailable: '6:30 PM',
+    image: 'https://images.unsplash.com/photo-1558618666-fcd25c85cd64?w=600&q=80'
+  },
+  { 
+    id: '3', 
+    name: 'Roosevelt Elementary', 
+    type: 'School Gymnasium',
+    hourlyRate: 50,
+    city: 'Glendale',
+    nextAvailable: '7:00 PM',
+    image: 'https://images.unsplash.com/photo-1546519638-68e109498ffc?w=600&q=80'
+  },
+]
+
+// Court Card Component with hover interactions
+function CourtCard({ 
+  court, 
+  index, 
+  mounted 
+}: { 
+  court: typeof SAMPLE_COURTS[0]
+  index: number
+  mounted: boolean 
+}) {
+  const [isHovered, setIsHovered] = useState(false)
+
+  return (
+    <Link
+      href="/search"
+      className={`group relative block transform transition-all duration-700 ${
+        mounted ? 'translate-y-0 opacity-100' : 'translate-y-12 opacity-0'
+      }`}
+      style={{ transitionDelay: `${400 + index * 150}ms` }}
+      onMouseEnter={() => setIsHovered(true)}
+      onMouseLeave={() => setIsHovered(false)}
+    >
+      {/* Card Container */}
+      <div className={`relative overflow-hidden rounded-2xl bg-[#2a2520] border border-[#faf4ef]/10 transition-all duration-500 ${
+        isHovered ? 'border-[#4ade80]/40 shadow-xl shadow-[#4ade80]/5' : ''
+      }`}>
+        {/* Image */}
+        <div className="aspect-[4/3] overflow-hidden">
+          <div 
+            className={`w-full h-full bg-cover bg-center transition-transform duration-700 ${
+              isHovered ? 'scale-110' : 'scale-100'
+            }`}
+            style={{ backgroundImage: `url('${court.image}')` }}
+          />
+          {/* Gradient overlay */}
+          <div className="absolute inset-0 bg-gradient-to-t from-[#2a2520] via-[#2a2520]/20 to-transparent" />
+        </div>
+
+        {/* Content */}
+        <div className="relative p-5 sm:p-6 -mt-16">
+          {/* Availability Badge */}
+          <div className="flex items-center gap-2 mb-3">
+            <span className="w-2 h-2 bg-[#4ade80] rounded-full animate-pulse" />
+            <span className="text-xs font-medium text-[#4ade80] uppercase tracking-wider">
+              Available {court.nextAvailable}
+            </span>
+          </div>
+
+          {/* Venue Info */}
+          <h3 className="font-serif text-xl sm:text-2xl text-[#faf4ef] mb-1 leading-tight">
+            {court.name}
+          </h3>
+          <p className="text-sm text-[#faf4ef]/50 mb-4">
+            {court.type} · {court.city}
+          </p>
+
+          {/* Price & CTA */}
+          <div className="flex items-center justify-between">
+            <span className="text-lg font-medium text-[#faf4ef]">
+              ${court.hourlyRate}
+              <span className="text-sm text-[#faf4ef]/40">/hr</span>
+            </span>
+            
+            <span className={`flex items-center gap-2 text-sm font-medium text-[#4ade80] transition-all duration-300 ${
+              isHovered ? 'opacity-100 translate-x-0' : 'opacity-0 -translate-x-2'
+            }`}>
+              Book Now
+              <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
+              </svg>
+            </span>
+          </div>
+        </div>
+
+        {/* Hover Accent Line */}
+        <div className={`absolute bottom-0 left-0 h-1 bg-gradient-to-r from-[#4ade80] to-[#fb923c] transition-all duration-500 ${
+          isHovered ? 'w-full' : 'w-0'
+        }`} />
+      </div>
+    </Link>
+  )
+}
+
+// Horizontal Scrolling Court Cards (Mobile-optimized)
+function CourtCardsScroll({ courts, mounted }: { courts: typeof SAMPLE_COURTS, mounted: boolean }) {
+  const scrollRef = useRef<HTMLDivElement>(null)
+
+  return (
+    <div className="relative -mx-6 sm:-mx-10 px-6 sm:px-10">
+      <div 
+        ref={scrollRef}
+        className="flex gap-5 overflow-x-auto pb-4 scrollbar-hide snap-x snap-mandatory"
+      >
+        {courts.map((court, i) => (
+          <div key={court.id} className="flex-shrink-0 w-[280px] sm:w-[320px] snap-start">
+            <CourtCard court={court} index={i} mounted={mounted} />
+          </div>
+        ))}
+        {/* Browse All Card */}
+        <Link
+          href="/venues"
+          className={`flex-shrink-0 w-[280px] sm:w-[320px] snap-start transform transition-all duration-700 ${
+            mounted ? 'translate-y-0 opacity-100' : 'translate-y-12 opacity-0'
+          }`}
+          style={{ transitionDelay: `${400 + courts.length * 150}ms` }}
+        >
+          <div className="h-full min-h-[360px] rounded-2xl border-2 border-dashed border-[#faf4ef]/20 flex flex-col items-center justify-center p-6 hover:border-[#4ade80]/40 transition-colors group">
+            <div className="w-16 h-16 rounded-full bg-[#faf4ef]/5 flex items-center justify-center mb-4 group-hover:bg-[#4ade80]/10 transition-colors">
+              <svg className="w-8 h-8 text-[#faf4ef]/40 group-hover:text-[#4ade80] transition-colors" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M17 8l4 4m0 0l-4 4m4-4H3" />
+              </svg>
+            </div>
+            <span className="text-[#faf4ef]/60 font-medium group-hover:text-[#4ade80] transition-colors">
+              Browse all courts
+            </span>
+          </div>
+        </Link>
+      </div>
+    </div>
+  )
+}
+
+export default function Design1Enhanced() {
   const [mounted, setMounted] = useState(false)
   
   useEffect(() => {
@@ -17,7 +171,7 @@ export default function Design1() {
   return (
     <div className="min-h-screen bg-[#1a1612] text-[#faf4ef] overflow-hidden">
       {/* Minimal Nav */}
-      <nav className="fixed top-0 left-0 right-0 z-50 flex items-center justify-between px-6 py-5 sm:px-10">
+      <nav className="fixed top-0 left-0 right-0 z-50 flex items-center justify-between px-6 py-5 sm:px-10 bg-gradient-to-b from-[#1a1612] to-transparent">
         <Link href="/" className="font-semibold text-lg tracking-tight text-[#faf4ef]/90">
           Play Bookings
         </Link>
@@ -29,7 +183,7 @@ export default function Design1() {
         </Link>
       </nav>
 
-      {/* Hero Section */}
+      {/* Hero Section - Full Bleed */}
       <section className="relative min-h-screen flex flex-col">
         {/* Background Image with Overlay */}
         <div className="absolute inset-0">
@@ -82,56 +236,85 @@ export default function Design1() {
         <div className="absolute bottom-0 right-0 w-1/3 h-1 bg-gradient-to-r from-transparent via-[#fb923c] to-[#4ade80]" />
       </section>
 
-      {/* How It Works - Editorial Grid */}
-      <section className="relative px-6 py-24 sm:px-10 sm:py-32 bg-[#1a1612]">
+      {/* Available Courts Section */}
+      <section className="relative px-6 py-20 sm:px-10 sm:py-28 bg-[#1a1612]">
         <div className="max-w-7xl mx-auto">
           {/* Section Header */}
-          <div className="flex items-end justify-between mb-16 sm:mb-24 border-b border-[#faf4ef]/10 pb-8">
-            <h2 className="font-serif text-3xl sm:text-5xl md:text-6xl italic">
+          <div className="flex flex-col sm:flex-row sm:items-end justify-between gap-4 mb-10 sm:mb-12">
+            <div>
+              <span className="text-[#fb923c] text-xs tracking-[0.3em] uppercase mb-3 block">
+                Featured
+              </span>
+              <h2 className="font-serif text-3xl sm:text-4xl md:text-5xl">
+                Available courts
+              </h2>
+            </div>
+            <Link 
+              href="/search"
+              className="text-sm font-medium text-[#faf4ef]/50 hover:text-[#4ade80] transition-colors flex items-center gap-2 self-start sm:self-auto"
+            >
+              View all availability
+              <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 8l4 4m0 0l-4 4m4-4H3" />
+              </svg>
+            </Link>
+          </div>
+
+          {/* Court Cards - Horizontal Scroll */}
+          <CourtCardsScroll courts={SAMPLE_COURTS} mounted={mounted} />
+        </div>
+      </section>
+
+      {/* How It Works - Editorial Grid */}
+      <section className="relative px-6 py-20 sm:px-10 sm:py-28 bg-[#1a1612]">
+        <div className="max-w-7xl mx-auto">
+          {/* Section Header */}
+          <div className="flex items-end justify-between mb-14 sm:mb-20 border-b border-[#faf4ef]/10 pb-6">
+            <h2 className="font-serif text-3xl sm:text-4xl md:text-5xl italic">
               How it works
             </h2>
-            <span className="text-[#faf4ef]/40 text-sm tracking-widest">01—03</span>
+            <span className="text-[#faf4ef]/30 text-sm tracking-widest hidden sm:block">01—03</span>
           </div>
 
           {/* Asymmetric Grid */}
-          <div className="grid grid-cols-1 md:grid-cols-12 gap-8 md:gap-4">
+          <div className="grid grid-cols-1 md:grid-cols-12 gap-6 md:gap-4">
             {/* Step 1 - Large */}
-            <div className="md:col-span-7 group">
-              <div className="aspect-[4/3] md:aspect-[16/10] bg-gradient-to-br from-[#4ade80]/20 to-transparent rounded-3xl p-8 sm:p-12 flex flex-col justify-end relative overflow-hidden">
-                <div className="absolute top-8 right-8 text-[#4ade80] text-8xl sm:text-9xl font-serif opacity-20">01</div>
+            <div className="md:col-span-7">
+              <div className="aspect-[4/3] md:aspect-[16/10] bg-gradient-to-br from-[#4ade80]/15 to-transparent rounded-3xl p-6 sm:p-10 flex flex-col justify-end relative overflow-hidden">
+                <div className="absolute top-6 right-6 text-[#4ade80] text-6xl sm:text-8xl font-serif opacity-15">01</div>
                 <span className="text-[#fb923c] text-xs tracking-[0.3em] uppercase mb-3">Discover</span>
-                <h3 className="text-2xl sm:text-3xl md:text-4xl font-medium mb-3 leading-tight">
+                <h3 className="text-xl sm:text-2xl md:text-3xl font-medium mb-2 leading-tight">
                   Find open courts in your community
                 </h3>
-                <p className="text-[#faf4ef]/60 text-sm sm:text-base max-w-md">
+                <p className="text-[#faf4ef]/50 text-sm sm:text-base max-w-md">
                   Browse available basketball courts at schools and recreation centers near you.
                 </p>
               </div>
             </div>
 
-            {/* Step 2 - Medium */}
-            <div className="md:col-span-5 md:mt-24 group">
-              <div className="aspect-[4/3] bg-gradient-to-br from-[#fb923c]/20 to-transparent rounded-3xl p-8 sm:p-10 flex flex-col justify-end relative overflow-hidden">
-                <div className="absolute top-6 right-6 text-[#fb923c] text-7xl sm:text-8xl font-serif opacity-20">02</div>
+            {/* Step 2 - Medium, offset */}
+            <div className="md:col-span-5 md:mt-20">
+              <div className="aspect-[4/3] bg-gradient-to-br from-[#fb923c]/15 to-transparent rounded-3xl p-6 sm:p-8 flex flex-col justify-end relative overflow-hidden">
+                <div className="absolute top-5 right-5 text-[#fb923c] text-5xl sm:text-7xl font-serif opacity-15">02</div>
                 <span className="text-[#4ade80] text-xs tracking-[0.3em] uppercase mb-3">Book</span>
-                <h3 className="text-xl sm:text-2xl md:text-3xl font-medium mb-3 leading-tight">
+                <h3 className="text-lg sm:text-xl md:text-2xl font-medium mb-2 leading-tight">
                   Reserve instantly or request
                 </h3>
-                <p className="text-[#faf4ef]/60 text-sm max-w-sm">
+                <p className="text-[#faf4ef]/50 text-sm max-w-sm">
                   Instant booking for approved facilities, or send a quick request.
                 </p>
               </div>
             </div>
 
-            {/* Step 3 - Offset */}
-            <div className="md:col-start-3 md:col-span-6 md:-mt-12 group">
-              <div className="aspect-[16/9] bg-gradient-to-br from-[#faf4ef]/10 to-transparent rounded-3xl p-8 sm:p-10 flex flex-col justify-end relative overflow-hidden">
-                <div className="absolute top-6 right-6 text-[#faf4ef] text-7xl sm:text-8xl font-serif opacity-10">03</div>
-                <span className="text-[#faf4ef]/60 text-xs tracking-[0.3em] uppercase mb-3">Play</span>
-                <h3 className="text-xl sm:text-2xl md:text-3xl font-medium mb-3 leading-tight">
+            {/* Step 3 - Offset left */}
+            <div className="md:col-start-3 md:col-span-6 md:-mt-8">
+              <div className="aspect-[16/9] bg-gradient-to-br from-[#faf4ef]/8 to-transparent rounded-3xl p-6 sm:p-8 flex flex-col justify-end relative overflow-hidden">
+                <div className="absolute top-5 right-5 text-[#faf4ef] text-5xl sm:text-7xl font-serif opacity-10">03</div>
+                <span className="text-[#faf4ef]/50 text-xs tracking-[0.3em] uppercase mb-3">Play</span>
+                <h3 className="text-lg sm:text-xl md:text-2xl font-medium mb-2 leading-tight">
                   Show up and play
                 </h3>
-                <p className="text-[#faf4ef]/60 text-sm max-w-sm">
+                <p className="text-[#faf4ef]/50 text-sm max-w-sm">
                   No phone calls, no back-and-forth. Just you and the court.
                 </p>
               </div>
@@ -141,17 +324,17 @@ export default function Design1() {
       </section>
 
       {/* Bottom CTA */}
-      <section className="relative px-6 py-24 sm:px-10 sm:py-32">
-        <div className="max-w-4xl mx-auto text-center">
-          <p className="text-[#fb923c] text-sm tracking-[0.3em] uppercase mb-6">
+      <section className="relative px-6 py-20 sm:px-10 sm:py-28">
+        <div className="max-w-3xl mx-auto text-center">
+          <span className="text-[#fb923c] text-sm tracking-[0.3em] uppercase mb-4 block">
             Ready to play?
-          </p>
-          <h2 className="font-serif text-4xl sm:text-6xl md:text-7xl leading-tight mb-12">
+          </span>
+          <h2 className="font-serif text-3xl sm:text-5xl md:text-6xl leading-tight mb-8 sm:mb-10">
             Your community&apos;s courts<br />
             <span className="italic text-[#4ade80]">are waiting</span>
           </h2>
           <Link 
-            href="/venues"
+            href="/search"
             className="inline-flex items-center gap-4 px-10 py-5 bg-[#4ade80] text-[#1a1612] text-lg font-semibold rounded-full hover:bg-[#22c55e] transition-colors"
           >
             Browse Courts
