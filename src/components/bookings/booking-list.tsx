@@ -1,47 +1,49 @@
 /**
  * Booking List Component
+ * Mini-ticket card list with segmented filters and contextual actions
  */
 
 'use client'
 
 import { useState, useCallback } from 'react'
-import { useBookings, useCancelBooking } from '@/hooks/useBookings'
-import { BookingStatusBadge } from './booking-status-badge'
-import { Button } from '@/components/ui/button'
-import { Input } from '@/components/ui/input'
-import { PaymentModal } from '@/components/payments/payment-modal'
-import { FontAwesomeIcon } from '@fortawesome/react-fontawesome'
-import { faSpinner, faFilter, faCreditCard, faXmark, faEye } from '@fortawesome/free-solid-svg-icons'
-import { cn } from '@/lib/utils'
-import type { BookingWithVenue } from '@/types'
-import type { ListBookingsQueryParams } from '@/types/api'
-import { formatTime, isPastBookingStart } from '@/utils/dateHelpers'
-import { format } from 'date-fns'
 import Link from 'next/link'
+import { useBookings } from '@/hooks/useBookings'
+import { BookingCard } from './booking-card'
+import { BookingListSkeleton } from './booking-list-skeleton'
+import { PaymentModal } from '@/components/payments/payment-modal'
+import { Button } from '@/components/ui/button'
+import { FontAwesomeIcon } from '@fortawesome/react-fontawesome'
+import { faBasketball } from '@fortawesome/free-solid-svg-icons'
+import { cn } from '@/lib/utils'
+import type { BookingWithVenue, BookingStatus } from '@/types'
+import type { ListBookingsQueryParams } from '@/types/api'
 
 interface BookingListProps {
   initialFilters?: ListBookingsQueryParams
   className?: string
 }
 
+const STATUS_CHIPS: { label: string; value: BookingStatus | undefined }[] = [
+  { label: 'All', value: undefined },
+  { label: 'Pending', value: 'pending' },
+  { label: 'Confirmed', value: 'confirmed' },
+  { label: 'Completed', value: 'completed' },
+  { label: 'Cancelled', value: 'cancelled' },
+]
+
 export function BookingList({ initialFilters, className }: BookingListProps) {
   const [filters, setFilters] = useState<ListBookingsQueryParams>({
     status: initialFilters?.status,
     venue_id: initialFilters?.venue_id,
-    date_from: initialFilters?.date_from,
-    date_to: initialFilters?.date_to,
     time_view: initialFilters?.time_view || 'upcoming',
     page: initialFilters?.page || '1',
     limit: initialFilters?.limit || '20',
     role_view: initialFilters?.role_view,
   })
-  const [showFilters, setShowFilters] = useState(false)
   const [paymentModalOpen, setPaymentModalOpen] = useState(false)
   const [selectedBooking, setSelectedBooking] = useState<BookingWithVenue | null>(null)
-  const [cancellingId, setCancellingId] = useState<string | null>(null)
 
   const { data: bookings, loading, error, refetch } = useBookings(filters)
-  const { mutate: cancelBooking, loading: cancelLoading, error: cancelError } = useCancelBooking()
 
   const handlePayNow = useCallback((booking: BookingWithVenue) => {
     setSelectedBooking(booking)
@@ -54,61 +56,16 @@ export function BookingList({ initialFilters, className }: BookingListProps) {
     refetch()
   }, [refetch])
 
-  const handleCancel = useCallback(async (bookingId: string) => {
-    setCancellingId(bookingId)
-    await cancelBooking(bookingId)
-    setCancellingId(null)
-    refetch()
-  }, [cancelBooking, refetch])
-
-  const isPastBooking = (booking: BookingWithVenue): boolean => {
-    return isPastBookingStart(booking.date, booking.start_time)
-  }
-
-  const canPay = (booking: BookingWithVenue): boolean => {
-    if (booking.status === 'cancelled' || booking.status === 'completed') {
-      return false
-    }
-    if (isPastBooking(booking)) {
-      return false
-    }
-    if (booking.venue?.insurance_required && !booking.insurance_approved) {
-      return false
-    }
-    return booking.status === 'pending'
-  }
-
-  const canCancel = (booking: BookingWithVenue): boolean => {
-    if (isPastBooking(booking)) {
-      return false
-    }
-
-    return booking.status === 'pending' || booking.status === 'confirmed'
-  }
-
   const handleFilterChange = (key: keyof ListBookingsQueryParams, value: string | undefined) => {
     setFilters((prev) => ({
       ...prev,
       [key]: value || undefined,
-      page: '1', // Reset to first page on filter change
+      page: '1',
     }))
   }
 
-  const clearFilters = () => {
-    setFilters({
-      page: '1',
-      limit: '20',
-      time_view: filters.time_view || 'upcoming',
-      role_view: initialFilters?.role_view, // Preserve role_view when clearing
-    })
-  }
-
   if (loading && !bookings) {
-    return (
-      <div className={cn('flex items-center justify-center p-8', className)}>
-        <FontAwesomeIcon icon={faSpinner} className="animate-spin text-secondary-50/60" size="2x" />
-      </div>
-    )
+    return <BookingListSkeleton />
   }
 
   if (error) {
@@ -123,152 +80,82 @@ export function BookingList({ initialFilters, className }: BookingListProps) {
   }
 
   return (
-    <div className={cn('space-y-4', className)}>
-      {/* Filters */}
-      <div className="flex flex-wrap items-center gap-2">
-        <Button
-          variant={filters.time_view === 'upcoming' ? 'default' : 'outline'}
-          size="sm"
+    <div className={cn('space-y-5', className)}>
+      {/* Segmented time toggle */}
+      <div className="inline-flex h-11 items-center rounded-xl bg-secondary-800 p-1">
+        <button
           onClick={() => handleFilterChange('time_view', 'upcoming')}
+          className={cn(
+            'inline-flex h-9 items-center justify-center rounded-lg px-5 text-sm font-medium transition-all',
+            filters.time_view === 'upcoming'
+              ? 'bg-secondary-700 text-secondary-50 shadow-soft'
+              : 'text-secondary-50/50 hover:text-secondary-50'
+          )}
         >
           Upcoming
-        </Button>
-        <Button
-          variant={filters.time_view === 'past' ? 'default' : 'outline'}
-          size="sm"
+        </button>
+        <button
           onClick={() => handleFilterChange('time_view', 'past')}
+          className={cn(
+            'inline-flex h-9 items-center justify-center rounded-lg px-5 text-sm font-medium transition-all',
+            filters.time_view === 'past'
+              ? 'bg-secondary-700 text-secondary-50 shadow-soft'
+              : 'text-secondary-50/50 hover:text-secondary-50'
+          )}
         >
           Past
-        </Button>
-        <Button
-          variant="outline"
-          size="sm"
-          onClick={() => setShowFilters(!showFilters)}
-        >
-          <FontAwesomeIcon icon={faFilter} className="mr-2" />
-          Filters
-        </Button>
-        {(filters.status || filters.date_from || filters.date_to) && (
-          <Button variant="ghost" size="sm" onClick={clearFilters}>
-            Clear Filters
-          </Button>
-        )}
+        </button>
       </div>
 
-      {showFilters && (
-        <div className="rounded-lg border border-border bg-secondary-800 p-4 space-y-4">
-          <div className="grid gap-4 md:grid-cols-3">
-            <div>
-              <label className="text-sm font-medium mb-2 block">Status</label>
-              <select
-                value={filters.status || ''}
-                onChange={(e) =>
-                  handleFilterChange('status', e.target.value || undefined)
-                }
-                className="flex h-11 w-full rounded-lg border border-input bg-secondary-800/80 px-4 py-2 text-sm shadow-xs"
-              >
-                <option value="">All Statuses</option>
-                <option value="pending">Pending</option>
-                <option value="confirmed">Confirmed</option>
-                <option value="cancelled">Cancelled</option>
-                <option value="completed">Completed</option>
-              </select>
-            </div>
+      {/* Status chip bar */}
+      <div className="flex gap-2 overflow-x-auto pb-1 -mb-1 scrollbar-hide">
+        {STATUS_CHIPS.map((chip) => (
+          <button
+            key={chip.label}
+            onClick={() => handleFilterChange('status', chip.value)}
+            className={cn(
+              'flex-shrink-0 rounded-full px-3.5 py-1.5 text-xs font-medium transition-all border',
+              filters.status === chip.value
+                ? 'bg-secondary-50/10 text-secondary-50 border-secondary-50/20'
+                : 'text-secondary-50/40 border-transparent hover:text-secondary-50/60 hover:bg-secondary-50/5'
+            )}
+          >
+            {chip.label}
+          </button>
+        ))}
+      </div>
 
-            <div>
-              <label className="text-sm font-medium mb-2 block">Date From</label>
-              <Input
-                type="date"
-                value={filters.date_from || ''}
-                onChange={(e) => handleFilterChange('date_from', e.target.value || undefined)}
-              />
-            </div>
-
-            <div>
-              <label className="text-sm font-medium mb-2 block">Date To</label>
-              <Input
-                type="date"
-                value={filters.date_to || ''}
-                onChange={(e) => handleFilterChange('date_to', e.target.value || undefined)}
-              />
-            </div>
-          </div>
-        </div>
-      )}
-
-      {cancelError && (
-        <div className="rounded-lg border border-destructive/50 bg-destructive/10 p-3 text-sm text-destructive">
-          {cancelError}
-        </div>
-      )}
-
-      {/* Booking List */}
+      {/* Booking cards */}
       {!bookings || bookings.length === 0 ? (
-        <div className="rounded-lg border border-border bg-secondary-800 p-8 text-center">
-          <p className="text-secondary-50/60">No bookings found</p>
+        <div className="flex flex-col items-center justify-center py-16 text-center">
+          <div className="w-14 h-14 rounded-full bg-secondary-50/5 flex items-center justify-center mb-4">
+            <FontAwesomeIcon icon={faBasketball} className="text-secondary-50/20 text-xl" />
+          </div>
+          <p className="text-secondary-50/60 font-medium">
+            {filters.time_view === 'past' ? 'No past bookings' : 'No upcoming bookings'}
+          </p>
+          <p className="text-secondary-50/30 text-sm mt-1 max-w-[240px]">
+            {filters.time_view === 'past'
+              ? 'Your completed and cancelled bookings will appear here'
+              : 'Find a court and book your next game'}
+          </p>
+          {filters.time_view === 'upcoming' && (
+            <Link href="/book">
+              <Button variant="outline" size="sm" className="mt-4">
+                Browse Courts
+              </Button>
+            </Link>
+          )}
         </div>
       ) : (
         <div className="space-y-3">
-          {bookings.map((booking) => {
-            const bookingWithVenue = booking as BookingWithVenue
-            const venueName = bookingWithVenue.venue?.name || 'Unknown Venue'
-            const isExpiredPending = booking.status === 'pending' && isPastBooking(bookingWithVenue)
-            
-            return (
-              <div
-                key={booking.id}
-                className="rounded-lg border border-border bg-secondary-800 p-4 hover:shadow-md transition-shadow"
-              >
-                <div className="flex items-start justify-between mb-3">
-                  <div>
-                    <h3 className="font-semibold text-secondary-50">
-                      {venueName}
-                    </h3>
-                    <p className="text-sm text-secondary-50/60 mt-1">
-                      {format(new Date(booking.date), 'EEE, MMM d, yyyy')} • {formatTime(booking.start_time)} - {formatTime(booking.end_time)}
-                    </p>
-                  </div>
-                  <BookingStatusBadge status={booking.status} expired={isExpiredPending} />
-                </div>
-                <div className="flex items-center justify-between">
-                  <p className="text-lg font-medium text-secondary-50">${booking.total_amount.toFixed(2)}</p>
-                  <div className="flex items-center gap-2">
-                    {canPay(bookingWithVenue) && (
-                      <Button
-                        size="sm"
-                        variant="default"
-                        onClick={() => handlePayNow(bookingWithVenue)}
-                      >
-                        <FontAwesomeIcon icon={faCreditCard} className="mr-2 h-3 w-3" />
-                        Pay Now
-                      </Button>
-                    )}
-                    {canCancel(bookingWithVenue) && (
-                      <Button
-                        size="sm"
-                        variant="outline"
-                        onClick={() => handleCancel(booking.id)}
-                        disabled={cancelLoading && cancellingId === booking.id}
-                      >
-                        {cancelLoading && cancellingId === booking.id ? (
-                          <FontAwesomeIcon icon={faSpinner} className="mr-2 h-3 w-3 animate-spin" />
-                        ) : (
-                          <FontAwesomeIcon icon={faXmark} className="mr-2 h-3 w-3" />
-                        )}
-                        Cancel
-                      </Button>
-                    )}
-                    <Link href={`/my-bookings/${booking.id}`}>
-                      <Button size="sm" variant="ghost">
-                        <FontAwesomeIcon icon={faEye} className="mr-2 h-3 w-3" />
-                        View
-                      </Button>
-                    </Link>
-                  </div>
-                </div>
-              </div>
-            )
-          })}
+          {bookings.map((booking) => (
+            <BookingCard
+              key={booking.id}
+              booking={booking as BookingWithVenue}
+              onPayClick={handlePayNow}
+            />
+          ))}
         </div>
       )}
 
@@ -286,9 +173,9 @@ export function BookingList({ initialFilters, className }: BookingListProps) {
 
       {/* Pagination */}
       {bookings && bookings.length > 0 && (
-        <div className="flex items-center justify-between pt-4">
-          <p className="text-sm text-secondary-50/60">
-            Showing {bookings.length} booking{bookings.length !== 1 ? 's' : ''}
+        <div className="flex items-center justify-between pt-2">
+          <p className="text-sm text-secondary-50/30">
+            {bookings.length} booking{bookings.length !== 1 ? 's' : ''}
           </p>
           <div className="flex items-center gap-2">
             <Button

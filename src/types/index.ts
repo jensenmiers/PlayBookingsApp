@@ -200,6 +200,7 @@ export interface BookingWithVenue extends Booking {
     name: string
     instant_booking: boolean
     insurance_required: boolean
+    photos: string[]
   }
 }
 

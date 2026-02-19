@@ -118,7 +118,8 @@ export class BookingRepository {
           id,
           name,
           instant_booking,
-          insurance_required
+          insurance_required,
+          photos
         )
       `)
       .eq('renter_id', renterId)
