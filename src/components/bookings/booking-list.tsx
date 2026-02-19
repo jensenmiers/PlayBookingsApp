@@ -108,7 +108,7 @@ export function BookingList({ initialFilters, className }: BookingListProps) {
       </div>
 
       {/* Status chip bar */}
-      <div className="flex gap-2 overflow-x-auto pb-1 -mb-1 scrollbar-hide">
+      <div className="flex gap-2 overflow-x-auto scrollbar-hide -mt-2">
         {STATUS_CHIPS.map((chip) => (
           <button
             key={chip.label}
@@ -140,7 +140,7 @@ export function BookingList({ initialFilters, className }: BookingListProps) {
               : 'Find a court and book your next game'}
           </p>
           {filters.time_view === 'upcoming' && (
-            <Link href="/book">
+            <Link href="/search">
               <Button variant="outline" size="sm" className="mt-4">
                 Browse Courts
               </Button>
