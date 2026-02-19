@@ -1,320 +1,360 @@
-# Database Structure - Live Query Results
+# Database Structure (Rebuilt From Code + Live Inspection)
 
-This document contains the actual database structure as queried via Supabase MCP.
-Last updated: **2026-02-16** (audit: aligned with live Supabase).
+Last rebuilt: 2026-02-19
 
-## 📊 Database Overview
+## How this was rebuilt
 
-- **Total Tables**: 10 tables in `public` schema
-- **RLS Status**: 10 tables with RLS enabled ✅
-- **Extensions**: 
-  - `uuid-ossp` (1.1) - UUID generation
-  - `pgcrypto` (1.3) - Cryptographic functions
-  - `pg_stat_statements` (1.11) - Query statistics
-  - `pg_graphql` (1.5.11) - GraphQL support
-  - `supabase_vault` (0.3.1) - Vault extension
-  - `postgis` (3.3.7) - Spatial types (geography/geometry) for venue location
+This document was rebuilt without using the previous `DATABASE_STRUCTURE.md`.
 
-### Function Security Issues
-Some functions have mutable `search_path` (Supabase security advisor):
-- `log_audit_trail`
-- `check_insurance_requirements_deprecated`
-- `update_updated_at_column`
+Sources used:
 
-**Remediation**: Add `SET search_path = public` to the above functions. `handle_new_user` and the deprecated conflict/booking functions have already been fixed.
+1. Live schema existence check via `npm run inspect:schema` (confirmed tables that currently exist in Supabase).
+2. SQL migrations in `supabase/migrations/`.
+3. Runtime data access code (`src/repositories/**`, `src/services/**`, `src/app/api/**`, `src/hooks/**`).
+4. Type contracts in `src/types/index.ts`.
+5. Seed/admin scripts in `scripts/**`.
 
-## 📋 Table Structures
+## Confidence Legend
 
-### 1. `users` (RLS: ✅ Enabled, Rows: 0)
+- `Confirmed`: Observed directly in live DB inspection or explicit SQL migration.
+- `Inferred`: Derived from TypeScript contracts and production query usage.
 
-**Columns:**
-- `id` (uuid, PK) → References `auth.users.id`
-- `email` (text, UNIQUE, NOT NULL)
-- `is_renter` (boolean, NOT NULL, DEFAULT: true)
-- `is_venue_owner` (boolean, NOT NULL, DEFAULT: false)
-- `is_admin` (boolean, NOT NULL, DEFAULT: false)
-- `first_name` (text, nullable)
-- `last_name` (text, nullable)
-- `phone` (text, nullable)
-- `created_at` (timestamptz, DEFAULT: now())
-- `updated_at` (timestamptz, DEFAULT: now())
+## High-Level Model
 
-**Note:** Users can have multiple capabilities simultaneously (e.g., both `is_renter` and `is_venue_owner` can be true).
+Core domain:
 
-**Foreign Keys:**
-- Referenced by: venues, bookings, recurring_bookings, insurance_documents, payments, messages, subscriptions, audit_logs
+- `users` own `venues`.
+- `venues` expose `availability` slots.
+- `bookings` reserve venue time slots for renters.
+- `recurring_bookings` store expanded recurrence instances.
+- `payments` track Stripe payment lifecycle for bookings.
+- `audit_logs` capture application-level change events.
 
-### 2. `venues` (RLS: ✅ Enabled, Rows: 0)
+Secondary/supporting tables:
 
-**Columns:**
-- `id` (uuid, PK, DEFAULT: uuid_generate_v4())
-- `name` (text, NOT NULL)
-- `description` (text, nullable)
-- `address` (text, NOT NULL)
-- `city` (text, NOT NULL)
-- `state` (text, NOT NULL)
-- `zip_code` (text, NOT NULL)
-- `latitude` (numeric, nullable)
-- `longitude` (numeric, nullable)
-- `owner_id` (uuid, NOT NULL) → References `users.id`
-- `hourly_rate` (numeric, NOT NULL, CHECK: > 0)
-- `weekend_rate` (numeric, nullable, CHECK: > 0) — Optional rate for weekend bookings (Sat/Sun). NULL means use standard hourly_rate.
-- `instant_booking` (boolean, DEFAULT: false)
-- `insurance_required` (boolean, DEFAULT: true)
-- `max_advance_booking_days` (integer, DEFAULT: 180, CHECK: > 0)
-- `photos` (text[], DEFAULT: '{}')
-- `amenities` (text[], DEFAULT: '{}')
-- `is_active` (boolean, DEFAULT: true)
-- `location` (geography(Point, 4326), nullable) — PostGIS point for spatial queries. Populated from latitude/longitude. Use `ST_X(location::geometry)` for longitude, `ST_Y(location::geometry)` for latitude.
-- `created_at` (timestamptz, DEFAULT: now())
-- `updated_at` (timestamptz, DEFAULT: now())
+- `insurance_documents`
+- `subscriptions`
+- `messages`
 
-**Foreign Keys:**
-- Referenced by: availability, bookings, recurring_bookings, payments
+## Tables Present in Live DB (`Confirmed`)
 
-### 3. `availability` (RLS: ✅ Enabled, Rows: 0)
+From `npm run inspect:schema` on 2026-02-19:
 
-**Columns:**
-- `id` (uuid, PK, DEFAULT: uuid_generate_v4())
-- `venue_id` (uuid, NOT NULL) → References `venues.id`
-- `date` (date, NOT NULL)
-- `start_time` (time, NOT NULL)
-- `end_time` (time, NOT NULL)
-- `is_available` (boolean, DEFAULT: true)
-- `created_at` (timestamptz, DEFAULT: now())
-- `updated_at` (timestamptz, DEFAULT: now())
+1. `users`
+2. `venues`
+3. `availability`
+4. `bookings`
+5. `recurring_bookings`
+6. `insurance_documents`
+7. `payments`
+8. `audit_logs`
+9. `subscriptions`
+10. `messages`
 
-**Constraints:**
-- UNIQUE(venue_id, date, start_time, end_time)
-- CHECK: start_time < end_time
+Note: table/trigger/function metadata RPC helpers (`get_table_structure`, `get_all_triggers`, `get_all_functions`) are not installed in the target DB right now, so column-level inspection had to be inferred from application code + migrations.
 
-### 4. `bookings` (RLS: ✅ Enabled, Rows: 0)
+## Table Reference
 
-**Columns:**
-- `id` (uuid, PK, DEFAULT: uuid_generate_v4())
-- `venue_id` (uuid, NOT NULL) → References `venues.id`
-- `renter_id` (uuid, NOT NULL) → References `users.id`
-- `date` (date, NOT NULL, CHECK: date <= CURRENT_DATE + 180 days)
-- `start_time` (time, NOT NULL)
-- `end_time` (time, NOT NULL)
-- `status` (booking_status enum: 'pending' | 'confirmed' | 'cancelled' | 'completed', DEFAULT: 'pending')
-- `total_amount` (numeric, NOT NULL)
-- `insurance_approved` (boolean, DEFAULT: false)
-- `insurance_required` (boolean, DEFAULT: true)
-- `recurring_type` (recurring_type enum: 'none' | 'weekly' | 'monthly', DEFAULT: 'none')
-- `recurring_end_date` (date, nullable)
-- `notes` (text, nullable)
-- `created_at` (timestamptz, DEFAULT: now())
-- `updated_at` (timestamptz, DEFAULT: now())
+## `users`
 
-**Constraints:**
-- CHECK: start_time < end_time
+Status: `Confirmed` table, `Inferred` columns
 
-**Foreign Keys:**
-- Referenced by: recurring_bookings, insurance_documents, payments, messages
+Columns used by app:
 
-### 5. `recurring_bookings` (RLS: ✅ Enabled)
+- `id` (UUID, PK, aligned to Supabase auth user id)
+- `email`
+- `is_renter` (boolean; migration default true)
+- `is_venue_owner` (boolean; migration default false)
+- `is_admin` (boolean; migration default false)
+- `first_name` (nullable)
+- `last_name` (nullable)
+- `phone` (nullable)
+- `avatar_url` (nullable)
+- `created_at`
+- `updated_at`
 
-**Columns:**
-- `id` (uuid, PK, DEFAULT: uuid_generate_v4())
-- `parent_booking_id` (uuid, NOT NULL) → References `bookings.id`
-- `venue_id` (uuid, NOT NULL) → References `venues.id`
-- `renter_id` (uuid, NOT NULL) → References `users.id`
-- `date` (date, NOT NULL)
-- `start_time` (time, NOT NULL)
-- `end_time` (time, NOT NULL)
-- `status` (booking_status enum, DEFAULT: 'pending')
-- `total_amount` (numeric, NOT NULL)
-- `insurance_approved` (boolean, DEFAULT: false)
-- `created_at` (timestamptz, DEFAULT: now())
-- `updated_at` (timestamptz, DEFAULT: now())
+Migration notes:
 
-**Constraints:**
-- CHECK: start_time < end_time
+- `supabase/migrations/20250115214424_user_role_booleans.sql` removes legacy `role` enum column and replaces it with capability booleans.
 
-### 6. `insurance_documents` (RLS: ✅ Enabled, Rows: 0)
+## `venues`
 
-**Columns:**
-- `id` (uuid, PK, DEFAULT: uuid_generate_v4())
-- `booking_id` (uuid, NOT NULL) → References `bookings.id`
-- `renter_id` (uuid, NOT NULL) → References `users.id`
-- `document_url` (text, NOT NULL)
-- `policy_number` (text, nullable)
-- `coverage_amount` (numeric, nullable)
-- `effective_date` (date, NOT NULL)
-- `expiration_date` (date, NOT NULL)
-- `status` (insurance_status enum: 'pending' | 'approved' | 'rejected' | 'needs_changes', DEFAULT: 'pending')
-- `rejection_reason` (text, nullable)
-- `reviewed_by` (uuid, nullable) → References `users.id`
-- `reviewed_at` (timestamptz, nullable)
-- `created_at` (timestamptz, DEFAULT: now())
-- `updated_at` (timestamptz, DEFAULT: now())
+Status: `Confirmed` table, mixed `Confirmed/Inferred` columns
 
-**Constraints:**
-- CHECK: effective_date < expiration_date
+Columns used by app:
 
-### 7. `payments` (RLS: ✅ Enabled)
+- `id` (UUID, PK)
+- `name`
+- `description`
+- `address`
+- `city`
+- `state`
+- `zip_code`
+- `latitude`
+- `longitude`
+- `location` (PostGIS `geography(Point,4326)`; `Confirmed` via migration)
+- `owner_id` (UUID FK to `users.id`)
+- `hourly_rate`
+- `weekend_rate` (nullable)
+- `instant_booking` (boolean)
+- `insurance_required` (boolean)
+- `max_advance_booking_days`
+- `photos` (array; app treats as `string[]`)
+- `amenities` (array; app treats as `string[]`)
+- `is_active` (boolean)
+- `created_at`
+- `updated_at`
 
-**Columns:**
-- `id` (uuid, PK, DEFAULT: uuid_generate_v4())
-- `booking_id` (uuid, NOT NULL) → References `bookings.id`
-- `renter_id` (uuid, NOT NULL) → References `users.id`
-- `venue_id` (uuid, NOT NULL) → References `venues.id`
-- `stripe_payment_intent_id` (text, nullable, UNIQUE)
-- `stripe_setup_intent_id` (text, nullable, UNIQUE) — Card-on-file authorization for deferred payment (SetupIntent flow)
-- `stripe_transfer_id` (text, nullable)
-- `amount` (numeric, NOT NULL)
-- `platform_fee` (numeric, NOT NULL, DEFAULT: 0)
-- `venue_owner_amount` (numeric, NOT NULL)
-- `status` (payment_status enum: 'pending' | 'authorized' | 'paid' | 'refunded' | 'failed', DEFAULT: 'pending')
-- `paid_at` (timestamptz, nullable)
-- `refunded_at` (timestamptz, nullable)
-- `refund_amount` (numeric, nullable)
-- `created_at` (timestamptz, DEFAULT: now())
-- `updated_at` (timestamptz, DEFAULT: now())
+Spatial/index notes (`Confirmed` via migration):
 
-### 8. `audit_logs` (RLS: ✅ Enabled, Rows: 0)
+- `idx_venues_location_gist`
+- `idx_venues_location_gist_active` (`WHERE is_active = true AND location IS NOT NULL`)
 
-**Columns:**
-- `id` (uuid, PK, DEFAULT: uuid_generate_v4())
-- `table_name` (text, NOT NULL)
-- `record_id` (uuid, NOT NULL)
-- `action` (text, NOT NULL, CHECK: IN ('create', 'update', 'delete'))
-- `old_values` (jsonb, nullable)
-- `new_values` (jsonb, nullable)
-- `user_id` (uuid, NOT NULL) → References `users.id`
-- `created_at` (timestamptz, DEFAULT: now())
+## `availability`
 
-### 9. `subscriptions` (RLS: ✅ Enabled, Rows: 0)
+Status: `Confirmed` table, mixed `Confirmed/Inferred` columns
 
-**Columns:**
-- `id` (uuid, PK, DEFAULT: uuid_generate_v4())
-- `user_id` (uuid, NOT NULL) → References `users.id`
-- `stripe_subscription_id` (text, nullable, UNIQUE)
-- `stripe_customer_id` (text, nullable)
-- `status` (text, NOT NULL)
-- `current_period_start` (timestamptz, NOT NULL)
-- `current_period_end` (timestamptz, NOT NULL)
-- `trial_end` (timestamptz, nullable)
-- `created_at` (timestamptz, DEFAULT: now())
-- `updated_at` (timestamptz, DEFAULT: now())
+Columns used by app:
 
-**Constraints:**
-- CHECK: current_period_start < current_period_end
+- `id` (UUID, PK)
+- `venue_id` (UUID FK to `venues.id`)
+- `date`
+- `start_time`
+- `end_time`
+- `is_available` (boolean)
+- `created_at`
+- `updated_at`
 
-### 10. `messages` (RLS: ✅ Enabled, Rows: 0)
+Index note (`Confirmed` via migration):
 
-**Columns:**
-- `id` (uuid, PK, DEFAULT: uuid_generate_v4())
-- `sender_id` (uuid, NOT NULL) → References `users.id`
-- `recipient_id` (uuid, NOT NULL) → References `users.id`
-- `booking_id` (uuid, nullable) → References `bookings.id`
-- `subject` (text, nullable)
-- `content` (text, NOT NULL)
-- `is_read` (boolean, DEFAULT: false)
-- `created_at` (timestamptz, DEFAULT: now())
+- `idx_availability_venue_date_time` on `(venue_id, date, start_time)` where `is_available = true`
 
-## 🔧 Database Functions (from live DB)
+Inferred constraints:
 
-Functions in `public` schema:
+- Seeder behavior suggests duplicate protection likely exists for slot identity (at least sometimes emits code `23505` on duplicate insert).
 
-1. **`update_updated_at_column()`** - Auto-updates `updated_at` timestamps
-2. **`log_audit_trail()`** - Creates audit log entries
-3. **`handle_new_user()`** - Creates user profile after auth signup ✅ **Fixed 2026-01-09**
-4. **`get_venues_with_next_available()`** - Returns active venues with coordinates and next available slot. Supports optional date and radius filtering via PostGIS.
-5. **Deprecated (no longer used by triggers)** - `check_booking_conflicts_deprecated`, `check_recurring_booking_conflicts_deprecated`, `check_insurance_requirements_deprecated`, `check_cancellation_policy_deprecated`, `generate_recurring_bookings_deprecated`
+## `bookings`
 
-### `handle_new_user()` Function Details
+Status: `Confirmed` table, `Inferred` columns
 
-**Trigger**: `on_auth_user_created` (AFTER INSERT on `auth.users`)
+Columns used by app:
 
-This function automatically creates a user profile in `public.users` when a new user signs up via Supabase Auth (including Google OAuth).
+- `id` (UUID, PK)
+- `venue_id` (UUID FK to `venues.id`)
+- `renter_id` (UUID FK to `users.id`)
+- `date`
+- `start_time`
+- `end_time`
+- `status` (`pending | confirmed | cancelled | completed` in app)
+- `total_amount`
+- `insurance_approved` (boolean)
+- `insurance_required` (boolean)
+- `recurring_type` (`none | weekly | monthly` in app)
+- `recurring_end_date` (nullable)
+- `notes` (nullable)
+- `created_at`
+- `updated_at`
 
-**Current Implementation** (fixed 2026-01-09):
-```sql
-CREATE OR REPLACE FUNCTION public.handle_new_user()
-RETURNS TRIGGER
-SECURITY DEFINER
-SET search_path = public
-LANGUAGE plpgsql
-AS $$
-BEGIN
-  INSERT INTO public.users (
-    id, email, first_name, last_name,
-    is_renter, is_venue_owner, is_admin,
-    created_at, updated_at
-  )
-  VALUES (
-    NEW.id,
-    NEW.email,
-    COALESCE(NEW.raw_user_meta_data->>'first_name', 
-             split_part(NEW.raw_user_meta_data->>'full_name', ' ', 1)),
-    COALESCE(NEW.raw_user_meta_data->>'last_name', 
-             NULLIF(regexp_replace(NEW.raw_user_meta_data->>'full_name', '^[^ ]+ ', ''), '')),
-    true,   -- is_renter (default)
-    false,  -- is_venue_owner
-    false,  -- is_admin
-    NOW(),
-    NOW()
-  )
-  ON CONFLICT (id) DO UPDATE SET
-    email = EXCLUDED.email,
-    updated_at = NOW();
-  
-  RETURN NEW;
-END;
-$$;
-```
+Behavior notes:
 
-**Fix Applied**: The previous version referenced a non-existent `role` column (which was replaced by boolean flags in migration `20251231055310_user_role_booleans`). This caused "Database error saving new user" errors for all new user signups.
+- Conflict checks treat only `pending` and `confirmed` as blocking.
+- Default delete path is soft-cancel (`status = 'cancelled'`).
 
-## ⚠️ Security Advisors Summary (as of 2026-02-16)
+## `recurring_bookings`
 
-### Resolved:
-- **RLS**: All 10 tables now have RLS enabled with policies ✅
+Status: `Confirmed` table, `Inferred` columns
 
-### Warnings:
-1. **Function Search Path**: 3 functions have mutable search_path — `log_audit_trail`, `check_insurance_requirements_deprecated`, `update_updated_at_column`
-2. **Auth OTP Expiry**: Email OTP expiry exceeds 1 hour
-3. **Leaked Password Protection**: Disabled
-4. **Postgres Version**: Security patches available (17.4.1.074)
+Columns used by app:
 
-## ✅ Recent Fixes
+- `id` (UUID, PK)
+- `parent_booking_id` (UUID FK to `bookings.id`)
+- `venue_id` (UUID FK to `venues.id`)
+- `renter_id` (UUID FK to `users.id`)
+- `date`
+- `start_time`
+- `end_time`
+- `status` (`pending | confirmed | cancelled | completed` in app)
+- `total_amount`
+- `insurance_approved` (boolean)
+- `created_at`
+- `updated_at`
 
-### 2026-02-10: Payment status `authorized` and `stripe_setup_intent_id`
-**Migration**: `add_authorized_payment_status_and_setup_intent`
+## `payments`
 
-- Added `authorized` to `payment_status` enum (for card-on-file / SetupIntent flow before capture)
-- Added `stripe_setup_intent_id` column (text, nullable, UNIQUE) to `payments` for deferred payment flows
+Status: `Confirmed` table, `Inferred` columns
 
-### 2026-01-21: Venue location (PostGIS) and `get_venues_with_next_available`
-**Migrations**: `enable_postgis`, `add_venue_location_geography`, `create_get_venues_with_next_available`
+Columns used by app:
 
-- PostGIS extension enabled
-- `venues.location` column (geography) added for spatial queries; populated from latitude/longitude
-- `get_venues_with_next_available()` function for radius/distance filtering
+- `id` (UUID, PK)
+- `booking_id` (UUID FK to `bookings.id`)
+- `renter_id` (UUID FK to `users.id`)
+- `venue_id` (UUID FK to `venues.id`)
+- `stripe_payment_intent_id` (nullable)
+- `stripe_setup_intent_id` (nullable)
+- `stripe_transfer_id` (nullable)
+- `amount`
+- `platform_fee`
+- `venue_owner_amount`
+- `status` (`pending | authorized | paid | refunded | failed` in app)
+- `paid_at` (nullable)
+- `refunded_at` (nullable)
+- `refund_amount` (nullable)
+- `created_at`
+- `updated_at`
 
-### 2026-01-16: Added `weekend_rate` Column to Venues
-**Migration**: `add_weekend_rate_to_venues`
+## `insurance_documents`
 
-**Purpose**: Allow venues to charge different rates on weekends (Saturday/Sunday).
+Status: `Confirmed` table, `Inferred` columns
 
-**Change**: Added `weekend_rate` column (numeric, nullable, CHECK > 0) to the `venues` table.
+Columns used by app types:
 
-**Usage**: If `weekend_rate` is NULL, the venue uses the standard `hourly_rate` for all days. If set, bookings on Saturday or Sunday use this rate instead.
+- `id` (UUID, PK)
+- `booking_id` (UUID FK to `bookings.id`)
+- `renter_id` (UUID FK to `users.id`)
+- `document_url`
+- `policy_number` (nullable)
+- `coverage_amount` (nullable)
+- `effective_date`
+- `expiration_date`
+- `status` (`pending | approved | rejected | needs_changes` in app)
+- `rejection_reason` (nullable)
+- `reviewed_by` (nullable, likely FK to `users.id`)
+- `reviewed_at` (nullable)
+- `created_at`
+- `updated_at`
 
-### 2026-01-09: `handle_new_user()` Trigger Fix
-**Migration**: `fix_handle_new_user_trigger`
+## `audit_logs`
 
-**Problem**: The `handle_new_user()` function was referencing a `role` column that no longer exists (removed in `20251231055310_user_role_booleans` migration). This caused all new user signups via Google OAuth to fail with "Database error saving new user".
+Status: `Confirmed` table, `Inferred` columns
 
-**Solution**: Updated the function to use the new boolean columns (`is_renter`, `is_venue_owner`, `is_admin`) and added `SET search_path = public` for security.
+Columns used by `src/services/auditService.ts`:
 
-**Impact**: New users can now successfully sign up via Google OAuth. Users are created with `is_renter=true` by default.
+- `id` (UUID, PK)
+- `table_name`
+- `record_id`
+- `action` (`create | update | delete`)
+- `old_values` (nullable JSON-like payload)
+- `new_values` (nullable JSON-like payload)
+- `user_id` (UUID FK to `users.id`)
+- `created_at`
 
-## 📝 Next Steps
+## `subscriptions`
 
-1. Fix function security: add `SET search_path = public` to `log_audit_trail`, `check_insurance_requirements_deprecated`, `update_updated_at_column`
-2. Consider enabling Auth OTP expiry < 1 hour and leaked password protection in Supabase dashboard
-3. Plan Postgres upgrade when security patches are available
+Status: `Confirmed` table, `Inferred` columns
 
+Columns used by app types:
+
+- `id` (UUID, PK)
+- `user_id` (UUID FK to `users.id`)
+- `stripe_subscription_id` (nullable)
+- `stripe_customer_id` (nullable)
+- `status`
+- `current_period_start`
+- `current_period_end`
+- `trial_end` (nullable)
+- `created_at`
+- `updated_at`
+
+## `messages`
+
+Status: `Confirmed` table, `Inferred` columns
+
+Columns used by app types:
+
+- `id` (UUID, PK)
+- `sender_id` (UUID FK to `users.id`)
+- `recipient_id` (UUID FK to `users.id`)
+- `booking_id` (nullable FK to `bookings.id`)
+- `subject` (nullable)
+- `content`
+- `is_read` (boolean)
+- `created_at`
+
+## Functions, Extensions, and Indexes
+
+## PostGIS extension
+
+`Confirmed` via `supabase/migrations/20260121000001_enable_postgis.sql`:
+
+- `CREATE EXTENSION IF NOT EXISTS postgis;`
+
+## RPC: `get_venues_with_next_available`
+
+`Confirmed` via `supabase/migrations/20260121000003_create_get_venues_with_next_available.sql`.
+
+Purpose:
+
+- Returns active venues with next available slot.
+- Supports optional date filtering and optional user-location radius filtering.
+- Computes optional `distance_miles` when lat/lng is provided.
+
+Used by:
+
+- `src/hooks/useVenuesWithNextAvailable.ts`
+- `src/app/venues/page.tsx`
+
+## Schema inspection helper RPCs
+
+Defined in `supabase/schema-inspection-helpers.sql` but currently not available in production schema cache:
+
+- `get_table_structure`
+- `get_all_triggers`
+- `get_all_functions`
+
+## Access Control and RLS (Observed)
+
+From migration + connection tests:
+
+- Admin capability policies exist on multiple tables and are keyed off `users.is_admin`.
+- Public venue reads are expected to work for unauthenticated users (`connection-test` expects this).
+- Unauthenticated access to `users` is expected to be blocked.
+
+## Relationship Map (Inferred)
+
+- `users (1) -> (many) venues` via `venues.owner_id`
+- `users (1) -> (many) bookings` via `bookings.renter_id`
+- `venues (1) -> (many) availability` via `availability.venue_id`
+- `venues (1) -> (many) bookings` via `bookings.venue_id`
+- `bookings (1) -> (many) recurring_bookings` via `recurring_bookings.parent_booking_id`
+- `bookings (1) -> (many?) payments` app currently treats as logical 1:1 by `findByBookingId().single()`
+- `bookings (1) -> (many) insurance_documents`
+- `users (1) -> (many) payments` via `payments.renter_id`
+- `users (1) -> (many) audit_logs` via `audit_logs.user_id`
+- `users (1) -> (many) messages` as sender/recipient
+
+## Operational Data Flows
+
+## Booking creation flow
+
+1. Validate venue + advance window (`max_advance_booking_days`).
+2. Check conflicts against:
+   - `bookings` (`pending`, `confirmed`)
+   - `recurring_bookings` (`pending`, `confirmed`)
+   - `availability` blocks
+3. Insert booking in `bookings`.
+4. Optionally generate `recurring_bookings`.
+5. Insert `audit_logs`.
+
+## Availability computation flow
+
+`AvailabilityService` computes true slots by subtracting active bookings from availability and returning split intervals.
+
+## Payment flow
+
+1. Create `PaymentIntent` or `SetupIntent` depending on approval model.
+2. Persist/update `payments`.
+3. Stripe webhook success transitions payment to `paid`.
+4. Booking transitions to `confirmed` once payment succeeds.
+5. Refund path transitions payment to `refunded`.
+
+## Known Gaps / Drift Risks
+
+1. Live DB column types/defaults/constraints cannot be fully verified until schema inspection helper RPCs are deployed (or equivalent introspection enabled).
+2. Several enum-like fields are enforced in app code; DB-level enum/check constraints are not confirmed here.
+3. Legacy comments still mention trigger-based behavior in places, while current app logs audit events in application code.
+
+## How to Re-Verify Quickly
+
+1. Run `npm run inspect:schema` to confirm table existence in current environment.
+2. If you need exact live columns/triggers/functions, run SQL in `supabase/schema-inspection-helpers.sql` in Supabase SQL editor, then rerun `npm run inspect:schema`.
+3. Reconcile any differences between migrations and live schema before major data migrations.

@@ -4,6 +4,12 @@ Behavioral guidelines to reduce common LLM coding mistakes. Merge with project-s
 
 **Tradeoff:** These guidelines bias toward caution over speed. For trivial tasks, use judgment.
 
+## 0. Required Context Files
+
+- Always load and follow `/Users/jensenmiers/Aug2025PlayBookingsWork/PlayBookings/AGENTS.md` before coding.
+- Treat `/Users/jensenmiers/Aug2025PlayBookingsWork/PlayBookings/AGENTS.md` as shared project policy for all assistants.
+- If this file and `AGENTS.md` overlap, follow the stricter rule.
+
 ## 1. Think Before Coding
 
 **Don't assume. Don't hide confusion. Surface tradeoffs.**

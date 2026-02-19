@@ -1,172 +1,230 @@
-# CSS Architecture Documentation
+# CSS Architecture (Rebuilt From Current Codebase)
 
-## Overview
+Last rebuilt: 2026-02-19
 
-Play Bookings uses **Tailwind CSS v4** with a CSS-first configuration approach. This is a significant departure from Tailwind v3's JavaScript-based configuration.
+## How this was rebuilt
 
-## Technology Stack
+This document was rebuilt without using the previous `CSS_ARCHITECTURE.md`.
 
-| Technology | Purpose |
-|------------|---------|
-| Tailwind CSS v4 | Utility-first CSS; config via `@theme` in `globals.css` |
-| PostCSS (`@tailwindcss/postcss` v4) | CSS processing pipeline |
-| Radix UI primitives | Dialog, Tabs, Toast, Label, Slot; styled with Tailwind |
-| tw-animate-css | Animation utilities |
-| class-variance-authority (cva) | Component variant management (Button, Toast, etc.) |
-| tailwind-merge + clsx | Class merging via `cn()` in `@/lib/utils` |
+Sources used:
 
-## File Structure
+1. `src/app/globals.css`
+2. `postcss.config.mjs`
+3. `components.json`
+4. UI primitives in `src/components/ui/**`
+5. App/page/component class usage in `src/app/**` and `src/components/**`
+6. Shared helpers in `src/lib/utils.ts`
 
-```
-src/
-├── app/
-│   └── globals.css          # Main CSS entry point, theme definitions
-├── components/
-│   └── ui/
-│       └── *.tsx            # Radix-based UI components (cva + Tailwind)
-├── lib/
-│   └── utils.ts             # cn() helper function
-└── postcss.config.mjs       # PostCSS configuration
-```
+## Stack
 
-There is no `tailwind.config.ts`; Tailwind v4 uses CSS-only configuration.
+## Core
 
-## Architecture Hierarchy
+- Tailwind CSS v4 via `@import "tailwindcss"` in `src/app/globals.css`
+- `tw-animate-css` for animation utilities
+- PostCSS plugin: `@tailwindcss/postcss` (`postcss.config.mjs`)
+- `clsx` + `tailwind-merge` through `cn()` (`src/lib/utils.ts`)
+- `class-variance-authority` (`cva`) for variant APIs (notably `Button` and `Toast`)
 
-### 1. CSS Entry Point (`globals.css`)
+## Component foundation
 
-```css
-@import "tailwindcss";        /* Tailwind v4 base */
-@import "tw-animate-css";     /* Animation utilities */
-```
+- Radix primitives for interaction-heavy components (Dialog, Sheet, Tabs, Toast, etc.)
+- shadcn-style component structure configured by `components.json`
+- `data-slot` attributes used throughout UI primitives for semantic targeting and composability
 
-### 2. Theme Configuration (`@theme inline` block)
+## Global Styling Topology
 
-Tailwind v4 uses CSS-native configuration via `@theme` blocks (no `tailwind.config.ts` in this project).
+There is a single global stylesheet:
 
-```css
-@theme inline {
-  --color-primary: var(--primary);
-  --color-secondary: var(--secondary);
-  /* Maps CSS variables to Tailwind color utilities */
-}
-```
+- `src/app/globals.css`
 
-**Critical**: Only variables defined in `@theme inline` become available as Tailwind utilities.
+No CSS modules or SCSS files are currently used in `src`.
 
-### 3. CSS Custom Properties (`:root`)
+`globals.css` responsibilities:
 
-Design tokens are defined in `globals.css` as CSS variables. Each palette has steps 50–900. Semantic tokens (e.g. `--background`, `--foreground`, `--primary`) reference palette variables. See `globals.css` for current OKLCH values.
+1. Import Tailwind and animation utilities.
+2. Define theme tokens in `@theme inline`.
+3. Define base design tokens as CSS custom properties in `:root`.
+4. Apply global base styles in `@layer base`.
 
-### 4. Component Variants (cva)
+## Token System
 
-Radix-based UI components use `class-variance-authority` for variant management:
+## Token flow
 
-```tsx
-const buttonVariants = cva(
-  "base-classes...",
-  {
-    variants: {
-      variant: {
-        default: "bg-primary text-primary-foreground",
-        secondary: "bg-secondary text-secondary-foreground",
-      }
-    }
-  }
-)
-```
+1. Raw palette tokens are defined in `:root` (`--primary-*`, `--secondary-*`, `--accent-*`, etc.).
+2. Semantic tokens are mapped in `:root` (`--background`, `--foreground`, `--card`, `--muted`, `--border`, etc.).
+3. `@theme inline` exposes these as Tailwind tokens (`--color-*`, radii, shadows, fonts).
+4. Components consume semantic classes (`bg-background`, `text-foreground`, `bg-card`, etc.) and palette classes (`text-primary-400`, `bg-secondary-800`, etc.).
 
-### 5. Class Merging (`cn()` utility)
+## Current palette direction
 
-```tsx
-import { clsx } from "clsx"
-import { twMerge } from "tailwind-merge"
+- Primary: green scale (`--primary-50` ... `--primary-900`)
+- Secondary: warm dark neutrals/browns
+- Accent: warm orange scale
 
-export function cn(...inputs) {
-  return twMerge(clsx(inputs))
-}
-```
+## Surface and depth tokens
 
-## Color System
+- Radius token base: `--radius` (1rem)
+- Derived radii: `--radius-sm/md/lg/xl`
+- Shadows: `--shadow-soft`, `--shadow-glass`
 
-Palettes are Radix-inspired: primary (green/sage to forest), accent (orange), and secondary (warm neutrals). All values live in `globals.css` as OKLCH variables.
+## Dark-mode posture
 
-### Palettes
+- Dark custom variant is declared: `@custom-variant dark (&:is(.dark *));`
+- Current semantic defaults in `:root` are dark-first.
+- No separate light token block is currently defined in `globals.css`.
 
-| Palette | Description | Usage |
-|---------|-------------|-------|
-| **Primary** | Radix Green (sage to forest, ~140–152° hue) | CTAs, buttons, brand elements, links, ring |
-| **Secondary** | Warm neutrals (~45–75° hue) | Text, backgrounds, borders, surfaces, muted |
-| **Accent** | Radix Orange (~32–55° hue) | Badges, highlights, destructive (dark), charts |
+## Typography System
 
-### Shade Scale
+Fonts are loaded in `src/app/layout.tsx` via `next/font/google`:
 
-Each palette has steps 50–900 in `globals.css`:
-- 50–200: Light backgrounds, subtle elements
-- 300–400: Borders, disabled states
-- 500: Base (anchor); semantic `--primary` / `--accent` point here in light mode
-- 600–700: Interactive states, hover
-- 800–900: Text, dark backgrounds
+- DM Sans (`--font-dm-sans`)
+- DM Serif Display (`--font-dm-serif`)
+- Geist Mono (`--font-geist-mono`)
 
-### Semantic Tokens
+Theme mapping (`@theme inline`):
 
-Semantic tokens are set in `:root` and overridden in `.dark`. See `globals.css` for full definitions.
+- `--font-sans -> --font-dm-sans`
+- `--font-serif -> --font-dm-serif`
+- `--font-mono -> --font-geist-mono`
 
-| Token | Light | Dark | Purpose |
-|-------|-------|------|---------|
-| `--background` | secondary-50 | secondary-900 | Page background |
-| `--foreground` | secondary-900 | near-white | Primary text |
-| `--primary` | primary-500 | primary-400 | Brand (green) |
-| `--primary-foreground` | secondary-900 | secondary-900 | Text on primary |
-| `--secondary` | secondary-500 | secondary-400 | Neutral accent |
-| `--accent` | accent-500 | accent-400 | Highlight (orange) |
-| `--muted` | secondary-100 | secondary-700 | Subtle backgrounds |
-| `--border` | secondary-200 | mixed (dark) | Borders, dividers |
+Usage pattern:
 
-### Accessibility Notes
+- Sans for default UI/body text.
+- Serif for hero/headline emphasis (`font-serif`).
+- Mono available for code/technical displays.
 
-- Use primary (green) and secondary-700+ on light backgrounds for sufficient contrast.
-- Accent (orange) is used for decorative elements and badges; ensure text on accent meets contrast requirements where used.
+## Base Layer Rules
 
-## Known Issues & Gotchas
+In `@layer base`:
 
-### 1. No JavaScript Tailwind Config
+- All elements get border/outline defaults: `@apply border-border outline-ring/50`
+- `body` gets semantic background/foreground: `@apply bg-background text-foreground`
 
-This project does not use `tailwind.config.ts`. Tailwind v4 uses CSS-only configuration. All theme values (colors, radius, etc.) are defined in `globals.css` via:
-- CSS custom properties in `:root` (and `.dark`)
-- Mappings in the `@theme inline` block
+Result:
 
-### 2. Shade Classes Require Explicit Mapping
+- Most visual styling is utility-driven at component level, with only minimal true global rules.
 
-To use `bg-secondary-600`, you MUST have:
-```css
-@theme inline {
-  --color-secondary-600: var(--secondary-600);
-}
-```
+## Component Styling Architecture
 
-Without this mapping, the class compiles but resolves to transparent.
+## Pattern 1: Utility-first composition
 
-### 3. cva Variants vs Custom Classes
+Most components use inline Tailwind classes directly in JSX.
 
-Button (and other cva-based components) apply variant styles that may conflict with passed `className` values. `tailwind-merge` deduplicates by utility type, so a variant class like `text-primary-foreground` might not be overridden by `text-white`. **Workaround**: Use the `!` modifier (e.g. `!text-white`) or inline styles when you need to force an override.
+Examples:
 
-### 4. OKLCH Color Space
+- Layout/page shells in `src/app/**`
+- Feature components in `src/components/book/**`, `src/components/search/**`, `src/components/venue/**`, etc.
 
-Colors use OKLCH for perceptual uniformity. Browser DevTools may show colors as `lab()` values.
+## Pattern 2: Shared primitive layer
 
-## Migration Notes
+`src/components/ui/**` centralizes reusable primitives:
 
-If migrating from Tailwind v3 (or a project that used `tailwind.config.ts`):
-1. Define colors and theme in `globals.css` (`:root` and `@theme inline`)
-2. Add all palette steps and semantic tokens to the `@theme inline` block so Tailwind utilities resolve
-3. Replace hardcoded hex with CSS variables
-4. Verify components resolve colors correctly
+- `button.tsx` with CVA variants (`default`, `destructive`, `outline`, `secondary`, `ghost`, `link`) and size variants.
+- `toast.tsx` with CVA variants (`default`, `success`, `error`).
+- Card, Input, Dialog, Sheet, Tabs, Table, Form, Calendar, etc. use consistent tokenized classes.
 
-## Debugging CSS Issues
+## Pattern 3: Class conflict-safe composition
 
-1. **Check computed styles**: Use DevTools to see if classes resolve to actual values
-2. **Verify `@theme` mappings**: Missing mappings = transparent colors
-3. **Check class order**: `tailwind-merge` deduplication may remove intended overrides
-4. **Restart dev server**: Tailwind v4 + Turbopack may cache aggressively
+All primitives and many feature components use:
 
+- `cn(...classes)` to combine conditionals safely.
+- `twMerge` to resolve Tailwind class conflicts.
+
+## Pattern 4: Slot semantics for wrappers
+
+UI primitives use `data-slot` markers (`data-slot="button"`, `data-slot="card"`, etc.) to:
+
+1. Improve semantic clarity for wrappers.
+2. Support predictable overrides in composed components.
+
+## Styling Conventions in Practice
+
+## Spacing and shape
+
+- Rounded geometry is consistent (`rounded-xl`, `rounded-2xl`, `rounded-full`).
+- Cards/panels commonly use:
+  - `bg-secondary-800`
+  - `border border-secondary-50/10`
+  - `shadow-soft`
+
+## Color usage
+
+- Semantic classes are used heavily (`bg-background`, `text-foreground`, `bg-card`).
+- Palette shade classes (`primary-*`, `secondary-*`, `accent-*`) are used for nuanced states and accents.
+
+## State styling
+
+- Hover/focus/disabled states are mostly utility-based.
+- Focus rings commonly rely on `ring-*` with semantic tokens.
+- Radix state/data selectors are used in interactive components (`data-[state=*]`, `data-[swipe=*]`).
+
+## Motion
+
+- Utility animations (`animate-spin`, `animate-pulse`) are common.
+- Toast and other components use enter/exit state classes.
+- `tw-animate-css` augments animation utility availability.
+
+## Architecture by Layer
+
+## Layer 1: Global tokens and reset
+
+- `src/app/globals.css`
+
+## Layer 2: Reusable primitives
+
+- `src/components/ui/**`
+
+## Layer 3: Domain components
+
+- `src/components/book/**`
+- `src/components/search/**`
+- `src/components/venue/**`
+- `src/components/dashboard/**`
+- `src/components/bookings/**`
+
+## Layer 4: App routes/pages
+
+- `src/app/**`
+
+## Variant-heavy screen designs
+
+There are multiple visual venue experience variants (`src/components/venue/venue-design-*.tsx`):
+
+- `arena`
+- `community`
+- `editorial`
+- `quickplay`
+- `scoreboard`
+
+These intentionally experiment with distinct visual treatments and occasionally use direct color utilities beyond strict semantic-token-only styling.
+
+## What is intentionally not present
+
+1. No Tailwind config file (`tailwind.config.*`) in current setup.
+2. No CSS Modules under `src`.
+3. No SCSS/SASS pipeline.
+4. No separate light-theme token map in `globals.css` at this time.
+
+## Maintenance Guidelines
+
+## Preferred
+
+1. Add/adjust tokens in `src/app/globals.css` first when changing global look/feel.
+2. Keep reusable variants in UI primitives (`Button`, `Toast`, etc.) instead of scattering one-off class patterns.
+3. Use semantic classes for surfaces/text when possible; use palette shades for controlled accents.
+4. Continue using `cn()` for class composition to avoid Tailwind conflict bugs.
+
+## Avoid
+
+1. Introducing ad-hoc global styles for component-specific concerns.
+2. Hardcoding color values inline when an existing token class can express intent.
+3. Duplicating variant logic across multiple feature components when it belongs in `src/components/ui/**`.
+
+## Quick Audit Checklist
+
+When touching styles:
+
+1. Are tokenized semantic classes used where appropriate?
+2. Is the change reusable (should it be in a primitive variant)?
+3. Does focus/hover/disabled behavior remain accessible and consistent?
+4. Are mobile-first utilities still correct (`base` then `sm:` and up)?
