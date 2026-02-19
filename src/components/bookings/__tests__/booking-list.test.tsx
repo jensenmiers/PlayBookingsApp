@@ -110,7 +110,7 @@ describe('BookingList', () => {
     render(<BookingList initialFilters={{ role_view: 'renter', time_view: 'upcoming' }} />)
 
     expect(screen.getByText('No upcoming bookings')).toBeInTheDocument()
-    expect(screen.getByRole('link', { name: /browse courts/i })).toHaveAttribute('href', '/book')
+    expect(screen.getByRole('link', { name: /browse courts/i })).toHaveAttribute('href', '/search')
   })
 
   it('shows past empty state without browse courts link', async () => {
@@ -122,6 +122,59 @@ describe('BookingList', () => {
       expect(screen.getByText('No past bookings')).toBeInTheDocument()
     })
     expect(screen.queryByRole('link', { name: /browse courts/i })).not.toBeInTheDocument()
+  })
+
+  it('shows only upcoming-allowed status chips', () => {
+    render(<BookingList initialFilters={{ role_view: 'renter', time_view: 'upcoming' }} />)
+
+    expect(screen.getByRole('button', { name: /all/i })).toBeInTheDocument()
+    expect(screen.getByRole('button', { name: /pending/i })).toBeInTheDocument()
+    expect(screen.getByRole('button', { name: /confirmed/i })).toBeInTheDocument()
+    expect(screen.getByRole('button', { name: /cancelled/i })).toBeInTheDocument()
+    expect(screen.queryByRole('button', { name: /completed/i })).not.toBeInTheDocument()
+  })
+
+  it('shows only past-allowed status chips', async () => {
+    render(<BookingList initialFilters={{ role_view: 'renter', time_view: 'upcoming' }} />)
+
+    fireEvent.click(screen.getByRole('button', { name: /past/i }))
+
+    await waitFor(() => {
+      expect(screen.getByRole('button', { name: /all/i })).toBeInTheDocument()
+      expect(screen.getByRole('button', { name: /completed/i })).toBeInTheDocument()
+      expect(screen.getByRole('button', { name: /cancelled/i })).toBeInTheDocument()
+    })
+
+    expect(screen.queryByRole('button', { name: /pending/i })).not.toBeInTheDocument()
+    expect(screen.queryByRole('button', { name: /confirmed/i })).not.toBeInTheDocument()
+  })
+
+  it('resets invalid status when switching to past', async () => {
+    render(<BookingList initialFilters={{ role_view: 'renter', time_view: 'upcoming' }} />)
+
+    fireEvent.click(screen.getByRole('button', { name: /pending/i }))
+    fireEvent.click(screen.getByRole('button', { name: /past/i }))
+
+    await waitFor(() => {
+      expect(mockUseBookings).toHaveBeenLastCalledWith(
+        expect.objectContaining({
+          time_view: 'past',
+          status: undefined,
+          page: '1',
+        })
+      )
+    })
+  })
+
+  it('normalizes invalid initial status', () => {
+    render(<BookingList initialFilters={{ role_view: 'renter', time_view: 'past', status: 'pending' }} />)
+
+    expect(mockUseBookings).toHaveBeenLastCalledWith(
+      expect.objectContaining({
+        time_view: 'past',
+        status: undefined,
+      })
+    )
   })
 
   it('moves to the next page when Next is clicked', async () => {

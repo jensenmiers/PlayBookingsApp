@@ -23,22 +23,44 @@ interface BookingListProps {
   className?: string
 }
 
-const STATUS_CHIPS: { label: string; value: BookingStatus | undefined }[] = [
-  { label: 'All', value: undefined },
-  { label: 'Pending', value: 'pending' },
-  { label: 'Confirmed', value: 'confirmed' },
-  { label: 'Completed', value: 'completed' },
-  { label: 'Cancelled', value: 'cancelled' },
-]
+type TimeView = NonNullable<ListBookingsQueryParams['time_view']>
+
+const DEFAULT_TIME_VIEW: TimeView = 'upcoming'
+
+const STATUS_CHIPS_BY_TIME_VIEW: Record<TimeView, { label: string; value: BookingStatus | undefined }[]> = {
+  upcoming: [
+    { label: 'All', value: undefined },
+    { label: 'Pending', value: 'pending' },
+    { label: 'Confirmed', value: 'confirmed' },
+    { label: 'Cancelled', value: 'cancelled' },
+  ],
+  past: [
+    { label: 'All', value: undefined },
+    { label: 'Completed', value: 'completed' },
+    { label: 'Cancelled', value: 'cancelled' },
+  ],
+}
+
+function normalizeStatusForTimeView(
+  status: BookingStatus | undefined,
+  timeView: TimeView
+): BookingStatus | undefined {
+  const allowedStatuses = STATUS_CHIPS_BY_TIME_VIEW[timeView].map((chip) => chip.value)
+  return allowedStatuses.includes(status) ? status : undefined
+}
 
 export function BookingList({ initialFilters, className }: BookingListProps) {
-  const [filters, setFilters] = useState<ListBookingsQueryParams>({
-    status: initialFilters?.status,
-    venue_id: initialFilters?.venue_id,
-    time_view: initialFilters?.time_view || 'upcoming',
-    page: initialFilters?.page || '1',
-    limit: initialFilters?.limit || '20',
-    role_view: initialFilters?.role_view,
+  const [filters, setFilters] = useState<ListBookingsQueryParams>(() => {
+    const initialTimeView = initialFilters?.time_view || DEFAULT_TIME_VIEW
+
+    return {
+      status: normalizeStatusForTimeView(initialFilters?.status, initialTimeView),
+      venue_id: initialFilters?.venue_id,
+      time_view: initialTimeView,
+      page: initialFilters?.page || '1',
+      limit: initialFilters?.limit || '20',
+      role_view: initialFilters?.role_view,
+    }
   })
   const [paymentModalOpen, setPaymentModalOpen] = useState(false)
   const [selectedBooking, setSelectedBooking] = useState<BookingWithVenue | null>(null)
@@ -57,12 +79,24 @@ export function BookingList({ initialFilters, className }: BookingListProps) {
   }, [refetch])
 
   const handleFilterChange = (key: keyof ListBookingsQueryParams, value: string | undefined) => {
-    setFilters((prev) => ({
-      ...prev,
-      [key]: value || undefined,
-      page: key === 'page' ? (value || '1') : '1',
-    }))
+    setFilters((prev) => {
+      const nextFilters: ListBookingsQueryParams = {
+        ...prev,
+        [key]: value || undefined,
+        page: key === 'page' ? (value || '1') : '1',
+      }
+
+      if (key === 'time_view') {
+        const nextTimeView = (value as TimeView | undefined) || DEFAULT_TIME_VIEW
+        nextFilters.time_view = nextTimeView
+        nextFilters.status = normalizeStatusForTimeView(prev.status, nextTimeView)
+      }
+
+      return nextFilters
+    })
   }
+
+  const statusChips = STATUS_CHIPS_BY_TIME_VIEW[filters.time_view || DEFAULT_TIME_VIEW]
 
   if (loading && !bookings) {
     return <BookingListSkeleton />
@@ -109,7 +143,7 @@ export function BookingList({ initialFilters, className }: BookingListProps) {
 
       {/* Status chip bar */}
       <div className="flex gap-2 overflow-x-auto scrollbar-hide -mt-2">
-        {STATUS_CHIPS.map((chip) => (
+        {statusChips.map((chip) => (
           <button
             key={chip.label}
             onClick={() => handleFilterChange('status', chip.value)}
