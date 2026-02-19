@@ -60,7 +60,7 @@ export function BookingList({ initialFilters, className }: BookingListProps) {
     setFilters((prev) => ({
       ...prev,
       [key]: value || undefined,
-      page: '1',
+      page: key === 'page' ? (value || '1') : '1',
     }))
   }
 

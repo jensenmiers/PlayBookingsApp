@@ -53,22 +53,16 @@ export function BookingCard({ booking, onPayClick }: BookingCardProps) {
   const startTime = formatTime(booking.start_time)
   const endTime = formatTime(booking.end_time)
 
-  const handlePayClick = (e: React.MouseEvent) => {
-    e.preventDefault()
-    e.stopPropagation()
-    onPayClick(booking)
-  }
+  const handlePayClick = () => onPayClick(booking)
 
   return (
-    <Link
-      href={`/my-bookings/${booking.id}`}
+    <div
       className={cn(
         'block rounded-2xl border-l-4 border border-secondary-50/10 bg-secondary-800 shadow-soft hover:shadow-glass transition-all overflow-hidden',
         statusBorderColor[ticketState.statusVariant]
       )}
     >
-      {/* Card body */}
-      <div className="p-4">
+      <Link href={`/my-bookings/${booking.id}`} className="block p-4">
         <div className="flex gap-3.5">
           {/* Venue photo thumbnail */}
           <div className="relative w-16 h-16 rounded-lg overflow-hidden flex-shrink-0">
@@ -117,17 +111,17 @@ export function BookingCard({ booking, onPayClick }: BookingCardProps) {
             </p>
           </div>
         </div>
+      </Link>
 
-        {/* Primary CTA — only Pay button on cards */}
-        {ticketState.primaryAction === 'pay' && (
-          <div className="mt-3">
-            <Button onClick={handlePayClick} size="sm" className="w-full">
-              <FontAwesomeIcon icon={faCreditCard} className="mr-2" />
-              Pay ${booking.total_amount.toFixed(2)}
-            </Button>
-          </div>
-        )}
-      </div>
-    </Link>
+      {/* Primary CTA — only Pay button on cards */}
+      {ticketState.primaryAction === 'pay' && (
+        <div className="px-4 pb-4">
+          <Button onClick={handlePayClick} size="sm" className="w-full">
+            <FontAwesomeIcon icon={faCreditCard} className="mr-2" />
+            Pay ${booking.total_amount.toFixed(2)}
+          </Button>
+        </div>
+      )}
+    </div>
   )
 }

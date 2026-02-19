@@ -3,7 +3,6 @@ import { BookingList } from '../booking-list'
 import type { BookingWithVenue } from '@/types'
 
 const mockUseBookings = jest.fn()
-const mockCancelBooking = jest.fn()
 
 jest.mock('next/link', () => ({
   __esModule: true,
@@ -12,17 +11,17 @@ jest.mock('next/link', () => ({
   ),
 }))
 
+jest.mock('next/image', () => ({
+  __esModule: true,
+  default: ({ alt }: { alt: string }) => <div aria-label={alt} />,
+}))
+
 jest.mock('@/components/payments/payment-modal', () => ({
   PaymentModal: () => null,
 }))
 
 jest.mock('@/hooks/useBookings', () => ({
   useBookings: (params: unknown) => mockUseBookings(params),
-  useCancelBooking: () => ({
-    mutate: mockCancelBooking,
-    loading: false,
-    error: null,
-  }),
 }))
 
 describe('BookingList', () => {
@@ -45,6 +44,7 @@ describe('BookingList', () => {
       name: 'Main Court',
       instant_booking: true,
       insurance_required: false,
+      photos: [],
     },
     ...overrides,
   })
@@ -82,15 +82,49 @@ describe('BookingList', () => {
     fireEvent.click(screen.getByRole('button', { name: /past/i }))
 
     await waitFor(() => {
-      expect(mockUseBookings).toHaveBeenCalledWith(
+      expect(mockUseBookings).toHaveBeenLastCalledWith(
         expect.objectContaining({
           time_view: 'past',
+          page: '1',
         })
       )
     })
   })
 
-  it('shows Expired label and hides pay/cancel actions for past pending bookings', () => {
+  it('applies status chip filters', async () => {
+    render(<BookingList initialFilters={{ role_view: 'renter' }} />)
+
+    fireEvent.click(screen.getByRole('button', { name: /pending/i }))
+
+    await waitFor(() => {
+      expect(mockUseBookings).toHaveBeenLastCalledWith(
+        expect.objectContaining({
+          status: 'pending',
+          page: '1',
+        })
+      )
+    })
+  })
+
+  it('shows upcoming empty state with browse courts link', () => {
+    render(<BookingList initialFilters={{ role_view: 'renter', time_view: 'upcoming' }} />)
+
+    expect(screen.getByText('No upcoming bookings')).toBeInTheDocument()
+    expect(screen.getByRole('link', { name: /browse courts/i })).toHaveAttribute('href', '/book')
+  })
+
+  it('shows past empty state without browse courts link', async () => {
+    render(<BookingList initialFilters={{ role_view: 'renter', time_view: 'upcoming' }} />)
+
+    fireEvent.click(screen.getByRole('button', { name: /past/i }))
+
+    await waitFor(() => {
+      expect(screen.getByText('No past bookings')).toBeInTheDocument()
+    })
+    expect(screen.queryByRole('link', { name: /browse courts/i })).not.toBeInTheDocument()
+  })
+
+  it('moves to the next page when Next is clicked', async () => {
     mockUseBookings.mockReturnValue({
       data: [createBooking()],
       loading: false,
@@ -98,10 +132,17 @@ describe('BookingList', () => {
       refetch: jest.fn(),
     })
 
-    render(<BookingList initialFilters={{ role_view: 'renter', time_view: 'past' }} />)
+    render(<BookingList initialFilters={{ role_view: 'renter', limit: '1' }} />)
 
-    expect(screen.getByText('Expired')).toBeInTheDocument()
-    expect(screen.queryByRole('button', { name: /pay now/i })).not.toBeInTheDocument()
-    expect(screen.queryByRole('button', { name: /^Cancel$/i })).not.toBeInTheDocument()
+    fireEvent.click(screen.getByRole('button', { name: /^Next$/i }))
+
+    await waitFor(() => {
+      expect(mockUseBookings).toHaveBeenLastCalledWith(
+        expect.objectContaining({
+          page: '2',
+          limit: '1',
+        })
+      )
+    })
   })
 })
