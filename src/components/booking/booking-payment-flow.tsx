@@ -144,22 +144,19 @@ function StripePaymentForm({
   }, [stripe, elements, isSetupIntent, onSuccess])
 
   return (
-    <form onSubmit={handleSubmit} className="space-y-1 sm:space-y-6">
-      <div className="text-center mb-2 sm:mb-4">
-        <p className="text-xs sm:text-sm text-muted-foreground">Booking at</p>
-        <div className="flex items-center justify-center gap-2 sm:flex-col sm:gap-0">
-          <p className="text-base sm:text-lg font-medium text-secondary-50">{venueName}</p>
-          <span className="text-muted-foreground sm:hidden">·</span>
-          <p className="text-lg sm:text-2xl font-bold text-primary sm:mt-2">
-            ${amount.toFixed(2)}
-          </p>
-        </div>
-        {isSetupIntent && (
-          <p className="text-xs text-muted-foreground mt-1">
-            Your card will be charged after approval
-          </p>
-        )}
+    <form onSubmit={handleSubmit} className="space-y-3 sm:space-y-6">
+      <div className="flex items-center justify-center gap-2 sm:flex-col sm:gap-1 sm:text-center">
+        <p className="text-sm font-medium text-secondary-50">{venueName}</p>
+        <span className="text-muted-foreground sm:hidden">·</span>
+        <p className="text-lg font-bold text-primary sm:text-2xl">
+          ${amount.toFixed(2)}
+        </p>
       </div>
+      {isSetupIntent && (
+        <p className="hidden sm:block text-xs text-muted-foreground text-center -mt-1">
+          Your card will be charged after approval
+        </p>
+      )}
 
       <PaymentElement
         options={{
@@ -346,7 +343,7 @@ function StepIndicator({ currentStep }: { currentStep: FlowStep }) {
   const currentIndex = currentStep === 'details' ? 0 : currentStep === 'payment' ? 1 : 2
 
   return (
-    <div className="flex items-center justify-center gap-2 mb-2 sm:mb-4">
+    <div className="hidden sm:flex items-center justify-center gap-2 mb-4">
       {steps.map((step, index) => (
         <div key={step.key} className="flex items-center">
           <div
