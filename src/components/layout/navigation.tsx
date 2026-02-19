@@ -73,24 +73,30 @@ export function Navigation() {
     return user.email?.[0].toUpperCase() || 'U'
   }
 
+  // Active link helper for pill-style indicator
+  const linkClass = (href: string) =>
+    pathname === href
+      ? 'text-base font-medium text-secondary-50 bg-secondary-50/10 rounded-full px-4 py-1.5 transition-colors'
+      : 'text-base font-medium text-secondary-50/70 transition-colors hover:text-primary-400'
+
   return (
     <nav className="relative z-40 border-b border-secondary-50/10 bg-secondary-900/90 backdrop-blur supports-[backdrop-filter]:bg-secondary-900/70">
       <div className="mx-auto flex h-16 max-w-7xl items-center justify-between px-4 sm:px-10">
-        <Link href="/" className="font-semibold text-lg tracking-tight text-secondary-50/90">
+        <Link href="/" className="text-xl font-bold tracking-tight text-secondary-50/90">
           Play Bookings
         </Link>
 
         <div className="hidden md:flex md:items-center md:space-x-6">
           {loading && !userError ? (
             <>
-              <div className="h-9 w-20 animate-pulse rounded-full bg-secondary-50/10" />
-              <div className="h-9 w-24 animate-pulse rounded-full bg-secondary-50/10" />
+              <div className="h-10 w-20 animate-pulse rounded-xl bg-secondary-50/10" />
+              <div className="h-10 w-24 animate-pulse rounded-xl bg-secondary-50/10" />
             </>
           ) : user ? (
             <div className="relative" ref={dropdownRef}>
               <button
                 onClick={() => setDropdownOpen(!dropdownOpen)}
-                className="flex items-center gap-3 rounded-full border border-secondary-50/10 bg-secondary-800/80 px-4 py-2 transition-colors hover:bg-secondary-700 hover:border-secondary-50/20"
+                className="flex items-center gap-3 rounded-xl border border-secondary-50/15 bg-secondary-800 px-5 py-2.5 transition-colors hover:bg-secondary-700 hover:border-secondary-50/20"
               >
                 <svg
                   className="h-5 w-5 text-secondary-50/60"
@@ -109,18 +115,18 @@ export function Navigation() {
                   <Image
                     src={user.avatar_url}
                     alt={getUserDisplayName()}
-                    width={32}
-                    height={32}
-                    className="h-8 w-8 rounded-full object-cover"
+                    width={36}
+                    height={36}
+                    className="h-9 w-9 rounded-full object-cover"
                     onError={() => setAvatarError(true)}
                     unoptimized
                   />
                 ) : (
-                  <div className="flex h-8 w-8 items-center justify-center rounded-full bg-primary-400/20 text-sm font-semibold text-primary-400">
+                  <div className="flex h-9 w-9 items-center justify-center rounded-full bg-primary-400/20 text-sm font-semibold text-primary-400">
                     {getUserInitials()}
                   </div>
                 )}
-                <span className="text-sm font-medium text-secondary-50/80">
+                <span className="text-base font-medium text-secondary-50/80">
                   {getUserDisplayName()}
                 </span>
               </button>
@@ -198,12 +204,12 @@ export function Navigation() {
             <>
               <Link
                 href="/search"
-                className="text-sm font-medium text-secondary-50/50 transition-colors hover:text-primary-400"
+                className={linkClass('/search')}
               >
                 For Renters
               </Link>
-              <Button 
-                size="lg" 
+              <Button
+                size="lg"
                 className="px-10 py-3 text-base"
                 onClick={() => openAuthModal({ intent: 'host' })}
               >
@@ -214,14 +220,14 @@ export function Navigation() {
             <>
               <Link
                 href="/search"
-                className="text-sm font-medium text-secondary-50/50 transition-colors hover:text-primary-400"
+                className={linkClass('/search')}
               >
                 Next Availability
               </Link>
               <div className="relative" ref={guestDropdownRef}>
                 <button
                   onClick={() => setGuestDropdownOpen(!guestDropdownOpen)}
-                  className="flex items-center gap-3 rounded-full border border-secondary-50/10 bg-secondary-800/80 px-4 py-2 transition-colors hover:bg-secondary-700 hover:border-secondary-50/20"
+                  className="flex items-center gap-3 rounded-xl border border-secondary-50/15 bg-secondary-800 px-5 py-2.5 transition-colors hover:bg-secondary-700 hover:border-secondary-50/20"
                 >
                   <svg
                     className="h-5 w-5 text-secondary-50/60"
@@ -236,7 +242,7 @@ export function Navigation() {
                       d="M4 6h16M4 12h16M4 18h16"
                     />
                   </svg>
-                  <span className="text-sm font-medium text-secondary-50/80">Sign Up</span>
+                  <span className="text-base font-medium text-secondary-50/80">Sign Up</span>
                 </button>
 
                 {guestDropdownOpen && (
@@ -281,9 +287,9 @@ export function Navigation() {
           )}
         </div>
 
-        <Button 
-          variant="ghost" 
-          size="sm" 
+        <Button
+          variant="ghost"
+          size="sm"
           className="md:hidden text-secondary-50/60 hover:text-secondary-50"
           onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
         >
@@ -313,21 +319,21 @@ export function Navigation() {
                 <Link
                   href="/my-bookings"
                   onClick={() => setMobileMenuOpen(false)}
-                  className="block rounded-lg px-4 py-3 text-sm font-medium text-secondary-50/70 transition-colors hover:bg-secondary-50/10 hover:text-secondary-50"
+                  className="block rounded-lg px-4 py-3 text-base font-medium text-secondary-50/70 transition-colors hover:bg-secondary-50/10 hover:text-secondary-50"
                 >
                   My Bookings
                 </Link>
                 <Link
                   href="/search"
                   onClick={() => setMobileMenuOpen(false)}
-                  className="block rounded-lg px-4 py-3 text-sm font-medium text-secondary-50/70 transition-colors hover:bg-secondary-50/10 hover:text-secondary-50"
+                  className="block rounded-lg px-4 py-3 text-base font-medium text-secondary-50/70 transition-colors hover:bg-secondary-50/10 hover:text-secondary-50"
                 >
                   Find Next Availability
                 </Link>
                 <Link
                   href="/venues"
                   onClick={() => setMobileMenuOpen(false)}
-                  className="block rounded-lg px-4 py-3 text-sm font-medium text-secondary-50/70 transition-colors hover:bg-secondary-50/10 hover:text-secondary-50"
+                  className="block rounded-lg px-4 py-3 text-base font-medium text-secondary-50/70 transition-colors hover:bg-secondary-50/10 hover:text-secondary-50"
                 >
                   Discover Courts
                 </Link>
@@ -335,7 +341,7 @@ export function Navigation() {
                   <Link
                     href="/become-a-host"
                     onClick={() => setMobileMenuOpen(false)}
-                    className="block rounded-lg px-4 py-3 text-sm font-medium text-secondary-50/70 transition-colors hover:bg-secondary-50/10 hover:text-secondary-50"
+                    className="block rounded-lg px-4 py-3 text-base font-medium text-secondary-50/70 transition-colors hover:bg-secondary-50/10 hover:text-secondary-50"
                   >
                     Become a Host
                   </Link>
@@ -346,14 +352,14 @@ export function Navigation() {
                     <Link
                       href="/dashboard"
                       onClick={() => setMobileMenuOpen(false)}
-                      className="block rounded-lg px-4 py-3 text-sm font-medium text-secondary-50/70 transition-colors hover:bg-secondary-50/10 hover:text-secondary-50"
+                      className="block rounded-lg px-4 py-3 text-base font-medium text-secondary-50/70 transition-colors hover:bg-secondary-50/10 hover:text-secondary-50"
                     >
                       Dashboard
                     </Link>
                     <Link
                       href="/calendar"
                       onClick={() => setMobileMenuOpen(false)}
-                      className="block rounded-lg px-4 py-3 text-sm font-medium text-secondary-50/70 transition-colors hover:bg-secondary-50/10 hover:text-secondary-50"
+                      className="block rounded-lg px-4 py-3 text-base font-medium text-secondary-50/70 transition-colors hover:bg-secondary-50/10 hover:text-secondary-50"
                     >
                       My Availability
                     </Link>
@@ -365,7 +371,7 @@ export function Navigation() {
                     setMobileMenuOpen(false)
                     handleSignOut()
                   }}
-                  className="block w-full rounded-lg px-4 py-3 text-left text-sm font-medium text-secondary-50/70 transition-colors hover:bg-secondary-50/10 hover:text-secondary-50"
+                  className="block w-full rounded-lg px-4 py-3 text-left text-base font-medium text-secondary-50/70 transition-colors hover:bg-secondary-50/10 hover:text-secondary-50"
                 >
                   Log Out
                 </button>
@@ -377,21 +383,21 @@ export function Navigation() {
                     setMobileMenuOpen(false)
                     openAuthModal()
                   }}
-                  className="block w-full rounded-lg bg-primary-400 px-4 py-3 text-center text-sm font-semibold text-secondary-900 transition-colors hover:bg-primary-500"
+                  className="block w-full rounded-lg bg-primary-400 px-4 py-3 text-center text-base font-semibold text-secondary-900 transition-colors hover:bg-primary-500"
                 >
                   Log in or Sign up
                 </button>
                 <Link
                   href="/search"
                   onClick={() => setMobileMenuOpen(false)}
-                  className="block rounded-lg px-4 py-3 text-sm font-medium text-secondary-50/70 transition-colors hover:bg-secondary-50/10 hover:text-secondary-50"
+                  className="block rounded-lg px-4 py-3 text-base font-medium text-secondary-50/70 transition-colors hover:bg-secondary-50/10 hover:text-secondary-50"
                 >
                   Next Availability
                 </Link>
                 <Link
                   href="/become-a-host"
                   onClick={() => setMobileMenuOpen(false)}
-                  className="block rounded-lg px-4 py-3 text-sm font-medium text-secondary-50/70 transition-colors hover:bg-secondary-50/10 hover:text-secondary-50"
+                  className="block rounded-lg px-4 py-3 text-base font-medium text-secondary-50/70 transition-colors hover:bg-secondary-50/10 hover:text-secondary-50"
                 >
                   Become a Host
                 </Link>
