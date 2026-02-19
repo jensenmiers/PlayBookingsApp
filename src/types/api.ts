@@ -2,7 +2,7 @@
  * API-specific type definitions
  */
 
-import type { Booking, RecurringBooking } from './index'
+import type { Booking, CancellationResult, RecurringBooking } from './index'
 
 /**
  * Generic API response wrapper
@@ -68,7 +68,7 @@ export interface CancelBookingRequest {
   reason?: string
 }
 
-export type CancelBookingResponse = ApiResponse<Booking>
+export type CancelBookingResponse = ApiResponse<CancellationResult>
 
 export type ConfirmBookingResponse = ApiResponse<Booking>
 
@@ -102,6 +102,7 @@ export interface ListBookingsQueryParams {
   venue_id?: string
   date_from?: string
   date_to?: string
+  time_view?: 'upcoming' | 'past'
   page?: string
   limit?: string
   role_view?: 'renter' | 'host'
@@ -126,5 +127,4 @@ export interface GetAvailabilityParams {
 }
 
 export type GetAvailabilityResponse = ApiResponse<AvailableSlot[]>
-
 

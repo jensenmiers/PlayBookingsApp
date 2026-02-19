@@ -6,7 +6,7 @@
 
 import { useState, useEffect, useCallback, useRef } from 'react'
 import { bookingApi } from '@/lib/api/bookings'
-import type { Booking, BookingWithPaymentInfo } from '@/types'
+import type { Booking, BookingWithPaymentInfo, CancellationResult } from '@/types'
 import type {
   CreateBookingRequest,
   UpdateBookingRequest,
@@ -245,19 +245,19 @@ export function useUpdateBooking() {
  * Mutation hook for cancelling bookings
  */
 export function useCancelBooking() {
-  const [state, setState] = useState<Omit<UseMutationState<Booking>, 'mutate' | 'reset'>>({
+  const [state, setState] = useState<Omit<UseMutationState<CancellationResult>, 'mutate' | 'reset'>>({
     data: null,
     loading: false,
     error: null,
   })
 
   const mutate = useCallback(
-    async (id: string, reason?: string): Promise<Booking | null> => {
+    async (id: string, reason?: string): Promise<CancellationResult | null> => {
       setState({ data: null, loading: true, error: null })
       try {
-        const booking = await bookingApi.cancelBooking(id, reason)
-        setState({ data: booking, loading: false, error: null })
-        return booking
+        const result = await bookingApi.cancelBooking(id, reason)
+        setState({ data: result, loading: false, error: null })
+        return result
       } catch (error) {
         const message = error instanceof Error ? error.message : 'Failed to cancel booking'
         setState({ data: null, loading: false, error: message })
@@ -382,5 +382,4 @@ export function useGenerateRecurring() {
     reset,
   }
 }
-
 

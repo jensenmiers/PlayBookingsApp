@@ -8,7 +8,7 @@ import { AuditService } from './auditService'
 import { PaymentService } from './paymentService'
 import { checkBookingConflicts } from '@/utils/conflictDetection'
 import { calculateRecurringDates } from '@/utils/recurringGenerator'
-import { isWithinAdvanceWindow, getCancellationInfo, calculateDuration } from '@/utils/dateHelpers'
+import { isWithinAdvanceWindow, getCancellationInfo, calculateDuration, isPastBookingStart } from '@/utils/dateHelpers'
 import { conflict, badRequest, notFound } from '@/utils/errorHandling'
 import type { Booking, RecurringBooking, CreateBookingForm, BookingStatus, BookingWithPaymentInfo, CancellationResult, BookingWithVenue } from '@/types'
 import { createClient } from '@/lib/supabase/server'
@@ -449,6 +449,7 @@ export class BookingService {
       venue_id?: string
       date_from?: string
       date_to?: string
+      time_view?: 'upcoming' | 'past'
       role_view?: 'renter' | 'host'
     },
     userId: string
@@ -463,11 +464,12 @@ export class BookingService {
     // If role_view is explicitly set, use it
     if (filters.role_view === 'renter') {
       // Return bookings made BY this user (renter view)
-      return this.bookingRepo.findByRenterWithVenue(userId, {
+      const bookings = await this.bookingRepo.findByRenterWithVenue(userId, {
         status: filters.status,
         date_from: filters.date_from,
         date_to: filters.date_to,
       })
+      return this.applyTimeViewFilter(bookings, filters.time_view)
     }
 
     if (filters.role_view === 'host') {
@@ -475,46 +477,69 @@ export class BookingService {
       if (!user?.is_venue_owner) {
         return [] // Not a venue owner, return empty
       }
-      return this.getVenueBookings(userId, filters)
+      const bookings = await this.getVenueBookings(userId, filters)
+      return this.applyTimeViewFilter(bookings, filters.time_view)
     }
 
     // Auto-detect based on user role (legacy behavior)
     // Admins can see all bookings
     if (user?.is_admin) {
       if (filters.venue_id) {
-        return this.bookingRepo.findByVenue(filters.venue_id, {
+        const bookings = await this.bookingRepo.findByVenue(filters.venue_id, {
           status: filters.status,
           date_from: filters.date_from,
           date_to: filters.date_to,
         })
+        return this.applyTimeViewFilter(bookings, filters.time_view)
       }
       if (filters.status) {
-        return this.bookingRepo.findByStatus(filters.status)
+        const bookings = await this.bookingRepo.findByStatus(filters.status)
+        return this.applyTimeViewFilter(bookings, filters.time_view)
       }
       // Return all bookings for admin (simplified - could add pagination)
-      return this.bookingRepo.findByRenter(userId, {
+      const bookings = await this.bookingRepo.findByRenter(userId, {
         status: filters.status,
         date_from: filters.date_from,
         date_to: filters.date_to,
       })
+      return this.applyTimeViewFilter(bookings, filters.time_view)
     }
 
     // Venue owners see their venue's bookings by default
     if (user?.is_venue_owner) {
-      return this.getVenueBookings(userId, filters)
+      const bookings = await this.getVenueBookings(userId, filters)
+      return this.applyTimeViewFilter(bookings, filters.time_view)
     }
 
     // Renters see their own bookings
     if (user?.is_renter) {
-      return this.bookingRepo.findByRenterWithVenue(userId, {
+      const bookings = await this.bookingRepo.findByRenterWithVenue(userId, {
         status: filters.status,
         date_from: filters.date_from,
         date_to: filters.date_to,
       })
+      return this.applyTimeViewFilter(bookings, filters.time_view)
     }
 
     // If user has no capabilities, return empty list
     return []
+  }
+
+  /**
+   * Filter bookings by temporal view (upcoming or past) using booking start datetime
+   */
+  private applyTimeViewFilter<T extends { date: string; start_time: string }>(
+    bookings: T[],
+    timeView?: 'upcoming' | 'past'
+  ): T[] {
+    if (!timeView) {
+      return bookings
+    }
+
+    return bookings.filter((booking) => {
+      const isPast = isPastBookingStart(booking.date, booking.start_time)
+      return timeView === 'past' ? isPast : !isPast
+    })
   }
 
   /**
@@ -570,6 +595,5 @@ export class BookingService {
     return allBookings
   }
 }
-
 
 

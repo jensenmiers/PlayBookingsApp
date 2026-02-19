@@ -4,7 +4,7 @@
  */
 
 import { apiClient } from './client'
-import type { Booking } from '@/types'
+import type { Booking, CancellationResult } from '@/types'
 import type {
   CreateBookingRequest,
   UpdateBookingRequest,
@@ -33,6 +33,7 @@ export const bookingApi = {
     if (params?.venue_id) queryParams.append('venue_id', params.venue_id)
     if (params?.date_from) queryParams.append('date_from', params.date_from)
     if (params?.date_to) queryParams.append('date_to', params.date_to)
+    if (params?.time_view) queryParams.append('time_view', params.time_view)
     if (params?.page) queryParams.append('page', params.page)
     if (params?.limit) queryParams.append('limit', params.limit)
     if (params?.role_view) queryParams.append('role_view', params.role_view)
@@ -91,8 +92,8 @@ export const bookingApi = {
   /**
    * Cancel a booking
    */
-  async cancelBooking(id: string, reason?: string): Promise<Booking> {
-    const response = await apiClient.post<Booking>(`/bookings/${id}/cancel`, {
+  async cancelBooking(id: string, reason?: string): Promise<CancellationResult> {
+    const response = await apiClient.post<CancellationResult>(`/bookings/${id}/cancel`, {
       reason,
     } as CancelBookingRequest)
     
@@ -148,5 +149,4 @@ export const bookingApi = {
     return response.data
   },
 }
-
 

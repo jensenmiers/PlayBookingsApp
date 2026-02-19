@@ -187,5 +187,11 @@ export function timeStringToDate(dateStr: string, timeStr: string): Date {
   return date
 }
 
+/**
+ * Check if booking start datetime is in the past
+ */
+export function isPastBookingStart(dateStr: string, timeStr: string, now: Date = new Date()): boolean {
+  return timeStringToDate(dateStr, timeStr) < now
+}
 
 

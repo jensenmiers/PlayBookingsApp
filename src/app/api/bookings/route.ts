@@ -25,6 +25,7 @@ export async function GET(request: NextRequest) {
       venue_id: query.venue_id,
       date_from: query.date_from,
       date_to: query.date_to,
+      time_view: query.time_view,
       role_view: query.role_view,
     }
 
@@ -76,6 +77,5 @@ export async function POST(request: NextRequest) {
     return handleApiError(error)
   }
 }
-
 
 

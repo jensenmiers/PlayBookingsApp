@@ -15,7 +15,7 @@ import { faSpinner, faFilter, faCreditCard, faXmark, faEye } from '@fortawesome/
 import { cn } from '@/lib/utils'
 import type { BookingWithVenue } from '@/types'
 import type { ListBookingsQueryParams } from '@/types/api'
-import { formatTime } from '@/utils/dateHelpers'
+import { formatTime, isPastBookingStart } from '@/utils/dateHelpers'
 import { format } from 'date-fns'
 import Link from 'next/link'
 
@@ -30,6 +30,7 @@ export function BookingList({ initialFilters, className }: BookingListProps) {
     venue_id: initialFilters?.venue_id,
     date_from: initialFilters?.date_from,
     date_to: initialFilters?.date_to,
+    time_view: initialFilters?.time_view || 'upcoming',
     page: initialFilters?.page || '1',
     limit: initialFilters?.limit || '20',
     role_view: initialFilters?.role_view,
@@ -40,7 +41,7 @@ export function BookingList({ initialFilters, className }: BookingListProps) {
   const [cancellingId, setCancellingId] = useState<string | null>(null)
 
   const { data: bookings, loading, error, refetch } = useBookings(filters)
-  const { mutate: cancelBooking, loading: cancelLoading } = useCancelBooking()
+  const { mutate: cancelBooking, loading: cancelLoading, error: cancelError } = useCancelBooking()
 
   const handlePayNow = useCallback((booking: BookingWithVenue) => {
     setSelectedBooking(booking)
@@ -60,8 +61,15 @@ export function BookingList({ initialFilters, className }: BookingListProps) {
     refetch()
   }, [cancelBooking, refetch])
 
+  const isPastBooking = (booking: BookingWithVenue): boolean => {
+    return isPastBookingStart(booking.date, booking.start_time)
+  }
+
   const canPay = (booking: BookingWithVenue): boolean => {
     if (booking.status === 'cancelled' || booking.status === 'completed') {
+      return false
+    }
+    if (isPastBooking(booking)) {
       return false
     }
     if (booking.venue?.insurance_required && !booking.insurance_approved) {
@@ -71,6 +79,10 @@ export function BookingList({ initialFilters, className }: BookingListProps) {
   }
 
   const canCancel = (booking: BookingWithVenue): boolean => {
+    if (isPastBooking(booking)) {
+      return false
+    }
+
     return booking.status === 'pending' || booking.status === 'confirmed'
   }
 
@@ -86,6 +98,7 @@ export function BookingList({ initialFilters, className }: BookingListProps) {
     setFilters({
       page: '1',
       limit: '20',
+      time_view: filters.time_view || 'upcoming',
       role_view: initialFilters?.role_view, // Preserve role_view when clearing
     })
   }
@@ -112,7 +125,21 @@ export function BookingList({ initialFilters, className }: BookingListProps) {
   return (
     <div className={cn('space-y-4', className)}>
       {/* Filters */}
-      <div className="flex items-center gap-2">
+      <div className="flex flex-wrap items-center gap-2">
+        <Button
+          variant={filters.time_view === 'upcoming' ? 'default' : 'outline'}
+          size="sm"
+          onClick={() => handleFilterChange('time_view', 'upcoming')}
+        >
+          Upcoming
+        </Button>
+        <Button
+          variant={filters.time_view === 'past' ? 'default' : 'outline'}
+          size="sm"
+          onClick={() => handleFilterChange('time_view', 'past')}
+        >
+          Past
+        </Button>
         <Button
           variant="outline"
           size="sm"
@@ -169,6 +196,12 @@ export function BookingList({ initialFilters, className }: BookingListProps) {
         </div>
       )}
 
+      {cancelError && (
+        <div className="rounded-lg border border-destructive/50 bg-destructive/10 p-3 text-sm text-destructive">
+          {cancelError}
+        </div>
+      )}
+
       {/* Booking List */}
       {!bookings || bookings.length === 0 ? (
         <div className="rounded-lg border border-border bg-secondary-800 p-8 text-center">
@@ -179,6 +212,7 @@ export function BookingList({ initialFilters, className }: BookingListProps) {
           {bookings.map((booking) => {
             const bookingWithVenue = booking as BookingWithVenue
             const venueName = bookingWithVenue.venue?.name || 'Unknown Venue'
+            const isExpiredPending = booking.status === 'pending' && isPastBooking(bookingWithVenue)
             
             return (
               <div
@@ -194,7 +228,7 @@ export function BookingList({ initialFilters, className }: BookingListProps) {
                       {format(new Date(booking.date), 'EEE, MMM d, yyyy')} • {formatTime(booking.start_time)} - {formatTime(booking.end_time)}
                     </p>
                   </div>
-                  <BookingStatusBadge status={booking.status} />
+                  <BookingStatusBadge status={booking.status} expired={isExpiredPending} />
                 </div>
                 <div className="flex items-center justify-between">
                   <p className="text-lg font-medium text-secondary-50">${booking.total_amount.toFixed(2)}</p>

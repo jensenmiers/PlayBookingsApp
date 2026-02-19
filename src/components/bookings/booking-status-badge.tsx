@@ -10,6 +10,7 @@ import type { BookingStatus } from '@/types'
 
 interface BookingStatusBadgeProps {
   status: BookingStatus
+  expired?: boolean
   className?: string
 }
 
@@ -32,8 +33,13 @@ const statusConfig: Record<BookingStatus, { label: string; className: string }> 
   },
 }
 
-export function BookingStatusBadge({ status, className }: BookingStatusBadgeProps) {
-  const config = statusConfig[status]
+const expiredConfig = {
+  label: 'Expired',
+  className: 'bg-secondary-50/10 text-secondary-50/80 border-secondary-50/20',
+}
+
+export function BookingStatusBadge({ status, expired = false, className }: BookingStatusBadgeProps) {
+  const config = expired && status === 'pending' ? expiredConfig : statusConfig[status]
 
   return (
     <span
@@ -47,5 +53,4 @@ export function BookingStatusBadge({ status, className }: BookingStatusBadgeProp
     </span>
   )
 }
-
 

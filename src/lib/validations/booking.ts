@@ -46,6 +46,7 @@ export const bookingQuerySchema = z.object({
   venue_id: z.string().uuid().optional(),
   date_from: z.string().regex(/^\d{4}-\d{2}-\d{2}$/).optional(),
   date_to: z.string().regex(/^\d{4}-\d{2}-\d{2}$/).optional(),
+  time_view: z.enum(['upcoming', 'past']).optional(),
   page: z.string().regex(/^\d+$/).optional().default('1').transform(Number),
   limit: z.string().regex(/^\d+$/).optional().default('20').transform(Number),
   role_view: z.enum(['renter', 'host']).optional(),
@@ -58,6 +59,5 @@ export type CancelBookingInput = z.infer<typeof cancelBookingSchema>
 export type CheckConflictsInput = z.infer<typeof checkConflictsSchema>
 export type GenerateRecurringInput = z.infer<typeof generateRecurringSchema>
 export type BookingQueryInput = z.infer<typeof bookingQuerySchema>
-
 
 
