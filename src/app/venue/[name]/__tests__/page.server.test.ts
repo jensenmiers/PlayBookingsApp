@@ -23,6 +23,12 @@ jest.mock('@/lib/supabase/server', () => ({
   createClient: jest.fn(() => Promise.resolve({ from: mockFrom })),
 }))
 
+const mockVenueDesignEditorial = jest.fn(() => null)
+
+jest.mock('@/components/venue/venue-design-editorial', () => ({
+  VenueDesignEditorial: mockVenueDesignEditorial,
+}))
+
 // Import after mocks
 import { generateMetadata } from '../page'
 import VenuePage from '../page'
@@ -152,6 +158,7 @@ describe('VenuePage', () => {
     })
 
     expect(mockNotFound).not.toHaveBeenCalled()
+    expect((result as { type: unknown }).type).toBe(mockVenueDesignEditorial)
     expect(result).toBeDefined()
   })
 })

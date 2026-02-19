@@ -1,5 +1,5 @@
 import { createClient } from '@/lib/supabase/server'
-import { VenueDetailPage } from '@/components/venue/venue-detail-page'
+import { VenueDesignEditorial } from '@/components/venue/venue-design-editorial'
 import { notFound } from 'next/navigation'
 import type { Metadata } from 'next'
 
@@ -40,5 +40,5 @@ export default async function VenuePage({ params }: PageProps) {
     notFound()
   }
 
-  return <VenueDetailPage venue={venue} />
+  return <VenueDesignEditorial venue={venue} />
 }
