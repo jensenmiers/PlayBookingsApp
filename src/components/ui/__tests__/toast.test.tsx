@@ -39,8 +39,8 @@ describe('Toast components', () => {
       )
       
       const toast = screen.getByTestId('toast')
-      expect(toast).toHaveClass('bg-green-50')
-      expect(toast).toHaveClass('border-green-200')
+      expect(toast).toHaveClass('bg-primary-400/10')
+      expect(toast).toHaveClass('border-primary-400/20')
     })
 
     it('renders with error variant styling', () => {
@@ -54,8 +54,8 @@ describe('Toast components', () => {
       )
       
       const toast = screen.getByTestId('toast')
-      expect(toast).toHaveClass('bg-red-50')
-      expect(toast).toHaveClass('border-red-200')
+      expect(toast).toHaveClass('bg-destructive/10')
+      expect(toast).toHaveClass('border-destructive/20')
     })
   })
 
@@ -93,16 +93,16 @@ describe('Toast components', () => {
     it('renders check icon for success variant', () => {
       render(<ToastIcon variant="success" />)
       
-      // The icon is wrapped in a green circle
-      const iconContainer = document.querySelector('.bg-green-500')
+      // The icon is wrapped in a primary circle
+      const iconContainer = document.querySelector('.bg-primary-400')
       expect(iconContainer).toBeInTheDocument()
     })
 
     it('renders exclamation icon for error variant', () => {
       render(<ToastIcon variant="error" />)
       
-      // The icon is wrapped in a red circle
-      const iconContainer = document.querySelector('.bg-red-500')
+      // The icon is wrapped in a destructive circle
+      const iconContainer = document.querySelector('.bg-destructive')
       expect(iconContainer).toBeInTheDocument()
     })
 

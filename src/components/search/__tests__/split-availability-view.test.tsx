@@ -126,13 +126,13 @@ describe('SplitAvailabilityView - Location button', () => {
     render(<SplitAvailabilityView />)
     const button = screen.getByRole('button', { name: /use my location/i })
 
-    expect(button).toHaveClass('bg-primary-100')
+    expect(button).toHaveClass('bg-primary-400/15')
   })
 
   it('shows inactive state when no location', () => {
     render(<SplitAvailabilityView />)
     const button = screen.getByRole('button', { name: /use my location/i })
 
-    expect(button).toHaveClass('bg-secondary-50')
+    expect(button).toHaveClass('bg-secondary-50/5')
   })
 })

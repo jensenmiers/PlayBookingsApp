@@ -23,10 +23,8 @@ jest.mock('@/lib/supabase/server', () => ({
   createClient: jest.fn(() => Promise.resolve({ from: mockFrom })),
 }))
 
-const mockVenueDesignEditorial = jest.fn(() => null)
-
 jest.mock('@/components/venue/venue-design-editorial', () => ({
-  VenueDesignEditorial: mockVenueDesignEditorial,
+  VenueDesignEditorial: jest.fn(() => null),
 }))
 
 // Import after mocks
@@ -35,6 +33,9 @@ import VenuePage from '../page'
 import { notFound } from 'next/navigation'
 
 const mockNotFound = notFound as jest.MockedFunction<typeof notFound>
+const { VenueDesignEditorial: mockVenueDesignEditorial } = jest.requireMock(
+  '@/components/venue/venue-design-editorial'
+) as { VenueDesignEditorial: jest.Mock }
 
 describe('generateMetadata', () => {
   beforeEach(() => {
