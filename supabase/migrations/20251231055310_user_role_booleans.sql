@@ -8,24 +8,14 @@ ALTER TABLE users
   ADD COLUMN IF NOT EXISTS is_admin BOOLEAN NOT NULL DEFAULT false;
 
 -- Step 2: Migrate existing data from role enum to boolean columns
--- Guard for environments where the legacy "role" column was already removed.
-DO $$
-BEGIN
-  IF EXISTS (
-    SELECT 1
-    FROM information_schema.columns
-    WHERE table_schema = 'public'
-      AND table_name = 'users'
-      AND column_name = 'role'
-  ) THEN
-    UPDATE users
-    SET
-      is_admin = (role = 'admin'),
-      is_venue_owner = (role = 'venue_owner'),
-      is_renter = (role = 'renter')
-    WHERE role IS NOT NULL;
-  END IF;
-END $$;
+-- Since the database currently has 0 users, this migration is trivial
+-- But we include it for safety in case there is any existing data
+UPDATE users
+SET 
+  is_admin = (role = 'admin'),
+  is_venue_owner = (role = 'venue_owner'),
+  is_renter = (role = 'renter')
+WHERE role IS NOT NULL;
 
 -- Step 3: Drop and recreate RLS policies that reference the role column
 -- Drop policies that check for admin role
@@ -129,3 +119,4 @@ ALTER TABLE users DROP COLUMN IF EXISTS role;
 -- Note: This will fail if the enum is used in other tables/functions
 -- If it fails, manually verify no other references exist
 DROP TYPE IF EXISTS user_role;
+;

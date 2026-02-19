@@ -80,7 +80,7 @@ describe('Stripe Webhook Handler', () => {
     process.env.STRIPE_WEBHOOK_SECRET = 'whsec_test_secret'
     // Dynamic import so webhookSecret captures the env var
     const route = await import('@/app/api/webhooks/stripe/route')
-    POST = route.POST
+    POST = route.POST as unknown as (request: unknown) => Promise<{ status: number; json: () => Promise<unknown> }>
   })
 
   beforeEach(() => {

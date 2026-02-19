@@ -2,44 +2,19 @@
 
 import Link from 'next/link'
 import { Navigation } from '@/components/layout/navigation'
-import { useState, useEffect, useRef } from 'react'
+import { useState, useEffect, useRef, useMemo } from 'react'
+import { useVenues } from '@/hooks/useVenues'
+import { useVenuesWithNextAvailable } from '@/hooks/useVenuesWithNextAvailable'
+import { buildFeaturedCourts, type FeaturedCourt } from './home-featured-courts'
 
-const SAMPLE_COURTS = [
-  { 
-    id: '1', 
-    name: 'Lincoln MS Gym', 
-    type: 'School Gymnasium',
-    hourlyRate: 65,
-    city: 'Pasadena',
-    nextAvailable: '6:00 PM',
-    image: 'https://images.unsplash.com/photo-1504450758481-7338eba7524a?w=600&q=80'
-  },
-  { 
-    id: '2', 
-    name: 'Jefferson Rec Center', 
-    type: 'Recreation Center',
-    hourlyRate: 55,
-    city: 'Los Angeles',
-    nextAvailable: '6:30 PM',
-    image: 'https://images.unsplash.com/photo-1558618666-fcd25c85cd64?w=600&q=80'
-  },
-  { 
-    id: '3', 
-    name: 'Roosevelt Elementary', 
-    type: 'School Gymnasium',
-    hourlyRate: 50,
-    city: 'Glendale',
-    nextAvailable: '7:00 PM',
-    image: 'https://images.unsplash.com/photo-1546519638-68e109498ffc?w=600&q=80'
-  },
-]
+const FEATURED_COURT_LIMIT = 3
 
 function CourtCard({ 
   court, 
   index, 
   mounted 
 }: { 
-  court: typeof SAMPLE_COURTS[0]
+  court: FeaturedCourt
   index: number
   mounted: boolean 
 }) {
@@ -47,7 +22,7 @@ function CourtCard({
 
   return (
     <Link
-      href="/search"
+      href={court.href}
       className={`group relative block transform transition-all duration-700 ${
         mounted ? 'translate-y-0 opacity-100' : 'translate-y-12 opacity-0'
       }`}
@@ -59,12 +34,18 @@ function CourtCard({
         isHovered ? 'border-primary-400/40 shadow-xl shadow-primary-400/5' : ''
       }`}>
         <div className="relative aspect-[4/3] overflow-hidden">
-          <div 
-            className={`w-full h-full bg-cover bg-center transition-transform duration-700 ${
-              isHovered ? 'scale-110' : 'scale-100'
-            }`}
-            style={{ backgroundImage: `url('${court.image}')` }}
-          />
+          {court.image ? (
+            <div
+              className={`w-full h-full bg-cover bg-center transition-transform duration-700 ${
+                isHovered ? 'scale-110' : 'scale-100'
+              }`}
+              style={{ backgroundImage: `url('${court.image}')` }}
+            />
+          ) : (
+            <div className="w-full h-full bg-gradient-to-br from-secondary-700 to-secondary-900 flex items-center justify-center">
+              <span className="text-secondary-50/40 text-sm uppercase tracking-wide">No photo</span>
+            </div>
+          )}
           <div className="absolute inset-x-0 bottom-0 h-20 bg-gradient-to-t from-secondary-800/90 to-transparent" />
           
           <div className="absolute bottom-3 left-4 flex items-center gap-2">
@@ -99,7 +80,7 @@ function CourtCard({
   )
 }
 
-function CourtCardsScroll({ courts, mounted }: { courts: typeof SAMPLE_COURTS, mounted: boolean }) {
+function CourtCardsScroll({ courts, mounted }: { courts: FeaturedCourt[]; mounted: boolean }) {
   const scrollRef = useRef<HTMLDivElement>(null)
 
   return (
@@ -142,6 +123,13 @@ function CourtCardsScroll({ courts, mounted }: { courts: typeof SAMPLE_COURTS, m
 
 export default function Home() {
   const [mounted, setMounted] = useState(false)
+  const { data: venues, loading: venuesLoading } = useVenues()
+  const { data: availabilityVenues, loading: availabilityLoading } = useVenuesWithNextAvailable()
+  const featuredCourts = useMemo(
+    () => buildFeaturedCourts(venues || [], availabilityVenues || [], FEATURED_COURT_LIMIT),
+    [venues, availabilityVenues]
+  )
+  const featuredLoading = venuesLoading || availabilityLoading
   
   useEffect(() => {
     setMounted(true)
@@ -220,7 +208,22 @@ export default function Home() {
             </Link>
           </div>
 
-          <CourtCardsScroll courts={SAMPLE_COURTS} mounted={mounted} />
+          {featuredLoading ? (
+            <div className="grid grid-cols-1 sm:grid-cols-3 gap-5">
+              {[0, 1, 2].map((index) => (
+                <div
+                  key={index}
+                  className="h-[320px] rounded-2xl bg-secondary-800/50 border border-secondary-50/10 animate-pulse"
+                />
+              ))}
+            </div>
+          ) : featuredCourts.length > 0 ? (
+            <CourtCardsScroll courts={featuredCourts} mounted={mounted} />
+          ) : (
+            <div className="rounded-2xl border border-secondary-50/10 bg-secondary-800/30 p-6 text-secondary-50/60">
+              No upcoming availability yet. Browse all courts to view full schedules.
+            </div>
+          )}
         </div>
       </section>
 

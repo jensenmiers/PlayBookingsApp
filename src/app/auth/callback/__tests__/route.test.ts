@@ -3,6 +3,8 @@
  * GET /auth/callback
  */
 
+export {}
+
 const mockExchangeCodeForSession = jest.fn()
 const mockSingle = jest.fn()
 const mockUpsert = jest.fn()
@@ -49,7 +51,7 @@ describe('GET /auth/callback', () => {
 
   beforeAll(async () => {
     const route = await import('@/app/auth/callback/route')
-    GET = route.GET
+    GET = route.GET as unknown as (request: { nextUrl: URL }) => Promise<{ status: number; headers: { get: (n: string) => string | null } }>
   })
 
   const consoleErrorSpy = jest.spyOn(console, 'error').mockImplementation()

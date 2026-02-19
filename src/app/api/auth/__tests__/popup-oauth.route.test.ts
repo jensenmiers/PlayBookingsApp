@@ -3,6 +3,8 @@
  * GET /api/auth/popup-oauth
  */
 
+export {}
+
 const mockSignInWithOAuth = jest.fn()
 
 jest.mock('@/lib/supabase/server', () => ({
@@ -36,7 +38,7 @@ describe('GET /api/auth/popup-oauth', () => {
 
   beforeAll(async () => {
     const route = await import('@/app/api/auth/popup-oauth/route')
-    GET = route.GET
+    GET = route.GET as unknown as (request: { nextUrl: URL }) => Promise<Response>
   })
 
   beforeEach(() => {

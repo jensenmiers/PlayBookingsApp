@@ -106,6 +106,7 @@ describe('slotSplitting utilities', () => {
       end_time: '17:00:00',
       is_available: true,
       created_at: '2024-01-01T00:00:00Z',
+      updated_at: '2024-01-01T00:00:00Z',
       ...overrides,
     })
 
@@ -241,6 +242,7 @@ describe('slotSplitting utilities', () => {
         total_amount: 100,
         insurance_approved: false,
         created_at: '2024-01-01T00:00:00Z',
+        updated_at: '2024-01-01T00:00:00Z',
       }
       
       const slots = computeAvailableSlotsForAvailability(availability, [], [recurringBooking])

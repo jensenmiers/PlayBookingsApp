@@ -85,6 +85,7 @@ Columns used by app:
 
 - `id` (UUID, PK)
 - `name`
+- `venue_type` (text classification for listing cards; e.g. `School Gymnasium`, `Recreation Center`)
 - `description`
 - `address`
 - `city`

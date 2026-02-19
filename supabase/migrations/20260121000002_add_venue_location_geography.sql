@@ -1,6 +1,7 @@
 -- Migration: Add geography column to venues table
 -- This enables efficient spatial queries using PostGIS
 -- SRID 4326 = WGS84 (standard GPS coordinate system used by Mapbox, Google Maps, etc.)
+SET search_path = public, extensions;
 
 -- Step 1: Add geography column to venues table
 ALTER TABLE venues
@@ -9,7 +10,7 @@ ADD COLUMN IF NOT EXISTS location geography(Point, 4326);
 -- Step 2: Migrate existing latitude/longitude data to geography column
 -- Note: ST_MakePoint takes (longitude, latitude) - X, Y order
 UPDATE venues
-SET location = ST_SetSRID(ST_MakePoint(longitude, latitude), 4326)::geography
+SET location = ST_SetSRID(ST_MakePoint(longitude, latitude), 4326)
 WHERE latitude IS NOT NULL 
   AND longitude IS NOT NULL
   AND location IS NULL;

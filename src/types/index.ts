@@ -24,6 +24,7 @@ export interface Venue {
   id: string
   name: string
   description: string
+  venue_type?: string
   address: string
   city: string
   state: string
@@ -221,6 +222,7 @@ export interface CancellationResult {
 export interface CreateVenueForm {
   name: string
   description: string
+  venue_type?: string
   address: string
   city: string
   state: string

@@ -28,6 +28,7 @@ const STORAGE_BUCKET = 'venue-photos'
 interface VenueSeed {
   name: string
   description: string
+  venue_type: string
   address: string
   city: string
   state: string
@@ -60,6 +61,7 @@ const VENUES: VenueSeed[] = [
   {
     name: 'Immaculate Heart',
     description: 'Private school gymnasium in Los Feliz offering indoor basketball courts. Historic campus with modern athletic facilities, ideal for practice sessions and small tournaments.',
+    venue_type: 'School Gymnasium',
     address: '5515 Franklin Ave',
     city: 'Los Angeles',
     state: 'CA',
@@ -78,6 +80,7 @@ const VENUES: VenueSeed[] = [
   {
     name: 'Boys & Girls Club of Hollywood',
     description: 'Community youth center with full-size indoor basketball court. Serving the Hollywood community with athletic programs and court rentals. Great for team practices and pickup games.',
+    venue_type: 'Community Center',
     address: '850 N Cahuenga Blvd',
     city: 'Los Angeles',
     state: 'CA',
@@ -96,6 +99,7 @@ const VENUES: VenueSeed[] = [
   {
     name: 'Crosscourt',
     description: 'Private basketball facility in a converted industrial warehouse. Professional-grade courts with excellent lighting and modern amenities. Perfect for training, events, and competitive play.',
+    venue_type: 'Private Facility',
     address: '333 N Mission Rd, Unit A',
     city: 'Los Angeles',
     state: 'CA',
@@ -114,6 +118,7 @@ const VENUES: VenueSeed[] = [
   {
     name: 'Memorial Park',
     description: 'Santa Monica community recreation center with indoor gym featuring basketball and volleyball courts. City-operated facility with drop-in sports available. Family-friendly environment.',
+    venue_type: 'Recreation Center',
     address: '1401 Olympic Blvd',
     city: 'Santa Monica',
     state: 'CA',
@@ -132,6 +137,7 @@ const VENUES: VenueSeed[] = [
   {
     name: 'Crossroads School',
     description: 'Private K-12 school in Santa Monica with well-maintained gymnasium. Courts available during non-school hours for community use. Modern facilities in a safe campus environment.',
+    venue_type: 'School Gymnasium',
     address: '1714 21st St',
     city: 'Santa Monica',
     state: 'CA',
@@ -150,6 +156,7 @@ const VENUES: VenueSeed[] = [
   {
     name: 'JEM Community Center',
     description: 'Multi-purpose community center in Beverly Hills with basketball courts and additional recreational facilities. Active community programming with excellent amenities.',
+    venue_type: 'Community Center',
     address: '9930 S Santa Monica Blvd',
     city: 'Beverly Hills',
     state: 'CA',
@@ -168,6 +175,7 @@ const VENUES: VenueSeed[] = [
   {
     name: 'First Presbyterian Church of Hollywood',
     description: 'Large church campus in Hollywood with gymnasium facilities. Community-focused space available for basketball activities and events. Historic venue with ample parking.',
+    venue_type: 'Church Gymnasium',
     address: '1760 N Gower St',
     city: 'Hollywood',
     state: 'CA',
@@ -186,6 +194,7 @@ const VENUES: VenueSeed[] = [
   {
     name: 'Terasaki Budokan',
     description: 'Modern community recreation center in Little Tokyo with two full-size basketball courts convertible to four volleyball courts. Features underground parking with EV charging stations. Premier facility for sports and community events.',
+    venue_type: 'Recreation Center',
     address: '249 S Los Angeles St',
     city: 'Los Angeles',
     state: 'CA',
