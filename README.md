@@ -55,6 +55,14 @@ Required environment variables:
 - `GOOGLE_CLIENT_SECRET` - Google OAuth client secret
 - `STRIPE_SECRET_KEY` - Your Stripe secret key
 - `NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY` - Your Stripe publishable key
+- `NEXT_PUBLIC_POSTHOG_KEY` - (Optional) PostHog project API key
+- `NEXT_PUBLIC_POSTHOG_HOST` - (Optional) PostHog ingest host (default `https://us.i.posthog.com`)
+- `NEXT_PUBLIC_POSTHOG_INTERNAL_EMAILS` - (Optional) comma-separated internal emails to exclude from analytics
+- `NEXT_PUBLIC_POSTHOG_INTERNAL_DOMAINS` - (Optional) comma-separated internal email domains to exclude from analytics
+
+PostHog internal traffic controls:
+- Visit your site once with `?internal_traffic=1` to mark the current browser as internal traffic (saved in local storage).
+- Visit with `?internal_traffic=0` to re-enable analytics capture for that browser.
 
 ### 4. Run the development server
 ```bash
