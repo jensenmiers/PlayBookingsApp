@@ -107,6 +107,13 @@ describe('PaymentService - SetupIntent Flow', () => {
             single: jest.fn().mockResolvedValue({ data: createVenue(), error: null }),
           }
         }
+        if (table === 'users') {
+          return {
+            select: jest.fn().mockReturnThis(),
+            eq: jest.fn().mockReturnThis(),
+            single: jest.fn().mockResolvedValue({ data: { is_admin: false }, error: null }),
+          }
+        }
         return mockSupabase
       }),
     })
@@ -174,11 +181,71 @@ describe('PaymentService - SetupIntent Flow', () => {
         .rejects.toThrow('Booking not found')
     })
 
-    it('should throw BadRequestError for unauthorized user', async () => {
-      const booking = createBooking({ renter_id: 'other-user' })
+    it('should allow venue owner to create setup intent for a booking they do not rent', async () => {
+      const booking = createBooking({ renter_id: 'renter-999' })
+      const payment = createPayment({ renter_id: 'renter-999', stripe_setup_intent_id: 'seti_owner', status: 'authorized' })
+
+      ;(createClient as jest.Mock).mockResolvedValue({
+        from: jest.fn().mockImplementation((table: string) => {
+          if (table === 'venues') {
+            return {
+              select: jest.fn().mockReturnThis(),
+              eq: jest.fn().mockReturnThis(),
+              single: jest.fn().mockResolvedValue({ data: createVenue({ owner_id: 'owner-123' }), error: null }),
+            }
+          }
+          if (table === 'users') {
+            return {
+              select: jest.fn().mockReturnThis(),
+              eq: jest.fn().mockReturnThis(),
+              single: jest.fn().mockResolvedValue({ data: { is_admin: false }, error: null }),
+            }
+          }
+          return mockSupabase
+        }),
+      })
+
+      mockBookingRepo.findById = jest.fn().mockResolvedValue(booking)
+      mockPaymentRepo.findByBookingId = jest.fn().mockResolvedValue(null)
+      mockPaymentRepo.create = jest.fn().mockResolvedValue(payment)
+      ;(stripe.setupIntents.create as jest.Mock).mockResolvedValue({
+        id: 'seti_owner',
+        client_secret: 'seti_owner_secret',
+      })
+
+      const result = await paymentService.createSetupIntent('booking-123', 'owner-123')
+
+      expect(result.setupIntentId).toBe('seti_owner')
+      expect(result.paymentId).toBe('payment-123')
+      expect(result.amount).toBe(100)
+    })
+
+    it('should reject user who is not renter, venue owner, or admin', async () => {
+      const booking = createBooking({ renter_id: 'renter-999' })
+
+      ;(createClient as jest.Mock).mockResolvedValue({
+        from: jest.fn().mockImplementation((table: string) => {
+          if (table === 'venues') {
+            return {
+              select: jest.fn().mockReturnThis(),
+              eq: jest.fn().mockReturnThis(),
+              single: jest.fn().mockResolvedValue({ data: createVenue({ owner_id: 'owner-123' }), error: null }),
+            }
+          }
+          if (table === 'users') {
+            return {
+              select: jest.fn().mockReturnThis(),
+              eq: jest.fn().mockReturnThis(),
+              single: jest.fn().mockResolvedValue({ data: { is_admin: false }, error: null }),
+            }
+          }
+          return mockSupabase
+        }),
+      })
+
       mockBookingRepo.findById = jest.fn().mockResolvedValue(booking)
 
-      await expect(paymentService.createSetupIntent('booking-123', 'user-123'))
+      await expect(paymentService.createSetupIntent('booking-123', 'outsider-123'))
         .rejects.toThrow('You do not have permission to pay for this booking')
     })
 

@@ -45,6 +45,46 @@ export class PaymentService {
   private paymentRepo = new PaymentRepository()
   private bookingRepo = new BookingRepository()
 
+  private async getVenueOrThrow(
+    supabase: Awaited<ReturnType<typeof createClient>>,
+    venueId: string
+  ): Promise<Venue> {
+    const { data: venue, error: venueError } = await supabase
+      .from('venues')
+      .select('*')
+      .eq('id', venueId)
+      .single()
+
+    if (venueError || !venue) {
+      throw notFound('Venue not found')
+    }
+
+    return venue as Venue
+  }
+
+  private async assertCanInitiatePayment(
+    supabase: Awaited<ReturnType<typeof createClient>>,
+    booking: Booking,
+    venue: Venue,
+    userId: string
+  ): Promise<void> {
+    if (booking.renter_id === userId || venue.owner_id === userId) {
+      return
+    }
+
+    const { data: user } = await supabase
+      .from('users')
+      .select('is_admin')
+      .eq('id', userId)
+      .single()
+
+    if (user?.is_admin) {
+      return
+    }
+
+    throw badRequest('You do not have permission to pay for this booking')
+  }
+
   /**
    * Check if a booking is ready for payment based on venue settings
    */
@@ -95,10 +135,8 @@ export class PaymentService {
       throw notFound('Booking not found')
     }
 
-    // Verify user owns the booking
-    if (booking.renter_id !== userId) {
-      throw badRequest('You do not have permission to pay for this booking')
-    }
+    const venue = await this.getVenueOrThrow(supabase, booking.venue_id)
+    await this.assertCanInitiatePayment(supabase, booking, venue, userId)
 
     // Check booking status
     if (booking.status === 'cancelled') {
@@ -113,17 +151,6 @@ export class PaymentService {
     const existingPayment = await this.paymentRepo.findByBookingId(bookingId)
     if (existingPayment?.status === 'paid') {
       throw badRequest('This booking has already been paid')
-    }
-
-    // Fetch venue
-    const { data: venue, error: venueError } = await supabase
-      .from('venues')
-      .select('*')
-      .eq('id', booking.venue_id)
-      .single()
-
-    if (venueError || !venue) {
-      throw notFound('Venue not found')
     }
 
     // Check if booking is ready for payment
@@ -159,7 +186,7 @@ export class PaymentService {
       metadata: {
         booking_id: bookingId,
         venue_id: booking.venue_id,
-        renter_id: userId,
+        renter_id: booking.renter_id,
       },
       success_url: `${baseUrl}/booking/success?session_id={CHECKOUT_SESSION_ID}`,
       cancel_url: `${baseUrl}/booking/cancelled?booking_id=${bookingId}`,
@@ -175,7 +202,7 @@ export class PaymentService {
     } else {
       payment = await this.paymentRepo.create({
         booking_id: bookingId,
-        renter_id: userId,
+        renter_id: booking.renter_id,
         venue_id: booking.venue_id,
         amount,
         platform_fee: platformFee,
@@ -207,10 +234,8 @@ export class PaymentService {
       throw notFound('Booking not found')
     }
 
-    // Verify user owns the booking
-    if (booking.renter_id !== userId) {
-      throw badRequest('You do not have permission to pay for this booking')
-    }
+    const venue = await this.getVenueOrThrow(supabase, booking.venue_id)
+    await this.assertCanInitiatePayment(supabase, booking, venue, userId)
 
     // Check booking status
     if (booking.status === 'cancelled') {
@@ -225,17 +250,6 @@ export class PaymentService {
     const existingPayment = await this.paymentRepo.findByBookingId(bookingId)
     if (existingPayment?.status === 'paid') {
       throw badRequest('This booking has already been paid')
-    }
-
-    // Fetch venue
-    const { data: venue, error: venueError } = await supabase
-      .from('venues')
-      .select('*')
-      .eq('id', booking.venue_id)
-      .single()
-
-    if (venueError || !venue) {
-      throw notFound('Venue not found')
     }
 
     // Check if booking is ready for payment
@@ -260,7 +274,7 @@ export class PaymentService {
       metadata: {
         booking_id: bookingId,
         venue_id: booking.venue_id,
-        renter_id: userId,
+        renter_id: booking.renter_id,
       },
     })
 
@@ -274,7 +288,7 @@ export class PaymentService {
     } else {
       payment = await this.paymentRepo.create({
         booking_id: bookingId,
-        renter_id: userId,
+        renter_id: booking.renter_id,
         venue_id: booking.venue_id,
         amount,
         platform_fee: platformFee,
@@ -307,10 +321,8 @@ export class PaymentService {
       throw notFound('Booking not found')
     }
 
-    // Verify user owns the booking
-    if (booking.renter_id !== userId) {
-      throw badRequest('You do not have permission to pay for this booking')
-    }
+    const venue = await this.getVenueOrThrow(supabase, booking.venue_id)
+    await this.assertCanInitiatePayment(supabase, booking, venue, userId)
 
     // Check booking status
     if (booking.status === 'cancelled') {
@@ -330,17 +342,6 @@ export class PaymentService {
       throw badRequest('Payment has already been authorized for this booking')
     }
 
-    // Fetch venue
-    const { data: venue, error: venueError } = await supabase
-      .from('venues')
-      .select('*')
-      .eq('id', booking.venue_id)
-      .single()
-
-    if (venueError || !venue) {
-      throw notFound('Venue not found')
-    }
-
     // Calculate amounts (0% platform fee for MVP)
     const amount = booking.total_amount
     const platformFee = 0
@@ -353,7 +354,7 @@ export class PaymentService {
       metadata: {
         booking_id: bookingId,
         venue_id: booking.venue_id,
-        renter_id: userId,
+        renter_id: booking.renter_id,
         amount: Math.round(amount * 100).toString(), // Store amount in cents for later capture
       },
     })
@@ -368,7 +369,7 @@ export class PaymentService {
     } else {
       payment = await this.paymentRepo.create({
         booking_id: bookingId,
-        renter_id: userId,
+        renter_id: booking.renter_id,
         venue_id: booking.venue_id,
         amount,
         platform_fee: platformFee,

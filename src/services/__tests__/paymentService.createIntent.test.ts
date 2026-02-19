@@ -81,12 +81,35 @@ describe('PaymentService.createPaymentIntent', () => {
     ...overrides,
   })
 
-  // Helper to set up the Supabase venue lookup mock
-  function mockVenueLookup(venue: Venue | null, error: { message: string } | null = null) {
-    const singleFn = jest.fn().mockResolvedValue({ data: venue, error })
-    const eqFn = jest.fn().mockReturnValue({ single: singleFn })
-    const selectFn = jest.fn().mockReturnValue({ eq: eqFn })
-    const fromFn = jest.fn().mockReturnValue({ select: selectFn })
+  // Helper to set up Supabase venue + user lookup mocks
+  function mockSupabaseLookups({
+    venue,
+    venueError = null,
+    user = { is_admin: false },
+    userError = null,
+  }: {
+    venue: Venue | null
+    venueError?: { message: string } | null
+    user?: { is_admin: boolean } | null
+    userError?: { message: string } | null
+  }) {
+    const venueSingleFn = jest.fn().mockResolvedValue({ data: venue, error: venueError })
+    const venueEqFn = jest.fn().mockReturnValue({ single: venueSingleFn })
+    const venueSelectFn = jest.fn().mockReturnValue({ eq: venueEqFn })
+
+    const userSingleFn = jest.fn().mockResolvedValue({ data: user, error: userError })
+    const userEqFn = jest.fn().mockReturnValue({ single: userSingleFn })
+    const userSelectFn = jest.fn().mockReturnValue({ eq: userEqFn })
+
+    const fromFn = jest.fn().mockImplementation((table: string) => {
+      if (table === 'venues') {
+        return { select: venueSelectFn }
+      }
+      if (table === 'users') {
+        return { select: userSelectFn }
+      }
+      throw new Error(`Unexpected table lookup in test: ${table}`)
+    })
 
     ;(createClient as jest.Mock).mockResolvedValue({ from: fromFn })
   }
@@ -107,7 +130,7 @@ describe('PaymentService.createPaymentIntent', () => {
     mockBookingRepo.findById = jest.fn().mockResolvedValue(booking)
     mockPaymentRepo.findByBookingId = jest.fn().mockResolvedValue(null)
     mockPaymentRepo.create = jest.fn().mockResolvedValue(payment)
-    mockVenueLookup(venue)
+    mockSupabaseLookups({ venue })
 
     ;(stripe.paymentIntents.create as jest.Mock).mockResolvedValue({
       id: 'pi_test_123',
@@ -130,7 +153,7 @@ describe('PaymentService.createPaymentIntent', () => {
     mockBookingRepo.findById = jest.fn().mockResolvedValue(booking)
     mockPaymentRepo.findByBookingId = jest.fn().mockResolvedValue(null)
     mockPaymentRepo.create = jest.fn().mockResolvedValue(createPayment())
-    mockVenueLookup(venue)
+    mockSupabaseLookups({ venue })
 
     ;(stripe.paymentIntents.create as jest.Mock).mockResolvedValue({
       id: 'pi_test_123',
@@ -158,7 +181,7 @@ describe('PaymentService.createPaymentIntent', () => {
     mockBookingRepo.findById = jest.fn().mockResolvedValue(booking)
     mockPaymentRepo.findByBookingId = jest.fn().mockResolvedValue(null)
     mockPaymentRepo.create = jest.fn().mockResolvedValue(createPayment())
-    mockVenueLookup(venue)
+    mockSupabaseLookups({ venue })
 
     ;(stripe.paymentIntents.create as jest.Mock).mockResolvedValue({
       id: 'pi_test_123',
@@ -189,7 +212,7 @@ describe('PaymentService.createPaymentIntent', () => {
     mockBookingRepo.findById = jest.fn().mockResolvedValue(booking)
     mockPaymentRepo.findByBookingId = jest.fn().mockResolvedValue(existingPayment)
     mockPaymentRepo.update = jest.fn().mockResolvedValue(updatedPayment)
-    mockVenueLookup(venue)
+    mockSupabaseLookups({ venue })
 
     ;(stripe.paymentIntents.create as jest.Mock).mockResolvedValue({
       id: 'pi_test_new',
@@ -216,12 +239,39 @@ describe('PaymentService.createPaymentIntent', () => {
     })
   })
 
-  it('should throw permission error when user does not own the booking', async () => {
-    const booking = createBooking({ renter_id: 'other-user' })
+  it('should allow venue owner to create payment intent for a booking they do not rent', async () => {
+    const booking = createBooking({ renter_id: 'renter-456' })
+    const venue = createVenue({ owner_id: 'owner-123' })
+    const payment = createPayment({ renter_id: 'renter-456' })
+
     mockBookingRepo.findById = jest.fn().mockResolvedValue(booking)
+    mockPaymentRepo.findByBookingId = jest.fn().mockResolvedValue(null)
+    mockPaymentRepo.create = jest.fn().mockResolvedValue(payment)
+    mockSupabaseLookups({ venue })
+
+    ;(stripe.paymentIntents.create as jest.Mock).mockResolvedValue({
+      id: 'pi_test_owner',
+      client_secret: 'pi_test_owner_secret',
+    })
+
+    const result = await paymentService.createPaymentIntent('booking-123', 'owner-123')
+
+    expect(result).toEqual({
+      clientSecret: 'pi_test_owner_secret',
+      paymentId: 'payment-123',
+      amount: 100,
+    })
+  })
+
+  it('should reject user who is not renter, venue owner, or admin', async () => {
+    const booking = createBooking({ renter_id: 'renter-456' })
+    const venue = createVenue({ owner_id: 'owner-123' })
+
+    mockBookingRepo.findById = jest.fn().mockResolvedValue(booking)
+    mockSupabaseLookups({ venue, user: { is_admin: false } })
 
     await expect(
-      paymentService.createPaymentIntent('booking-123', 'user-123')
+      paymentService.createPaymentIntent('booking-123', 'outsider-123')
     ).rejects.toMatchObject({
       message: 'You do not have permission to pay for this booking',
       statusCode: 400,
@@ -272,7 +322,7 @@ describe('PaymentService.createPaymentIntent', () => {
 
     mockBookingRepo.findById = jest.fn().mockResolvedValue(booking)
     mockPaymentRepo.findByBookingId = jest.fn().mockResolvedValue(null)
-    mockVenueLookup(null, { message: 'not found' })
+    mockSupabaseLookups({ venue: null, venueError: { message: 'not found' } })
 
     await expect(
       paymentService.createPaymentIntent('booking-123', 'user-123')
@@ -288,7 +338,7 @@ describe('PaymentService.createPaymentIntent', () => {
 
     mockBookingRepo.findById = jest.fn().mockResolvedValue(booking)
     mockPaymentRepo.findByBookingId = jest.fn().mockResolvedValue(null)
-    mockVenueLookup(venue)
+    mockSupabaseLookups({ venue })
 
     await expect(
       paymentService.createPaymentIntent('booking-123', 'user-123')
