@@ -135,4 +135,20 @@ describe('SplitAvailabilityView - Location button', () => {
 
     expect(button).toHaveClass('bg-secondary-50/5')
   })
+
+  it('renders mobile map/list toggle before date filter controls', () => {
+    render(<SplitAvailabilityView />)
+
+    const mapToggleButton = screen.getByRole('button', { name: /^map$/i })
+    const anyDateButton = screen.getByRole('button', { name: /any date/i })
+
+    expect(mapToggleButton.compareDocumentPosition(anyDateButton) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy()
+  })
+
+  it('adds desktop horizontal gutters to the split view shell', () => {
+    const { container } = render(<SplitAvailabilityView />)
+    const root = container.firstElementChild
+
+    expect(root).toHaveClass('lg:px-4')
+  })
 })

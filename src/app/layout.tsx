@@ -22,10 +22,42 @@ const geistMono = Geist_Mono({
   subsets: ["latin"],
 });
 
+const SHARE_PREVIEW_TEXT = "Community courts, unlocked. Find a court. Book it. Go play.";
+
 export const metadata: Metadata = {
-  title: "Play Bookings - Indoor Basketball Court Rentals",
+  metadataBase: new URL("https://playbookings.vercel.app"),
+  title: {
+    default: SHARE_PREVIEW_TEXT,
+    template: "%s | Play Bookings",
+  },
   description:
-    "Streamline the rental of underutilized middle school sports facilities. Connect trusted renters with available indoor basketball courts.",
+    SHARE_PREVIEW_TEXT,
+  icons: {
+    icon: "/icon.png",
+    shortcut: "/favicon.ico",
+    apple: "/apple-icon.png",
+  },
+  openGraph: {
+    type: "website",
+    siteName: "Play Bookings",
+    title: SHARE_PREVIEW_TEXT,
+    description: SHARE_PREVIEW_TEXT,
+    url: "https://playbookings.vercel.app",
+    images: [
+      {
+        url: "/og-default.png",
+        width: 390,
+        height: 844,
+        alt: "Play Bookings",
+      },
+    ],
+  },
+  twitter: {
+    card: "summary_large_image",
+    title: SHARE_PREVIEW_TEXT,
+    description: SHARE_PREVIEW_TEXT,
+    images: ["/og-default.png"],
+  },
 };
 
 export default function RootLayout({
