@@ -23,10 +23,10 @@ const geistMono = Geist_Mono({
 });
 
 const SHARE_PREVIEW_TEXT = "Community courts, unlocked. Find a court. Book it. Go play.";
-const OG_IMAGE_PATH = "/og-default-v2.png";
+const OG_IMAGE_PATH = "/og-default-v3.jpg";
 
 export const metadata: Metadata = {
-  metadataBase: new URL("https://playbookings.vercel.app"),
+  metadataBase: new URL("https://www.playbookings.com"),
   title: {
     default: SHARE_PREVIEW_TEXT,
     template: "%s | Play Bookings",
@@ -43,12 +43,12 @@ export const metadata: Metadata = {
     siteName: "Play Bookings",
     title: SHARE_PREVIEW_TEXT,
     description: SHARE_PREVIEW_TEXT,
-    url: "https://playbookings.vercel.app",
+    url: "https://www.playbookings.com",
     images: [
       {
         url: OG_IMAGE_PATH,
-        width: 390,
-        height: 844,
+        width: 1200,
+        height: 630,
         alt: "Play Bookings",
       },
     ],
