@@ -3,29 +3,18 @@
 import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { Navigation } from '@/components/layout/navigation'
-import { useAuthModal } from '@/contexts/AuthModalContext'
-import { useCurrentUser } from '@/hooks/useCurrentUser'
-import { useRouter } from 'next/navigation'
+import { toast } from '@/components/ui/use-toast'
+import {
+  HOST_ONBOARDING_UNAVAILABLE_DESCRIPTION,
+  HOST_ONBOARDING_UNAVAILABLE_TITLE,
+} from '@/lib/hostOnboarding'
 
 export default function BecomeAHostPage() {
-  const { openAuthModal } = useAuthModal()
-  const { user } = useCurrentUser()
-  const router = useRouter()
-
   const handleHostCTA = () => {
-    if (user) {
-      // User is already authenticated
-      if (user.is_venue_owner) {
-        // Already a host - go to dashboard
-        router.push('/dashboard')
-      } else {
-        // Renter needs to upgrade to host
-        router.push('/auth/upgrade-to-host')
-      }
-    } else {
-      // Not authenticated - open auth modal with host intent
-      openAuthModal({ intent: 'host' })
-    }
+    toast({
+      title: HOST_ONBOARDING_UNAVAILABLE_TITLE,
+      description: HOST_ONBOARDING_UNAVAILABLE_DESCRIPTION,
+    })
   }
 
   return (

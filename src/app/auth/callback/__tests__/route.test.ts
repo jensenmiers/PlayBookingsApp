@@ -10,11 +10,6 @@ const mockSingle = jest.fn()
 const mockUpsert = jest.fn()
 
 function createSupabaseMock() {
-  const chain = {
-    select: jest.fn().mockReturnThis(),
-    eq: jest.fn().mockReturnThis(),
-    single: mockSingle,
-  }
   return {
     auth: { exchangeCodeForSession: mockExchangeCodeForSession },
     from: jest.fn(() => ({
@@ -203,7 +198,7 @@ describe('GET /auth/callback', () => {
     expect(response.headers.get('Location')).toBe(`${origin}/dashboard`)
   })
 
-  it('non-popup: existing renter with intent=host redirects to upgrade-to-host', async () => {
+  it('non-popup: existing renter with intent=host still redirects to returnTo', async () => {
     mockExchangeCodeForSession.mockResolvedValue({
       data: {
         session: {
@@ -226,7 +221,34 @@ describe('GET /auth/callback', () => {
     )
     const response = await GET(request)
 
-    expect(response.headers.get('Location')).toBe(`${origin}/auth/upgrade-to-host`)
+    expect(response.headers.get('Location')).toBe(`${origin}/search`)
+  })
+
+  it('non-popup: new user with intent=host is persisted as renter-only', async () => {
+    mockExchangeCodeForSession.mockResolvedValue({
+      data: {
+        session: {
+          user: {
+            id: 'user-2',
+            email: 'new-host-intent@example.com',
+            user_metadata: { full_name: 'Host Intent User' },
+          },
+        },
+      },
+      error: null,
+    })
+    mockSingle.mockResolvedValue({ data: null, error: { message: 'not found' } })
+
+    await GET(createRequest(`${origin}/auth/callback?code=abc&intent=host`))
+
+    expect(mockUpsert).toHaveBeenCalledWith(
+      expect.objectContaining({
+        id: 'user-2',
+        is_renter: true,
+        is_venue_owner: false,
+      }),
+      { onConflict: 'id' }
+    )
   })
 
   it('non-popup: renter redirects to returnTo', async () => {

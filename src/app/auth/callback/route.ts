@@ -1,4 +1,5 @@
 import { createClient } from '@/lib/supabase/server'
+import { HOST_ONBOARDING_ENABLED } from '@/lib/hostOnboarding'
 import { NextRequest, NextResponse } from 'next/server'
 
 export async function GET(request: NextRequest) {
@@ -30,7 +31,7 @@ export async function GET(request: NextRequest) {
   // For non-popup flow, handle user profile creation/update
   if (!isPopup && data.session) {
     const user = data.session.user
-    const isHostSignup = intent === 'host'
+    const isHostSignup = HOST_ONBOARDING_ENABLED && intent === 'host'
 
     const { data: existingUser, error: fetchError } = await supabase
       .from('users')

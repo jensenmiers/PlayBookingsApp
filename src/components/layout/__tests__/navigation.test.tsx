@@ -1,4 +1,4 @@
-import { render, screen } from '@testing-library/react'
+import { fireEvent, render, screen } from '@testing-library/react'
 import type { ReactNode } from 'react'
 import { Navigation } from '../navigation'
 
@@ -6,6 +6,7 @@ const mockPush = jest.fn()
 const mockRefresh = jest.fn()
 const mockOpenAuthModal = jest.fn()
 const mockUseCurrentUser = jest.fn()
+const mockToast = jest.fn()
 
 let mockPathname = '/'
 
@@ -50,6 +51,10 @@ jest.mock('@/contexts/AuthModalContext', () => ({
   }),
 }))
 
+jest.mock('@/components/ui/use-toast', () => ({
+  toast: (args: unknown) => mockToast(args),
+}))
+
 describe('Navigation', () => {
   beforeEach(() => {
     jest.clearAllMocks()
@@ -81,5 +86,20 @@ describe('Navigation', () => {
     expect(forRentersLink.className).toContain('text-secondary-50/70')
     expect(forRentersLink.className).toContain('hover:text-primary-400')
     expect(forRentersLink.className).not.toContain('bg-secondary-50/10')
+  })
+
+  it('shows upcoming notice instead of opening host auth from host landing nav CTA', () => {
+    mockPathname = '/become-a-host'
+
+    render(<Navigation />)
+
+    fireEvent.click(screen.getByRole('button', { name: 'Get Started' }))
+
+    expect(mockOpenAuthModal).not.toHaveBeenCalled()
+    expect(mockToast).toHaveBeenCalledWith(
+      expect.objectContaining({
+        title: expect.stringMatching(/coming soon|upcoming/i),
+      })
+    )
   })
 })

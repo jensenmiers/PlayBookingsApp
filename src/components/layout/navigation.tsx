@@ -7,6 +7,11 @@ import { useRouter, usePathname } from 'next/navigation'
 import { useCurrentUser } from '@/hooks/useCurrentUser'
 import { useAuthModal } from '@/contexts/AuthModalContext'
 import { createClient } from '@/lib/supabase/client'
+import { toast } from '@/components/ui/use-toast'
+import {
+  HOST_ONBOARDING_UNAVAILABLE_DESCRIPTION,
+  HOST_ONBOARDING_UNAVAILABLE_TITLE,
+} from '@/lib/hostOnboarding'
 import { useState, useRef, useEffect } from 'react'
 
 export function Navigation() {
@@ -211,7 +216,12 @@ export function Navigation() {
               <Button
                 size="lg"
                 className="px-10 py-3 text-base"
-                onClick={() => openAuthModal({ intent: 'host' })}
+                onClick={() =>
+                  toast({
+                    title: HOST_ONBOARDING_UNAVAILABLE_TITLE,
+                    description: HOST_ONBOARDING_UNAVAILABLE_DESCRIPTION,
+                  })
+                }
               >
                 Get Started
               </Button>
