@@ -104,9 +104,9 @@ export function SplitAvailabilityView() {
   }
 
   return (
-    <div className="flex flex-col h-[calc(100vh-64px)] w-full lg:max-w-[1600px] lg:mx-auto lg:px-4 lg:pt-3 lg:pb-4 lg:gap-3">
+    <div className="flex flex-col h-[calc(100vh-64px)]">
       {/* Search and Filter Bar */}
-      <div className="flex-shrink-0 px-4 pt-4 pb-3 bg-secondary-800 border-b border-secondary-50/10 lg:px-5 lg:py-4 lg:rounded-2xl lg:border lg:border-secondary-50/10">
+      <div className="flex-shrink-0 px-4 pt-4 pb-3 bg-secondary-800 border-b border-secondary-50/10">
         {/* Search Input */}
         <div className="relative mb-3">
           <div className="absolute inset-y-0 left-0 pl-4 flex items-center pointer-events-none">
@@ -123,36 +123,6 @@ export function SplitAvailabilityView() {
 
         {/* Filter Row */}
         <div className="flex items-center gap-2 overflow-x-auto pb-1">
-          {/* Mobile View Toggle */}
-          <div className="flex-shrink-0 lg:hidden">
-            <div className="flex bg-secondary-50/5 rounded-lg p-0.5">
-              <Button
-                size="sm"
-                onClick={() => setViewMode('map')}
-                className={`rounded-md px-3 py-1.5 text-xs ${
-                  viewMode === 'map'
-                    ? 'bg-secondary-800 text-secondary-50/70 shadow-sm'
-                    : 'bg-transparent text-secondary-50/50 hover:text-secondary-50/70'
-                }`}
-              >
-                <FontAwesomeIcon icon={faMap} className="mr-1.5" />
-                Map
-              </Button>
-              <Button
-                size="sm"
-                onClick={() => setViewMode('list')}
-                className={`rounded-md px-3 py-1.5 text-xs ${
-                  viewMode === 'list'
-                    ? 'bg-secondary-800 text-secondary-50/70 shadow-sm'
-                    : 'bg-transparent text-secondary-50/50 hover:text-secondary-50/70'
-                }`}
-              >
-                <FontAwesomeIcon icon={faList} className="mr-1.5" />
-                List
-              </Button>
-            </div>
-          </div>
-
           {/* Date Filter */}
           <div className="flex-shrink-0 flex items-center gap-1">
             <Button
@@ -218,11 +188,41 @@ export function SplitAvailabilityView() {
             <FontAwesomeIcon icon={faSliders} className="text-xs" />
             <span className="whitespace-nowrap">Filters</span>
           </Button>
+
+          {/* Mobile View Toggle */}
+          <div className="flex-shrink-0 lg:hidden ml-auto">
+            <div className="flex bg-secondary-50/5 rounded-lg p-0.5">
+              <Button
+                size="sm"
+                onClick={() => setViewMode('map')}
+                className={`rounded-md px-3 py-1.5 text-xs ${
+                  viewMode === 'map'
+                    ? 'bg-secondary-800 text-secondary-50/70 shadow-sm'
+                    : 'bg-transparent text-secondary-50/50 hover:text-secondary-50/70'
+                }`}
+              >
+                <FontAwesomeIcon icon={faMap} className="mr-1.5" />
+                Map
+              </Button>
+              <Button
+                size="sm"
+                onClick={() => setViewMode('list')}
+                className={`rounded-md px-3 py-1.5 text-xs ${
+                  viewMode === 'list'
+                    ? 'bg-secondary-800 text-secondary-50/70 shadow-sm'
+                    : 'bg-transparent text-secondary-50/50 hover:text-secondary-50/70'
+                }`}
+              >
+                <FontAwesomeIcon icon={faList} className="mr-1.5" />
+                List
+              </Button>
+            </div>
+          </div>
         </div>
       </div>
 
       {/* Main Content: Split View */}
-      <div className="flex-1 flex overflow-hidden lg:rounded-2xl lg:border lg:border-secondary-50/10">
+      <div className="flex-1 flex overflow-hidden">
         {/* Map Panel - Hidden on mobile when list is active */}
         <div 
           className={`
@@ -246,7 +246,7 @@ export function SplitAvailabilityView() {
               venues={filteredVenues}
               selectedVenueId={selectedVenueId}
               onVenueSelect={handleVenueSelect}
-              className="w-full h-full rounded-t-2xl lg:rounded-none"
+              className="w-full h-full"
             />
           )}
         </div>
@@ -255,7 +255,7 @@ export function SplitAvailabilityView() {
         <div 
           className={`
             ${viewMode === 'map' ? 'hidden lg:block' : 'block'} 
-            lg:w-[40%] w-full h-full overflow-y-auto bg-background lg:border-l lg:border-secondary-50/10
+            lg:w-[40%] w-full h-full overflow-y-auto bg-background border-l border-secondary-50/10
           `}
         >
           <div className="p-4">

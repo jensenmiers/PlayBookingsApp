@@ -225,10 +225,10 @@ function VenuePopupContent({ venue }: { venue: MapVenue }) {
   const venueSlug = slugify(venue.name)
 
   return (
-    <div className="p-1 min-w-[220px] text-secondary-900">
+    <div className="p-1 min-w-[220px]">
       {/* Venue name and instant booking badge */}
       <div className="flex items-start justify-between gap-2 mb-2">
-        <h3 className="font-semibold text-secondary-900 text-sm leading-tight">
+        <h3 className="font-semibold text-secondary-50 text-sm leading-tight">
           {venue.name}
         </h3>
         {venue.instantBooking && (
@@ -240,31 +240,31 @@ function VenuePopupContent({ venue }: { venue: MapVenue }) {
       </div>
 
       {/* Location */}
-      <p className="text-secondary-600 text-xs mb-2">
+      <p className="text-secondary-50/60 text-xs mb-2">
         {venue.city}, {venue.state}
       </p>
 
       {/* Distance if available */}
       {venue.distanceMiles !== null && (
-        <p className="text-secondary-500 text-xs mb-2">
+        <p className="text-secondary-50/50 text-xs mb-2">
           {venue.distanceMiles.toFixed(1)} miles away
         </p>
       )}
 
       {/* Next available slot */}
       {venue.nextAvailable ? (
-        <div className="flex items-center gap-1.5 text-primary-600 text-sm font-medium mb-3">
+        <div className="flex items-center gap-1.5 text-primary-400 text-sm font-medium mb-3">
           <FontAwesomeIcon icon={faClock} className="text-xs" />
           <span>Next: {venue.nextAvailable.displayText}</span>
         </div>
       ) : (
-        <p className="text-secondary-500 text-xs mb-3">No times available</p>
+        <p className="text-gray-500 text-xs mb-3">No times available</p>
       )}
 
       {/* Price and CTA */}
       <div className="flex items-center justify-between gap-2">
-        <span className="text-secondary-900 font-semibold">
-          ${venue.hourlyRate}<span className="text-xs font-normal text-secondary-600">/hr</span>
+        <span className="text-secondary-50 font-semibold">
+          ${venue.hourlyRate}<span className="text-xs font-normal text-secondary-50/60">/hr</span>
         </span>
         <Button asChild size="sm" className="rounded-lg text-xs px-3 py-1 h-7">
           <Link href={`/venue/${venueSlug}`}>
