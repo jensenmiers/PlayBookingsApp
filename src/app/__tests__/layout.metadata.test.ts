@@ -5,6 +5,7 @@ jest.mock("@vercel/analytics/next", () => ({
 import { metadata } from "../layout";
 
 const SHARE_TEXT = "Community courts, unlocked. Find a court. Book it. Go play.";
+const OG_IMAGE_PATH = "/og-default-v2.png";
 
 describe("root metadata social defaults", () => {
   it("sets canonical metadata base URL", () => {
@@ -23,7 +24,7 @@ describe("root metadata social defaults", () => {
     expect(imageList).toEqual(
       expect.arrayContaining([
         expect.objectContaining({
-          url: "/og-default.png",
+          url: OG_IMAGE_PATH,
         }),
       ]),
     );
@@ -42,5 +43,6 @@ describe("root metadata social defaults", () => {
     expect(title).toBe(SHARE_TEXT);
     expect(metadata.openGraph?.title).toBe(SHARE_TEXT);
     expect(metadata.twitter?.title).toBe(SHARE_TEXT);
+    expect(metadata.twitter?.images).toContain(OG_IMAGE_PATH);
   });
 });
