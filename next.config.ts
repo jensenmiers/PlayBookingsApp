@@ -13,6 +13,11 @@ const nextConfig: NextConfig = {
         hostname: "phwwfimrpbdwiwpkuzwj.supabase.co",
         pathname: "/storage/v1/object/public/**",
       },
+      {
+        protocol: "https",
+        hostname: "cityofsantamonica.getbynder.com",
+        pathname: "/**",
+      },
     ],
   },
 };
