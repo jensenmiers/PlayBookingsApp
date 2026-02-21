@@ -118,7 +118,15 @@ export interface AvailableSlot {
   start_time: string
   end_time: string
   venue_id: string
-  availability_id: string
+  availability_id?: string | null
+  slot_instance_id?: string | null
+  action_type: 'instant_book' | 'request_private' | 'info_only_open_gym'
+  modal_content?: {
+    title: string
+    body: string
+    bullet_points?: string[]
+    cta_label?: string | null
+  } | null
 }
 
 export interface GetAvailabilityParams {
@@ -127,4 +135,3 @@ export interface GetAvailabilityParams {
 }
 
 export type GetAvailabilityResponse = ApiResponse<AvailableSlot[]>
-

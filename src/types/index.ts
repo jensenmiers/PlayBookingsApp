@@ -5,6 +5,14 @@ export type InsuranceStatus = 'pending' | 'approved' | 'rejected' | 'needs_chang
 export type PaymentStatus = 'pending' | 'authorized' | 'paid' | 'refunded' | 'failed'
 
 export type RecurringType = 'none' | 'weekly' | 'monthly'
+export type SlotActionType = 'instant_book' | 'request_private' | 'info_only_open_gym'
+
+export interface SlotModalContent {
+  title: string
+  body: string
+  bullet_points?: string[]
+  cta_label?: string | null
+}
 
 export interface User {
   id: string

@@ -190,6 +190,9 @@ export function AvailabilitySlotsList({ venue }: AvailabilitySlotsListProps) {
           date={selectedSlot.date}
           startTime={selectedSlot.start_time}
           endTime={selectedSlot.end_time}
+          slotActionType={selectedSlot.slot.action_type}
+          slotInstanceId={selectedSlot.slot.slot_instance_id}
+          slotModalContent={selectedSlot.slot.modal_content}
           open={showBookingForm}
           onOpenChange={setShowBookingForm}
           onSuccess={handleBookingSuccess}
@@ -198,4 +201,3 @@ export function AvailabilitySlotsList({ venue }: AvailabilitySlotsListProps) {
     </>
   )
 }
-

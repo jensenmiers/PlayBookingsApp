@@ -342,6 +342,9 @@ export function VenueDesignCommunity({ venue }: VenueDesignCommunityProps) {
           date={selectedSlot.date}
           startTime={selectedSlot.start_time}
           endTime={selectedSlot.end_time}
+          slotActionType={selectedSlot.action_type}
+          slotInstanceId={selectedSlot.slot_instance_id}
+          slotModalContent={selectedSlot.modal_content}
           open={showBooking}
           onOpenChange={setShowBooking}
           onSuccess={() => {

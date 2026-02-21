@@ -11,11 +11,11 @@ import { AvailabilityService } from '@/services/availabilityService'
 import { handleApiError, badRequest, notFound } from '@/utils/errorHandling'
 import { createClient } from '@/lib/supabase/server'
 import type { ApiResponse } from '@/types/api'
-import type { ComputedSlot } from '@/utils/slotSplitting'
+import type { UnifiedAvailableSlot } from '@/services/availabilityService'
 
 type RouteContext = { params: Promise<{ id: string }> }
 
-export type GetAvailabilityResponse = ApiResponse<ComputedSlot[]>
+export type GetAvailabilityResponse = ApiResponse<UnifiedAvailableSlot[]>
 
 export async function GET(
   request: NextRequest,

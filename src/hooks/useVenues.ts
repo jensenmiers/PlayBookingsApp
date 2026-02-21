@@ -7,7 +7,14 @@
 
 import { useState, useEffect, useCallback } from 'react'
 import { createClient } from '@/lib/supabase/client'
-import type { Venue, Availability, VenueSearchFilters, AvailabilityWithVenue } from '@/types'
+import type {
+  Venue,
+  Availability,
+  VenueSearchFilters,
+  AvailabilityWithVenue,
+  SlotActionType,
+  SlotModalContent,
+} from '@/types'
 import { getNextTopOfHour, timeStringToDate } from '@/utils/dateHelpers'
 import { slugify } from '@/lib/utils'
 import { format } from 'date-fns'
@@ -225,7 +232,10 @@ export interface ComputedAvailabilitySlot {
   start_time: string
   end_time: string
   venue_id: string
-  availability_id: string
+  availability_id?: string | null
+  slot_instance_id?: string | null
+  action_type: SlotActionType
+  modal_content?: SlotModalContent | null
 }
 
 /**
@@ -395,5 +405,4 @@ export function useAvailabilitySlots(filters?: {
     refetch: fetchAvailabilitySlots,
   }
 }
-
 

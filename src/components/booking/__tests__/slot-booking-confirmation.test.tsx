@@ -13,6 +13,7 @@ const mockToast = jest.fn()
 const mockCreateIntent = jest.fn()
 const mockCreateSetupIntent = jest.fn()
 const mockDeleteBooking = jest.fn()
+const mockFetch = jest.fn()
 
 jest.mock('@/hooks/useBookings', () => ({
   useCreateBooking: () => ({
@@ -121,6 +122,8 @@ describe('SlotBookingConfirmation', () => {
 
   beforeEach(() => {
     jest.clearAllMocks()
+    mockFetch.mockResolvedValue({ ok: true })
+    ;(globalThis as { fetch?: unknown }).fetch = mockFetch
     mockCreateIntent.mockResolvedValue({ data: null, error: 'mock' })
     mockCreateSetupIntent.mockResolvedValue({ data: null, error: 'mock' })
   })
@@ -217,5 +220,28 @@ describe('SlotBookingConfirmation', () => {
 
     expect(mockToast).not.toHaveBeenCalled()
     expect(defaultProps.onSuccess).not.toHaveBeenCalled()
+  })
+
+  it('renders info-only open gym content without showing booking flow', () => {
+    render(
+      <SlotBookingConfirmation
+        {...defaultProps}
+        // @ts-expect-error - new prop introduced by slot action feature
+        slotActionType="info_only_open_gym"
+        // @ts-expect-error - new prop introduced by slot action feature
+        slotModalContent={{
+          title: 'Open Gym Session',
+          body: 'This session is a drop-in open gym. Payment is done on site.',
+        }}
+      />
+    )
+
+    expect(screen.getByText('Open Gym Session')).toBeInTheDocument()
+    expect(
+      screen.getByText('This session is a drop-in open gym. Payment is done on site.')
+    ).toBeInTheDocument()
+    expect(screen.queryByText('Booking Details')).not.toBeInTheDocument()
+    expect(screen.queryByRole('button', { name: /continue to payment/i })).not.toBeInTheDocument()
+    expect(mockFetch).toHaveBeenCalledTimes(1)
   })
 })
