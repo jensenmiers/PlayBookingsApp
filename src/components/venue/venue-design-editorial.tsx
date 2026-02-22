@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useMemo } from 'react'
+import { useState, useMemo, useCallback } from 'react'
 import { useRouter } from 'next/navigation'
 import Image from 'next/image'
 import { format } from 'date-fns'
@@ -9,16 +9,75 @@ import { faArrowLeft, faBolt, faShield } from '@fortawesome/free-solid-svg-icons
 import { SlotBookingConfirmation } from '@/components/booking/slot-booking-confirmation'
 import { GoogleMapsLink } from './shared'
 import { useVenueAvailabilityRange, ComputedAvailabilitySlot } from '@/hooks/useVenues'
-import { formatTime, getNextTopOfHour } from '@/utils/dateHelpers'
+import { formatTime } from '@/utils/dateHelpers'
 import type { Venue } from '@/types'
 
 interface VenueDesignEditorialProps {
   venue: Venue
 }
 
+const LOS_ANGELES_TIME_ZONE = 'America/Los_Angeles'
+const INITIAL_DAY_PILLS = 7
+const TOTAL_DAY_PILLS = 14
+
 function parseLocalDate(dateStr: string): Date {
   const [year, month, day] = dateStr.split('-').map(Number)
   return new Date(year, month - 1, day)
+}
+
+function addDaysToDateString(dateStr: string, days: number): string {
+  const date = parseLocalDate(dateStr)
+  date.setDate(date.getDate() + days)
+  return format(date, 'yyyy-MM-dd')
+}
+
+function getTimePartsInTimeZone(date: Date, timeZone: string): {
+  year: number
+  month: number
+  day: number
+  hour: number
+  minute: number
+  second: number
+} {
+  const parts = new Intl.DateTimeFormat('en-US', {
+    timeZone,
+    year: 'numeric',
+    month: '2-digit',
+    day: '2-digit',
+    hour: '2-digit',
+    minute: '2-digit',
+    second: '2-digit',
+    hour12: false,
+  }).formatToParts(date)
+
+  const get = (type: string) => Number(parts.find((part) => part.type === type)?.value || '0')
+
+  return {
+    year: get('year'),
+    month: get('month'),
+    day: get('day'),
+    hour: get('hour'),
+    minute: get('minute'),
+    second: get('second'),
+  }
+}
+
+function getDateStringInTimeZone(date: Date, timeZone: string): string {
+  const { year, month, day } = getTimePartsInTimeZone(date, timeZone)
+  return `${year}-${String(month).padStart(2, '0')}-${String(day).padStart(2, '0')}`
+}
+
+function getNextTopOfHourMinutesInTimeZone(date: Date, timeZone: string): number | null {
+  const { hour, minute, second } = getTimePartsInTimeZone(date, timeZone)
+  const isExactlyTopOfHour = minute === 0 && second === 0 && date.getMilliseconds() === 0
+  const nextHour = isExactlyTopOfHour ? hour : hour + 1
+  if (nextHour >= 24) return null
+  return nextHour * 60
+}
+
+function timeToMinutes(time: string): number {
+  const [hours, minutes] = time.split(':').map(Number)
+  return hours * 60 + (minutes || 0)
 }
 
 export function VenueDesignEditorial({ venue }: VenueDesignEditorialProps) {
@@ -26,11 +85,15 @@ export function VenueDesignEditorial({ venue }: VenueDesignEditorialProps) {
   const [selectedSlot, setSelectedSlot] = useState<ComputedAvailabilitySlot | null>(null)
   const [showBooking, setShowBooking] = useState(false)
   const [expandedDate, setExpandedDate] = useState<string | null>(null)
+  const [showAllDates, setShowAllDates] = useState(false)
 
-  const today = new Date()
-  const todayStr = format(today, 'yyyy-MM-dd')
-  const dateFrom = todayStr
-  const dateTo = format(new Date(today.getTime() + 7 * 24 * 60 * 60 * 1000), 'yyyy-MM-dd')
+  const todayStr = getDateStringInTimeZone(new Date(), LOS_ANGELES_TIME_ZONE)
+  const allDatePills = useMemo(
+    () => Array.from({ length: TOTAL_DAY_PILLS }, (_, i) => addDaysToDateString(todayStr, i)),
+    [todayStr]
+  )
+  const dateFrom = allDatePills[0]
+  const dateTo = allDatePills[allDatePills.length - 1]
 
   const { data: availability, loading } = useVenueAvailabilityRange(
     venue.id,
@@ -38,34 +101,36 @@ export function VenueDesignEditorial({ venue }: VenueDesignEditorialProps) {
     dateTo
   )
 
-  const isSlotBookable = (slotDate: string, slotStartTime: string): boolean => {
+  const isSlotBookable = useCallback((slotDate: string, slotStartTime: string): boolean => {
     if (slotDate !== todayStr) return true
-    const nextHour = getNextTopOfHour()
-    const slotStart = parseLocalDate(slotDate)
-    const [hours, minutes] = slotStartTime.split(':').map(Number)
-    slotStart.setHours(hours, minutes || 0, 0, 0)
-    return slotStart >= nextHour
-  }
+    const nextTopHourMinutes = getNextTopOfHourMinutesInTimeZone(
+      new Date(),
+      LOS_ANGELES_TIME_ZONE
+    )
+    if (nextTopHourMinutes === null) return false
+    return timeToMinutes(slotStartTime) >= nextTopHourMinutes
+  }, [todayStr])
 
   const bookableSlots = useMemo(() => {
     if (!availability) return []
     return availability.filter((slot) =>
       isSlotBookable(slot.date, slot.start_time)
     )
-  }, [availability, todayStr])
+  }, [availability, isSlotBookable])
 
   const slotsByDate = useMemo(() => {
     const grouped = new Map<string, ComputedAvailabilitySlot[]>()
+    for (const date of allDatePills) {
+      grouped.set(date, [])
+    }
     for (const slot of bookableSlots) {
       const existing = grouped.get(slot.date) || []
       grouped.set(slot.date, [...existing, slot])
     }
     return grouped
-  }, [bookableSlots])
+  }, [allDatePills, bookableSlots])
 
-  const uniqueDates = useMemo(() => {
-    return Array.from(slotsByDate.keys()).slice(0, 7)
-  }, [slotsByDate])
+  const visibleDates = showAllDates ? allDatePills : allDatePills.slice(0, INITIAL_DAY_PILLS)
 
   const nextSlot = bookableSlots[0]
   const primaryPhoto = venue.photos?.[0]
@@ -83,6 +148,8 @@ export function VenueDesignEditorial({ venue }: VenueDesignEditorialProps) {
   }
 
   const handleDateClick = (date: string) => {
+    const slots = slotsByDate.get(date) || []
+    if (slots.length === 0) return
     setExpandedDate((prev) => (prev === date ? null : date))
   }
 
@@ -185,64 +252,85 @@ export function VenueDesignEditorial({ venue }: VenueDesignEditorialProps) {
         </div>
 
         {/* Coming Up Section */}
-        {uniqueDates.length > 0 && (
-          <div className="px-4 mt-6">
-            <h3 className="text-sm font-medium text-secondary-50/60 mb-3 tracking-wide uppercase">
-              Coming Up
-            </h3>
-            
-            {/* Day Pills */}
-            <div className="flex gap-2 overflow-x-auto scrollbar-hide pb-2">
-              {uniqueDates.map((date) => {
-                const slots = slotsByDate.get(date) || []
-                const isExpanded = expandedDate === date
-                return (
-                  <button
-                    key={date}
-                    onClick={() => handleDateClick(date)}
-                    className={`flex-shrink-0 px-4 py-2.5 rounded-xl text-center transition-all ${
-                      isExpanded
-                        ? 'bg-primary-400 text-secondary-900'
-                        : 'bg-secondary-800/60 hover:bg-secondary-800 text-secondary-50 border border-secondary-50/10'
-                    }`}
-                  >
-                    <div className={`text-sm font-medium ${isExpanded ? '' : ''}`}>
-                      {getShortDateDisplay(date)}
-                    </div>
-                    <div className={`text-xs mt-0.5 ${isExpanded ? 'text-secondary-900/70' : 'text-secondary-50/50'}`}>
-                      {slots.length} {slots.length === 1 ? 'slot' : 'slots'}
-                    </div>
-                  </button>
-                )
-              })}
-            </div>
+        <div className="px-4 mt-6">
+          <h3 className="text-sm font-medium text-secondary-50/60 mb-3 tracking-wide uppercase">
+            Coming Up
+          </h3>
+          
+          {/* Day Pills */}
+          <div className="flex gap-2 overflow-x-auto scrollbar-hide pb-2">
+            {visibleDates.map((date) => {
+              const slots = slotsByDate.get(date) || []
+              const slotCount = slots.length
+              const isExpanded = expandedDate === date
+              const isDisabled = slotCount === 0
 
-            {/* Expanded Time Slots - Accordion */}
-            {expandedDate && slotsByDate.get(expandedDate) && (
-              <div className="mt-4 space-y-2 animate-in slide-in-from-top-2 duration-200">
-                {slotsByDate.get(expandedDate)!.map((slot, idx) => (
-                  <button
-                    key={`${slot.date}-${slot.start_time}-${idx}`}
-                    onClick={() => handleSlotSelect(slot)}
-                    className="w-full p-4 bg-secondary-800/50 hover:bg-secondary-800 rounded-xl border border-secondary-50/5 hover:border-primary-400/30 text-left transition-all group flex items-center justify-between"
-                  >
-                    <div>
-                      <div className="text-secondary-50 font-medium group-hover:text-primary-400 transition-colors">
-                        {formatTime(slot.start_time)} - {formatTime(slot.end_time)}
-                      </div>
-                      <div className="text-xs text-secondary-50/40 mt-0.5">
-                        ${venue.hourly_rate}/hr
-                      </div>
-                    </div>
-                    <div className="text-sm text-secondary-50/30 group-hover:text-primary-400 transition-colors">
-                      Book →
-                    </div>
-                  </button>
-                ))}
+              return (
+                <button
+                  key={date}
+                  onClick={() => handleDateClick(date)}
+                  disabled={isDisabled}
+                  aria-label={`coming-up-day-${date}`}
+                  className={`flex-shrink-0 px-4 py-2.5 rounded-xl text-center transition-all ${
+                    isExpanded
+                      ? 'bg-primary-400 text-secondary-900'
+                      : isDisabled
+                        ? 'bg-secondary-50/5 text-secondary-50/40 border border-secondary-50/10 cursor-not-allowed'
+                        : 'bg-secondary-800/60 hover:bg-secondary-800 text-secondary-50 border border-secondary-50/10'
+                  }`}
+                >
+                  <div className="text-sm font-medium">
+                    {getShortDateDisplay(date)}
+                  </div>
+                  <div className={`text-xs mt-0.5 ${isExpanded ? 'text-secondary-900/70' : 'text-secondary-50/50'}`}>
+                    {slotCount} {slotCount === 1 ? 'slot' : 'slots'}
+                  </div>
+                </button>
+              )
+            })}
+
+            <button
+              onClick={() => setShowAllDates(true)}
+              disabled={showAllDates}
+              aria-label="More dates"
+              className={`flex-shrink-0 px-4 py-2.5 rounded-xl text-center border transition-all ${
+                showAllDates
+                  ? 'bg-secondary-50/5 text-secondary-50/40 border-secondary-50/10 cursor-not-allowed'
+                  : 'bg-secondary-800/60 hover:bg-secondary-800 text-secondary-50 border-secondary-50/10'
+              }`}
+            >
+              <div className="text-sm font-medium">More dates</div>
+              <div className="text-xs mt-0.5 text-secondary-50/50">
+                {showAllDates ? 'Unavailable' : 'Show 7 more'}
               </div>
-            )}
+            </button>
           </div>
-        )}
+
+          {/* Expanded Time Slots - Accordion */}
+          {expandedDate && slotsByDate.get(expandedDate) && (slotsByDate.get(expandedDate) || []).length > 0 && (
+            <div className="mt-4 space-y-2 animate-in slide-in-from-top-2 duration-200">
+              {(slotsByDate.get(expandedDate) || []).map((slot, idx) => (
+                <button
+                  key={`${slot.date}-${slot.start_time}-${idx}`}
+                  onClick={() => handleSlotSelect(slot)}
+                  className="w-full p-4 bg-secondary-800/50 hover:bg-secondary-800 rounded-xl border border-secondary-50/5 hover:border-primary-400/30 text-left transition-all group flex items-center justify-between"
+                >
+                  <div>
+                    <div className="text-secondary-50 font-medium group-hover:text-primary-400 transition-colors">
+                      {formatTime(slot.start_time)} - {formatTime(slot.end_time)}
+                    </div>
+                    <div className="text-xs text-secondary-50/40 mt-0.5">
+                      ${venue.hourly_rate}/hr
+                    </div>
+                  </div>
+                  <div className="text-sm text-secondary-50/30 group-hover:text-primary-400 transition-colors">
+                    Book →
+                  </div>
+                </button>
+              ))}
+            </div>
+          )}
+        </div>
 
         {/* Content Section */}
         <div className="px-4 py-8 space-y-8">
