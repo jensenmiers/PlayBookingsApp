@@ -82,6 +82,20 @@ describe('AvailabilityService (unified slots)', () => {
           error: null,
         })
       }
+      if (table === 'slot_instance_pricing') {
+        return createQuery({
+          data: [
+            {
+              slot_instance_id: 'slot-1',
+              amount_cents: 500,
+              currency: 'USD',
+              unit: 'person',
+              payment_method: 'on_site',
+            },
+          ],
+          error: null,
+        })
+      }
       throw new Error(`Unexpected table query: ${table}`)
     })
 
@@ -113,6 +127,12 @@ describe('AvailabilityService (unified slots)', () => {
           body: 'This session is a drop-in open gym. Payment is done on site.',
           bullet_points: ['No reservation required.'],
           cta_label: 'Got it',
+        },
+        slot_pricing: {
+          amount_cents: 500,
+          currency: 'USD',
+          unit: 'person',
+          payment_method: 'on_site',
         },
       },
     ])

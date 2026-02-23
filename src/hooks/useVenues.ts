@@ -14,6 +14,7 @@ import type {
   AvailabilityWithVenue,
   SlotActionType,
   SlotModalContent,
+  SlotPricing,
 } from '@/types'
 import { getNextTopOfHour, timeStringToDate } from '@/utils/dateHelpers'
 import { slugify } from '@/lib/utils'
@@ -236,6 +237,7 @@ export interface ComputedAvailabilitySlot {
   slot_instance_id?: string | null
   action_type: SlotActionType
   modal_content?: SlotModalContent | null
+  slot_pricing?: SlotPricing | null
 }
 
 /**
@@ -405,4 +407,3 @@ export function useAvailabilitySlots(filters?: {
     refetch: fetchAvailabilitySlots,
   }
 }
-

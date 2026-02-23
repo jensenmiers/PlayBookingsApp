@@ -1,6 +1,6 @@
 # Database Structure (Rebuilt From Code + Live Inspection)
 
-Last rebuilt: 2026-02-19
+Last rebuilt: 2026-02-23
 
 ## How this was rebuilt
 
@@ -18,13 +18,14 @@ Sources used:
 
 - `Confirmed`: Observed directly in live DB inspection or explicit SQL migration.
 - `Inferred`: Derived from TypeScript contracts and production query usage.
+- `Pending Deployment`: Defined in migration files in this repo but not present in current live DB.
 
 ## High-Level Model
 
 Core domain:
 
 - `users` own `venues`.
-- `venues` expose `availability` slots.
+- `venues` expose classic `availability` slots and unified `slot_templates`/`slot_instances`.
 - `bookings` reserve venue time slots for renters.
 - `recurring_bookings` store expanded recurrence instances.
 - `payments` track Stripe payment lifecycle for bookings.
@@ -35,10 +36,16 @@ Secondary/supporting tables:
 - `insurance_documents`
 - `subscriptions`
 - `messages`
+- `slot_templates`
+- `slot_instances`
+- `slot_modal_content`
+- `slot_interactions`
+- `pricing_rules` (pending deployment)
+- `slot_instance_pricing` (pending deployment)
 
 ## Tables Present in Live DB (`Confirmed`)
 
-From `npm run inspect:schema` on 2026-02-19:
+From `npm run inspect:schema` + direct table existence checks on 2026-02-23:
 
 1. `users`
 2. `venues`
@@ -50,6 +57,15 @@ From `npm run inspect:schema` on 2026-02-19:
 8. `audit_logs`
 9. `subscriptions`
 10. `messages`
+11. `slot_templates`
+12. `slot_instances`
+13. `slot_modal_content`
+14. `slot_interactions`
+
+Pending deployment in live DB (present in migrations):
+
+1. `pricing_rules`
+2. `slot_instance_pricing`
 
 Note: table/trigger/function metadata RPC helpers (`get_table_structure`, `get_all_triggers`, `get_all_functions`) are not installed in the target DB right now, so column-level inspection had to be inferred from application code + migrations.
 
@@ -271,6 +287,135 @@ Columns used by app types:
 - `is_read` (boolean)
 - `created_at`
 
+## `slot_templates`
+
+Status: `Confirmed` table, mixed `Confirmed/Inferred` columns
+
+Columns defined/used:
+
+- `id` (UUID, PK)
+- `venue_id` (UUID FK to `venues.id`)
+- `name`
+- `action_type` (`instant_book | request_private | info_only_open_gym`)
+- `day_of_week` (0-6)
+- `start_time`
+- `end_time`
+- `slot_interval_minutes`
+- `blocks_inventory` (boolean)
+- `is_active` (boolean)
+- `metadata` (JSONB)
+- `pricing_rule_id` (UUID FK to `pricing_rules.id`, pending deployment)
+- `created_at`
+- `updated_at`
+
+Notes:
+
+- Uniqueness/validation handled by constraints in unified slot engine migration.
+- `pricing_rule_id` is introduced by migration `20260223000100_add_normalized_slot_pricing.sql` and is currently pending deployment.
+
+## `slot_instances`
+
+Status: `Confirmed` table, mixed `Confirmed/Inferred` columns
+
+Columns defined/used:
+
+- `id` (UUID, PK)
+- `venue_id` (UUID FK to `venues.id`)
+- `template_id` (UUID FK to `slot_templates.id`, nullable)
+- `date`
+- `start_time`
+- `end_time`
+- `action_type` (`instant_book | request_private | info_only_open_gym`)
+- `blocks_inventory` (boolean)
+- `is_active` (boolean)
+- `source_availability_id` (UUID FK to `availability.id`, nullable)
+- `metadata` (JSONB)
+- `created_at`
+- `updated_at`
+
+Index/constraint notes:
+
+- Unique slot identity: `(venue_id, date, start_time, end_time, action_type)`.
+- Active-date lookup index on `(venue_id, date, start_time)` where `is_active = true`.
+- Action-type index on `action_type`.
+
+## `slot_modal_content`
+
+Status: `Confirmed` table, mixed `Confirmed/Inferred` columns
+
+Columns defined/used:
+
+- `id` (UUID, PK)
+- `venue_id` (UUID FK to `venues.id`)
+- `action_type` (`instant_book | request_private | info_only_open_gym`)
+- `title`
+- `body`
+- `bullet_points` (`text[]`)
+- `cta_label` (nullable)
+- `created_at`
+- `updated_at`
+
+Constraint note:
+
+- One row per `(venue_id, action_type)`.
+
+## `slot_interactions`
+
+Status: `Confirmed` table, mixed `Confirmed/Inferred` columns
+
+Columns defined/used:
+
+- `id` (UUID, PK)
+- `slot_instance_id` (UUID FK to `slot_instances.id`, nullable)
+- `venue_id` (UUID FK to `venues.id`)
+- `user_id` (UUID FK to `users.id`, nullable)
+- `event_type` (`slot_click | modal_open | modal_close | modal_cta`)
+- `metadata` (JSONB)
+- `created_at`
+
+Index note:
+
+- Created-at index for analytics reads and slot-instance index for per-slot drilldown.
+
+## `pricing_rules`
+
+Status: `Pending Deployment` (migration-defined, not present in current live DB)
+
+Defined columns:
+
+- `id` (UUID, PK)
+- `venue_id` (UUID FK to `venues.id`)
+- `action_type` (`slot_action_type`)
+- `amount_cents` (integer, non-negative)
+- `currency` (3-char ISO code, default `USD`)
+- `unit` (`hour | person | session`)
+- `payment_method` (`in_app | on_site`)
+- `is_active` (boolean)
+- `created_at`
+- `updated_at`
+
+Purpose:
+
+- Normalized reusable pricing policy by venue + slot action type.
+
+## `slot_instance_pricing`
+
+Status: `Pending Deployment` (migration-defined, not present in current live DB)
+
+Defined columns:
+
+- `slot_instance_id` (UUID PK/FK to `slot_instances.id`)
+- `pricing_rule_id` (UUID FK to `pricing_rules.id`, nullable)
+- `amount_cents`
+- `currency`
+- `unit` (`hour | person | session`)
+- `payment_method` (`in_app | on_site`)
+- `created_at`
+
+Purpose:
+
+- Immutable-ish pricing snapshot at slot-instance level so UI and historical analytics stay consistent when rules change later.
+
 ## Functions, Extensions, and Indexes
 
 ## PostGIS extension
@@ -294,6 +439,19 @@ Used by:
 - `src/hooks/useVenuesWithNextAvailable.ts`
 - `src/app/venues/page.tsx`
 
+## Function: `refresh_slot_instances_from_templates`
+
+`Confirmed` function family exists (introduced in unified slot engine migration). Current repo version also includes pricing snapshot materialization logic (`Pending Deployment` until migration is applied).
+
+Purpose:
+
+- Rebuild `slot_instances` for a venue/date window from `slot_templates`.
+- In the latest repo migration, also upsert/delete `slot_instance_pricing` snapshots tied to generated instances.
+
+Used by:
+
+- Slot-engine seed/backfill migration flow for Memorial Park.
+
 ## Schema inspection helper RPCs
 
 Defined in `supabase/schema-inspection-helpers.sql` but currently not available in production schema cache:
@@ -315,6 +473,15 @@ From migration + connection tests:
 - `users (1) -> (many) venues` via `venues.owner_id`
 - `users (1) -> (many) bookings` via `bookings.renter_id`
 - `venues (1) -> (many) availability` via `availability.venue_id`
+- `venues (1) -> (many) slot_templates` via `slot_templates.venue_id`
+- `slot_templates (1) -> (many) slot_instances` via `slot_instances.template_id`
+- `venues (1) -> (many) slot_instances` via `slot_instances.venue_id`
+- `slot_instances (1) -> (0..1) slot_instance_pricing` via `slot_instance_pricing.slot_instance_id` (`Pending Deployment`)
+- `venues (1) -> (many) pricing_rules` via `pricing_rules.venue_id` (`Pending Deployment`)
+- `pricing_rules (1) -> (many) slot_templates` via `slot_templates.pricing_rule_id` (`Pending Deployment`)
+- `venues (1) -> (many) slot_modal_content` via `slot_modal_content.venue_id`
+- `venues (1) -> (many) slot_interactions` via `slot_interactions.venue_id`
+- `slot_instances (1) -> (many) slot_interactions` via `slot_interactions.slot_instance_id`
 - `venues (1) -> (many) bookings` via `bookings.venue_id`
 - `bookings (1) -> (many) recurring_bookings` via `recurring_bookings.parent_booking_id`
 - `bookings (1) -> (many?) payments` app currently treats as logical 1:1 by `findByBookingId().single()`
@@ -338,7 +505,19 @@ From migration + connection tests:
 
 ## Availability computation flow
 
-`AvailabilityService` computes true slots by subtracting active bookings from availability and returning split intervals.
+`AvailabilityService` computes true slots by:
+
+1. Loading regular `availability` and subtracting overlapping active `bookings` + `recurring_bookings`.
+2. Loading `slot_instances` for `info_only_open_gym`.
+3. Removing regular slots that overlap blocking info-only sessions.
+4. Merging info-only slots with optional `slot_modal_content`.
+5. Attaching `slot_instance_pricing` when present (`Pending Deployment` in current live DB).
+
+## Slot materialization flow
+
+1. Admin/seed defines recurring templates in `slot_templates`.
+2. `refresh_slot_instances_from_templates(...)` expands templates into dated `slot_instances`.
+3. In the latest repo migration, instance-level pricing is snapshotted into `slot_instance_pricing` from `pricing_rules` (`Pending Deployment` until applied).
 
 ## Payment flow
 
@@ -351,11 +530,14 @@ From migration + connection tests:
 ## Known Gaps / Drift Risks
 
 1. Live DB column types/defaults/constraints cannot be fully verified until schema inspection helper RPCs are deployed (or equivalent introspection enabled).
-2. Several enum-like fields are enforced in app code; DB-level enum/check constraints are not confirmed here.
-3. Legacy comments still mention trigger-based behavior in places, while current app logs audit events in application code.
+2. `inspect:schema` currently checks a hardcoded table list and does not include newly-added slot/pricing tables; direct existence checks were used for slot/pricing status.
+3. `pricing_rules` and `slot_instance_pricing` are migration-defined in repo but not yet present in the current live DB.
+4. Several enum-like fields are enforced in app code; DB-level enum/check constraints are not fully confirmed by live introspection in this environment.
+5. Legacy comments still mention trigger-based behavior in places, while current app logs audit events in application code.
 
 ## How to Re-Verify Quickly
 
 1. Run `npm run inspect:schema` to confirm table existence in current environment.
-2. If you need exact live columns/triggers/functions, run SQL in `supabase/schema-inspection-helpers.sql` in Supabase SQL editor, then rerun `npm run inspect:schema`.
-3. Reconcile any differences between migrations and live schema before major data migrations.
+2. For slot/pricing tables that are not in the inspector's hardcoded list, run direct checks (or update `src/lib/supabase/schema-inspector.ts` known table list).
+3. If you need exact live columns/triggers/functions, run SQL in `supabase/schema-inspection-helpers.sql` in Supabase SQL editor, then rerun `npm run inspect:schema`.
+4. Reconcile any differences between migrations and live schema before major data migrations.

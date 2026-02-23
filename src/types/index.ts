@@ -6,12 +6,21 @@ export type PaymentStatus = 'pending' | 'authorized' | 'paid' | 'refunded' | 'fa
 
 export type RecurringType = 'none' | 'weekly' | 'monthly'
 export type SlotActionType = 'instant_book' | 'request_private' | 'info_only_open_gym'
+export type SlotPricingUnit = 'hour' | 'person' | 'session'
+export type SlotPaymentMethod = 'in_app' | 'on_site'
 
 export interface SlotModalContent {
   title: string
   body: string
   bullet_points?: string[]
   cta_label?: string | null
+}
+
+export interface SlotPricing {
+  amount_cents: number
+  currency: string
+  unit: SlotPricingUnit
+  payment_method: SlotPaymentMethod
 }
 
 export interface User {

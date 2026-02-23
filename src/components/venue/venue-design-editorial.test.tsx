@@ -107,4 +107,32 @@ describe('VenueDesignEditorial coming-up pills', () => {
 
     expect(screen.getByText(/Today\s*·\s*12:00 PM - 1:00 PM/)).toBeInTheDocument()
   })
+
+  it('shows drop-in person pricing for info-only slots instead of venue hourly rate', () => {
+    mockUseVenueAvailabilityRange.mockReturnValue({
+      data: [
+        {
+          date: '2026-02-21',
+          start_time: '12:00:00',
+          end_time: '13:00:00',
+          venue_id: 'venue-1',
+          action_type: 'info_only_open_gym',
+          slot_pricing: {
+            amount_cents: 500,
+            currency: 'USD',
+            unit: 'person',
+            payment_method: 'on_site',
+          },
+        },
+      ],
+      loading: false,
+      error: null,
+    })
+
+    render(<VenueDesignEditorial venue={createMockVenue()} />)
+
+    expect(screen.getByText('$5/person')).toBeInTheDocument()
+    expect(screen.getByText('Pay on site')).toBeInTheDocument()
+    expect(screen.queryByText('$75/hr')).not.toBeInTheDocument()
+  })
 })

@@ -80,6 +80,41 @@ function timeToMinutes(time: string): number {
   return hours * 60 + (minutes || 0)
 }
 
+function formatCurrencyFromCents(amountCents: number, currency: string): string {
+  return new Intl.NumberFormat('en-US', {
+    style: 'currency',
+    currency,
+    minimumFractionDigits: amountCents % 100 === 0 ? 0 : 2,
+    maximumFractionDigits: amountCents % 100 === 0 ? 0 : 2,
+  }).format(amountCents / 100)
+}
+
+function getSlotPricingLabel(slot: ComputedAvailabilitySlot, venue: Venue): string {
+  if (slot.slot_pricing) {
+    const unitSuffixMap = {
+      hour: '/hr',
+      person: '/person',
+      session: '/session',
+    } as const
+    return `${formatCurrencyFromCents(slot.slot_pricing.amount_cents, slot.slot_pricing.currency)}${unitSuffixMap[slot.slot_pricing.unit]}`
+  }
+
+  if (slot.action_type === 'info_only_open_gym') {
+    return 'Drop-in pricing on site'
+  }
+
+  return `$${venue.hourly_rate}/hr`
+}
+
+function getSlotSecondaryLabel(slot: ComputedAvailabilitySlot, venue: Venue): string {
+  if (slot.action_type === 'info_only_open_gym') {
+    const paymentMethod = slot.slot_pricing?.payment_method || 'on_site'
+    return paymentMethod === 'on_site' ? 'Pay on site' : 'Pay in app'
+  }
+
+  return venue.instant_booking ? 'Instant' : 'Approval'
+}
+
 export function VenueDesignEditorial({ venue }: VenueDesignEditorialProps) {
   const router = useRouter()
   const [selectedSlot, setSelectedSlot] = useState<ComputedAvailabilitySlot | null>(null)
@@ -222,13 +257,21 @@ export function VenueDesignEditorial({ venue }: VenueDesignEditorialProps) {
                       </div>
                       <div className="flex items-center gap-3 mt-2">
                         <span className="text-secondary-50/70">
-                          ${venue.hourly_rate}/hr
+                          {getSlotPricingLabel(nextSlot, venue)}
                         </span>
                         <span className="text-secondary-50/30">·</span>
-                        <span className={`flex items-center gap-1 ${venue.instant_booking ? 'text-primary-400' : 'text-accent-400'}`}>
-                          <FontAwesomeIcon icon={faBolt} className="text-xs" />
+                        <span className={`flex items-center gap-1 ${
+                          nextSlot.action_type === 'info_only_open_gym'
+                            ? 'text-secondary-50/60'
+                            : venue.instant_booking
+                              ? 'text-primary-400'
+                              : 'text-accent-400'
+                        }`}>
+                          {nextSlot.action_type !== 'info_only_open_gym' && (
+                            <FontAwesomeIcon icon={faBolt} className="text-xs" />
+                          )}
                           <span className="text-sm">
-                            {venue.instant_booking ? 'Instant' : 'Approval'}
+                            {getSlotSecondaryLabel(nextSlot, venue)}
                           </span>
                         </span>
                       </div>
@@ -240,7 +283,7 @@ export function VenueDesignEditorial({ venue }: VenueDesignEditorialProps) {
                   onClick={() => handleSlotSelect(nextSlot)}
                   className="w-full py-4 bg-primary-400 hover:bg-primary-500 text-secondary-900 font-semibold text-center transition-colors"
                 >
-                  Reserve
+                  {nextSlot.action_type === 'info_only_open_gym' ? 'View Session' : 'Reserve'}
                 </button>
               </>
             ) : (
@@ -315,16 +358,17 @@ export function VenueDesignEditorial({ venue }: VenueDesignEditorialProps) {
                   onClick={() => handleSlotSelect(slot)}
                   className="w-full p-4 bg-secondary-800/50 hover:bg-secondary-800 rounded-xl border border-secondary-50/5 hover:border-primary-400/30 text-left transition-all group flex items-center justify-between"
                 >
-                  <div>
-                    <div className="text-secondary-50 font-medium group-hover:text-primary-400 transition-colors">
-                      {formatTime(slot.start_time)} - {formatTime(slot.end_time)}
+                    <div>
+                      <div className="text-secondary-50 font-medium group-hover:text-primary-400 transition-colors">
+                        {formatTime(slot.start_time)} - {formatTime(slot.end_time)}
+                      </div>
+                      <div className="text-xs text-secondary-50/40 mt-0.5">
+                        {getSlotPricingLabel(slot, venue)}
+                        {slot.action_type === 'info_only_open_gym' ? ` · ${getSlotSecondaryLabel(slot, venue)}` : ''}
+                      </div>
                     </div>
-                    <div className="text-xs text-secondary-50/40 mt-0.5">
-                      ${venue.hourly_rate}/hr
-                    </div>
-                  </div>
                   <div className="text-sm text-secondary-50/30 group-hover:text-primary-400 transition-colors">
-                    Book →
+                    {slot.action_type === 'info_only_open_gym' ? 'Details →' : 'Book →'}
                   </div>
                 </button>
               ))}

@@ -5,7 +5,7 @@
 
 import { createClient } from '@/lib/supabase/server'
 import { computeAvailableSlots, ComputedSlot } from '@/utils/slotSplitting'
-import type { Availability, Booking, RecurringBooking, SlotActionType, SlotModalContent } from '@/types'
+import type { Availability, Booking, RecurringBooking, SlotActionType, SlotModalContent, SlotPricing } from '@/types'
 
 interface SlotInstanceRow {
   id: string
@@ -25,6 +25,14 @@ interface SlotModalContentRow {
   cta_label: string | null
 }
 
+interface SlotInstancePricingRow {
+  slot_instance_id: string
+  amount_cents: number
+  currency: string
+  unit: SlotPricing['unit']
+  payment_method: SlotPricing['payment_method']
+}
+
 export interface UnifiedAvailableSlot {
   date: string
   start_time: string
@@ -34,6 +42,7 @@ export interface UnifiedAvailableSlot {
   slot_instance_id?: string | null
   action_type: SlotActionType
   modal_content?: SlotModalContent | null
+  slot_pricing?: SlotPricing | null
 }
 
 function sortSlots(slots: UnifiedAvailableSlot[]): UnifiedAvailableSlot[] {
@@ -150,6 +159,28 @@ export class AvailabilityService {
     const recurringBookings = (recurringResult.data || []) as RecurringBooking[]
     const infoSlots = (infoSlotsResult.data || []) as SlotInstanceRow[]
     const modalContentRows = (modalContentResult.data || []) as SlotModalContentRow[]
+    const slotPricingByInstanceId = new Map<string, SlotPricing>()
+
+    if (infoSlots.length > 0) {
+      const slotInstanceIds = infoSlots.map((slot) => slot.id)
+      const { data: slotPricingRows, error: slotPricingError } = await supabase
+        .from('slot_instance_pricing')
+        .select('slot_instance_id, amount_cents, currency, unit, payment_method')
+        .in('slot_instance_id', slotInstanceIds)
+
+      if (slotPricingError) {
+        throw new Error(`Failed to fetch slot pricing: ${slotPricingError.message}`)
+      }
+
+      for (const row of (slotPricingRows || []) as SlotInstancePricingRow[]) {
+        slotPricingByInstanceId.set(row.slot_instance_id, {
+          amount_cents: row.amount_cents,
+          currency: row.currency,
+          unit: row.unit,
+          payment_method: row.payment_method,
+        })
+      }
+    }
 
     const modalContentByAction = new Map<SlotActionType, SlotModalContent>()
     for (const row of modalContentRows) {
@@ -169,6 +200,7 @@ export class AvailabilityService {
       action_type: regularActionType,
       slot_instance_id: null,
       modal_content: null,
+      slot_pricing: null,
     }))
 
     const blockingInfoSlots = infoSlots.filter((slot) => slot.blocks_inventory)
@@ -190,6 +222,7 @@ export class AvailabilityService {
       slot_instance_id: slot.id,
       action_type: slot.action_type,
       modal_content: modalContentByAction.get(slot.action_type) || null,
+      slot_pricing: slotPricingByInstanceId.get(slot.id) || null,
     }))
 
     return sortSlots([...filteredRegularSlots, ...infoOnlySlots])

@@ -127,6 +127,12 @@ export interface AvailableSlot {
     bullet_points?: string[]
     cta_label?: string | null
   } | null
+  slot_pricing?: {
+    amount_cents: number
+    currency: string
+    unit: 'hour' | 'person' | 'session'
+    payment_method: 'in_app' | 'on_site'
+  } | null
 }
 
 export interface GetAvailabilityParams {
