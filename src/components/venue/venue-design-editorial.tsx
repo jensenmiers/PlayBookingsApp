@@ -349,7 +349,7 @@ export function VenueDesignEditorial({ venue }: VenueDesignEditorialProps) {
           </h3>
 
           {/* Day Pills */}
-          <div className="flex gap-2 overflow-x-auto scrollbar-hide pb-2">
+          <div className="flex gap-2 overflow-x-auto scrollbar-hide pb-2 md:grid md:grid-cols-7 md:overflow-visible">
             {datePills.map((date) => {
               const slots = slotsByDate.get(date) || []
               const slotCount = slots.length
@@ -398,10 +398,11 @@ export function VenueDesignEditorial({ venue }: VenueDesignEditorialProps) {
           </div>
 
           {/* Desktop-only "More dates" button below pills */}
+          <div className="hidden md:flex justify-center mt-3">
           <button
             onClick={() => setShowDatePicker((prev) => !prev)}
             aria-label="More dates"
-            className={`hidden md:inline-flex items-center gap-2 mt-3 px-4 py-2 rounded-xl text-sm transition-all ${
+            className={`inline-flex items-center gap-2 px-4 py-2 rounded-xl text-sm transition-all ${
               showDatePicker
                 ? 'bg-primary-400 text-secondary-900'
                 : 'bg-secondary-800/60 hover:bg-secondary-800 text-secondary-50 border border-secondary-50/10'
@@ -410,10 +411,11 @@ export function VenueDesignEditorial({ venue }: VenueDesignEditorialProps) {
             <FontAwesomeIcon icon={faCalendarDays} className="text-xs" />
             <span>{showDatePicker ? 'Hide calendar' : 'More dates'}</span>
           </button>
+          </div>
 
           {/* Calendar Date Picker */}
           {showDatePicker && (
-            <div className="mt-3 rounded-xl border border-secondary-50/10 bg-secondary-800/60 p-4 animate-in slide-in-from-top-2 duration-200">
+            <div className="mt-3 flex justify-center rounded-xl border border-secondary-50/10 bg-secondary-800/60 p-4 animate-in slide-in-from-top-2 duration-200">
               <Calendar
                 mode="single"
                 selected={pickerDate}
