@@ -24,6 +24,10 @@ jest.mock('@/components/booking/slot-booking-confirmation', () => ({
   SlotBookingConfirmation: () => <div data-testid="slot-booking-dialog" />,
 }))
 
+jest.mock('@/components/ui/calendar', () => ({
+  Calendar: (props: any) => <div data-slot="calendar" data-testid="date-picker-calendar" />,
+}))
+
 const createMockVenue = (overrides: Partial<Venue> = {}): Venue => ({
   id: 'venue-1',
   name: 'Memorial Park',
@@ -56,7 +60,7 @@ describe('VenueDesignEditorial coming-up pills', () => {
     jest.useRealTimers()
   })
 
-  it('shows 7 day pills plus an enabled More dates pill initially, then expands to 14 and disables More dates', () => {
+  it('shows 7 day pills and a More dates button; clicking More dates shows calendar', () => {
     mockUseVenueAvailabilityRange.mockReturnValue({
       data: [
         { date: '2026-02-23', start_time: '12:00:00', end_time: '13:00:00', venue_id: 'venue-1', action_type: 'request_private' },
@@ -68,15 +72,19 @@ describe('VenueDesignEditorial coming-up pills', () => {
 
     render(<VenueDesignEditorial venue={createMockVenue()} />)
 
+    // Exactly 7 day pills
     expect(screen.getAllByRole('button', { name: /coming-up-day/i })).toHaveLength(7)
 
-    const moreDatesInitial = screen.getByRole('button', { name: /more dates/i })
-    expect(moreDatesInitial).toBeEnabled()
+    // More dates buttons exist (mobile + desktop variants)
+    const moreDatesButtons = screen.getAllByRole('button', { name: /more dates/i })
+    expect(moreDatesButtons.length).toBeGreaterThanOrEqual(1)
 
-    fireEvent.click(moreDatesInitial)
+    // Click opens a calendar
+    fireEvent.click(moreDatesButtons[0])
+    expect(document.querySelector('[data-slot="calendar"]')).toBeInTheDocument()
 
-    expect(screen.getAllByRole('button', { name: /coming-up-day/i })).toHaveLength(14)
-    expect(screen.getByRole('button', { name: /more dates/i })).toBeDisabled()
+    // Still 7 pills (no expansion to 14)
+    expect(screen.getAllByRole('button', { name: /coming-up-day/i })).toHaveLength(7)
   })
 
   it('renders zero-slot days as disabled pills', () => {

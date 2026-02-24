@@ -5,8 +5,9 @@ import { useRouter } from 'next/navigation'
 import Image from 'next/image'
 import { format } from 'date-fns'
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome'
-import { faArrowLeft, faBolt, faShield } from '@fortawesome/free-solid-svg-icons'
+import { faArrowLeft, faBolt, faShield, faCalendarDays } from '@fortawesome/free-solid-svg-icons'
 import { SlotBookingConfirmation } from '@/components/booking/slot-booking-confirmation'
+import { Calendar } from '@/components/ui/calendar'
 import { GoogleMapsLink } from './shared'
 import { useVenueAvailabilityRange, ComputedAvailabilitySlot } from '@/hooks/useVenues'
 import { formatTime } from '@/utils/dateHelpers'
@@ -17,8 +18,7 @@ interface VenueDesignEditorialProps {
 }
 
 const LOS_ANGELES_TIME_ZONE = 'America/Los_Angeles'
-const INITIAL_DAY_PILLS = 7
-const TOTAL_DAY_PILLS = 14
+const DAY_PILLS_COUNT = 7
 
 function parseLocalDate(dateStr: string): Date {
   const [year, month, day] = dateStr.split('-').map(Number)
@@ -120,20 +120,31 @@ export function VenueDesignEditorial({ venue }: VenueDesignEditorialProps) {
   const [selectedSlot, setSelectedSlot] = useState<ComputedAvailabilitySlot | null>(null)
   const [showBooking, setShowBooking] = useState(false)
   const [expandedDate, setExpandedDate] = useState<string | null>(null)
-  const [showAllDates, setShowAllDates] = useState(false)
+  const [showDatePicker, setShowDatePicker] = useState(false)
+  const [pickerDate, setPickerDate] = useState<Date | undefined>(undefined)
 
   const todayStr = getDateStringInTimeZone(new Date(), LOS_ANGELES_TIME_ZONE)
-  const allDatePills = useMemo(
-    () => Array.from({ length: TOTAL_DAY_PILLS }, (_, i) => addDaysToDateString(todayStr, i)),
+  const datePills = useMemo(
+    () => Array.from({ length: DAY_PILLS_COUNT }, (_, i) => addDaysToDateString(todayStr, i)),
     [todayStr]
   )
-  const dateFrom = allDatePills[0]
-  const dateTo = allDatePills[allDatePills.length - 1]
+  const dateFrom = datePills[0]
+  const dateTo = datePills[datePills.length - 1]
 
   const { data: availability, loading } = useVenueAvailabilityRange(
     venue.id,
     dateFrom,
     dateTo
+  )
+
+  // Calendar-picked date: fetch availability if outside pill range
+  const pickerDateStr = pickerDate ? format(pickerDate, 'yyyy-MM-dd') : null
+  const isPickerDateInPillRange = pickerDateStr ? datePills.includes(pickerDateStr) : false
+
+  const { data: pickerAvailability, loading: pickerLoading } = useVenueAvailabilityRange(
+    !isPickerDateInPillRange && pickerDateStr ? venue.id : null,
+    pickerDateStr,
+    pickerDateStr
   )
 
   const isSlotBookable = useCallback((slotDate: string, slotStartTime: string): boolean => {
@@ -155,7 +166,7 @@ export function VenueDesignEditorial({ venue }: VenueDesignEditorialProps) {
 
   const slotsByDate = useMemo(() => {
     const grouped = new Map<string, ComputedAvailabilitySlot[]>()
-    for (const date of allDatePills) {
+    for (const date of datePills) {
       grouped.set(date, [])
     }
     for (const slot of bookableSlots) {
@@ -163,9 +174,18 @@ export function VenueDesignEditorial({ venue }: VenueDesignEditorialProps) {
       grouped.set(slot.date, [...existing, slot])
     }
     return grouped
-  }, [allDatePills, bookableSlots])
+  }, [datePills, bookableSlots])
 
-  const visibleDates = showAllDates ? allDatePills : allDatePills.slice(0, INITIAL_DAY_PILLS)
+  const pickerSlots = useMemo(() => {
+    if (!pickerDateStr) return []
+    if (isPickerDateInPillRange) {
+      return slotsByDate.get(pickerDateStr) || []
+    }
+    if (!pickerAvailability) return []
+    return pickerAvailability.filter((slot) =>
+      isSlotBookable(slot.date, slot.start_time)
+    )
+  }, [pickerDateStr, isPickerDateInPillRange, slotsByDate, pickerAvailability, isSlotBookable])
 
   const nextSlot = bookableSlots[0]
   const primaryPhoto = venue.photos?.[0]
@@ -186,7 +206,35 @@ export function VenueDesignEditorial({ venue }: VenueDesignEditorialProps) {
     const slots = slotsByDate.get(date) || []
     if (slots.length === 0) return
     setExpandedDate((prev) => (prev === date ? null : date))
+    setPickerDate(undefined)
+    setShowDatePicker(false)
   }
+
+  const handlePickerDateSelect = (date: Date | undefined) => {
+    setPickerDate(date)
+    setExpandedDate(null)
+  }
+
+  const renderSlotButton = (slot: ComputedAvailabilitySlot, idx: number, keyPrefix = '') => (
+    <button
+      key={`${keyPrefix}${slot.date}-${slot.start_time}-${idx}`}
+      onClick={() => handleSlotSelect(slot)}
+      className="w-full p-4 bg-secondary-800/50 hover:bg-secondary-800 rounded-xl border border-secondary-50/5 hover:border-primary-400/30 text-left transition-all group flex items-center justify-between"
+    >
+      <div>
+        <div className="text-secondary-50 font-medium group-hover:text-primary-400 transition-colors">
+          {formatTime(slot.start_time)} - {formatTime(slot.end_time)}
+        </div>
+        <div className="text-xs text-secondary-50/40 mt-0.5">
+          {getSlotPricingLabel(slot, venue)}
+          {slot.action_type === 'info_only_open_gym' ? ` · ${getSlotSecondaryLabel(slot, venue)}` : ''}
+        </div>
+      </div>
+      <div className="text-sm text-secondary-50/30 group-hover:text-primary-400 transition-colors">
+        {slot.action_type === 'info_only_open_gym' ? 'Details →' : 'Book →'}
+      </div>
+    </button>
+  )
 
   const handleSlotSelect = (slot: ComputedAvailabilitySlot) => {
     setSelectedSlot(slot)
@@ -299,10 +347,10 @@ export function VenueDesignEditorial({ venue }: VenueDesignEditorialProps) {
           <h3 className="text-sm font-medium text-secondary-50/60 mb-3 tracking-wide uppercase">
             Coming Up
           </h3>
-          
+
           {/* Day Pills */}
           <div className="flex gap-2 overflow-x-auto scrollbar-hide pb-2">
-            {visibleDates.map((date) => {
+            {datePills.map((date) => {
               const slots = slotsByDate.get(date) || []
               const slotCount = slots.length
               const isExpanded = expandedDate === date
@@ -332,46 +380,86 @@ export function VenueDesignEditorial({ venue }: VenueDesignEditorialProps) {
               )
             })}
 
+            {/* Mobile-only "More" pill in scroll row */}
             <button
-              onClick={() => setShowAllDates(true)}
-              disabled={showAllDates}
+              onClick={() => setShowDatePicker((prev) => !prev)}
               aria-label="More dates"
-              className={`flex-shrink-0 px-4 py-2.5 rounded-xl text-center border transition-all ${
-                showAllDates
-                  ? 'bg-secondary-50/5 text-secondary-50/40 border-secondary-50/10 cursor-not-allowed'
+              className={`md:hidden flex-shrink-0 px-4 py-2.5 rounded-xl text-center border transition-all ${
+                showDatePicker
+                  ? 'bg-primary-400 text-secondary-900 border-primary-400'
                   : 'bg-secondary-800/60 hover:bg-secondary-800 text-secondary-50 border-secondary-50/10'
               }`}
             >
-              <div className="text-sm font-medium">More dates</div>
-              <div className="text-xs mt-0.5 text-secondary-50/50">
-                {showAllDates ? 'Unavailable' : 'Show 7 more'}
+              <div className="text-sm font-medium">More</div>
+              <div className={`text-xs mt-0.5 ${showDatePicker ? 'text-secondary-900/70' : 'text-secondary-50/50'}`}>
+                <FontAwesomeIcon icon={faCalendarDays} />
               </div>
             </button>
           </div>
 
-          {/* Expanded Time Slots - Accordion */}
-          {expandedDate && slotsByDate.get(expandedDate) && (slotsByDate.get(expandedDate) || []).length > 0 && (
+          {/* Desktop-only "More dates" button below pills */}
+          <button
+            onClick={() => setShowDatePicker((prev) => !prev)}
+            aria-label="More dates"
+            className={`hidden md:inline-flex items-center gap-2 mt-3 px-4 py-2 rounded-xl text-sm transition-all ${
+              showDatePicker
+                ? 'bg-primary-400 text-secondary-900'
+                : 'bg-secondary-800/60 hover:bg-secondary-800 text-secondary-50 border border-secondary-50/10'
+            }`}
+          >
+            <FontAwesomeIcon icon={faCalendarDays} className="text-xs" />
+            <span>{showDatePicker ? 'Hide calendar' : 'More dates'}</span>
+          </button>
+
+          {/* Calendar Date Picker */}
+          {showDatePicker && (
+            <div className="mt-3 rounded-xl border border-secondary-50/10 bg-secondary-800/60 p-4 animate-in slide-in-from-top-2 duration-200">
+              <Calendar
+                mode="single"
+                selected={pickerDate}
+                defaultMonth={new Date()}
+                onSelect={handlePickerDateSelect}
+                disabled={(date) => {
+                  const today = new Date()
+                  today.setHours(0, 0, 0, 0)
+                  return date < today
+                }}
+                className="bg-transparent text-secondary-50"
+                classNames={{
+                  today: 'bg-secondary-700 text-secondary-50 rounded-md data-[selected=true]:rounded-none',
+                  caption_label: 'text-secondary-50 select-none font-medium text-sm',
+                  weekday: 'text-secondary-50/50 rounded-md flex-1 font-normal text-[0.8rem] select-none',
+                  outside: 'text-secondary-50/20 aria-selected:text-secondary-50/20',
+                  disabled: 'text-secondary-50/20 opacity-50',
+                }}
+              />
+            </div>
+          )}
+
+          {/* Expanded Time Slots - from pill selection */}
+          {expandedDate && (slotsByDate.get(expandedDate) || []).length > 0 && (
             <div className="mt-4 space-y-2 animate-in slide-in-from-top-2 duration-200">
-              {(slotsByDate.get(expandedDate) || []).map((slot, idx) => (
-                <button
-                  key={`${slot.date}-${slot.start_time}-${idx}`}
-                  onClick={() => handleSlotSelect(slot)}
-                  className="w-full p-4 bg-secondary-800/50 hover:bg-secondary-800 rounded-xl border border-secondary-50/5 hover:border-primary-400/30 text-left transition-all group flex items-center justify-between"
-                >
-                    <div>
-                      <div className="text-secondary-50 font-medium group-hover:text-primary-400 transition-colors">
-                        {formatTime(slot.start_time)} - {formatTime(slot.end_time)}
-                      </div>
-                      <div className="text-xs text-secondary-50/40 mt-0.5">
-                        {getSlotPricingLabel(slot, venue)}
-                        {slot.action_type === 'info_only_open_gym' ? ` · ${getSlotSecondaryLabel(slot, venue)}` : ''}
-                      </div>
-                    </div>
-                  <div className="text-sm text-secondary-50/30 group-hover:text-primary-400 transition-colors">
-                    {slot.action_type === 'info_only_open_gym' ? 'Details →' : 'Book →'}
+              {(slotsByDate.get(expandedDate) || []).map((slot, idx) => renderSlotButton(slot, idx))}
+            </div>
+          )}
+
+          {/* Expanded Time Slots - from calendar picker selection */}
+          {pickerDateStr && !expandedDate && (
+            <div className="mt-4 space-y-2 animate-in slide-in-from-top-2 duration-200">
+              {pickerLoading && !isPickerDateInPillRange ? (
+                <div className="p-4 text-center text-secondary-50/50">Loading slots...</div>
+              ) : pickerSlots.length > 0 ? (
+                <>
+                  <div className="text-xs text-secondary-50/40 mb-2">
+                    {format(pickerDate!, 'EEEE, MMMM d')}
                   </div>
-                </button>
-              ))}
+                  {pickerSlots.map((slot, idx) => renderSlotButton(slot, idx, 'picker-'))}
+                </>
+              ) : (
+                <div className="p-4 text-center text-secondary-50/50">
+                  No availability on {format(pickerDate!, 'EEEE, MMMM d')}
+                </div>
+              )}
             </div>
           )}
         </div>
