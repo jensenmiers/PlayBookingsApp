@@ -173,4 +173,32 @@
   body {
     @apply bg-background text-foreground;
   }
+
+  .map-popup .mapboxgl-popup-content {
+    border-radius: 0.85rem;
+    padding: 0;
+    box-shadow: 0 10px 30px rgba(0, 0, 0, 0.25);
+  }
+
+  .map-popup .mapboxgl-popup-close-button {
+    color: var(--secondary-700);
+    background: oklch(0.97 0.012 75 / 0.96);
+    border: 1px solid oklch(0.18 0.016 50 / 0.2);
+    width: 1.6rem;
+    height: 1.6rem;
+    border-radius: 9999px;
+    font-size: 1.1rem;
+    line-height: 1;
+    top: 0.4rem;
+    right: 0.4rem;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 0;
+  }
+
+  .map-popup .mapboxgl-popup-close-button:hover {
+    color: var(--secondary-900);
+    background: var(--secondary-100);
+  }
 }

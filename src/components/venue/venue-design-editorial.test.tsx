@@ -25,7 +25,11 @@ jest.mock('@/components/booking/slot-booking-confirmation', () => ({
 }))
 
 jest.mock('@/components/ui/calendar', () => ({
-  Calendar: (props: any) => <div data-slot="calendar" data-testid="date-picker-calendar" />,
+  Calendar: () => <div data-slot="calendar" data-testid="date-picker-calendar" />,
+}))
+
+jest.mock('@/components/maps/venue-location-map', () => ({
+  VenueLocationMap: () => <div data-testid="venue-location-map" />,
 }))
 
 const createMockVenue = (overrides: Partial<Venue> = {}): Venue => ({
@@ -142,5 +146,18 @@ describe('VenueDesignEditorial coming-up pills', () => {
     expect(screen.getByText('$5/person')).toBeInTheDocument()
     expect(screen.getByText('Pay on site')).toBeInTheDocument()
     expect(screen.queryByText('$75/hr')).not.toBeInTheDocument()
+  })
+
+  it('renders a venue map section near the bottom of the page', () => {
+    mockUseVenueAvailabilityRange.mockReturnValue({
+      data: [],
+      loading: false,
+      error: null,
+    })
+
+    render(<VenueDesignEditorial venue={createMockVenue()} />)
+
+    expect(screen.getByRole('heading', { name: 'Map' })).toBeInTheDocument()
+    expect(screen.getByTestId('venue-location-map')).toBeInTheDocument()
   })
 })

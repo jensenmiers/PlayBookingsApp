@@ -152,7 +152,7 @@ export function AvailabilityMap({
             onClose={handlePopupClose}
             closeOnClick={false}
             offset={40}
-            className="venue-popup"
+            className="map-popup venue-popup"
           >
             <VenuePopupContent venue={popupVenue} />
           </Popup>

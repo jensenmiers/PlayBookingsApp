@@ -19,7 +19,13 @@ jest.mock('react-map-gl/mapbox', () => ({
       {children}
     </button>
   ),
-  Popup: ({ children }: { children: React.ReactNode }) => <div data-testid="mock-popup">{children}</div>,
+  Popup: ({
+    children,
+    className,
+  }: {
+    children: React.ReactNode
+    className?: string
+  }) => <div data-testid="mock-popup" className={className}>{children}</div>,
   NavigationControl: () => <div data-testid="mock-nav-control" />,
 }))
 
@@ -65,5 +71,13 @@ describe('AvailabilityMap popup readability', () => {
 
     expect(screen.getByRole('heading', { name: /crosscourt/i })).toHaveClass('text-secondary-900')
     expect(screen.getByText('Los Angeles, CA')).toHaveClass('text-secondary-600')
+  })
+
+  it('applies the shared map popup class hook for global close-button styling', () => {
+    render(<AvailabilityMap venues={[mockVenue]} />)
+
+    fireEvent.click(screen.getByTestId('mock-marker'))
+
+    expect(screen.getByTestId('mock-popup')).toHaveClass('map-popup')
   })
 })

@@ -7,6 +7,7 @@ import { format } from 'date-fns'
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome'
 import { faArrowLeft, faBolt, faShield, faCalendarDays } from '@fortawesome/free-solid-svg-icons'
 import { SlotBookingConfirmation } from '@/components/booking/slot-booking-confirmation'
+import { VenueLocationMap } from '@/components/maps/venue-location-map'
 import { Calendar } from '@/components/ui/calendar'
 import { GoogleMapsLink } from './shared'
 import { useVenueAvailabilityRange, ComputedAvailabilitySlot } from '@/hooks/useVenues'
@@ -545,6 +546,18 @@ export function VenueDesignEditorial({ venue }: VenueDesignEditorialProps) {
               </div>
             </section>
           )}
+
+          <section>
+            <h2 className="font-serif text-xl text-secondary-50 mb-3">Map</h2>
+            <VenueLocationMap
+              name={venue.name}
+              city={venue.city}
+              state={venue.state}
+              latitude={venue.latitude}
+              longitude={venue.longitude}
+              className="h-56 sm:h-64 md:h-72"
+            />
+          </section>
         </div>
       </div>
 
