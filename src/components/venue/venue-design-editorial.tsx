@@ -478,6 +478,7 @@ export function VenueDesignEditorial({ venue }: VenueDesignEditorialProps) {
               zipCode={venue.zip_code}
               variant="default"
               showArrow
+              stackAddressOnMobile
             />
           </section>
 

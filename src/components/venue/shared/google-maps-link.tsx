@@ -13,6 +13,7 @@ interface GoogleMapsLinkProps {
   variant?: 'default' | 'compact' | 'pill' | 'minimal'
   showIcon?: boolean
   showArrow?: boolean
+  stackAddressOnMobile?: boolean
 }
 
 export function GoogleMapsLink({
@@ -24,8 +25,10 @@ export function GoogleMapsLink({
   variant = 'default',
   showIcon = true,
   showArrow = false,
+  stackAddressOnMobile = false,
 }: GoogleMapsLinkProps) {
   const fullAddress = `${address}, ${city}, ${state} ${zipCode}`
+  const cityStateZip = `${city}, ${state} ${zipCode}`
   const encodedAddress = encodeURIComponent(fullAddress)
   const mapsUrl = `https://maps.google.com/?q=${encodedAddress}`
 
@@ -43,7 +46,11 @@ export function GoogleMapsLink({
   return (
     <button
       onClick={handleClick}
-      className={cn(variants[variant], className)}
+      className={cn(
+        variants[variant],
+        variant === 'default' && stackAddressOnMobile && 'w-full justify-center sm:justify-start',
+        className
+      )}
       aria-label={`Open ${fullAddress} in Google Maps`}
     >
       {showIcon && variant !== 'minimal' && (
@@ -54,11 +61,19 @@ export function GoogleMapsLink({
           )}
         />
       )}
-      <span className={variant === 'pill' ? 'truncate max-w-[200px]' : ''}>
-        {variant === 'compact' || variant === 'pill'
-          ? `${address}, ${city}`
-          : fullAddress}
-      </span>
+      {variant === 'default' && stackAddressOnMobile ? (
+        <span>
+          <span className="block text-center leading-tight sm:hidden">{address}</span>
+          <span className="block text-center leading-tight sm:hidden">{cityStateZip}</span>
+          <span className="hidden sm:inline">{fullAddress}</span>
+        </span>
+      ) : (
+        <span className={variant === 'pill' ? 'truncate max-w-[200px]' : ''}>
+          {variant === 'compact' || variant === 'pill'
+            ? `${address}, ${city}`
+            : fullAddress}
+        </span>
+      )}
       {showArrow && (
         <FontAwesomeIcon
           icon={faArrowUpRightFromSquare}
