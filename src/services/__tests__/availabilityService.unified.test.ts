@@ -75,7 +75,10 @@ describe('AvailabilityService (unified slots)', () => {
               action_type: 'info_only_open_gym',
               title: 'Open Gym Session',
               body: 'This session is a drop-in open gym. Payment is done on site.',
-              bullet_points: ['No reservation required.'],
+              bullet_points: [
+                'No reservation required.',
+                'Court activity is basketball only during these hours.',
+              ],
               cta_label: 'Got it',
             },
           ],

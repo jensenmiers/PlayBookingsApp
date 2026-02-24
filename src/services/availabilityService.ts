@@ -33,6 +33,10 @@ interface SlotInstancePricingRow {
   payment_method: SlotPricing['payment_method']
 }
 
+const DISALLOWED_MODAL_BULLET_POINTS = new Set([
+  'Court activity is basketball only during these hours.',
+])
+
 export interface UnifiedAvailableSlot {
   date: string
   start_time: string
@@ -184,10 +188,14 @@ export class AvailabilityService {
 
     const modalContentByAction = new Map<SlotActionType, SlotModalContent>()
     for (const row of modalContentRows) {
+      const filteredBulletPoints = (row.bullet_points || []).filter(
+        (point) => !DISALLOWED_MODAL_BULLET_POINTS.has(point)
+      )
+
       modalContentByAction.set(row.action_type, {
         title: row.title,
         body: row.body,
-        bullet_points: row.bullet_points || [],
+        bullet_points: filteredBulletPoints,
         cta_label: row.cta_label,
       })
     }
