@@ -80,3 +80,31 @@ Done means:
 - Be concise and concrete.
 - Report what changed, why, and how it was verified.
 - Surface tradeoffs and residual risk clearly.
+
+## Cursor Cloud specific instructions
+
+### Services
+
+This is a single Next.js 16 application (App Router + Turbopack) backed by hosted Supabase and Stripe. No Docker or local databases are needed.
+
+### Environment variables
+
+All secrets are injected as system env vars. A `.env.local` file must exist for Next.js to pick up `NEXT_PUBLIC_*` values on the client side. Generate it from system env vars on startup (see update script). Required vars are listed in `env.example`.
+
+### Running the app
+
+- `npm run dev` — starts Next.js dev server on port 3000 (Turbopack)
+- The dev server reads `.env.local` and system env vars. Hot reload works for both server and client code.
+
+### Commands reference
+
+See `package.json` scripts. Key commands:
+- `npm run lint` — ESLint (0 errors expected, warnings are known)
+- `npm test` — Jest (all 294 tests pass; tests mock Supabase/Stripe, no live credentials needed)
+- `npm run build` — production build (useful for pre-push ESLint error checking)
+
+### Gotchas
+
+- `src/lib/stripe.ts` throws at module load if `STRIPE_SECRET_KEY` is unset. This only affects API routes importing Stripe, not the dev server startup or client pages.
+- Tests use dynamic `import()` in `beforeAll` to set env vars before module evaluation (e.g., `STRIPE_WEBHOOK_SECRET`). Do not convert these to static imports.
+- Google OAuth login requires a real Google OAuth app configured in Supabase; it cannot be tested headlessly in the cloud VM without a valid test account.
