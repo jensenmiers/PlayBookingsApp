@@ -24,6 +24,7 @@ function createQuery(payload: QueryPayload) {
     lte: () => builder,
     in: () => builder,
     order: () => builder,
+    maybeSingle: async () => ({ data: payload.data, error: payload.error }),
     single: async () => ({ data: payload.data, error: payload.error }),
     then: (resolve: (value: QueryPayload) => unknown) => Promise.resolve(resolve(payload)),
   }
@@ -45,7 +46,11 @@ describe('AvailabilityService (unified slots)', () => {
       }
       if (table === 'venue_admin_configs') {
         return createQuery({
-          data: null,
+          data: {
+            venue_id: 'venue-1',
+            drop_in_enabled: true,
+            drop_in_price: 5,
+          },
           error: null,
         })
       }
@@ -93,15 +98,7 @@ describe('AvailabilityService (unified slots)', () => {
       }
       if (table === 'slot_instance_pricing') {
         return createQuery({
-          data: [
-            {
-              slot_instance_id: 'slot-1',
-              amount_cents: 500,
-              currency: 'USD',
-              unit: 'person',
-              payment_method: 'on_site',
-            },
-          ],
+          data: [],
           error: null,
         })
       }
@@ -139,11 +136,175 @@ describe('AvailabilityService (unified slots)', () => {
         },
         slot_pricing: {
           amount_cents: 500,
-          currency: 'USD',
+          currency: 'usd',
           unit: 'person',
           payment_method: 'on_site',
         },
       },
     ])
+  })
+
+  it('hides info-only slots when drop-in is disabled', async () => {
+    const from = jest.fn((table: string) => {
+      if (table === 'venues') {
+        return createQuery({
+          data: { instant_booking: false },
+          error: null,
+        })
+      }
+      if (table === 'venue_admin_configs') {
+        return createQuery({
+          data: {
+            venue_id: 'venue-1',
+            drop_in_enabled: false,
+            drop_in_price: 5,
+          },
+          error: null,
+        })
+      }
+      if (table === 'availability') {
+        return createQuery({ data: [], error: null })
+      }
+      if (table === 'bookings') {
+        return createQuery({ data: [], error: null })
+      }
+      if (table === 'recurring_bookings') {
+        return createQuery({ data: [], error: null })
+      }
+      if (table === 'slot_instances') {
+        return createQuery({
+          data: [
+            {
+              id: 'slot-1',
+              venue_id: 'venue-1',
+              date: '2026-02-23',
+              start_time: '12:00:00',
+              end_time: '13:00:00',
+              action_type: 'info_only_open_gym',
+              blocks_inventory: true,
+            },
+          ],
+          error: null,
+        })
+      }
+      if (table === 'slot_modal_content') {
+        return createQuery({
+          data: [
+            {
+              action_type: 'info_only_open_gym',
+              title: 'Open Gym Session',
+              body: 'This session is a drop-in open gym. Payment is done on site.',
+              bullet_points: [],
+              cta_label: 'Got it',
+            },
+          ],
+          error: null,
+        })
+      }
+      if (table === 'slot_instance_pricing') {
+        return createQuery({
+          data: [],
+          error: null,
+        })
+      }
+      throw new Error(`Unexpected table query: ${table}`)
+    })
+
+    mockCreateClient.mockResolvedValue({ from })
+    mockComputeAvailableSlots.mockReturnValue([])
+
+    const service = new AvailabilityService()
+    const result = await service.getAvailableSlots('venue-1', '2026-02-23', '2026-02-23')
+
+    expect(result).toEqual([])
+  })
+
+  it('uses venue admin drop-in price as the canonical price source', async () => {
+    const from = jest.fn((table: string) => {
+      if (table === 'venues') {
+        return createQuery({
+          data: { instant_booking: false },
+          error: null,
+        })
+      }
+      if (table === 'venue_admin_configs') {
+        return createQuery({
+          data: {
+            venue_id: 'venue-1',
+            drop_in_enabled: true,
+            drop_in_price: 7,
+          },
+          error: null,
+        })
+      }
+      if (table === 'availability') {
+        return createQuery({ data: [], error: null })
+      }
+      if (table === 'bookings') {
+        return createQuery({ data: [], error: null })
+      }
+      if (table === 'recurring_bookings') {
+        return createQuery({ data: [], error: null })
+      }
+      if (table === 'slot_instances') {
+        return createQuery({
+          data: [
+            {
+              id: 'slot-1',
+              venue_id: 'venue-1',
+              date: '2026-02-23',
+              start_time: '12:00:00',
+              end_time: '13:00:00',
+              action_type: 'info_only_open_gym',
+              blocks_inventory: true,
+            },
+          ],
+          error: null,
+        })
+      }
+      if (table === 'slot_modal_content') {
+        return createQuery({
+          data: [
+            {
+              action_type: 'info_only_open_gym',
+              title: 'Open Gym Session',
+              body: 'This session is a drop-in open gym. Payment is done on site.',
+              bullet_points: [],
+              cta_label: 'Got it',
+            },
+          ],
+          error: null,
+        })
+      }
+      if (table === 'slot_instance_pricing') {
+        return createQuery({
+          data: [
+            {
+              slot_instance_id: 'slot-1',
+              amount_cents: 999,
+              currency: 'USD',
+              unit: 'person',
+              payment_method: 'on_site',
+            },
+          ],
+          error: null,
+        })
+      }
+      throw new Error(`Unexpected table query: ${table}`)
+    })
+
+    mockCreateClient.mockResolvedValue({ from })
+    mockComputeAvailableSlots.mockReturnValue([])
+
+    const service = new AvailabilityService()
+    const result = await service.getAvailableSlots('venue-1', '2026-02-23', '2026-02-23')
+
+    expect(result).toHaveLength(1)
+    expect(result[0].slot_pricing).toEqual({
+      amount_cents: 700,
+      currency: 'usd',
+      unit: 'person',
+      payment_method: 'on_site',
+    })
   })
 })

@@ -67,6 +67,7 @@ describe('SuperAdminVenueConfigPage', () => {
             score: 90,
             missing_fields: [],
           },
+          drop_in_templates: [],
         },
         {
           venue: {
@@ -114,6 +115,7 @@ describe('SuperAdminVenueConfigPage', () => {
             score: 90,
             missing_fields: [],
           },
+          drop_in_templates: [],
         },
       ],
     } as any)
@@ -157,5 +159,29 @@ describe('SuperAdminVenueConfigPage', () => {
     expect(screen.getByRole('heading', { name: 'Alpha Gym' })).toBeInTheDocument()
 
     confirmSpy.mockRestore()
+  })
+
+  it('saves weekly drop-in templates when schedule windows are added', async () => {
+    mockPatchAdminVenueConfig.mockResolvedValue({})
+
+    render(<SuperAdminVenueConfigPage />)
+
+    fireEvent.click(await screen.findByRole('button', { name: /add window/i }))
+    fireEvent.click(screen.getByRole('button', { name: /save changes/i }))
+
+    await waitFor(() => {
+      expect(mockPatchAdminVenueConfig).toHaveBeenCalledWith(
+        'venue-1',
+        expect.objectContaining({
+          drop_in_templates: [
+            expect.objectContaining({
+              day_of_week: 1,
+              start_time: '12:00:00',
+              end_time: '13:00:00',
+            }),
+          ],
+        })
+      )
+    })
   })
 })

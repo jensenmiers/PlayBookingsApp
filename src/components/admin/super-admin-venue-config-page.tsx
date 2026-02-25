@@ -8,6 +8,16 @@ import { patchAdminVenueConfig, useAdminVenues } from '@/hooks/useAdminVenues'
 import type { AdminVenueConfigItem } from '@/hooks/useAdminVenues'
 import { cn } from '@/lib/utils'
 
+const DAY_OPTIONS = [
+  { label: 'Sunday', value: 0 },
+  { label: 'Monday', value: 1 },
+  { label: 'Tuesday', value: 2 },
+  { label: 'Wednesday', value: 3 },
+  { label: 'Thursday', value: 4 },
+  { label: 'Friday', value: 5 },
+  { label: 'Saturday', value: 6 },
+]
+
 const AMENITY_OPTIONS = [
   'Parking',
   'Equipment Provided',
@@ -18,6 +28,12 @@ const AMENITY_OPTIONS = [
   'WiFi',
   'ADA Accessible',
 ]
+
+type DropInTemplateDraftWindow = {
+  day_of_week: number
+  start_time: string
+  end_time: string
+}
 
 type VenueConfigDraft = {
   hourly_rate: string
@@ -37,6 +53,7 @@ type VenueConfigDraft = {
   policy_refund: string
   policy_no_show: string
   policy_operating_hours_notes: string
+  drop_in_templates: DropInTemplateDraftWindow[]
 }
 
 function formatTimeForInput(time: string | null | undefined): string {
@@ -57,6 +74,12 @@ function parseCommaList(value: string): string[] {
 
 function parseDateList(value: string): string[] {
   return parseCommaList(value).filter((item) => /^\d{4}-\d{2}-\d{2}$/.test(item))
+}
+
+function normalizeTimeForPatch(value: string): string {
+  if (/^\d{2}:\d{2}:\d{2}$/.test(value)) return value
+  if (/^\d{2}:\d{2}$/.test(value)) return `${value}:00`
+  return value
 }
 
 function normalizeNullableText(value: string): string | null {
@@ -91,6 +114,11 @@ function createDraft(item: AdminVenueConfigItem): VenueConfigDraft {
     policy_refund: item.config.policy_refund ?? '',
     policy_no_show: item.config.policy_no_show ?? '',
     policy_operating_hours_notes: item.config.policy_operating_hours_notes ?? '',
+    drop_in_templates: item.drop_in_templates.map((window) => ({
+      day_of_week: window.day_of_week,
+      start_time: formatTimeForInput(window.start_time),
+      end_time: formatTimeForInput(window.end_time),
+    })),
   }
 }
 
@@ -122,6 +150,30 @@ function toSorted(values: string[]): string[] {
   return [...values].sort((a, b) => a.localeCompare(b))
 }
 
+function normalizeDraftTemplates(value: DropInTemplateDraftWindow[]): DropInTemplateDraftWindow[] {
+  const normalized = value.map((window) => ({
+    day_of_week: Number(window.day_of_week),
+    start_time: normalizeTimeForPatch(window.start_time),
+    end_time: normalizeTimeForPatch(window.end_time),
+  }))
+
+  const unique = new Map<string, DropInTemplateDraftWindow>()
+  for (const window of normalized) {
+    const key = `${window.day_of_week}-${window.start_time}-${window.end_time}`
+    unique.set(key, window)
+  }
+
+  return Array.from(unique.values()).sort((left, right) => {
+    if (left.day_of_week !== right.day_of_week) {
+      return left.day_of_week - right.day_of_week
+    }
+    if (left.start_time !== right.start_time) {
+      return left.start_time.localeCompare(right.start_time)
+    }
+    return left.end_time.localeCompare(right.end_time)
+  })
+}
+
 function buildPatchFromDraft(
   item: AdminVenueConfigItem,
   draft: VenueConfigDraft
@@ -147,6 +199,32 @@ function buildPatchFromDraft(
   }
   if (dropInPrice !== item.config.drop_in_price) {
     patch.drop_in_price = dropInPrice
+  }
+
+  for (const window of draft.drop_in_templates) {
+    if (!window.start_time || !window.end_time) {
+      return { patch: {}, error: 'Each drop-in template window requires start and end times.' }
+    }
+    if (window.start_time >= window.end_time) {
+      return { patch: {}, error: 'Each drop-in template window must end after it starts.' }
+    }
+  }
+
+  const normalizedDraftTemplates = normalizeDraftTemplates(draft.drop_in_templates)
+  const normalizedCurrentTemplates = normalizeDraftTemplates(
+    item.drop_in_templates.map((window) => ({
+      day_of_week: window.day_of_week,
+      start_time: window.start_time,
+      end_time: window.end_time,
+    }))
+  )
+  const templatesChanged = JSON.stringify(normalizedDraftTemplates) !== JSON.stringify(normalizedCurrentTemplates)
+  if (templatesChanged) {
+    patch.drop_in_templates = normalizedDraftTemplates
+  }
+
+  if (draft.drop_in_enabled && normalizedDraftTemplates.length === 0) {
+    return { patch: {}, error: 'Drop-in templates are required when drop-in is enabled.' }
   }
 
   if (draft.instant_booking !== item.venue.instant_booking) {
@@ -575,6 +653,87 @@ export function SuperAdminVenueConfigPage() {
                   updateDraft((previous) => ({ ...previous, drop_in_price: event.target.value }))
                 }}
               />
+            </ConfigRow>
+
+            <ConfigRow
+              title="Drop-In Weekly Schedule"
+              description="Recurring weekly windows used to generate open-gym sessions."
+            >
+              <div className="space-y-2">
+                {draft.drop_in_templates.map((window, index) => (
+                  <div
+                    key={`${window.day_of_week}-${window.start_time}-${window.end_time}-${index}`}
+                    className="grid grid-cols-[1fr_1fr_1fr_auto] gap-2"
+                  >
+                    <select
+                      className="rounded-md border border-secondary-50/15 bg-secondary-800 px-2 py-2 text-sm text-secondary-50"
+                      value={window.day_of_week}
+                      onChange={(event) => {
+                        updateDraft((previous) => {
+                          const next = [...previous.drop_in_templates]
+                          next[index] = { ...next[index], day_of_week: Number(event.target.value) }
+                          return { ...previous, drop_in_templates: next }
+                        })
+                      }}
+                    >
+                      {DAY_OPTIONS.map((option) => (
+                        <option key={option.value} value={option.value}>
+                          {option.label}
+                        </option>
+                      ))}
+                    </select>
+                    <Input
+                      type="time"
+                      value={window.start_time}
+                      onChange={(event) => {
+                        updateDraft((previous) => {
+                          const next = [...previous.drop_in_templates]
+                          next[index] = { ...next[index], start_time: event.target.value }
+                          return { ...previous, drop_in_templates: next }
+                        })
+                      }}
+                    />
+                    <Input
+                      type="time"
+                      value={window.end_time}
+                      onChange={(event) => {
+                        updateDraft((previous) => {
+                          const next = [...previous.drop_in_templates]
+                          next[index] = { ...next[index], end_time: event.target.value }
+                          return { ...previous, drop_in_templates: next }
+                        })
+                      }}
+                    />
+                    <Button
+                      type="button"
+                      variant="ghost"
+                      onClick={() => {
+                        updateDraft((previous) => ({
+                          ...previous,
+                          drop_in_templates: previous.drop_in_templates.filter((_, rowIndex) => rowIndex !== index),
+                        }))
+                      }}
+                    >
+                      Remove
+                    </Button>
+                  </div>
+                ))}
+              </div>
+              <Button
+                type="button"
+                variant="outline"
+                onClick={() => {
+                  updateDraft((previous) => ({
+                    ...previous,
+                    drop_in_templates: [
+                      ...previous.drop_in_templates,
+                      { day_of_week: 1, start_time: '12:00', end_time: '13:00' },
+                    ],
+                  }))
+                }}
+              >
+                Add Window
+              </Button>
             </ConfigRow>
 
             <ConfigRow

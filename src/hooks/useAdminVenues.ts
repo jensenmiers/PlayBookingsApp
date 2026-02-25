@@ -1,11 +1,12 @@
 'use client'
 
 import { useCallback, useEffect, useState } from 'react'
-import type { Venue, VenueAdminConfig } from '@/types'
+import type { DropInTemplateWindow, Venue, VenueAdminConfig } from '@/types'
 
 export interface AdminVenueConfigItem {
   venue: Venue
   config: VenueAdminConfig
+  drop_in_templates: DropInTemplateWindow[]
   completeness: {
     score: number
     missing_fields: string[]

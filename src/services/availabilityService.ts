@@ -26,14 +26,6 @@ interface SlotModalContentRow {
   cta_label: string | null
 }
 
-interface SlotInstancePricingRow {
-  slot_instance_id: string
-  amount_cents: number
-  currency: string
-  unit: SlotPricing['unit']
-  payment_method: SlotPricing['payment_method']
-}
-
 const DISALLOWED_MODAL_BULLET_POINTS = new Set([
   'Court activity is basketball only during these hours.',
 ])
@@ -191,31 +183,11 @@ export class AvailabilityService {
     const availability = (availabilityResult.data || []) as Availability[]
     const bookings = (bookingsResult.data || []) as Booking[]
     const recurringBookings = (recurringResult.data || []) as RecurringBooking[]
-    const infoSlots = (infoSlotsResult.data || []) as SlotInstanceRow[]
-    const modalContentRows = (modalContentResult.data || []) as SlotModalContentRow[]
-    const slotPricingByInstanceId = new Map<string, SlotPricing>()
     const adminConfig = normalizeVenueAdminConfig(venueId, isMissingConfigTable ? null : (adminConfigRow || null))
-
-    if (infoSlots.length > 0) {
-      const slotInstanceIds = infoSlots.map((slot) => slot.id)
-      const { data: slotPricingRows, error: slotPricingError } = await supabase
-        .from('slot_instance_pricing')
-        .select('slot_instance_id, amount_cents, currency, unit, payment_method')
-        .in('slot_instance_id', slotInstanceIds)
-
-      if (slotPricingError) {
-        throw new Error(`Failed to fetch slot pricing: ${slotPricingError.message}`)
-      }
-
-      for (const row of (slotPricingRows || []) as SlotInstancePricingRow[]) {
-        slotPricingByInstanceId.set(row.slot_instance_id, {
-          amount_cents: row.amount_cents,
-          currency: row.currency,
-          unit: row.unit,
-          payment_method: row.payment_method,
-        })
-      }
-    }
+    const infoSlots = adminConfig.drop_in_enabled
+      ? ((infoSlotsResult.data || []) as SlotInstanceRow[])
+      : []
+    const modalContentRows = (modalContentResult.data || []) as SlotModalContentRow[]
 
     const modalContentByAction = new Map<SlotActionType, SlotModalContent>()
     for (const row of modalContentRows) {
@@ -263,15 +235,14 @@ export class AvailabilityService {
       action_type: slot.action_type,
       modal_content: modalContentByAction.get(slot.action_type) || null,
       slot_pricing:
-        slotPricingByInstanceId.get(slot.id) ||
-        (adminConfig.drop_in_enabled && adminConfig.drop_in_price
+        adminConfig.drop_in_price
           ? {
               amount_cents: Math.round(adminConfig.drop_in_price * 100),
               currency: 'usd',
               unit: 'person',
               payment_method: 'on_site',
             }
-          : null),
+          : null,
     }))
       .filter((slot) => isSlotAllowedByVenueConfig(slot, adminConfig))
 

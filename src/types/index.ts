@@ -67,6 +67,12 @@ export interface OperatingHourWindow {
   end_time: string
 }
 
+export interface DropInTemplateWindow {
+  day_of_week: number
+  start_time: string
+  end_time: string
+}
+
 export interface VenueAdminConfig {
   venue_id: string
   drop_in_enabled: boolean

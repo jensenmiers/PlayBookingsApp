@@ -13,6 +13,7 @@
     "test:watch": "jest --watch",
     "test:supabase": "node scripts/test-supabase.js",
     "inspect:schema": "tsx scripts/inspect-schema.ts",
+    "sync:drop-in-slots": "tsx scripts/process-drop-in-template-sync-queue.ts",
     "seed:availability": "tsx scripts/seed-availability.ts",
     "seed:venues": "tsx scripts/seed-venues.ts",
     "update:venue-photo": "tsx scripts/update-venue-photo.ts"

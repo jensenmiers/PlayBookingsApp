@@ -14,6 +14,17 @@ export const operatingHourWindowSchema = z
     path: ['end_time'],
   })
 
+export const dropInTemplateWindowSchema = z
+  .object({
+    day_of_week: z.number().int().min(0).max(6),
+    start_time: timeSchema,
+    end_time: timeSchema,
+  })
+  .refine((value) => value.start_time < value.end_time, {
+    message: 'Drop-in template end_time must be after start_time',
+    path: ['end_time'],
+  })
+
 export const updateVenueAdminConfigSchema = z
   .object({
     hourly_rate: z.number().positive().optional(),
@@ -37,6 +48,7 @@ export const updateVenueAdminConfigSchema = z
     policy_reschedule: z.string().nullable().optional(),
     policy_no_show: z.string().nullable().optional(),
     policy_operating_hours_notes: z.string().nullable().optional(),
+    drop_in_templates: z.array(dropInTemplateWindowSchema).optional(),
     review_cadence_days: z.number().int().min(1).max(365).optional(),
     last_reviewed_at: z.string().datetime().nullable().optional(),
     mark_reviewed_now: z.boolean().optional(),
