@@ -12,6 +12,7 @@ import {
   HOST_ONBOARDING_UNAVAILABLE_DESCRIPTION,
   HOST_ONBOARDING_UNAVAILABLE_TITLE,
 } from '@/lib/hostOnboarding'
+import { isSuperAdminEmail } from '@/lib/superAdmin'
 import { useState, useRef, useEffect } from 'react'
 
 export function Navigation() {
@@ -24,6 +25,7 @@ export function Navigation() {
   const [guestDropdownOpen, setGuestDropdownOpen] = useState(false)
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false)
   const [avatarError, setAvatarError] = useState(false)
+  const isSuperAdmin = isSuperAdminEmail(user?.email)
   const dropdownRef = useRef<HTMLDivElement>(null)
   const guestDropdownRef = useRef<HTMLDivElement>(null)
 
@@ -191,6 +193,18 @@ export function Navigation() {
                           className="block px-4 py-2 text-sm text-secondary-50/70 transition-colors hover:bg-secondary-50/10 hover:text-secondary-50"
                         >
                           My Availability
+                        </Link>
+                      </>
+                    )}
+                    {isSuperAdmin && (
+                      <>
+                        <div className="my-1 border-t border-secondary-50/10" />
+                        <Link
+                          href="/super-admin"
+                          onClick={() => setDropdownOpen(false)}
+                          className="block px-4 py-2 text-sm text-secondary-50/70 transition-colors hover:bg-secondary-50/10 hover:text-secondary-50"
+                        >
+                          Super Admin
                         </Link>
                       </>
                     )}

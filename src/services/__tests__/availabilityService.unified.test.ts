@@ -43,6 +43,12 @@ describe('AvailabilityService (unified slots)', () => {
           error: null,
         })
       }
+      if (table === 'venue_admin_configs') {
+        return createQuery({
+          data: null,
+          error: null,
+        })
+      }
       if (table === 'availability') {
         return createQuery({ data: [], error: null })
       }

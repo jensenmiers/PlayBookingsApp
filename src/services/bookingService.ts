@@ -10,6 +10,7 @@ import { checkBookingConflicts } from '@/utils/conflictDetection'
 import { calculateRecurringDates } from '@/utils/recurringGenerator'
 import { isWithinAdvanceWindow, getCancellationInfo, calculateDuration, isPastBookingStart } from '@/utils/dateHelpers'
 import { conflict, badRequest, notFound } from '@/utils/errorHandling'
+import { getBookingPolicyViolation, normalizeVenueAdminConfig } from '@/lib/venueAdminConfig'
 import type { Booking, RecurringBooking, CreateBookingForm, BookingStatus, BookingWithPaymentInfo, CancellationResult, BookingWithVenue } from '@/types'
 import { createClient } from '@/lib/supabase/server'
 
@@ -43,6 +44,34 @@ export class BookingService {
       )
     }
 
+    const adminConfigQuery = supabase
+      .from('venue_admin_configs')
+      .select('*')
+      .eq('venue_id', data.venue_id)
+    const maybeSingle = (adminConfigQuery as { maybeSingle?: () => Promise<{ data: unknown; error: { message?: string; code?: string } | null }> }).maybeSingle
+    const { data: adminConfigRow, error: adminConfigError } = maybeSingle
+      ? await maybeSingle.call(adminConfigQuery)
+      : { data: null, error: null }
+
+    const isMissingConfigTable = adminConfigError?.code === '42P01'
+      || adminConfigError?.message?.toLowerCase().includes('venue_admin_configs')
+    if (adminConfigError && !isMissingConfigTable) {
+      throw badRequest(`Failed to load venue booking policy: ${adminConfigError.message}`)
+    }
+
+    const adminConfig = normalizeVenueAdminConfig(data.venue_id, isMissingConfigTable ? null : (adminConfigRow || null))
+    const policyViolation = getBookingPolicyViolation(
+      {
+        date: data.date,
+        start_time: data.start_time,
+        end_time: data.end_time,
+      },
+      adminConfig
+    )
+    if (policyViolation) {
+      throw badRequest(policyViolation.message)
+    }
+
     // Check conflicts
     const conflictResult = await this.checkConflicts(
       data.venue_id,
@@ -60,6 +89,10 @@ export class BookingService {
     const totalAmount = duration * venue.hourly_rate
 
     // Create booking
+    const insuranceManualApprovalRequired = venue.insurance_required
+      ? adminConfig.insurance_requires_manual_approval
+      : false
+
     const booking = await this.bookingRepo.create({
       venue_id: data.venue_id,
       renter_id: userId,
@@ -69,7 +102,7 @@ export class BookingService {
       status: 'pending',
       total_amount: totalAmount,
       insurance_required: venue.insurance_required,
-      insurance_approved: !venue.insurance_required, // Auto-approve if not required
+      insurance_approved: !venue.insurance_required || !insuranceManualApprovalRequired,
       recurring_type: data.recurring_type || 'none',
       recurring_end_date: data.recurring_end_date,
       notes: data.notes,
@@ -595,5 +628,3 @@ export class BookingService {
     return allBookings
   }
 }
-
-

@@ -61,6 +61,33 @@ export interface Venue {
   updated_at: string
 }
 
+export interface OperatingHourWindow {
+  day_of_week: number
+  start_time: string
+  end_time: string
+}
+
+export interface VenueAdminConfig {
+  venue_id: string
+  drop_in_enabled: boolean
+  drop_in_price: number | null
+  min_advance_lead_time_hours: number
+  same_day_cutoff_time: string | null
+  operating_hours: OperatingHourWindow[]
+  blackout_dates: string[]
+  holiday_dates: string[]
+  insurance_requires_manual_approval: boolean
+  insurance_document_types: string[]
+  policy_cancel: string | null
+  policy_reschedule: string | null
+  policy_no_show: string | null
+  review_cadence_days: number
+  last_reviewed_at: string | null
+  updated_by: string | null
+  created_at: string | null
+  updated_at: string | null
+}
+
 export interface Availability {
   id: string
   venue_id: string

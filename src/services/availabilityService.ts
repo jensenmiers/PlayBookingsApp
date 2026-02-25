@@ -6,6 +6,7 @@
 import { createClient } from '@/lib/supabase/server'
 import { computeAvailableSlots, ComputedSlot } from '@/utils/slotSplitting'
 import type { Availability, Booking, RecurringBooking, SlotActionType, SlotModalContent, SlotPricing } from '@/types'
+import { isSlotAllowedByVenueConfig, normalizeVenueAdminConfig } from '@/lib/venueAdminConfig'
 
 interface SlotInstanceRow {
   id: string
@@ -84,12 +85,31 @@ export class AvailabilityService {
   ): Promise<UnifiedAvailableSlot[]> {
     const supabase = await createClient()
 
-    const [{ data: venue, error: venueError }, availabilityResult, bookingsResult, recurringResult, infoSlotsResult, modalContentResult] = await Promise.all([
+    const adminConfigQuery = supabase
+      .from('venue_admin_configs')
+      .select('*')
+      .eq('venue_id', venueId)
+    const maybeSingle = (adminConfigQuery as { maybeSingle?: () => Promise<{ data: unknown; error: { message?: string; code?: string } | null }> }).maybeSingle
+    const adminConfigPromise = maybeSingle
+      ? maybeSingle.call(adminConfigQuery)
+      : Promise.resolve({ data: null, error: null })
+
+    const [
+      { data: venue, error: venueError },
+      { data: adminConfigRow, error: adminConfigError },
+      availabilityResult,
+      bookingsResult,
+      recurringResult,
+      infoSlotsResult,
+      modalContentResult,
+    ] = await Promise.all([
       supabase
         .from('venues')
         .select('instant_booking')
         .eq('id', venueId)
         .single(),
+
+      adminConfigPromise,
 
       supabase
         .from('availability')
@@ -138,6 +158,12 @@ export class AvailabilityService {
       throw new Error(`Failed to fetch venue for availability: ${venueError?.message || 'Venue not found'}`)
     }
 
+    const isMissingConfigTable = adminConfigError?.code === '42P01'
+      || adminConfigError?.message?.toLowerCase().includes('venue_admin_configs')
+    if (adminConfigError && !isMissingConfigTable) {
+      throw new Error(`Failed to fetch venue admin config: ${adminConfigError.message}`)
+    }
+
     if (availabilityResult.error) {
       throw new Error(`Failed to fetch availability: ${availabilityResult.error.message}`)
     }
@@ -164,6 +190,7 @@ export class AvailabilityService {
     const infoSlots = (infoSlotsResult.data || []) as SlotInstanceRow[]
     const modalContentRows = (modalContentResult.data || []) as SlotModalContentRow[]
     const slotPricingByInstanceId = new Map<string, SlotPricing>()
+    const adminConfig = normalizeVenueAdminConfig(venueId, isMissingConfigTable ? null : (adminConfigRow || null))
 
     if (infoSlots.length > 0) {
       const slotInstanceIds = infoSlots.map((slot) => slot.id)
@@ -210,6 +237,7 @@ export class AvailabilityService {
       modal_content: null,
       slot_pricing: null,
     }))
+      .filter((slot) => isSlotAllowedByVenueConfig(slot, adminConfig))
 
     const blockingInfoSlots = infoSlots.filter((slot) => slot.blocks_inventory)
     const filteredRegularSlots = regularSlots.filter((slot) => {
@@ -230,8 +258,18 @@ export class AvailabilityService {
       slot_instance_id: slot.id,
       action_type: slot.action_type,
       modal_content: modalContentByAction.get(slot.action_type) || null,
-      slot_pricing: slotPricingByInstanceId.get(slot.id) || null,
+      slot_pricing:
+        slotPricingByInstanceId.get(slot.id) ||
+        (adminConfig.drop_in_enabled && adminConfig.drop_in_price
+          ? {
+              amount_cents: Math.round(adminConfig.drop_in_price * 100),
+              currency: 'usd',
+              unit: 'person',
+              payment_method: 'on_site',
+            }
+          : null),
     }))
+      .filter((slot) => isSlotAllowedByVenueConfig(slot, adminConfig))
 
     return sortSlots([...filteredRegularSlots, ...infoOnlySlots])
   }

@@ -114,6 +114,13 @@ describe('BookingService - Payment Flow', () => {
             single: jest.fn().mockResolvedValue({ data: venue, error: null }),
           }
         }
+        if (table === 'venue_admin_configs') {
+          return {
+            select: jest.fn().mockReturnThis(),
+            eq: jest.fn().mockReturnThis(),
+            maybeSingle: jest.fn().mockResolvedValue({ data: null, error: null }),
+          }
+        }
         return mockSupabase
       })
 
@@ -160,6 +167,13 @@ describe('BookingService - Payment Flow', () => {
             single: jest.fn().mockResolvedValue({ data: venue, error: null }),
           }
         }
+        if (table === 'venue_admin_configs') {
+          return {
+            select: jest.fn().mockReturnThis(),
+            eq: jest.fn().mockReturnThis(),
+            maybeSingle: jest.fn().mockResolvedValue({ data: null, error: null }),
+          }
+        }
         return mockSupabase
       })
 
@@ -201,6 +215,13 @@ describe('BookingService - Payment Flow', () => {
             select: jest.fn().mockReturnThis(),
             eq: jest.fn().mockReturnThis(),
             single: jest.fn().mockResolvedValue({ data: venue, error: null }),
+          }
+        }
+        if (table === 'venue_admin_configs') {
+          return {
+            select: jest.fn().mockReturnThis(),
+            eq: jest.fn().mockReturnThis(),
+            maybeSingle: jest.fn().mockResolvedValue({ data: null, error: null }),
           }
         }
         return mockSupabase
