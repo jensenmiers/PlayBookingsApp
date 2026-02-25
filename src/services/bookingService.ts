@@ -48,7 +48,11 @@ export class BookingService {
       .from('venue_admin_configs')
       .select('*')
       .eq('venue_id', data.venue_id)
-    const maybeSingle = (adminConfigQuery as { maybeSingle?: () => Promise<{ data: unknown; error: { message?: string; code?: string } | null }> }).maybeSingle
+    const maybeSingle = (
+      adminConfigQuery as {
+        maybeSingle?: () => PromiseLike<{ data: unknown; error: { message?: string; code?: string } | null }>
+      }
+    ).maybeSingle
     const { data: adminConfigRow, error: adminConfigError } = maybeSingle
       ? await maybeSingle.call(adminConfigQuery)
       : { data: null, error: null }

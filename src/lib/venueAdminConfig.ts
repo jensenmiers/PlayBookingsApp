@@ -116,13 +116,15 @@ export function normalizeVenueAdminConfig(
     row.drop_in_price === null || row.drop_in_price === undefined
       ? null
       : Number(row.drop_in_price)
+  const normalizedDropInPrice =
+    dropInPrice !== null && Number.isFinite(dropInPrice) && dropInPrice > 0 ? dropInPrice : null
 
   return {
     ...defaults,
     ...row,
     venue_id: venueId,
     drop_in_enabled: dropInEnabled,
-    drop_in_price: Number.isFinite(dropInPrice) && dropInPrice > 0 ? dropInPrice : null,
+    drop_in_price: normalizedDropInPrice,
     min_advance_lead_time_hours: Math.max(0, Number(row.min_advance_lead_time_hours || 0)),
     same_day_cutoff_time: row.same_day_cutoff_time ? normalizeTime(row.same_day_cutoff_time) : null,
     operating_hours: normalizeOperatingHours(row.operating_hours),

@@ -89,7 +89,11 @@ export class AvailabilityService {
       .from('venue_admin_configs')
       .select('*')
       .eq('venue_id', venueId)
-    const maybeSingle = (adminConfigQuery as { maybeSingle?: () => Promise<{ data: unknown; error: { message?: string; code?: string } | null }> }).maybeSingle
+    const maybeSingle = (
+      adminConfigQuery as {
+        maybeSingle?: () => PromiseLike<{ data: unknown; error: { message?: string; code?: string } | null }>
+      }
+    ).maybeSingle
     const adminConfigPromise = maybeSingle
       ? maybeSingle.call(adminConfigQuery)
       : Promise.resolve({ data: null, error: null })
