@@ -9,8 +9,6 @@ export interface AdminVenueConfigItem {
   completeness: {
     score: number
     missing_fields: string[]
-    review_due: boolean
-    next_review_at: string | null
   }
 }
 

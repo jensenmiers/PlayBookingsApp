@@ -79,8 +79,10 @@ export interface VenueAdminConfig {
   insurance_requires_manual_approval: boolean
   insurance_document_types: string[]
   policy_cancel: string | null
+  policy_refund?: string | null
   policy_reschedule: string | null
   policy_no_show: string | null
+  policy_operating_hours_notes?: string | null
   review_cadence_days: number
   last_reviewed_at: string | null
   updated_by: string | null

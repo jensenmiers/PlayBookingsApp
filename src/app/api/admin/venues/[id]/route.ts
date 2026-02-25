@@ -119,8 +119,10 @@ export async function PATCH(request: NextRequest, context: RouteContext): Promis
       'insurance_requires_manual_approval',
       'insurance_document_types',
       'policy_cancel',
+      'policy_refund',
       'policy_reschedule',
       'policy_no_show',
+      'policy_operating_hours_notes',
       'review_cadence_days',
       'last_reviewed_at',
     ] as const

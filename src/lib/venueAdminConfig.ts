@@ -4,21 +4,14 @@ import { timeStringToDate } from '@/utils/dateHelpers'
 export interface VenueConfigCompleteness {
   score: number
   missing_fields: string[]
-  review_due: boolean
-  next_review_at: string | null
 }
 
 export interface BookingPolicyViolation {
-  code: 'min_lead_time' | 'same_day_cutoff' | 'blackout' | 'holiday' | 'operating_hours'
+  code: 'min_lead_time' | 'same_day_cutoff' | 'blackout' | 'holiday'
   message: string
 }
 
 export const DEFAULT_REVIEW_CADENCE_DAYS = 30
-
-function parseLocalDate(dateStr: string): Date {
-  const [year, month, day] = dateStr.split('-').map(Number)
-  return new Date(year, month - 1, day)
-}
 
 function toDateStringLocal(date: Date): string {
   const year = date.getFullYear()
@@ -92,8 +85,10 @@ export function getDefaultVenueAdminConfig(venueId: string): VenueAdminConfig {
     insurance_requires_manual_approval: true,
     insurance_document_types: [],
     policy_cancel: null,
+    policy_refund: null,
     policy_reschedule: null,
     policy_no_show: null,
+    policy_operating_hours_notes: null,
     review_cadence_days: DEFAULT_REVIEW_CADENCE_DAYS,
     last_reviewed_at: null,
     updated_by: null,
@@ -138,33 +133,16 @@ export function normalizeVenueAdminConfig(
       ? row.insurance_document_types.filter((item) => typeof item === 'string' && item.trim().length > 0)
       : [],
     policy_cancel: row.policy_cancel ?? null,
+    policy_refund: row.policy_refund ?? null,
     policy_reschedule: row.policy_reschedule ?? null,
     policy_no_show: row.policy_no_show ?? null,
+    policy_operating_hours_notes: row.policy_operating_hours_notes ?? null,
     review_cadence_days: Math.max(1, Number(row.review_cadence_days || defaults.review_cadence_days)),
     last_reviewed_at: row.last_reviewed_at ?? null,
     updated_by: row.updated_by ?? null,
     created_at: row.created_at ?? null,
     updated_at: row.updated_at ?? null,
   }
-}
-
-function fitsWithinOperatingHours(
-  date: string,
-  startTime: string,
-  endTime: string,
-  config: VenueAdminConfig
-): boolean {
-  if (config.operating_hours.length === 0) {
-    return true
-  }
-
-  const dayOfWeek = parseLocalDate(date).getDay()
-  const windows = config.operating_hours.filter((window) => window.day_of_week === dayOfWeek)
-  if (windows.length === 0) {
-    return false
-  }
-
-  return windows.some((window) => startTime >= window.start_time && endTime <= window.end_time)
 }
 
 export function getBookingPolicyViolation(
@@ -216,13 +194,6 @@ export function getBookingPolicyViolation(
     }
   }
 
-  if (!fitsWithinOperatingHours(bookingDate, normalizeTime(args.start_time), normalizeTime(args.end_time), config)) {
-    return {
-      code: 'operating_hours',
-      message: 'Requested booking is outside configured operating hours',
-    }
-  }
-
   return null
 }
 
@@ -236,44 +207,26 @@ export function isSlotAllowedByVenueConfig(
 
 export function calculateVenueConfigCompleteness(
   venue: Venue,
-  config: VenueAdminConfig,
-  now: Date = new Date()
+  config: VenueAdminConfig
 ): VenueConfigCompleteness {
   const checks = [
     { key: 'hourly_rate', ok: Number(venue.hourly_rate) > 0 },
     { key: 'drop_in_price', ok: !config.drop_in_enabled || (config.drop_in_price !== null && config.drop_in_price > 0) },
-    { key: 'operating_hours', ok: config.operating_hours.length > 0 },
     { key: 'lead_time', ok: config.min_advance_lead_time_hours >= 0 },
     { key: 'same_day_cutoff', ok: config.same_day_cutoff_time !== null },
     { key: 'amenities', ok: Array.isArray(venue.amenities) && venue.amenities.length > 0 },
-    { key: 'review_cadence_days', ok: config.review_cadence_days > 0 },
     {
       key: 'insurance_document_types',
       ok: !venue.insurance_required || config.insurance_document_types.length > 0,
     },
-    { key: 'last_reviewed_at', ok: Boolean(config.last_reviewed_at) },
   ]
 
   const passed = checks.filter((check) => check.ok).length
   const score = Math.round((passed / checks.length) * 100)
   const missingFields = checks.filter((check) => !check.ok).map((check) => check.key)
 
-  let reviewDue = true
-  let nextReviewAt: string | null = null
-  if (config.last_reviewed_at) {
-    const reviewedAt = new Date(config.last_reviewed_at)
-    if (!Number.isNaN(reviewedAt.getTime())) {
-      const nextReview = new Date(reviewedAt)
-      nextReview.setDate(nextReview.getDate() + Math.max(1, config.review_cadence_days))
-      reviewDue = now >= nextReview
-      nextReviewAt = nextReview.toISOString()
-    }
-  }
-
   return {
     score,
     missing_fields: missingFields,
-    review_due: reviewDue,
-    next_review_at: nextReviewAt,
   }
 }

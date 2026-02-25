@@ -4,19 +4,9 @@ import { useEffect, useMemo, useState } from 'react'
 import type { ReactNode } from 'react'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
-import { useAdminVenues, patchAdminVenueConfig } from '@/hooks/useAdminVenues'
-import type { OperatingHourWindow } from '@/types'
+import { patchAdminVenueConfig, useAdminVenues } from '@/hooks/useAdminVenues'
+import type { AdminVenueConfigItem } from '@/hooks/useAdminVenues'
 import { cn } from '@/lib/utils'
-
-const DAY_OPTIONS = [
-  { label: 'Sunday', value: 0 },
-  { label: 'Monday', value: 1 },
-  { label: 'Tuesday', value: 2 },
-  { label: 'Wednesday', value: 3 },
-  { label: 'Thursday', value: 4 },
-  { label: 'Friday', value: 5 },
-  { label: 'Saturday', value: 6 },
-]
 
 const AMENITY_OPTIONS = [
   'Parking',
@@ -28,6 +18,26 @@ const AMENITY_OPTIONS = [
   'WiFi',
   'ADA Accessible',
 ]
+
+type VenueConfigDraft = {
+  hourly_rate: string
+  drop_in_enabled: boolean
+  drop_in_price: string
+  instant_booking: boolean
+  insurance_required: boolean
+  insurance_requires_manual_approval: boolean
+  insurance_document_types: string
+  min_advance_lead_time_hours: string
+  same_day_cutoff_time: string
+  max_advance_booking_days: string
+  blackout_dates: string
+  holiday_dates: string
+  amenities: string[]
+  policy_cancel: string
+  policy_refund: string
+  policy_no_show: string
+  policy_operating_hours_notes: string
+}
 
 function formatTimeForInput(time: string | null | undefined): string {
   if (!time) return ''
@@ -47,6 +57,187 @@ function parseCommaList(value: string): string[] {
 
 function parseDateList(value: string): string[] {
   return parseCommaList(value).filter((item) => /^\d{4}-\d{2}-\d{2}$/.test(item))
+}
+
+function normalizeNullableText(value: string): string | null {
+  const trimmed = value.trim()
+  return trimmed.length > 0 ? trimmed : null
+}
+
+function arraysEqual(left: string[], right: string[]): boolean {
+  if (left.length !== right.length) {
+    return false
+  }
+
+  return left.every((value, index) => value === right[index])
+}
+
+function createDraft(item: AdminVenueConfigItem): VenueConfigDraft {
+  return {
+    hourly_rate: String(item.venue.hourly_rate),
+    drop_in_enabled: item.config.drop_in_enabled,
+    drop_in_price: item.config.drop_in_price === null ? '' : String(item.config.drop_in_price),
+    instant_booking: item.venue.instant_booking,
+    insurance_required: item.venue.insurance_required,
+    insurance_requires_manual_approval: item.config.insurance_requires_manual_approval,
+    insurance_document_types: item.config.insurance_document_types.join(', '),
+    min_advance_lead_time_hours: String(item.config.min_advance_lead_time_hours),
+    same_day_cutoff_time: formatTimeForInput(item.config.same_day_cutoff_time),
+    max_advance_booking_days: String(item.venue.max_advance_booking_days),
+    blackout_dates: item.config.blackout_dates.join(', '),
+    holiday_dates: item.config.holiday_dates.join(', '),
+    amenities: [...item.venue.amenities],
+    policy_cancel: item.config.policy_cancel ?? '',
+    policy_refund: item.config.policy_refund ?? '',
+    policy_no_show: item.config.policy_no_show ?? '',
+    policy_operating_hours_notes: item.config.policy_operating_hours_notes ?? '',
+  }
+}
+
+function parsePositiveNumber(value: string): number | null {
+  const parsed = Number(value)
+  if (!Number.isFinite(parsed) || parsed <= 0) {
+    return null
+  }
+  return parsed
+}
+
+function parseNonNegativeInteger(value: string): number | null {
+  const parsed = Number(value)
+  if (!Number.isInteger(parsed) || parsed < 0) {
+    return null
+  }
+  return parsed
+}
+
+function parsePositiveInteger(value: string): number | null {
+  const parsed = Number(value)
+  if (!Number.isInteger(parsed) || parsed < 1) {
+    return null
+  }
+  return parsed
+}
+
+function toSorted(values: string[]): string[] {
+  return [...values].sort((a, b) => a.localeCompare(b))
+}
+
+function buildPatchFromDraft(
+  item: AdminVenueConfigItem,
+  draft: VenueConfigDraft
+): { patch: Record<string, unknown>; error: string | null } {
+  const patch: Record<string, unknown> = {}
+
+  const hourlyRate = parsePositiveNumber(draft.hourly_rate)
+  if (hourlyRate === null) {
+    return { patch: {}, error: 'Normal booking price must be greater than 0.' }
+  }
+  if (hourlyRate !== item.venue.hourly_rate) {
+    patch.hourly_rate = hourlyRate
+  }
+
+  if (draft.drop_in_enabled !== item.config.drop_in_enabled) {
+    patch.drop_in_enabled = draft.drop_in_enabled
+  }
+
+  const dropInRaw = draft.drop_in_price.trim()
+  const dropInPrice = dropInRaw.length === 0 ? null : parsePositiveNumber(dropInRaw)
+  if (dropInRaw.length > 0 && dropInPrice === null) {
+    return { patch: {}, error: 'Drop-in price must be greater than 0 when provided.' }
+  }
+  if (dropInPrice !== item.config.drop_in_price) {
+    patch.drop_in_price = dropInPrice
+  }
+
+  if (draft.instant_booking !== item.venue.instant_booking) {
+    patch.instant_booking = draft.instant_booking
+  }
+
+  if (draft.insurance_required !== item.venue.insurance_required) {
+    patch.insurance_required = draft.insurance_required
+  }
+
+  if (draft.insurance_requires_manual_approval !== item.config.insurance_requires_manual_approval) {
+    patch.insurance_requires_manual_approval = draft.insurance_requires_manual_approval
+  }
+
+  const documentTypes = parseCommaList(draft.insurance_document_types)
+  if (!arraysEqual(documentTypes, item.config.insurance_document_types)) {
+    patch.insurance_document_types = documentTypes
+  }
+
+  const minLeadHours = parseNonNegativeInteger(draft.min_advance_lead_time_hours)
+  if (minLeadHours === null) {
+    return { patch: {}, error: 'Minimum advance lead time must be 0 or greater.' }
+  }
+  if (minLeadHours !== item.config.min_advance_lead_time_hours) {
+    patch.min_advance_lead_time_hours = minLeadHours
+  }
+
+  const sameDayCutoff = draft.same_day_cutoff_time.trim() || null
+  if (sameDayCutoff !== formatTimeForInput(item.config.same_day_cutoff_time)) {
+    patch.same_day_cutoff_time = sameDayCutoff
+  }
+
+  const maxAdvanceDays = parsePositiveInteger(draft.max_advance_booking_days)
+  if (maxAdvanceDays === null) {
+    return { patch: {}, error: 'Maximum advance booking days must be at least 1.' }
+  }
+  if (maxAdvanceDays !== item.venue.max_advance_booking_days) {
+    patch.max_advance_booking_days = maxAdvanceDays
+  }
+
+  const blackoutDates = parseDateList(draft.blackout_dates)
+  if (!arraysEqual(blackoutDates, item.config.blackout_dates)) {
+    patch.blackout_dates = blackoutDates
+  }
+
+  const holidayDates = parseDateList(draft.holiday_dates)
+  if (!arraysEqual(holidayDates, item.config.holiday_dates)) {
+    patch.holiday_dates = holidayDates
+  }
+
+  const draftAmenities = toSorted(draft.amenities)
+  const currentAmenities = toSorted(item.venue.amenities)
+  if (!arraysEqual(draftAmenities, currentAmenities)) {
+    patch.amenities = draftAmenities
+  }
+
+  const policyCancel = normalizeNullableText(draft.policy_cancel)
+  if (policyCancel !== item.config.policy_cancel) {
+    patch.policy_cancel = policyCancel
+  }
+
+  const policyRefund = normalizeNullableText(draft.policy_refund)
+  if (policyRefund !== item.config.policy_refund) {
+    patch.policy_refund = policyRefund
+  }
+
+  const policyNoShow = normalizeNullableText(draft.policy_no_show)
+  if (policyNoShow !== item.config.policy_no_show) {
+    patch.policy_no_show = policyNoShow
+  }
+
+  const policyOperatingHoursNotes = normalizeNullableText(draft.policy_operating_hours_notes)
+  if (policyOperatingHoursNotes !== item.config.policy_operating_hours_notes) {
+    patch.policy_operating_hours_notes = policyOperatingHoursNotes
+  }
+
+  return { patch, error: null }
+}
+
+function formatLastSavedAt(item: AdminVenueConfigItem): string {
+  const timestamps = [item.venue.updated_at, item.config.updated_at]
+    .filter((value): value is string => Boolean(value))
+    .map((value) => new Date(value))
+    .filter((value) => !Number.isNaN(value.getTime()))
+
+  if (timestamps.length === 0) {
+    return 'Never'
+  }
+
+  const latest = new Date(Math.max(...timestamps.map((value) => value.getTime())))
+  return latest.toLocaleString()
 }
 
 function ConfigRow({
@@ -72,7 +263,8 @@ function ConfigRow({
 export function SuperAdminVenueConfigPage() {
   const { data, loading, error, refetch } = useAdminVenues()
   const [selectedVenueId, setSelectedVenueId] = useState<string | null>(null)
-  const [savingKey, setSavingKey] = useState<string | null>(null)
+  const [draft, setDraft] = useState<VenueConfigDraft | null>(null)
+  const [isSaving, setIsSaving] = useState(false)
   const [saveError, setSaveError] = useState<string | null>(null)
   const [saveMessage, setSaveMessage] = useState<string | null>(null)
 
@@ -87,19 +279,156 @@ export function SuperAdminVenueConfigPage() {
     return data.find((item) => item.venue.id === selectedVenueId) || null
   }, [data, selectedVenueId])
 
-  const savePatch = async (key: string, patch: Record<string, unknown>) => {
-    if (!selectedItem) return
-    setSavingKey(key)
+  const baselineDraft = useMemo(() => {
+    if (!selectedItem) {
+      return null
+    }
+
+    return createDraft(selectedItem)
+  }, [selectedItem])
+
+  const hasUnsavedChanges = useMemo(() => {
+    if (!draft || !baselineDraft) {
+      return false
+    }
+
+    return JSON.stringify(draft) !== JSON.stringify(baselineDraft)
+  }, [draft, baselineDraft])
+
+  useEffect(() => {
+    if (!selectedItem) {
+      setDraft(null)
+      return
+    }
+
+    setDraft(createDraft(selectedItem))
     setSaveError(null)
     setSaveMessage(null)
+  }, [selectedItem])
+
+  useEffect(() => {
+    if (!hasUnsavedChanges) {
+      return
+    }
+
+    const warningMessage = 'You have unsaved changes. Leave this page and discard them?'
+
+    const handleBeforeUnload = (event: BeforeUnloadEvent) => {
+      event.preventDefault()
+      event.returnValue = ''
+    }
+
+    const handleDocumentClick = (event: MouseEvent) => {
+      if (event.defaultPrevented || event.button !== 0) {
+        return
+      }
+      if (event.metaKey || event.ctrlKey || event.shiftKey || event.altKey) {
+        return
+      }
+
+      const target = event.target as Element | null
+      const anchor = target?.closest('a[href]') as HTMLAnchorElement | null
+      if (!anchor) {
+        return
+      }
+
+      const href = anchor.getAttribute('href')
+      if (!href || href.startsWith('#') || anchor.target === '_blank') {
+        return
+      }
+
+      const destination = new URL(anchor.href, window.location.href)
+      const current = new URL(window.location.href)
+      const isSameLocation =
+        destination.origin === current.origin &&
+        destination.pathname === current.pathname &&
+        destination.search === current.search &&
+        destination.hash === current.hash
+
+      if (isSameLocation) {
+        return
+      }
+
+      if (!window.confirm(warningMessage)) {
+        event.preventDefault()
+        event.stopPropagation()
+      }
+    }
+
+    window.addEventListener('beforeunload', handleBeforeUnload)
+    document.addEventListener('click', handleDocumentClick, true)
+
+    return () => {
+      window.removeEventListener('beforeunload', handleBeforeUnload)
+      document.removeEventListener('click', handleDocumentClick, true)
+    }
+  }, [hasUnsavedChanges])
+
+  const updateDraft = (updater: (previous: VenueConfigDraft) => VenueConfigDraft) => {
+    setDraft((previous) => {
+      if (!previous) {
+        return previous
+      }
+
+      return updater(previous)
+    })
+  }
+
+  const handleVenueSelect = (venueId: string) => {
+    if (venueId === selectedVenueId) {
+      return
+    }
+
+    if (hasUnsavedChanges) {
+      const confirmed = window.confirm('You have unsaved changes. Switch venues and discard them?')
+      if (!confirmed) {
+        return
+      }
+    }
+
+    setSelectedVenueId(venueId)
+  }
+
+  const handleDiscardChanges = () => {
+    if (!selectedItem) {
+      return
+    }
+
+    setDraft(createDraft(selectedItem))
+    setSaveError(null)
+    setSaveMessage('Unsaved changes discarded')
+  }
+
+  const handleSaveChanges = async () => {
+    if (!selectedItem || !draft) {
+      return
+    }
+
+    const { patch, error: patchError } = buildPatchFromDraft(selectedItem, draft)
+    if (patchError) {
+      setSaveError(patchError)
+      setSaveMessage(null)
+      return
+    }
+
+    if (Object.keys(patch).length === 0) {
+      setSaveError(null)
+      setSaveMessage('No changes to save')
+      return
+    }
+
+    setIsSaving(true)
+    setSaveError(null)
+    setSaveMessage(null)
+
     try {
       await patchAdminVenueConfig(selectedItem.venue.id, patch)
       await refetch()
-      setSaveMessage('Saved')
+      setSaveMessage('Changes saved')
     } catch (savePatchError) {
-      setSaveError(savePatchError instanceof Error ? savePatchError.message : 'Failed to save')
+      setSaveError(savePatchError instanceof Error ? savePatchError.message : 'Failed to save changes')
     } finally {
-      setSavingKey(null)
+      setIsSaving(false)
     }
   }
 
@@ -135,12 +464,32 @@ export function SuperAdminVenueConfigPage() {
       <header className="space-y-2">
         <h1 className="font-serif text-3xl font-bold text-secondary-50">Super Admin Venue Config</h1>
         <p className="max-w-3xl text-sm text-secondary-50/70">
-          Maintain venue booking behavior and operations. Edits save immediately and affect venue runtime rules.
+          Maintain venue booking behavior and operations. Changes are saved only when you click Save Changes.
         </p>
-        <div className="flex items-center gap-3 text-xs">
-          {savingKey ? <span className="text-primary-400">Saving {savingKey}...</span> : null}
+        <div className="flex flex-wrap items-center gap-3 text-xs">
+          {hasUnsavedChanges ? <span className="text-amber-300">Unsaved changes</span> : <span className="text-secondary-50/60">All changes saved</span>}
+          {isSaving ? <span className="text-primary-400">Saving...</span> : null}
           {saveMessage ? <span className="text-primary-400">{saveMessage}</span> : null}
           {saveError ? <span className="text-red-300">{saveError}</span> : null}
+        </div>
+        <div className="flex flex-wrap items-center gap-2">
+          <Button
+            type="button"
+            variant="outline"
+            onClick={handleDiscardChanges}
+            disabled={!hasUnsavedChanges || isSaving}
+          >
+            Discard
+          </Button>
+          <Button
+            type="button"
+            onClick={() => {
+              void handleSaveChanges()
+            }}
+            disabled={!hasUnsavedChanges || isSaving}
+          >
+            Save Changes
+          </Button>
         </div>
       </header>
 
@@ -158,28 +507,20 @@ export function SuperAdminVenueConfigPage() {
                     ? 'border-primary-400/60 bg-primary-400/10'
                     : 'border-secondary-50/10 bg-secondary-800 hover:bg-secondary-700'
                 )}
-                onClick={() => setSelectedVenueId(item.venue.id)}
+                onClick={() => handleVenueSelect(item.venue.id)}
               >
                 <p className="text-sm font-semibold text-secondary-50">{item.venue.name}</p>
                 <p className="text-xs text-secondary-50/60">{item.venue.city}, {item.venue.state}</p>
-                <div className="mt-2 flex items-center justify-between">
+                <div className="mt-2 flex items-center justify-between gap-2">
                   <span className="text-xs text-secondary-50/70">Completeness {item.completeness.score}%</span>
-                  {item.completeness.review_due ? (
-                    <span className="rounded-full bg-accent/20 px-2 py-0.5 text-[10px] font-semibold text-accent">
-                      Review Due
-                    </span>
-                  ) : (
-                    <span className="rounded-full bg-primary-400/20 px-2 py-0.5 text-[10px] font-semibold text-primary-400">
-                      Reviewed
-                    </span>
-                  )}
+                  <span className="text-[10px] text-secondary-50/60">Last saved: {formatLastSavedAt(item)}</span>
                 </div>
               </button>
             ))}
           </div>
         </aside>
 
-        {selectedItem && (
+        {selectedItem && draft && (
           <section className="rounded-2xl border border-secondary-50/10 bg-secondary-900 px-4 py-2 shadow-soft md:px-6">
             <div className="border-b border-secondary-50/10 py-4">
               <h2 className="text-xl font-semibold text-secondary-50">{selectedItem.venue.name}</h2>
@@ -200,12 +541,9 @@ export function SuperAdminVenueConfigPage() {
                 type="number"
                 min="1"
                 step="0.01"
-                defaultValue={selectedItem.venue.hourly_rate}
-                onBlur={(event) => {
-                  const value = Number(event.target.value)
-                  if (Number.isFinite(value) && value > 0 && value !== selectedItem.venue.hourly_rate) {
-                    void savePatch('hourly_rate', { hourly_rate: value })
-                  }
+                value={draft.hourly_rate}
+                onChange={(event) => {
+                  updateDraft((previous) => ({ ...previous, hourly_rate: event.target.value }))
                 }}
               />
             </ConfigRow>
@@ -217,9 +555,12 @@ export function SuperAdminVenueConfigPage() {
               <label className="flex items-center gap-2 text-sm text-secondary-50/80">
                 <input
                   type="checkbox"
-                  checked={selectedItem.config.drop_in_enabled}
+                  checked={draft.drop_in_enabled}
                   onChange={(event) => {
-                    void savePatch('drop_in_enabled', { drop_in_enabled: event.target.checked })
+                    updateDraft((previous) => ({
+                      ...previous,
+                      drop_in_enabled: event.target.checked,
+                    }))
                   }}
                 />
                 Drop-in enabled
@@ -228,18 +569,10 @@ export function SuperAdminVenueConfigPage() {
                 type="number"
                 min="1"
                 step="0.01"
-                defaultValue={selectedItem.config.drop_in_price ?? ''}
+                value={draft.drop_in_price}
                 placeholder="Drop-in price"
-                onBlur={(event) => {
-                  const raw = event.target.value.trim()
-                  if (raw === '') {
-                    void savePatch('drop_in_price', { drop_in_price: null })
-                    return
-                  }
-                  const value = Number(raw)
-                  if (Number.isFinite(value) && value > 0) {
-                    void savePatch('drop_in_price', { drop_in_price: value })
-                  }
+                onChange={(event) => {
+                  updateDraft((previous) => ({ ...previous, drop_in_price: event.target.value }))
                 }}
               />
             </ConfigRow>
@@ -251,9 +584,12 @@ export function SuperAdminVenueConfigPage() {
               <label className="flex items-center gap-2 text-sm text-secondary-50/80">
                 <input
                   type="checkbox"
-                  checked={selectedItem.venue.instant_booking}
+                  checked={draft.instant_booking}
                   onChange={(event) => {
-                    void savePatch('instant_booking', { instant_booking: event.target.checked })
+                    updateDraft((previous) => ({
+                      ...previous,
+                      instant_booking: event.target.checked,
+                    }))
                   }}
                 />
                 Instant booking
@@ -261,9 +597,12 @@ export function SuperAdminVenueConfigPage() {
               <label className="flex items-center gap-2 text-sm text-secondary-50/80">
                 <input
                   type="checkbox"
-                  checked={selectedItem.venue.insurance_required}
+                  checked={draft.insurance_required}
                   onChange={(event) => {
-                    void savePatch('insurance_required', { insurance_required: event.target.checked })
+                    updateDraft((previous) => ({
+                      ...previous,
+                      insurance_required: event.target.checked,
+                    }))
                   }}
                 />
                 Insurance required
@@ -271,22 +610,24 @@ export function SuperAdminVenueConfigPage() {
               <label className="flex items-center gap-2 text-sm text-secondary-50/80">
                 <input
                   type="checkbox"
-                  checked={selectedItem.config.insurance_requires_manual_approval}
+                  checked={draft.insurance_requires_manual_approval}
                   onChange={(event) => {
-                    void savePatch('insurance_requires_manual_approval', {
+                    updateDraft((previous) => ({
+                      ...previous,
                       insurance_requires_manual_approval: event.target.checked,
-                    })
+                    }))
                   }}
                 />
                 Manual insurance approval required
               </label>
               <Input
-                defaultValue={selectedItem.config.insurance_document_types.join(', ')}
+                value={draft.insurance_document_types}
                 placeholder="Insurance document types (comma-separated)"
-                onBlur={(event) => {
-                  void savePatch('insurance_document_types', {
-                    insurance_document_types: parseCommaList(event.target.value),
-                  })
+                onChange={(event) => {
+                  updateDraft((previous) => ({
+                    ...previous,
+                    insurance_document_types: event.target.value,
+                  }))
                 }}
               />
             </ConfigRow>
@@ -299,50 +640,34 @@ export function SuperAdminVenueConfigPage() {
                 type="number"
                 min="0"
                 step="1"
-                defaultValue={selectedItem.config.min_advance_lead_time_hours}
-                onBlur={(event) => {
-                  const value = Number(event.target.value)
-                  if (Number.isInteger(value) && value >= 0) {
-                    void savePatch('min_advance_lead_time_hours', {
-                      min_advance_lead_time_hours: value,
-                    })
-                  }
+                value={draft.min_advance_lead_time_hours}
+                onChange={(event) => {
+                  updateDraft((previous) => ({
+                    ...previous,
+                    min_advance_lead_time_hours: event.target.value,
+                  }))
                 }}
               />
               <Input
                 type="time"
-                defaultValue={formatTimeForInput(selectedItem.config.same_day_cutoff_time)}
-                onBlur={(event) => {
-                  const value = event.target.value.trim()
-                  void savePatch('same_day_cutoff_time', {
-                    same_day_cutoff_time: value ? value : null,
-                  })
+                value={draft.same_day_cutoff_time}
+                onChange={(event) => {
+                  updateDraft((previous) => ({
+                    ...previous,
+                    same_day_cutoff_time: event.target.value,
+                  }))
                 }}
               />
               <Input
                 type="number"
                 min="1"
                 step="1"
-                defaultValue={selectedItem.venue.max_advance_booking_days}
-                onBlur={(event) => {
-                  const value = Number(event.target.value)
-                  if (Number.isInteger(value) && value >= 1) {
-                    void savePatch('max_advance_booking_days', {
-                      max_advance_booking_days: value,
-                    })
-                  }
-                }}
-              />
-            </ConfigRow>
-
-            <ConfigRow
-              title="Operating Hours"
-              description="Weekly operating windows used by availability and booking policy validation."
-            >
-              <OperatingHoursEditor
-                value={selectedItem.config.operating_hours}
-                onChange={(value) => {
-                  void savePatch('operating_hours', { operating_hours: value })
+                value={draft.max_advance_booking_days}
+                onChange={(event) => {
+                  updateDraft((previous) => ({
+                    ...previous,
+                    max_advance_booking_days: event.target.value,
+                  }))
                 }}
               />
             </ConfigRow>
@@ -352,21 +677,23 @@ export function SuperAdminVenueConfigPage() {
               description="Any listed date blocks booking and availability for this venue."
             >
               <Input
-                defaultValue={selectedItem.config.blackout_dates.join(', ')}
+                value={draft.blackout_dates}
                 placeholder="Blackout dates: YYYY-MM-DD, YYYY-MM-DD"
-                onBlur={(event) => {
-                  void savePatch('blackout_dates', {
-                    blackout_dates: parseDateList(event.target.value),
-                  })
+                onChange={(event) => {
+                  updateDraft((previous) => ({
+                    ...previous,
+                    blackout_dates: event.target.value,
+                  }))
                 }}
               />
               <Input
-                defaultValue={selectedItem.config.holiday_dates.join(', ')}
+                value={draft.holiday_dates}
                 placeholder="Holiday dates: YYYY-MM-DD, YYYY-MM-DD"
-                onBlur={(event) => {
-                  void savePatch('holiday_dates', {
-                    holiday_dates: parseDateList(event.target.value),
-                  })
+                onChange={(event) => {
+                  updateDraft((previous) => ({
+                    ...previous,
+                    holiday_dates: event.target.value,
+                  }))
                 }}
               />
             </ConfigRow>
@@ -377,17 +704,23 @@ export function SuperAdminVenueConfigPage() {
             >
               <div className="grid grid-cols-1 gap-2 sm:grid-cols-2">
                 {AMENITY_OPTIONS.map((amenity) => {
-                  const checked = selectedItem.venue.amenities.includes(amenity)
+                  const checked = draft.amenities.includes(amenity)
                   return (
                     <label key={amenity} className="flex items-center gap-2 text-sm text-secondary-50/80">
                       <input
                         type="checkbox"
                         checked={checked}
                         onChange={(event) => {
-                          const nextAmenities = event.target.checked
-                            ? Array.from(new Set([...selectedItem.venue.amenities, amenity]))
-                            : selectedItem.venue.amenities.filter((item) => item !== amenity)
-                          void savePatch('amenities', { amenities: nextAmenities })
+                          updateDraft((previous) => {
+                            const nextAmenities = event.target.checked
+                              ? Array.from(new Set([...previous.amenities, amenity]))
+                              : previous.amenities.filter((item) => item !== amenity)
+
+                            return {
+                              ...previous,
+                              amenities: nextAmenities,
+                            }
+                          })
                         }}
                       />
                       {amenity}
@@ -399,170 +732,56 @@ export function SuperAdminVenueConfigPage() {
 
             <ConfigRow
               title="Policies"
-              description="Venue-specific cancellation, reschedule, and no-show guidance."
+              description="Venue-specific cancellation, refund, no-show, and operating-hours guidance."
             >
               <textarea
                 className="min-h-20 w-full rounded-md border border-secondary-50/15 bg-secondary-800 px-3 py-2 text-sm text-secondary-50"
-                defaultValue={selectedItem.config.policy_cancel ?? ''}
+                value={draft.policy_cancel}
                 placeholder="Cancellation policy"
-                onBlur={(event) => {
-                  void savePatch('policy_cancel', { policy_cancel: event.target.value || null })
+                onChange={(event) => {
+                  updateDraft((previous) => ({ ...previous, policy_cancel: event.target.value }))
                 }}
               />
               <textarea
                 className="min-h-20 w-full rounded-md border border-secondary-50/15 bg-secondary-800 px-3 py-2 text-sm text-secondary-50"
-                defaultValue={selectedItem.config.policy_reschedule ?? ''}
-                placeholder="Reschedule policy"
-                onBlur={(event) => {
-                  void savePatch('policy_reschedule', { policy_reschedule: event.target.value || null })
+                value={draft.policy_refund}
+                placeholder="Refund policy"
+                onChange={(event) => {
+                  updateDraft((previous) => ({ ...previous, policy_refund: event.target.value }))
                 }}
               />
               <textarea
                 className="min-h-20 w-full rounded-md border border-secondary-50/15 bg-secondary-800 px-3 py-2 text-sm text-secondary-50"
-                defaultValue={selectedItem.config.policy_no_show ?? ''}
+                value={draft.policy_no_show}
                 placeholder="No-show policy"
-                onBlur={(event) => {
-                  void savePatch('policy_no_show', { policy_no_show: event.target.value || null })
+                onChange={(event) => {
+                  updateDraft((previous) => ({ ...previous, policy_no_show: event.target.value }))
+                }}
+              />
+              <textarea
+                className="min-h-20 w-full rounded-md border border-secondary-50/15 bg-secondary-800 px-3 py-2 text-sm text-secondary-50"
+                value={draft.policy_operating_hours_notes}
+                placeholder="Operating hours notes"
+                onChange={(event) => {
+                  updateDraft((previous) => ({
+                    ...previous,
+                    policy_operating_hours_notes: event.target.value,
+                  }))
                 }}
               />
             </ConfigRow>
 
             <ConfigRow
-              title="Review Cadence"
-              description="Control reminder cadence and mark when venue configuration was last reviewed."
+              title="Last Saved"
+              description="Most recent saved timestamp from venue or admin configuration updates."
             >
-              <Input
-                type="number"
-                min="1"
-                max="365"
-                defaultValue={selectedItem.config.review_cadence_days}
-                onBlur={(event) => {
-                  const value = Number(event.target.value)
-                  if (Number.isInteger(value) && value >= 1 && value <= 365) {
-                    void savePatch('review_cadence_days', { review_cadence_days: value })
-                  }
-                }}
-              />
-              <div className="flex items-center justify-between rounded-md border border-secondary-50/10 bg-secondary-800 px-3 py-2 text-xs text-secondary-50/70">
-                <span>
-                  Last reviewed:
-                  {' '}
-                  {selectedItem.config.last_reviewed_at
-                    ? new Date(selectedItem.config.last_reviewed_at).toLocaleString()
-                    : 'Never'}
-                </span>
-                <Button
-                  type="button"
-                  size="sm"
-                  variant="outline"
-                  onClick={() => {
-                    void savePatch('mark_reviewed_now', { mark_reviewed_now: true })
-                  }}
-                >
-                  Mark Reviewed
-                </Button>
+              <div className="rounded-md border border-secondary-50/10 bg-secondary-800 px-3 py-2 text-xs text-secondary-50/70">
+                {formatLastSavedAt(selectedItem)}
               </div>
             </ConfigRow>
           </section>
         )}
       </div>
-    </div>
-  )
-}
-
-function OperatingHoursEditor({
-  value,
-  onChange,
-}: {
-  value: OperatingHourWindow[]
-  onChange: (next: OperatingHourWindow[]) => void
-}) {
-  const [rows, setRows] = useState<OperatingHourWindow[]>(value)
-
-  useEffect(() => {
-    setRows(value)
-  }, [value])
-
-  const commit = (nextRows: OperatingHourWindow[]) => {
-    setRows(nextRows)
-    onChange(nextRows)
-  }
-
-  return (
-    <div className="space-y-2">
-      {rows.map((row, index) => (
-        <div key={`${row.day_of_week}-${row.start_time}-${index}`} className="grid grid-cols-[1fr_1fr_1fr_auto] gap-2">
-          <select
-            className="rounded-md border border-secondary-50/15 bg-secondary-800 px-2 py-2 text-sm text-secondary-50"
-            value={row.day_of_week}
-            onChange={(event) => {
-              const next = [...rows]
-              next[index] = { ...next[index], day_of_week: Number(event.target.value) }
-              commit(next)
-            }}
-          >
-            {DAY_OPTIONS.map((option) => (
-              <option key={option.value} value={option.value}>
-                {option.label}
-              </option>
-            ))}
-          </select>
-          <Input
-            type="time"
-            value={formatTimeForInput(row.start_time)}
-            onChange={(event) => {
-              const next = [...rows]
-              next[index] = { ...next[index], start_time: event.target.value }
-              setRows(next)
-            }}
-            onBlur={(event) => {
-              const next = [...rows]
-              next[index] = { ...next[index], start_time: event.target.value }
-              commit(next)
-            }}
-          />
-          <Input
-            type="time"
-            value={formatTimeForInput(row.end_time)}
-            onChange={(event) => {
-              const next = [...rows]
-              next[index] = { ...next[index], end_time: event.target.value }
-              setRows(next)
-            }}
-            onBlur={(event) => {
-              const next = [...rows]
-              next[index] = { ...next[index], end_time: event.target.value }
-              commit(next)
-            }}
-          />
-          <Button
-            type="button"
-            variant="ghost"
-            onClick={() => {
-              const next = rows.filter((_, rowIndex) => rowIndex !== index)
-              commit(next)
-            }}
-          >
-            Remove
-          </Button>
-        </div>
-      ))}
-      <Button
-        type="button"
-        variant="outline"
-        onClick={() => {
-          commit([
-            ...rows,
-            {
-              day_of_week: 1,
-              start_time: '09:00:00',
-              end_time: '17:00:00',
-            },
-          ])
-        }}
-      >
-        Add Window
-      </Button>
     </div>
   )
 }
