@@ -11,6 +11,8 @@ ALTER TABLE public.venue_admin_configs
 COMMENT ON COLUMN public.venue_admin_configs.min_advance_booking_days IS
   'Minimum number of full days required before a booking date (platform timezone: America/Los_Angeles).';
 
+DROP FUNCTION IF EXISTS get_venues_with_next_available(DATE, DOUBLE PRECISION, DOUBLE PRECISION, DOUBLE PRECISION);
+
 CREATE OR REPLACE FUNCTION check_booking_conflicts()
 RETURNS TRIGGER
 LANGUAGE plpgsql
