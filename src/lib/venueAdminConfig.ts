@@ -1,5 +1,4 @@
 import type { OperatingHourWindow, Venue, VenueAdminConfig } from '@/types'
-import { timeStringToDate } from '@/utils/dateHelpers'
 
 export interface VenueConfigCompleteness {
   score: number
@@ -7,24 +6,82 @@ export interface VenueConfigCompleteness {
 }
 
 export interface BookingPolicyViolation {
-  code: 'min_lead_time' | 'same_day_cutoff' | 'blackout' | 'holiday'
+  code: 'min_advance_days' | 'min_lead_time' | 'blackout' | 'holiday'
   message: string
 }
 
 export const DEFAULT_REVIEW_CADENCE_DAYS = 30
+export const PLATFORM_TIME_ZONE = 'America/Los_Angeles'
 
-function toDateStringLocal(date: Date): string {
-  const year = date.getFullYear()
-  const month = String(date.getMonth() + 1).padStart(2, '0')
-  const day = String(date.getDate()).padStart(2, '0')
-  return `${year}-${month}-${day}`
+function getDatePartsInTimeZone(date: Date, timeZone: string): { year: number; month: number; day: number } {
+  const parts = new Intl.DateTimeFormat('en-US', {
+    timeZone,
+    year: 'numeric',
+    month: '2-digit',
+    day: '2-digit',
+  }).formatToParts(date)
+  const get = (type: 'year' | 'month' | 'day') => Number(parts.find((part) => part.type === type)?.value || '0')
+
+  return {
+    year: get('year'),
+    month: get('month'),
+    day: get('day'),
+  }
 }
 
-function toTimeStringLocal(date: Date): string {
-  const hours = String(date.getHours()).padStart(2, '0')
-  const minutes = String(date.getMinutes()).padStart(2, '0')
-  const seconds = String(date.getSeconds()).padStart(2, '0')
-  return `${hours}:${minutes}:${seconds}`
+function toDateStringInTimeZone(date: Date, timeZone: string): string {
+  const { year, month, day } = getDatePartsInTimeZone(date, timeZone)
+  return `${year}-${String(month).padStart(2, '0')}-${String(day).padStart(2, '0')}`
+}
+
+function parseDateString(value: string): { year: number; month: number; day: number } {
+  const [year, month, day] = value.split('-').map(Number)
+  return { year, month, day }
+}
+
+function getTimeZoneOffsetMs(timeZone: string, date: Date): number {
+  const parts = new Intl.DateTimeFormat('en-US', {
+    timeZone,
+    year: 'numeric',
+    month: '2-digit',
+    day: '2-digit',
+    hour: '2-digit',
+    minute: '2-digit',
+    second: '2-digit',
+    hour12: false,
+  }).formatToParts(date)
+
+  const get = (type: string) => Number(parts.find((part) => part.type === type)?.value || '0')
+  const asUtc = Date.UTC(
+    get('year'),
+    get('month') - 1,
+    get('day'),
+    get('hour'),
+    get('minute'),
+    get('second')
+  )
+
+  return asUtc - date.getTime()
+}
+
+function zonedDateTimeToDate(dateValue: string, timeValue: string, timeZone: string): Date {
+  const { year, month, day } = parseDateString(dateValue)
+  const [hours, minutes, seconds] = normalizeTime(timeValue).split(':').map(Number)
+
+  let utcMs = Date.UTC(year, month - 1, day, hours, minutes, seconds)
+  for (let index = 0; index < 2; index += 1) {
+    const offset = getTimeZoneOffsetMs(timeZone, new Date(utcMs))
+    utcMs = Date.UTC(year, month - 1, day, hours, minutes, seconds) - offset
+  }
+
+  return new Date(utcMs)
+}
+
+function addDays(dateValue: string, days: number): string {
+  const { year, month, day } = parseDateString(dateValue)
+  const next = new Date(year, month - 1, day)
+  next.setDate(next.getDate() + days)
+  return `${next.getFullYear()}-${String(next.getMonth() + 1).padStart(2, '0')}-${String(next.getDate()).padStart(2, '0')}`
 }
 
 function normalizeTime(value: string): string {
@@ -77,8 +134,8 @@ export function getDefaultVenueAdminConfig(venueId: string): VenueAdminConfig {
     venue_id: venueId,
     drop_in_enabled: false,
     drop_in_price: null,
+    min_advance_booking_days: 0,
     min_advance_lead_time_hours: 0,
-    same_day_cutoff_time: null,
     operating_hours: [],
     blackout_dates: [],
     holiday_dates: [],
@@ -120,8 +177,8 @@ export function normalizeVenueAdminConfig(
     venue_id: venueId,
     drop_in_enabled: dropInEnabled,
     drop_in_price: normalizedDropInPrice,
+    min_advance_booking_days: Math.max(0, Number(row.min_advance_booking_days || 0)),
     min_advance_lead_time_hours: Math.max(0, Number(row.min_advance_lead_time_hours || 0)),
-    same_day_cutoff_time: row.same_day_cutoff_time ? normalizeTime(row.same_day_cutoff_time) : null,
     operating_hours: normalizeOperatingHours(row.operating_hours),
     blackout_dates: Array.isArray(row.blackout_dates) ? row.blackout_dates : [],
     holiday_dates: Array.isArray(row.holiday_dates) ? row.holiday_dates : [],
@@ -154,7 +211,21 @@ export function getBookingPolicyViolation(
   config: VenueAdminConfig,
   now: Date = new Date()
 ): BookingPolicyViolation | null {
-  const bookingStart = timeStringToDate(args.date, normalizeTime(args.start_time))
+  const bookingDate = args.date
+  const today = toDateStringInTimeZone(now, PLATFORM_TIME_ZONE)
+
+  const minAdvanceDays = Math.max(0, config.min_advance_booking_days || 0)
+  if (minAdvanceDays > 0) {
+    const earliestAllowedDate = addDays(today, minAdvanceDays)
+    if (bookingDate < earliestAllowedDate) {
+      return {
+        code: 'min_advance_days',
+        message: `Booking does not meet minimum advance booking period of ${minAdvanceDays} day(s)`,
+      }
+    }
+  }
+
+  const bookingStart = zonedDateTimeToDate(args.date, args.start_time, PLATFORM_TIME_ZONE)
   const minLeadHours = Math.max(0, config.min_advance_lead_time_hours || 0)
   if (minLeadHours > 0) {
     const diffMs = bookingStart.getTime() - now.getTime()
@@ -163,19 +234,6 @@ export function getBookingPolicyViolation(
       return {
         code: 'min_lead_time',
         message: `Booking does not meet minimum lead time of ${minLeadHours} hour(s)`,
-      }
-    }
-  }
-
-  const bookingDate = args.date
-  const today = toDateStringLocal(now)
-  const sameDayCutoff = config.same_day_cutoff_time
-  if (sameDayCutoff && bookingDate === today) {
-    const currentTime = toTimeStringLocal(now)
-    if (currentTime >= sameDayCutoff) {
-      return {
-        code: 'same_day_cutoff',
-        message: `Same-day booking cutoff (${sameDayCutoff}) has passed`,
       }
     }
   }
@@ -212,8 +270,8 @@ export function calculateVenueConfigCompleteness(
   const checks = [
     { key: 'hourly_rate', ok: Number(venue.hourly_rate) > 0 },
     { key: 'drop_in_price', ok: !config.drop_in_enabled || (config.drop_in_price !== null && config.drop_in_price > 0) },
+    { key: 'min_advance_days', ok: config.min_advance_booking_days >= 0 },
     { key: 'lead_time', ok: config.min_advance_lead_time_hours >= 0 },
-    { key: 'same_day_cutoff', ok: config.same_day_cutoff_time !== null },
     { key: 'amenities', ok: Array.isArray(venue.amenities) && venue.amenities.length > 0 },
     {
       key: 'insurance_document_types',

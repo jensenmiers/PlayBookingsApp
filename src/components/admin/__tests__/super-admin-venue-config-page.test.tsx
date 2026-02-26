@@ -45,8 +45,8 @@ describe('SuperAdminVenueConfigPage', () => {
             venue_id: 'venue-1',
             drop_in_enabled: false,
             drop_in_price: null,
+            min_advance_booking_days: 0,
             min_advance_lead_time_hours: 0,
-            same_day_cutoff_time: null,
             operating_hours: [],
             blackout_dates: [],
             holiday_dates: [],
@@ -93,8 +93,8 @@ describe('SuperAdminVenueConfigPage', () => {
             venue_id: 'venue-2',
             drop_in_enabled: false,
             drop_in_price: null,
+            min_advance_booking_days: 0,
             min_advance_lead_time_hours: 0,
-            same_day_cutoff_time: null,
             operating_hours: [],
             blackout_dates: [],
             holiday_dates: [],
@@ -180,6 +180,26 @@ describe('SuperAdminVenueConfigPage', () => {
               end_time: '13:00:00',
             }),
           ],
+        })
+      )
+    })
+  })
+
+  it('saves minimum advance booking days from policy controls', async () => {
+    mockPatchAdminVenueConfig.mockResolvedValue({})
+
+    render(<SuperAdminVenueConfigPage />)
+
+    const minAdvanceDaysInput = await screen.findByLabelText(/minimum advance booking days/i)
+    fireEvent.change(minAdvanceDaysInput, { target: { value: '2' } })
+
+    fireEvent.click(screen.getByRole('button', { name: /save changes/i }))
+
+    await waitFor(() => {
+      expect(mockPatchAdminVenueConfig).toHaveBeenCalledWith(
+        'venue-1',
+        expect.objectContaining({
+          min_advance_booking_days: 2,
         })
       )
     })

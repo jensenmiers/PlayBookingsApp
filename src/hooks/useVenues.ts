@@ -19,6 +19,7 @@ import type {
 import { getNextTopOfHour, timeStringToDate } from '@/utils/dateHelpers'
 import { slugify } from '@/lib/utils'
 import { format } from 'date-fns'
+import { isSlotAllowedByVenueConfig, normalizeVenueAdminConfig } from '@/lib/venueAdminConfig'
 
 /**
  * Hook state interface
@@ -390,7 +391,45 @@ export function useAvailabilitySlots(filters?: {
           return true
         })
 
-      setState({ data: transformedData, loading: false, error: null })
+      const venueIds = Array.from(new Set(transformedData.map((item) => item.venue_id)))
+      if (venueIds.length === 0) {
+        setState({ data: [], loading: false, error: null })
+        return
+      }
+
+      const { data: configRows, error: configError } = await supabase
+        .from('venue_admin_configs')
+        .select('*')
+        .in('venue_id', venueIds)
+
+      if (configError) {
+        console.error('Venue policy fetch error:', configError)
+        throw configError
+      }
+
+      const configByVenueId = new Map<string, ReturnType<typeof normalizeVenueAdminConfig>>()
+      for (const venueId of venueIds) {
+        const row = (configRows || []).find((entry) => entry.venue_id === venueId) || null
+        configByVenueId.set(venueId, normalizeVenueAdminConfig(venueId, row))
+      }
+
+      const policyFiltered = transformedData.filter((item) => {
+        const config = configByVenueId.get(item.venue_id)
+        if (!config) {
+          return true
+        }
+
+        return isSlotAllowedByVenueConfig(
+          {
+            date: item.date,
+            start_time: item.start_time,
+            end_time: item.end_time,
+          },
+          config
+        )
+      })
+
+      setState({ data: policyFiltered, loading: false, error: null })
     } catch (error) {
       console.error('Availability slots fetch error:', error)
       const message = error instanceof Error ? error.message : 'Failed to fetch availability slots'

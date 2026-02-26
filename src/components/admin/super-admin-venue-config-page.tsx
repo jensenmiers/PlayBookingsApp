@@ -29,6 +29,9 @@ const AMENITY_OPTIONS = [
   'ADA Accessible',
 ]
 
+const LEAD_TIME_PRESET_HOURS = [0, 1, 2, 4, 12, 24]
+const PLATFORM_TIME_ZONE = 'America/Los_Angeles'
+
 type DropInTemplateDraftWindow = {
   day_of_week: number
   start_time: string
@@ -43,9 +46,8 @@ type VenueConfigDraft = {
   insurance_required: boolean
   insurance_requires_manual_approval: boolean
   insurance_document_types: string
+  min_advance_booking_days: string
   min_advance_lead_time_hours: string
-  same_day_cutoff_time: string
-  max_advance_booking_days: string
   blackout_dates: string
   holiday_dates: string
   amenities: string[]
@@ -104,9 +106,8 @@ function createDraft(item: AdminVenueConfigItem): VenueConfigDraft {
     insurance_required: item.venue.insurance_required,
     insurance_requires_manual_approval: item.config.insurance_requires_manual_approval,
     insurance_document_types: item.config.insurance_document_types.join(', '),
+    min_advance_booking_days: String(item.config.min_advance_booking_days),
     min_advance_lead_time_hours: String(item.config.min_advance_lead_time_hours),
-    same_day_cutoff_time: formatTimeForInput(item.config.same_day_cutoff_time),
-    max_advance_booking_days: String(item.venue.max_advance_booking_days),
     blackout_dates: item.config.blackout_dates.join(', '),
     holiday_dates: item.config.holiday_dates.join(', '),
     amenities: [...item.venue.amenities],
@@ -138,16 +139,40 @@ function parseNonNegativeInteger(value: string): number | null {
   return parsed
 }
 
-function parsePositiveInteger(value: string): number | null {
-  const parsed = Number(value)
-  if (!Number.isInteger(parsed) || parsed < 1) {
-    return null
-  }
-  return parsed
-}
-
 function toSorted(values: string[]): string[] {
   return [...values].sort((a, b) => a.localeCompare(b))
+}
+
+function resolveLeadTimePreset(rawValue: string): string {
+  const parsed = parseNonNegativeInteger(rawValue)
+  if (parsed !== null && LEAD_TIME_PRESET_HOURS.includes(parsed)) {
+    return String(parsed)
+  }
+  return 'custom'
+}
+
+function formatLeadTimeLabel(hours: number): string {
+  if (hours === 0) return 'No lead time'
+  return `${hours} hour${hours === 1 ? '' : 's'}`
+}
+
+function formatPolicyPreview(minDays: number, minLeadHours: number): string {
+  const now = new Date()
+  const earliest = new Date(now)
+  earliest.setDate(earliest.getDate() + minDays)
+  earliest.setHours(earliest.getHours() + minLeadHours)
+
+  const label = earliest.toLocaleString('en-US', {
+    timeZone: PLATFORM_TIME_ZONE,
+    weekday: 'short',
+    month: 'short',
+    day: 'numeric',
+    hour: 'numeric',
+    minute: '2-digit',
+    hour12: true,
+  })
+
+  return `If someone books now, the earliest allowed start is ${label} PT.`
 }
 
 function normalizeDraftTemplates(value: DropInTemplateDraftWindow[]): DropInTemplateDraftWindow[] {
@@ -244,25 +269,20 @@ function buildPatchFromDraft(
     patch.insurance_document_types = documentTypes
   }
 
+  const minAdvanceDays = parseNonNegativeInteger(draft.min_advance_booking_days)
+  if (minAdvanceDays === null) {
+    return { patch: {}, error: 'Minimum advance booking days must be 0 or greater.' }
+  }
+  if (minAdvanceDays !== item.config.min_advance_booking_days) {
+    patch.min_advance_booking_days = minAdvanceDays
+  }
+
   const minLeadHours = parseNonNegativeInteger(draft.min_advance_lead_time_hours)
   if (minLeadHours === null) {
     return { patch: {}, error: 'Minimum advance lead time must be 0 or greater.' }
   }
   if (minLeadHours !== item.config.min_advance_lead_time_hours) {
     patch.min_advance_lead_time_hours = minLeadHours
-  }
-
-  const sameDayCutoff = draft.same_day_cutoff_time.trim() || null
-  if (sameDayCutoff !== formatTimeForInput(item.config.same_day_cutoff_time)) {
-    patch.same_day_cutoff_time = sameDayCutoff
-  }
-
-  const maxAdvanceDays = parsePositiveInteger(draft.max_advance_booking_days)
-  if (maxAdvanceDays === null) {
-    return { patch: {}, error: 'Maximum advance booking days must be at least 1.' }
-  }
-  if (maxAdvanceDays !== item.venue.max_advance_booking_days) {
-    patch.max_advance_booking_days = maxAdvanceDays
   }
 
   const blackoutDates = parseDateList(draft.blackout_dates)
@@ -792,43 +812,86 @@ export function SuperAdminVenueConfigPage() {
             </ConfigRow>
 
             <ConfigRow
-              title="Lead Time + Same-Day Cutoff"
-              description="Minimum advance hours and local same-day booking cutoff time."
+              title="Advance Booking Rules"
+              description="Same-day cutoff has been removed. Bookability now uses minimum advance days + lead time (PT)."
             >
-              <Input
-                type="number"
-                min="0"
-                step="1"
-                value={draft.min_advance_lead_time_hours}
-                onChange={(event) => {
-                  updateDraft((previous) => ({
-                    ...previous,
-                    min_advance_lead_time_hours: event.target.value,
-                  }))
-                }}
-              />
-              <Input
-                type="time"
-                value={draft.same_day_cutoff_time}
-                onChange={(event) => {
-                  updateDraft((previous) => ({
-                    ...previous,
-                    same_day_cutoff_time: event.target.value,
-                  }))
-                }}
-              />
-              <Input
-                type="number"
-                min="1"
-                step="1"
-                value={draft.max_advance_booking_days}
-                onChange={(event) => {
-                  updateDraft((previous) => ({
-                    ...previous,
-                    max_advance_booking_days: event.target.value,
-                  }))
-                }}
-              />
+              <div className="space-y-1">
+                <label htmlFor="min-advance-booking-days" className="text-xs font-medium text-secondary-50/70">
+                  Minimum advance booking days
+                </label>
+                <Input
+                  id="min-advance-booking-days"
+                  aria-label="Minimum advance booking days"
+                  type="number"
+                  min="0"
+                  step="1"
+                  value={draft.min_advance_booking_days}
+                  onChange={(event) => {
+                    updateDraft((previous) => ({
+                      ...previous,
+                      min_advance_booking_days: event.target.value,
+                    }))
+                  }}
+                />
+              </div>
+
+              <div className="space-y-1">
+                <label htmlFor="min-advance-lead-time" className="text-xs font-medium text-secondary-50/70">
+                  Minimum lead time
+                </label>
+                <select
+                  id="min-advance-lead-time"
+                  aria-label="Minimum advance lead time preset"
+                  className="h-11 w-full rounded-md border border-secondary-50/15 bg-secondary-800 px-3 py-2 text-sm text-secondary-50"
+                  value={resolveLeadTimePreset(draft.min_advance_lead_time_hours)}
+                  onChange={(event) => {
+                    const { value } = event.target
+                    if (value === 'custom') {
+                      return
+                    }
+                    updateDraft((previous) => ({
+                      ...previous,
+                      min_advance_lead_time_hours: value,
+                    }))
+                  }}
+                >
+                  {LEAD_TIME_PRESET_HOURS.map((hours) => (
+                    <option key={hours} value={String(hours)}>
+                      {formatLeadTimeLabel(hours)}
+                    </option>
+                  ))}
+                  <option value="custom">Custom (hours)</option>
+                </select>
+                {resolveLeadTimePreset(draft.min_advance_lead_time_hours) === 'custom' && (
+                  <Input
+                    aria-label="Custom minimum lead time hours"
+                    type="number"
+                    min="0"
+                    step="1"
+                    value={draft.min_advance_lead_time_hours}
+                    onChange={(event) => {
+                      updateDraft((previous) => ({
+                        ...previous,
+                        min_advance_lead_time_hours: event.target.value,
+                      }))
+                    }}
+                  />
+                )}
+                <p className="text-[11px] text-secondary-50/50">
+                  Lead time means how many hours before start time a booking must be made.
+                </p>
+              </div>
+
+              <div className="rounded-md border border-secondary-50/10 bg-secondary-800 px-3 py-2 text-xs text-secondary-50/70">
+                {(() => {
+                  const minDays = parseNonNegativeInteger(draft.min_advance_booking_days)
+                  const minLeadHours = parseNonNegativeInteger(draft.min_advance_lead_time_hours)
+                  if (minDays === null || minLeadHours === null) {
+                    return 'Enter non-negative whole numbers to preview policy behavior.'
+                  }
+                  return formatPolicyPreview(minDays, minLeadHours)
+                })()}
+              </div>
             </ConfigRow>
 
             <ConfigRow

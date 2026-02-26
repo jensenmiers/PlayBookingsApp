@@ -42,10 +42,35 @@ describe('normalizeVenueAdminConfig', () => {
 })
 
 describe('venue admin policy enforcement', () => {
+  it('blocks bookings that do not meet minimum advance booking days', () => {
+    const config = normalizeVenueAdminConfig('venue-1', {
+      min_advance_booking_days: 2,
+      min_advance_lead_time_hours: 0,
+      blackout_dates: [],
+      holiday_dates: [],
+      operating_hours: [],
+    })
+
+    const violation = getBookingPolicyViolation(
+      {
+        date: '2026-02-26',
+        start_time: '18:00:00',
+        end_time: '19:00:00',
+      },
+      config,
+      // 2026-02-25 in PT
+      new Date('2026-02-25T20:00:00.000Z')
+    )
+
+    expect(violation).toMatchObject({
+      code: 'min_advance_days',
+    })
+  })
+
   it('does not block bookings based on operating_hours windows', () => {
     const config = normalizeVenueAdminConfig('venue-1', {
+      min_advance_booking_days: 0,
       min_advance_lead_time_hours: 0,
-      same_day_cutoff_time: null,
       blackout_dates: [],
       holiday_dates: [],
       operating_hours: [{ day_of_week: 4, start_time: '09:00:00', end_time: '17:00:00' }],
@@ -88,8 +113,8 @@ describe('calculateVenueConfigCompleteness', () => {
     }
 
     const config = normalizeVenueAdminConfig('venue-1', {
+      min_advance_booking_days: 0,
       min_advance_lead_time_hours: 0,
-      same_day_cutoff_time: '12:00:00',
       insurance_document_types: [],
       operating_hours: [],
       review_cadence_days: 30,
@@ -101,5 +126,6 @@ describe('calculateVenueConfigCompleteness', () => {
     expect(completeness.missing_fields).not.toContain('operating_hours')
     expect(completeness.missing_fields).not.toContain('review_cadence_days')
     expect(completeness.missing_fields).not.toContain('last_reviewed_at')
+    expect(completeness.missing_fields).not.toContain('same_day_cutoff')
   })
 })

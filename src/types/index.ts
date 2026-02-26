@@ -77,8 +77,8 @@ export interface VenueAdminConfig {
   venue_id: string
   drop_in_enabled: boolean
   drop_in_price: number | null
+  min_advance_booking_days: number
   min_advance_lead_time_hours: number
-  same_day_cutoff_time: string | null
   operating_hours: OperatingHourWindow[]
   blackout_dates: string[]
   holiday_dates: string[]

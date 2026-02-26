@@ -39,6 +39,7 @@ const mockVenue = {
   longitude: -118.2437,
   hourlyRate: 120,
   instantBooking: true,
+  insuranceRequired: false,
   distanceMiles: null,
   nextAvailable: {
     slotId: 'slot-1',

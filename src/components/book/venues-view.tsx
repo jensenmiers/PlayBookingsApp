@@ -144,6 +144,18 @@ export function VenuesView() {
                         <FontAwesomeIcon icon={faDollarSign} className="mr-2 text-secondary-50/50" />
                         <span>${venue.hourly_rate}/hour</span>
                       </div>
+                      <div className="mb-2 flex flex-wrap gap-2">
+                        {venue.instant_booking ? (
+                          <span className="rounded-full bg-accent-400/15 px-2 py-1 text-[11px] text-accent-400">Instant</span>
+                        ) : (
+                          <span className="rounded-full bg-secondary-50/10 px-2 py-1 text-[11px] text-secondary-50/70">Approval</span>
+                        )}
+                        {venue.insurance_required && (
+                          <span className="rounded-full bg-secondary-50/10 px-2 py-1 text-[11px] text-secondary-50/70">
+                            Insurance
+                          </span>
+                        )}
+                      </div>
                       {venue.amenities && venue.amenities.length > 0 && (
                         <div className="flex space-x-2 mb-2">
                           {venue.amenities.slice(0, 3).map((amenity, idx) => (
@@ -218,4 +230,3 @@ export function VenuesView() {
     </div>
   )
 }
-

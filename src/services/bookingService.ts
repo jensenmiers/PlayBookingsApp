@@ -8,7 +8,7 @@ import { AuditService } from './auditService'
 import { PaymentService } from './paymentService'
 import { checkBookingConflicts } from '@/utils/conflictDetection'
 import { calculateRecurringDates } from '@/utils/recurringGenerator'
-import { isWithinAdvanceWindow, getCancellationInfo, calculateDuration, isPastBookingStart } from '@/utils/dateHelpers'
+import { getCancellationInfo, calculateDuration, isPastBookingStart } from '@/utils/dateHelpers'
 import { conflict, badRequest, notFound } from '@/utils/errorHandling'
 import { getBookingPolicyViolation, normalizeVenueAdminConfig } from '@/lib/venueAdminConfig'
 import type { Booking, RecurringBooking, CreateBookingForm, BookingStatus, BookingWithPaymentInfo, CancellationResult, BookingWithVenue } from '@/types'
@@ -35,13 +35,6 @@ export class BookingService {
 
     if (venueError || !venue) {
       throw notFound('Venue not found')
-    }
-
-    // Check advance booking window
-    if (!isWithinAdvanceWindow(data.date, venue.max_advance_booking_days)) {
-      throw badRequest(
-        `Booking exceeds maximum advance booking period of ${venue.max_advance_booking_days} days`
-      )
     }
 
     const adminConfigQuery = supabase

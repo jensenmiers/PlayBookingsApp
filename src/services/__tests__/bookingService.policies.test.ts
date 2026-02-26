@@ -24,8 +24,8 @@ import { BookingRepository } from '@/repositories/bookingRepository'
 
 type VenueAdminConfigRow = {
   venue_id: string
+  min_advance_booking_days: number
   min_advance_lead_time_hours: number
-  same_day_cutoff_time: string | null
   blackout_dates: string[]
   holiday_dates: string[]
   operating_hours: Array<{
@@ -151,8 +151,8 @@ describe('BookingService.createBooking - venue policy enforcement', () => {
       makeSupabase({
         adminConfig: {
           venue_id: 'venue-123',
+          min_advance_booking_days: 0,
           min_advance_lead_time_hours: 2,
-          same_day_cutoff_time: null,
           blackout_dates: [],
           holiday_dates: [],
           operating_hours: [],
@@ -176,14 +176,14 @@ describe('BookingService.createBooking - venue policy enforcement', () => {
     })
   })
 
-  it('rejects same-day bookings after cutoff time', async () => {
+  it('rejects bookings that violate min_advance_booking_days', async () => {
     jest.setSystemTime(new Date(2026, 1, 25, 16, 30, 0))
     ;(createClient as jest.Mock).mockResolvedValue(
       makeSupabase({
         adminConfig: {
           venue_id: 'venue-123',
+          min_advance_booking_days: 1,
           min_advance_lead_time_hours: 0,
-          same_day_cutoff_time: '15:00:00',
           blackout_dates: [],
           holiday_dates: [],
           operating_hours: [],
@@ -202,9 +202,41 @@ describe('BookingService.createBooking - venue policy enforcement', () => {
         'user-123'
       )
     ).rejects.toMatchObject({
-      message: expect.stringContaining('cutoff'),
+      message: expect.stringContaining('minimum advance booking period'),
       statusCode: 400,
     })
+  })
+
+  it('does not enforce legacy max_advance_booking_days from venue records', async () => {
+    ;(createClient as jest.Mock).mockResolvedValue(
+      makeSupabase({
+        venue: {
+          ...baseVenue,
+          max_advance_booking_days: 1,
+        },
+        adminConfig: {
+          venue_id: 'venue-123',
+          min_advance_booking_days: 0,
+          min_advance_lead_time_hours: 0,
+          blackout_dates: [],
+          holiday_dates: [],
+          operating_hours: [],
+        },
+      })
+    )
+
+    const result = await bookingService.createBooking(
+      {
+        venue_id: 'venue-123',
+        date: '2026-03-05',
+        start_time: '12:00:00',
+        end_time: '13:00:00',
+      },
+      'user-123'
+    )
+
+    expect(result.id).toBe('booking-123')
+    expect(mockBookingRepo.create).toHaveBeenCalled()
   })
 
   it('rejects bookings on blackout dates', async () => {
@@ -212,8 +244,8 @@ describe('BookingService.createBooking - venue policy enforcement', () => {
       makeSupabase({
         adminConfig: {
           venue_id: 'venue-123',
+          min_advance_booking_days: 0,
           min_advance_lead_time_hours: 0,
-          same_day_cutoff_time: null,
           blackout_dates: ['2026-02-26'],
           holiday_dates: [],
           operating_hours: [],
@@ -242,8 +274,8 @@ describe('BookingService.createBooking - venue policy enforcement', () => {
       makeSupabase({
         adminConfig: {
           venue_id: 'venue-123',
+          min_advance_booking_days: 0,
           min_advance_lead_time_hours: 0,
-          same_day_cutoff_time: null,
           blackout_dates: [],
           holiday_dates: [],
           // 2026-02-26 is Thursday (4)
@@ -271,8 +303,8 @@ describe('BookingService.createBooking - venue policy enforcement', () => {
       makeSupabase({
         adminConfig: {
           venue_id: 'venue-123',
+          min_advance_booking_days: 0,
           min_advance_lead_time_hours: 1,
-          same_day_cutoff_time: '20:00:00',
           blackout_dates: ['2026-03-01'],
           holiday_dates: ['2026-03-02'],
           operating_hours: [{ day_of_week: 4, start_time: '09:00:00', end_time: '20:00:00' }],

@@ -19,6 +19,7 @@ export interface MapVenue {
   address: string
   hourlyRate: number
   instantBooking: boolean
+  insuranceRequired: boolean
   latitude: number
   longitude: number
   distanceMiles: number | null
@@ -143,6 +144,7 @@ export function useVenuesWithNextAvailable(options: UseVenuesOptions = {}): UseV
         venue_address: string
         hourly_rate: number
         instant_booking: boolean
+        insurance_required: boolean
         latitude: number
         longitude: number
         distance_miles: number | null
@@ -158,6 +160,7 @@ export function useVenuesWithNextAvailable(options: UseVenuesOptions = {}): UseV
         address: row.venue_address,
         hourlyRate: Number(row.hourly_rate),
         instantBooking: row.instant_booking,
+        insuranceRequired: row.insurance_required,
         latitude: Number(row.latitude),
         longitude: Number(row.longitude),
         distanceMiles: row.distance_miles,

@@ -33,6 +33,7 @@ const mockVenue = {
   address: '123 Test St',
   hourlyRate: 50,
   instantBooking: true,
+  insuranceRequired: false,
   latitude: 34.05,
   longitude: -118.24,
   distanceMiles: null as number | null,

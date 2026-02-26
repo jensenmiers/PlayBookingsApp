@@ -179,7 +179,6 @@ export async function PATCH(request: NextRequest, context: RouteContext): Promis
       'hourly_rate',
       'instant_booking',
       'insurance_required',
-      'max_advance_booking_days',
       'amenities',
       'is_active',
     ] as const
@@ -193,8 +192,8 @@ export async function PATCH(request: NextRequest, context: RouteContext): Promis
     const configFields = [
       'drop_in_enabled',
       'drop_in_price',
+      'min_advance_booking_days',
       'min_advance_lead_time_hours',
-      'same_day_cutoff_time',
       'operating_hours',
       'blackout_dates',
       'holiday_dates',
@@ -212,11 +211,7 @@ export async function PATCH(request: NextRequest, context: RouteContext): Promis
     for (const field of configFields) {
       const value = body[field]
       if (value !== undefined) {
-        if (field === 'same_day_cutoff_time' && typeof value === 'string') {
-          configUpdates[field] = normalizeTime(value)
-        } else {
-          configUpdates[field] = value
-        }
+        configUpdates[field] = value
       }
     }
 

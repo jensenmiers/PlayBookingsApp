@@ -35,6 +35,7 @@ function createMapVenue(overrides: Partial<MapVenue> = {}): MapVenue {
     address: '1401 Olympic Blvd',
     hourlyRate: 75,
     instantBooking: false,
+    insuranceRequired: false,
     latitude: 34.0244,
     longitude: -118.4725,
     distanceMiles: null,

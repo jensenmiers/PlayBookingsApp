@@ -385,6 +385,11 @@ function MapVenueCard({
                 Instant
               </span>
             )}
+            {venue.insuranceRequired && (
+              <span className="bg-secondary-50/10 text-secondary-50/70 text-xs px-2 py-0.5 rounded-full">
+                Insurance
+              </span>
+            )}
           </div>
           <Link
             href={`/venue/${slugify(venue.name)}`}
