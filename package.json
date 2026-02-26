@@ -2,7 +2,7 @@
   "name": "playbookings",
   "version": "0.1.0",
   "private": true,
-  "engines": { "node": ">=20" },
+  "engines": { "node": "20.x" },
   "description": "A web-based facility rental marketplace for indoor basketball courts",
   "scripts": {
     "dev": "next dev --turbopack",

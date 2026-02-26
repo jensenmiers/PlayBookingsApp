@@ -225,6 +225,15 @@ export class AvailabilityService {
       })
     })
 
+    const dropInSlotPricing = adminConfig.drop_in_price
+      ? ({
+          amount_cents: Math.round(adminConfig.drop_in_price * 100),
+          currency: 'usd',
+          unit: 'person',
+          payment_method: 'on_site',
+        } satisfies SlotPricing)
+      : null
+
     const infoOnlySlots: UnifiedAvailableSlot[] = infoSlots.map((slot) => ({
       date: slot.date,
       start_time: slot.start_time,
@@ -234,15 +243,7 @@ export class AvailabilityService {
       slot_instance_id: slot.id,
       action_type: slot.action_type,
       modal_content: modalContentByAction.get(slot.action_type) || null,
-      slot_pricing:
-        adminConfig.drop_in_price
-          ? {
-              amount_cents: Math.round(adminConfig.drop_in_price * 100),
-              currency: 'usd',
-              unit: 'person',
-              payment_method: 'on_site',
-            }
-          : null,
+      slot_pricing: dropInSlotPricing,
     }))
       .filter((slot) => isSlotAllowedByVenueConfig(slot, adminConfig))
 
