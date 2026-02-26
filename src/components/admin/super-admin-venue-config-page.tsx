@@ -791,11 +791,11 @@ export function SuperAdminVenueConfigPage() {
                 {draft.drop_in_templates.map((window, index) => (
                   <div
                     key={`${window.day_of_week}-${window.start_time}-${window.end_time}-${index}`}
-                    className="grid grid-cols-[minmax(0,1fr)_minmax(8rem,9rem)_minmax(8rem,9rem)_auto] items-center gap-3"
+                    className="grid grid-cols-[minmax(9.5rem,1.15fr)_minmax(7.5rem,8.5rem)_minmax(7.5rem,8.5rem)_auto] items-center gap-3"
                   >
                     <select
                       aria-label={`Drop-in day row ${index + 1}`}
-                      className="h-11 rounded-xl border border-secondary-50/15 bg-secondary-800 px-3 py-2 text-sm text-secondary-50 outline-none transition-[border-color,box-shadow] hover:border-secondary-50/25 focus-visible:border-primary-400 focus-visible:ring-[3px] focus-visible:ring-primary-400/30"
+                      className="h-11 w-full appearance-none rounded-full border border-secondary-50/15 bg-secondary-800 px-5 py-2 text-sm font-medium text-secondary-50 shadow-xs outline-none transition-[border-color,box-shadow] hover:border-secondary-50/30 focus-visible:border-primary-400 focus-visible:ring-[3px] focus-visible:ring-primary-400/30"
                       value={window.day_of_week}
                       onChange={(event) => {
                         updateDraft((previous) => {

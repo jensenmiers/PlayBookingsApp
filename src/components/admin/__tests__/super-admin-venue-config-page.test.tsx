@@ -242,6 +242,16 @@ describe('SuperAdminVenueConfigPage', () => {
     })
   })
 
+  it('uses non-collapsing grid widths so day-of-week pills remain visible', async () => {
+    render(<SuperAdminVenueConfigPage />)
+
+    fireEvent.click(await screen.findByRole('button', { name: /add window/i }))
+
+    const daySelect = screen.getByLabelText('Drop-in day row 1')
+    const row = daySelect.closest('div')
+    expect(row).toHaveClass('grid-cols-[minmax(9.5rem,1.15fr)_minmax(7.5rem,8.5rem)_minmax(7.5rem,8.5rem)_auto]')
+  })
+
   it('saves minimum advance booking days from policy controls', async () => {
     mockPatchAdminVenueConfig.mockResolvedValue({})
 
