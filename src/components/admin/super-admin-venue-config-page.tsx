@@ -58,6 +58,11 @@ type VenueConfigDraft = {
   drop_in_templates: DropInTemplateDraftWindow[]
 }
 
+type TimePillOption = {
+  value: string
+  label: string
+}
+
 function formatTimeForInput(time: string | null | undefined): string {
   if (!time) return ''
   const parts = time.split(':')
@@ -82,6 +87,72 @@ function normalizeTimeForPatch(value: string): string {
   if (/^\d{2}:\d{2}:\d{2}$/.test(value)) return value
   if (/^\d{2}:\d{2}$/.test(value)) return `${value}:00`
   return value
+}
+
+function formatTimePillLabel(value: string): string {
+  const normalized = normalizeTimeForPatch(value)
+  const match = /^(\d{2}):(\d{2})(?::\d{2})?$/.exec(normalized)
+  if (!match) {
+    return value
+  }
+
+  const hour = Number(match[1])
+  const minute = match[2]
+  const suffix = hour >= 12 ? 'PM' : 'AM'
+  const normalizedHour = hour % 12 === 0 ? 12 : hour % 12
+
+  if (minute === '00') {
+    return `${normalizedHour} ${suffix}`
+  }
+
+  return `${normalizedHour}:${minute} ${suffix}`
+}
+
+const HOUR_TIME_OPTIONS: TimePillOption[] = Array.from({ length: 24 }, (_, hour) => {
+  const hh = String(hour).padStart(2, '0')
+  const value = `${hh}:00`
+  return {
+    value,
+    label: formatTimePillLabel(value),
+  }
+})
+
+function getTimeOptionSortKey(value: string): number {
+  const normalized = normalizeTimeForPatch(value)
+  const match = /^(\d{2}):(\d{2})(?::\d{2})?$/.exec(normalized)
+  if (!match) {
+    return Number.POSITIVE_INFINITY
+  }
+
+  const hour = Number(match[1])
+  const minute = Number(match[2])
+  return hour * 60 + minute
+}
+
+function getTimePillOptions(currentValue: string): TimePillOption[] {
+  if (!currentValue) {
+    return HOUR_TIME_OPTIONS
+  }
+
+  const normalizedCurrent = formatTimeForInput(normalizeTimeForPatch(currentValue))
+  const hasCurrent = HOUR_TIME_OPTIONS.some((option) => option.value === normalizedCurrent)
+  if (hasCurrent) {
+    return HOUR_TIME_OPTIONS
+  }
+
+  const legacyOption = {
+    value: normalizedCurrent,
+    label: formatTimePillLabel(normalizedCurrent),
+  }
+
+  return [...HOUR_TIME_OPTIONS, legacyOption].sort((left, right) => {
+    const leftSort = getTimeOptionSortKey(left.value)
+    const rightSort = getTimeOptionSortKey(right.value)
+    if (leftSort !== rightSort) {
+      return leftSort - rightSort
+    }
+    return left.value.localeCompare(right.value)
+  })
 }
 
 function normalizeNullableText(value: string): string | null {
@@ -336,6 +407,43 @@ function formatLastSavedAt(item: AdminVenueConfigItem): string {
 
   const latest = new Date(Math.max(...timestamps.map((value) => value.getTime())))
   return latest.toLocaleString()
+}
+
+function TimePillSelect({
+  value,
+  options,
+  ariaLabel,
+  onChange,
+}: {
+  value: string
+  options: TimePillOption[]
+  ariaLabel: string
+  onChange: (value: string) => void
+}) {
+  return (
+    <div className="relative">
+      <select
+        aria-label={ariaLabel}
+        value={value}
+        className="h-11 w-full appearance-none rounded-full border border-secondary-50/15 bg-secondary-800 px-8 py-2 text-center text-sm font-medium leading-none tabular-nums text-secondary-50 shadow-xs outline-none transition-[border-color,box-shadow] hover:border-secondary-50/30 focus-visible:border-primary-400 focus-visible:ring-[3px] focus-visible:ring-primary-400/30"
+        onChange={(event) => {
+          onChange(event.target.value)
+        }}
+      >
+        {options.map((option) => (
+          <option key={option.value} value={option.value}>
+            {option.label}
+          </option>
+        ))}
+      </select>
+      <span
+        aria-hidden="true"
+        className="pointer-events-none absolute right-3 top-1/2 -translate-y-1/2 text-xs text-secondary-50/55"
+      >
+        ▼
+      </span>
+    </div>
+  )
 }
 
 function ConfigRow({
@@ -683,10 +791,11 @@ export function SuperAdminVenueConfigPage() {
                 {draft.drop_in_templates.map((window, index) => (
                   <div
                     key={`${window.day_of_week}-${window.start_time}-${window.end_time}-${index}`}
-                    className="grid grid-cols-[1fr_1fr_1fr_auto] gap-2"
+                    className="grid grid-cols-[minmax(0,1fr)_minmax(8rem,9rem)_minmax(8rem,9rem)_auto] items-center gap-3"
                   >
                     <select
-                      className="rounded-md border border-secondary-50/15 bg-secondary-800 px-2 py-2 text-sm text-secondary-50"
+                      aria-label={`Drop-in day row ${index + 1}`}
+                      className="h-11 rounded-xl border border-secondary-50/15 bg-secondary-800 px-3 py-2 text-sm text-secondary-50 outline-none transition-[border-color,box-shadow] hover:border-secondary-50/25 focus-visible:border-primary-400 focus-visible:ring-[3px] focus-visible:ring-primary-400/30"
                       value={window.day_of_week}
                       onChange={(event) => {
                         updateDraft((previous) => {
@@ -702,24 +811,28 @@ export function SuperAdminVenueConfigPage() {
                         </option>
                       ))}
                     </select>
-                    <Input
-                      type="time"
+
+                    <TimePillSelect
+                      ariaLabel={`Drop-in start time row ${index + 1}`}
                       value={window.start_time}
-                      onChange={(event) => {
+                      options={getTimePillOptions(window.start_time)}
+                      onChange={(value) => {
                         updateDraft((previous) => {
                           const next = [...previous.drop_in_templates]
-                          next[index] = { ...next[index], start_time: event.target.value }
+                          next[index] = { ...next[index], start_time: value }
                           return { ...previous, drop_in_templates: next }
                         })
                       }}
                     />
-                    <Input
-                      type="time"
+
+                    <TimePillSelect
+                      ariaLabel={`Drop-in end time row ${index + 1}`}
                       value={window.end_time}
-                      onChange={(event) => {
+                      options={getTimePillOptions(window.end_time)}
+                      onChange={(value) => {
                         updateDraft((previous) => {
                           const next = [...previous.drop_in_templates]
-                          next[index] = { ...next[index], end_time: event.target.value }
+                          next[index] = { ...next[index], end_time: value }
                           return { ...previous, drop_in_templates: next }
                         })
                       }}
@@ -727,6 +840,7 @@ export function SuperAdminVenueConfigPage() {
                     <Button
                       type="button"
                       variant="ghost"
+                      className="h-11 rounded-xl px-3 text-secondary-50/80 hover:text-secondary-50"
                       onClick={() => {
                         updateDraft((previous) => ({
                           ...previous,
