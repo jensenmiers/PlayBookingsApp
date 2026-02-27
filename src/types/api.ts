@@ -110,6 +110,16 @@ export interface ListBookingsQueryParams {
 
 export type ListBookingsResponse = PaginatedResponse<Booking>
 
+export interface AdminVenueBookingRenterSummary {
+  first_name: string | null
+  last_name: string | null
+  email: string | null
+}
+
+export interface AdminVenueBookingFeedItem extends Booking {
+  renter: AdminVenueBookingRenterSummary | null
+}
+
 /**
  * Venue availability API types
  */

@@ -5,7 +5,10 @@ import type { ReactNode } from 'react'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { patchAdminVenueConfig, useAdminVenues } from '@/hooks/useAdminVenues'
+import { useAdminVenueBookings } from '@/hooks/useAdminVenueBookings'
 import type { AdminVenueConfigItem } from '@/hooks/useAdminVenues'
+import type { AdminVenueBookingFeedItem, AdminVenueBookingRenterSummary } from '@/types/api'
+import { formatTime, timeStringToDate } from '@/utils/dateHelpers'
 import { cn } from '@/lib/utils'
 
 const DAY_OPTIONS = [
@@ -409,6 +412,117 @@ function formatLastSavedAt(item: AdminVenueConfigItem): string {
   return latest.toLocaleString()
 }
 
+function getBookingStartMs(booking: AdminVenueBookingFeedItem): number {
+  return timeStringToDate(booking.date, booking.start_time).getTime()
+}
+
+function splitBookingsByTime(bookings: AdminVenueBookingFeedItem[]): {
+  upcoming: AdminVenueBookingFeedItem[]
+  past: AdminVenueBookingFeedItem[]
+} {
+  const now = Date.now()
+  const upcoming: AdminVenueBookingFeedItem[] = []
+  const past: AdminVenueBookingFeedItem[] = []
+
+  for (const booking of bookings) {
+    if (getBookingStartMs(booking) < now) {
+      past.push(booking)
+    } else {
+      upcoming.push(booking)
+    }
+  }
+
+  upcoming.sort((left, right) => getBookingStartMs(left) - getBookingStartMs(right))
+  past.sort((left, right) => getBookingStartMs(right) - getBookingStartMs(left))
+
+  return { upcoming, past }
+}
+
+function formatBookingTimelineDate(booking: AdminVenueBookingFeedItem): string {
+  const startDateTime = timeStringToDate(booking.date, booking.start_time)
+  const dateLabel = startDateTime.toLocaleDateString('en-US', {
+    weekday: 'short',
+    month: 'short',
+    day: 'numeric',
+    year: 'numeric',
+  })
+  return `${dateLabel} · ${formatTime(booking.start_time)} - ${formatTime(booking.end_time)}`
+}
+
+function formatRenterLabel(renter: AdminVenueBookingRenterSummary | null): string {
+  if (!renter) {
+    return 'Unknown renter'
+  }
+
+  const fullName = [renter.first_name, renter.last_name]
+    .map((value) => value?.trim() || '')
+    .filter((value) => value.length > 0)
+    .join(' ')
+
+  if (fullName.length > 0) {
+    return fullName
+  }
+
+  if (renter.email && renter.email.length > 0) {
+    return renter.email
+  }
+
+  return 'Unknown renter'
+}
+
+function resolveTimelineBadge(
+  booking: AdminVenueBookingFeedItem,
+  instantBooking: boolean,
+  isPast: boolean
+): { label: string; className: string } {
+  if (booking.status === 'cancelled') {
+    return {
+      label: 'Cancelled',
+      className: 'border-red-200 bg-red-100 text-red-800',
+    }
+  }
+
+  if (booking.status === 'completed') {
+    return {
+      label: 'Completed',
+      className: 'border-blue-200 bg-blue-100 text-blue-800',
+    }
+  }
+
+  if (booking.status === 'confirmed') {
+    return {
+      label: 'Confirmed',
+      className: 'border-green-200 bg-green-100 text-green-800',
+    }
+  }
+
+  if (isPast) {
+    return {
+      label: 'Expired',
+      className: 'border-secondary-50/20 bg-secondary-50/10 text-secondary-50/80',
+    }
+  }
+
+  if (booking.insurance_required && !booking.insurance_approved) {
+    return {
+      label: 'Pending Insurance',
+      className: 'border-accent-300/50 bg-accent-400/15 text-accent-200',
+    }
+  }
+
+  if (instantBooking) {
+    return {
+      label: 'Pending Payment',
+      className: 'border-yellow-200 bg-yellow-100 text-yellow-800',
+    }
+  }
+
+  return {
+    label: 'Pending Approval',
+    className: 'border-yellow-200 bg-yellow-100 text-yellow-800',
+  }
+}
+
 function TimePillSelect({
   value,
   options,
@@ -469,6 +583,12 @@ function ConfigRow({
 export function SuperAdminVenueConfigPage() {
   const { data, loading, error, refetch } = useAdminVenues()
   const [selectedVenueId, setSelectedVenueId] = useState<string | null>(null)
+  const {
+    data: venueBookings,
+    loading: venueBookingsLoading,
+    error: venueBookingsError,
+    refetch: refetchVenueBookings,
+  } = useAdminVenueBookings(selectedVenueId)
   const [draft, setDraft] = useState<VenueConfigDraft | null>(null)
   const [isSaving, setIsSaving] = useState(false)
   const [saveError, setSaveError] = useState<string | null>(null)
@@ -492,6 +612,10 @@ export function SuperAdminVenueConfigPage() {
 
     return createDraft(selectedItem)
   }, [selectedItem])
+
+  const timelineBookings = useMemo(() => {
+    return splitBookingsByTime(venueBookings || [])
+  }, [venueBookings])
 
   const hasUnsavedChanges = useMemo(() => {
     if (!draft || !baselineDraft) {
@@ -1114,6 +1238,107 @@ export function SuperAdminVenueConfigPage() {
               <div className="rounded-md border border-secondary-50/10 bg-secondary-800 px-3 py-2 text-xs text-secondary-50/70">
                 {formatLastSavedAt(selectedItem)}
               </div>
+            </ConfigRow>
+
+            <ConfigRow
+              title="Venue Bookings Timeline"
+              description="Single chronological feed of all venue bookings with upcoming first, then past."
+            >
+              {venueBookingsLoading ? (
+                <p className="text-xs text-secondary-50/60">Loading bookings...</p>
+              ) : venueBookingsError ? (
+                <div className="space-y-2 rounded-md border border-red-300/30 bg-red-400/10 px-3 py-2">
+                  <p className="text-xs text-red-200">{venueBookingsError}</p>
+                  <Button
+                    type="button"
+                    variant="outline"
+                    size="sm"
+                    onClick={() => {
+                      void refetchVenueBookings()
+                    }}
+                  >
+                    Retry
+                  </Button>
+                </div>
+              ) : !venueBookings || venueBookings.length === 0 ? (
+                <p className="text-xs text-secondary-50/60">No bookings for this venue yet.</p>
+              ) : (
+                <div data-testid="venue-bookings-timeline" className="space-y-2">
+                  {timelineBookings.upcoming.map((booking) => {
+                    const badge = resolveTimelineBadge(booking, selectedItem.venue.instant_booking, false)
+
+                    return (
+                      <div
+                        key={booking.id}
+                        data-testid="venue-booking-row"
+                        data-booking-id={booking.id}
+                        className="rounded-xl border border-secondary-50/10 bg-secondary-800 px-3 py-2"
+                      >
+                        <div className="flex items-start justify-between gap-3">
+                          <div className="space-y-0.5">
+                            <p className="text-sm font-medium text-secondary-50">{formatRenterLabel(booking.renter)}</p>
+                            <p className="text-xs text-secondary-50/70">{booking.renter?.email || 'No email on file'}</p>
+                            <p className="text-xs text-secondary-50/60">{formatBookingTimelineDate(booking)}</p>
+                          </div>
+                          <div className="flex flex-col items-end gap-1">
+                            <span className="text-xs font-semibold text-secondary-50">${booking.total_amount.toFixed(2)}</span>
+                            <span
+                              className={cn(
+                                'inline-flex items-center rounded-full border px-2.5 py-0.5 text-[11px] font-medium',
+                                badge.className
+                              )}
+                            >
+                              {badge.label}
+                            </span>
+                          </div>
+                        </div>
+                      </div>
+                    )
+                  })}
+
+                  {timelineBookings.past.length > 0 ? (
+                    <div className="pt-1">
+                      <div className="flex items-center gap-2">
+                        <div className="h-px flex-1 bg-secondary-50/15" />
+                        <p className="text-[11px] font-medium uppercase tracking-wide text-secondary-50/45">Past bookings</p>
+                        <div className="h-px flex-1 bg-secondary-50/15" />
+                      </div>
+                    </div>
+                  ) : null}
+
+                  {timelineBookings.past.map((booking) => {
+                    const badge = resolveTimelineBadge(booking, selectedItem.venue.instant_booking, true)
+
+                    return (
+                      <div
+                        key={booking.id}
+                        data-testid="venue-booking-row"
+                        data-booking-id={booking.id}
+                        className="rounded-xl border border-secondary-50/10 bg-secondary-800 px-3 py-2"
+                      >
+                        <div className="flex items-start justify-between gap-3">
+                          <div className="space-y-0.5">
+                            <p className="text-sm font-medium text-secondary-50">{formatRenterLabel(booking.renter)}</p>
+                            <p className="text-xs text-secondary-50/70">{booking.renter?.email || 'No email on file'}</p>
+                            <p className="text-xs text-secondary-50/60">{formatBookingTimelineDate(booking)}</p>
+                          </div>
+                          <div className="flex flex-col items-end gap-1">
+                            <span className="text-xs font-semibold text-secondary-50">${booking.total_amount.toFixed(2)}</span>
+                            <span
+                              className={cn(
+                                'inline-flex items-center rounded-full border px-2.5 py-0.5 text-[11px] font-medium',
+                                badge.className
+                              )}
+                            >
+                              {badge.label}
+                            </span>
+                          </div>
+                        </div>
+                      </div>
+                    )
+                  })}
+                </div>
+              )}
             </ConfigRow>
           </section>
         )}

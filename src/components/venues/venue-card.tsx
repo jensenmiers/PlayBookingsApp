@@ -104,6 +104,15 @@ export function VenueCard({ venue, nextAvailable }: VenueCardProps) {
             <span className="font-medium">${venue.hourly_rate}/hour</span>
           </div>
 
+          {/* Insurance requirement */}
+          {venue.insurance_required && (
+            <div className="mb-2">
+              <span className="rounded-full bg-secondary-50/10 px-2 py-1 text-[11px] text-secondary-50/70">
+                Insurance
+              </span>
+            </div>
+          )}
+
           {/* Amenities - first 3-4 tags */}
           {venue.amenities && venue.amenities.length > 0 && (
             <div className="flex flex-wrap gap-2 mb-3">
@@ -132,4 +141,3 @@ export function VenueCard({ venue, nextAvailable }: VenueCardProps) {
     </div>
   )
 }
-

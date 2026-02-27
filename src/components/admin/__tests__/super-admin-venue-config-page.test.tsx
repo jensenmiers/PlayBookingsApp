@@ -1,16 +1,24 @@
 import { fireEvent, render, screen, waitFor } from '@testing-library/react'
 import { SuperAdminVenueConfigPage } from '../super-admin-venue-config-page'
 import { patchAdminVenueConfig, useAdminVenues } from '@/hooks/useAdminVenues'
+import { useAdminVenueBookings } from '@/hooks/useAdminVenueBookings'
 
 jest.mock('@/hooks/useAdminVenues', () => ({
   useAdminVenues: jest.fn(),
   patchAdminVenueConfig: jest.fn(),
 }))
 
+jest.mock('@/hooks/useAdminVenueBookings', () => ({
+  useAdminVenueBookings: jest.fn(),
+}))
+
 const mockUseAdminVenues = useAdminVenues as jest.Mock
 const mockPatchAdminVenueConfig = patchAdminVenueConfig as jest.Mock
+const mockUseAdminVenueBookings = useAdminVenueBookings as jest.Mock
 
 const mockRefetch = jest.fn().mockResolvedValue(undefined)
+const mockBookingsRefetch = jest.fn().mockResolvedValue(undefined)
+
 const buildMockAdminVenuesData = () => [
   {
     venue: {
@@ -110,6 +118,109 @@ const buildMockAdminVenuesData = () => [
   },
 ]
 
+const buildMockVenueBookings = () => [
+  {
+    id: 'booking-pending-payment',
+    venue_id: 'venue-1',
+    renter_id: 'renter-1',
+    date: '2099-01-02',
+    start_time: '17:00:00',
+    end_time: '18:00:00',
+    status: 'pending',
+    total_amount: 120,
+    insurance_approved: true,
+    insurance_required: false,
+    recurring_type: 'none',
+    created_at: '2026-02-20T12:00:00.000Z',
+    updated_at: '2026-02-20T12:00:00.000Z',
+    renter: {
+      first_name: 'Pat',
+      last_name: 'Pay',
+      email: 'pat.pay@example.com',
+    },
+  },
+  {
+    id: 'booking-pending-insurance',
+    venue_id: 'venue-1',
+    renter_id: 'renter-2',
+    date: '2099-01-01',
+    start_time: '15:00:00',
+    end_time: '16:00:00',
+    status: 'pending',
+    total_amount: 140,
+    insurance_approved: false,
+    insurance_required: true,
+    recurring_type: 'none',
+    created_at: '2026-02-20T12:00:00.000Z',
+    updated_at: '2026-02-20T12:00:00.000Z',
+    renter: {
+      first_name: 'Ivy',
+      last_name: 'Insure',
+      email: 'ivy.insure@example.com',
+    },
+  },
+  {
+    id: 'booking-confirmed',
+    venue_id: 'venue-1',
+    renter_id: 'renter-3',
+    date: '2099-01-03',
+    start_time: '10:00:00',
+    end_time: '11:00:00',
+    status: 'confirmed',
+    total_amount: 160,
+    insurance_approved: true,
+    insurance_required: false,
+    recurring_type: 'none',
+    created_at: '2026-02-20T12:00:00.000Z',
+    updated_at: '2026-02-20T12:00:00.000Z',
+    renter: {
+      first_name: 'Chris',
+      last_name: 'Confirm',
+      email: 'chris.confirm@example.com',
+    },
+  },
+  {
+    id: 'booking-cancelled',
+    venue_id: 'venue-1',
+    renter_id: 'renter-4',
+    date: '2020-01-03',
+    start_time: '12:00:00',
+    end_time: '13:00:00',
+    status: 'cancelled',
+    total_amount: 90,
+    insurance_approved: true,
+    insurance_required: false,
+    recurring_type: 'none',
+    created_at: '2026-02-20T12:00:00.000Z',
+    updated_at: '2026-02-20T12:00:00.000Z',
+    renter: {
+      first_name: 'Casey',
+      last_name: 'Cancel',
+      email: 'casey.cancel@example.com',
+    },
+  },
+  {
+    id: 'booking-completed',
+    venue_id: 'venue-1',
+    renter_id: 'renter-5',
+    date: '2020-01-02',
+    start_time: '09:00:00',
+    end_time: '10:00:00',
+    status: 'completed',
+    total_amount: 75,
+    insurance_approved: true,
+    insurance_required: false,
+    recurring_type: 'none',
+    created_at: '2026-02-20T12:00:00.000Z',
+    updated_at: '2026-02-20T12:00:00.000Z',
+    renter: {
+      first_name: 'Corey',
+      last_name: 'Complete',
+      email: 'corey.complete@example.com',
+    },
+  },
+]
+
 describe('SuperAdminVenueConfigPage', () => {
   beforeEach(() => {
     jest.clearAllMocks()
@@ -119,6 +230,13 @@ describe('SuperAdminVenueConfigPage', () => {
       error: null,
       refetch: mockRefetch,
       data: buildMockAdminVenuesData(),
+    } as any)
+
+    mockUseAdminVenueBookings.mockReturnValue({
+      loading: false,
+      error: null,
+      refetch: mockBookingsRefetch,
+      data: [],
     } as any)
   })
 
@@ -177,6 +295,7 @@ describe('SuperAdminVenueConfigPage', () => {
       'Drop-In Open Gym',
       'Drop-In Weekly Schedule',
       'Last Saved',
+      'Venue Bookings Timeline',
     ].map((name) => screen.getByRole('heading', { name, level: 3 }))
 
     for (let index = 0; index < headingsInOrder.length - 1; index += 1) {
@@ -294,5 +413,53 @@ describe('SuperAdminVenueConfigPage', () => {
         })
       )
     })
+  })
+
+  it('renders chronological timeline with upcoming first, then past divider, and detailed status badges', async () => {
+    mockUseAdminVenueBookings.mockReturnValue({
+      loading: false,
+      error: null,
+      refetch: mockBookingsRefetch,
+      data: buildMockVenueBookings(),
+    } as any)
+
+    render(<SuperAdminVenueConfigPage />)
+
+    await screen.findByRole('heading', { name: 'Venue Bookings Timeline', level: 3 })
+
+    const timelineRoot = screen.getByTestId('venue-bookings-timeline')
+    const rowNodes = Array.from(timelineRoot.querySelectorAll('[data-testid=\"venue-booking-row\"]'))
+
+    const rowOrder = rowNodes.map((node) => node.getAttribute('data-booking-id'))
+    expect(rowOrder).toEqual([
+      'booking-pending-insurance',
+      'booking-pending-payment',
+      'booking-confirmed',
+      'booking-cancelled',
+      'booking-completed',
+    ])
+
+    expect(screen.getByText('Past bookings')).toBeInTheDocument()
+
+    expect(screen.getByText('Pending Insurance')).toBeInTheDocument()
+    expect(screen.getByText('Pending Payment')).toBeInTheDocument()
+    expect(screen.getByText('Confirmed')).toBeInTheDocument()
+    expect(screen.getByText('Cancelled')).toBeInTheDocument()
+    expect(screen.getByText('Completed')).toBeInTheDocument()
+  })
+
+  it('renders booking rows as read-only content without row links or row action buttons', async () => {
+    mockUseAdminVenueBookings.mockReturnValue({
+      loading: false,
+      error: null,
+      refetch: mockBookingsRefetch,
+      data: buildMockVenueBookings(),
+    } as any)
+
+    render(<SuperAdminVenueConfigPage />)
+
+    const renterText = await screen.findByText('Pat Pay')
+    expect(renterText.closest('a')).toBeNull()
+    expect(renterText.closest('button')).toBeNull()
   })
 })
