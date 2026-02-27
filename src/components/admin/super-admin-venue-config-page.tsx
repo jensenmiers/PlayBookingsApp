@@ -755,122 +755,6 @@ export function SuperAdminVenueConfigPage() {
             </ConfigRow>
 
             <ConfigRow
-              title="Drop-In Open Gym"
-              description="Enable open gym sessions and set the per-person drop-in price."
-            >
-              <label className="flex items-center gap-2 text-sm text-secondary-50/80">
-                <input
-                  type="checkbox"
-                  checked={draft.drop_in_enabled}
-                  onChange={(event) => {
-                    updateDraft((previous) => ({
-                      ...previous,
-                      drop_in_enabled: event.target.checked,
-                    }))
-                  }}
-                />
-                Drop-in enabled
-              </label>
-              <Input
-                type="number"
-                min="1"
-                step="0.01"
-                value={draft.drop_in_price}
-                placeholder="Drop-in price"
-                onChange={(event) => {
-                  updateDraft((previous) => ({ ...previous, drop_in_price: event.target.value }))
-                }}
-              />
-            </ConfigRow>
-
-            <ConfigRow
-              title="Drop-In Weekly Schedule"
-              description="Recurring weekly windows used to generate open-gym sessions."
-            >
-              <div className="space-y-2">
-                {draft.drop_in_templates.map((window, index) => (
-                  <div
-                    key={`${window.day_of_week}-${window.start_time}-${window.end_time}-${index}`}
-                    className="grid grid-cols-[minmax(9.5rem,1.15fr)_minmax(7.5rem,8.5rem)_minmax(7.5rem,8.5rem)_auto] items-center gap-3"
-                  >
-                    <select
-                      aria-label={`Drop-in day row ${index + 1}`}
-                      className="h-11 w-full appearance-none rounded-full border border-secondary-50/15 bg-secondary-800 px-5 py-2 text-sm font-medium text-secondary-50 shadow-xs outline-none transition-[border-color,box-shadow] hover:border-secondary-50/30 focus-visible:border-primary-400 focus-visible:ring-[3px] focus-visible:ring-primary-400/30"
-                      value={window.day_of_week}
-                      onChange={(event) => {
-                        updateDraft((previous) => {
-                          const next = [...previous.drop_in_templates]
-                          next[index] = { ...next[index], day_of_week: Number(event.target.value) }
-                          return { ...previous, drop_in_templates: next }
-                        })
-                      }}
-                    >
-                      {DAY_OPTIONS.map((option) => (
-                        <option key={option.value} value={option.value}>
-                          {option.label}
-                        </option>
-                      ))}
-                    </select>
-
-                    <TimePillSelect
-                      ariaLabel={`Drop-in start time row ${index + 1}`}
-                      value={window.start_time}
-                      options={getTimePillOptions(window.start_time)}
-                      onChange={(value) => {
-                        updateDraft((previous) => {
-                          const next = [...previous.drop_in_templates]
-                          next[index] = { ...next[index], start_time: value }
-                          return { ...previous, drop_in_templates: next }
-                        })
-                      }}
-                    />
-
-                    <TimePillSelect
-                      ariaLabel={`Drop-in end time row ${index + 1}`}
-                      value={window.end_time}
-                      options={getTimePillOptions(window.end_time)}
-                      onChange={(value) => {
-                        updateDraft((previous) => {
-                          const next = [...previous.drop_in_templates]
-                          next[index] = { ...next[index], end_time: value }
-                          return { ...previous, drop_in_templates: next }
-                        })
-                      }}
-                    />
-                    <Button
-                      type="button"
-                      variant="ghost"
-                      className="h-11 rounded-xl px-3 text-secondary-50/80 hover:text-secondary-50"
-                      onClick={() => {
-                        updateDraft((previous) => ({
-                          ...previous,
-                          drop_in_templates: previous.drop_in_templates.filter((_, rowIndex) => rowIndex !== index),
-                        }))
-                      }}
-                    >
-                      Remove
-                    </Button>
-                  </div>
-                ))}
-              </div>
-              <Button
-                type="button"
-                variant="outline"
-                onClick={() => {
-                  updateDraft((previous) => ({
-                    ...previous,
-                    drop_in_templates: [
-                      ...previous.drop_in_templates,
-                      { day_of_week: 1, start_time: '12:00', end_time: '13:00' },
-                    ],
-                  }))
-                }}
-              >
-                Add Window
-              </Button>
-            </ConfigRow>
-
-            <ConfigRow
               title="Booking Mode"
               description="Control instant booking and insurance requirements."
             >
@@ -1009,32 +893,6 @@ export function SuperAdminVenueConfigPage() {
             </ConfigRow>
 
             <ConfigRow
-              title="Blackout Dates + Holidays"
-              description="Any listed date blocks booking and availability for this venue."
-            >
-              <Input
-                value={draft.blackout_dates}
-                placeholder="Blackout dates: YYYY-MM-DD, YYYY-MM-DD"
-                onChange={(event) => {
-                  updateDraft((previous) => ({
-                    ...previous,
-                    blackout_dates: event.target.value,
-                  }))
-                }}
-              />
-              <Input
-                value={draft.holiday_dates}
-                placeholder="Holiday dates: YYYY-MM-DD, YYYY-MM-DD"
-                onChange={(event) => {
-                  updateDraft((previous) => ({
-                    ...previous,
-                    holiday_dates: event.target.value,
-                  }))
-                }}
-              />
-            </ConfigRow>
-
-            <ConfigRow
               title="Amenities Checklist"
               description="Shown on venue cards/details and used for completeness checks."
             >
@@ -1105,6 +963,148 @@ export function SuperAdminVenueConfigPage() {
                   }))
                 }}
               />
+            </ConfigRow>
+
+            <ConfigRow
+              title="Blackout Dates + Holidays"
+              description="Any listed date blocks booking and availability for this venue."
+            >
+              <Input
+                value={draft.blackout_dates}
+                placeholder="Blackout dates: YYYY-MM-DD, YYYY-MM-DD"
+                onChange={(event) => {
+                  updateDraft((previous) => ({
+                    ...previous,
+                    blackout_dates: event.target.value,
+                  }))
+                }}
+              />
+              <Input
+                value={draft.holiday_dates}
+                placeholder="Holiday dates: YYYY-MM-DD, YYYY-MM-DD"
+                onChange={(event) => {
+                  updateDraft((previous) => ({
+                    ...previous,
+                    holiday_dates: event.target.value,
+                  }))
+                }}
+              />
+            </ConfigRow>
+
+            <ConfigRow
+              title="Drop-In Open Gym"
+              description="Enable open gym sessions and set the per-person drop-in price."
+            >
+              <label className="flex items-center gap-2 text-sm text-secondary-50/80">
+                <input
+                  type="checkbox"
+                  checked={draft.drop_in_enabled}
+                  onChange={(event) => {
+                    updateDraft((previous) => ({
+                      ...previous,
+                      drop_in_enabled: event.target.checked,
+                    }))
+                  }}
+                />
+                Drop-in enabled
+              </label>
+              <Input
+                type="number"
+                min="1"
+                step="0.01"
+                value={draft.drop_in_price}
+                placeholder="Drop-in price"
+                onChange={(event) => {
+                  updateDraft((previous) => ({ ...previous, drop_in_price: event.target.value }))
+                }}
+              />
+            </ConfigRow>
+
+            <ConfigRow
+              title="Drop-In Weekly Schedule"
+              description="Recurring weekly windows used to generate open-gym sessions."
+            >
+              <div className="space-y-2">
+                {draft.drop_in_templates.map((window, index) => (
+                  <div
+                    key={`${window.day_of_week}-${window.start_time}-${window.end_time}-${index}`}
+                    className="grid grid-cols-[minmax(9.5rem,1.15fr)_minmax(7.5rem,8.5rem)_minmax(7.5rem,8.5rem)_auto] items-center gap-3"
+                  >
+                    <select
+                      aria-label={`Drop-in day row ${index + 1}`}
+                      className="h-11 w-full appearance-none rounded-full border border-secondary-50/15 bg-secondary-800 px-5 py-2 text-sm font-medium text-secondary-50 shadow-xs outline-none transition-[border-color,box-shadow] hover:border-secondary-50/30 focus-visible:border-primary-400 focus-visible:ring-[3px] focus-visible:ring-primary-400/30"
+                      value={window.day_of_week}
+                      onChange={(event) => {
+                        updateDraft((previous) => {
+                          const next = [...previous.drop_in_templates]
+                          next[index] = { ...next[index], day_of_week: Number(event.target.value) }
+                          return { ...previous, drop_in_templates: next }
+                        })
+                      }}
+                    >
+                      {DAY_OPTIONS.map((option) => (
+                        <option key={option.value} value={option.value}>
+                          {option.label}
+                        </option>
+                      ))}
+                    </select>
+
+                    <TimePillSelect
+                      ariaLabel={`Drop-in start time row ${index + 1}`}
+                      value={window.start_time}
+                      options={getTimePillOptions(window.start_time)}
+                      onChange={(value) => {
+                        updateDraft((previous) => {
+                          const next = [...previous.drop_in_templates]
+                          next[index] = { ...next[index], start_time: value }
+                          return { ...previous, drop_in_templates: next }
+                        })
+                      }}
+                    />
+
+                    <TimePillSelect
+                      ariaLabel={`Drop-in end time row ${index + 1}`}
+                      value={window.end_time}
+                      options={getTimePillOptions(window.end_time)}
+                      onChange={(value) => {
+                        updateDraft((previous) => {
+                          const next = [...previous.drop_in_templates]
+                          next[index] = { ...next[index], end_time: value }
+                          return { ...previous, drop_in_templates: next }
+                        })
+                      }}
+                    />
+                    <Button
+                      type="button"
+                      variant="ghost"
+                      className="h-11 rounded-xl px-3 text-secondary-50/80 hover:text-secondary-50"
+                      onClick={() => {
+                        updateDraft((previous) => ({
+                          ...previous,
+                          drop_in_templates: previous.drop_in_templates.filter((_, rowIndex) => rowIndex !== index),
+                        }))
+                      }}
+                    >
+                      Remove
+                    </Button>
+                  </div>
+                ))}
+              </div>
+              <Button
+                type="button"
+                variant="outline"
+                onClick={() => {
+                  updateDraft((previous) => ({
+                    ...previous,
+                    drop_in_templates: [
+                      ...previous.drop_in_templates,
+                      { day_of_week: 1, start_time: '12:00', end_time: '13:00' },
+                    ],
+                  }))
+                }}
+              >
+                Add Window
+              </Button>
             </ConfigRow>
 
             <ConfigRow

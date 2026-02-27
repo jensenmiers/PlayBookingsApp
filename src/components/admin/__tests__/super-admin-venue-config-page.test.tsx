@@ -162,6 +162,30 @@ describe('SuperAdminVenueConfigPage', () => {
     confirmSpy.mockRestore()
   })
 
+  it('renders super-admin sections in the configured order', async () => {
+    render(<SuperAdminVenueConfigPage />)
+
+    await screen.findByRole('heading', { name: 'Normal Booking Price', level: 3 })
+
+    const headingsInOrder = [
+      'Normal Booking Price',
+      'Booking Mode',
+      'Advance Booking Rules',
+      'Amenities Checklist',
+      'Policies',
+      'Blackout Dates + Holidays',
+      'Drop-In Open Gym',
+      'Drop-In Weekly Schedule',
+      'Last Saved',
+    ].map((name) => screen.getByRole('heading', { name, level: 3 }))
+
+    for (let index = 0; index < headingsInOrder.length - 1; index += 1) {
+      expect(headingsInOrder[index].compareDocumentPosition(headingsInOrder[index + 1])).toBe(
+        Node.DOCUMENT_POSITION_FOLLOWING
+      )
+    }
+  })
+
   it('saves weekly drop-in templates when schedule windows are added', async () => {
     mockPatchAdminVenueConfig.mockResolvedValue({})
 
