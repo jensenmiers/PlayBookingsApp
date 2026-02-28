@@ -13,6 +13,16 @@ It is intentionally not a column-by-column reference.
 - Gap: column-level, trigger, and function introspection is limited because helper RPCs (`get_table_structure`, `get_all_triggers`, `get_all_functions`) are not installed in the current Supabase project.
 - Gap: this document describes architecture and ownership boundaries, not every constraint/index/default.
 
+## Automated Snapshot (Generated)
+
+<!-- AUTO-SNAPSHOT:DB:START -->
+- Generated at: 2026-02-27 (America/Los_Angeles)
+- Latest migration in repo: `20260228000100_add_regular_booking_template_sync_queue.sql` (26 total)
+- Distinct tables referenced in app code via `.from()`: 13
+- App table sample: `audit_logs`, `availability`, `bookings`, `payments`, `recurring_bookings`, `regular_template_sync_queue`, `slot_instances`, `slot_interactions`, `slot_modal_content`, `slot_templates`, `users`, `venue_admin_configs` (+1 more)
+- Live key-table check: 19/19 tables available
+<!-- AUTO-SNAPSHOT:DB:END -->
+
 ## Current Model (By Domain)
 
 ### Identity and Access

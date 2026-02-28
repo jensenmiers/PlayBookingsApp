@@ -14,6 +14,18 @@ It is intentionally concise and avoids per-component class inventories.
 - Gap: this is code-level verification only; visual QA across all pages was not part of this pass.
 - Gap: variant-heavy venue pages may include local stylistic experiments not fully cataloged here.
 
+## Automated Snapshot (Generated)
+
+<!-- AUTO-SNAPSHOT:CSS:START -->
+- Generated at: 2026-02-27 (America/Los_Angeles)
+- CSS files in `src`: 1 (`src/app/globals.css`)
+- UI primitive files in `src/components/ui`: 16
+- Files using `cva()`: 2
+- Font variables from layout: `--font-dm-sans`, `--font-dm-serif`, `--font-geist-mono`
+- Globals include dark variant: yes
+- Globals include Mapbox popup overrides: yes
+<!-- AUTO-SNAPSHOT:CSS:END -->
+
 ## Current Styling Stack
 
 - Tailwind CSS v4 via `@import "tailwindcss"` in `src/app/globals.css`.
