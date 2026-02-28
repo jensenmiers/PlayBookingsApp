@@ -86,10 +86,6 @@ export class BookingService {
     const totalAmount = duration * venue.hourly_rate
 
     // Create booking
-    const insuranceManualApprovalRequired = venue.insurance_required
-      ? adminConfig.insurance_requires_manual_approval
-      : false
-
     const booking = await this.bookingRepo.create({
       venue_id: data.venue_id,
       renter_id: userId,
@@ -99,7 +95,7 @@ export class BookingService {
       status: 'pending',
       total_amount: totalAmount,
       insurance_required: venue.insurance_required,
-      insurance_approved: !venue.insurance_required || !insuranceManualApprovalRequired,
+      insurance_approved: !venue.insurance_required,
       recurring_type: data.recurring_type || 'none',
       recurring_end_date: data.recurring_end_date,
       notes: data.notes,

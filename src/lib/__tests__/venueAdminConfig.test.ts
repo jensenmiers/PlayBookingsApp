@@ -127,7 +127,6 @@ describe('calculateVenueConfigCompleteness', () => {
     const config = normalizeVenueAdminConfig('venue-1', {
       min_advance_booking_days: 0,
       min_advance_lead_time_hours: 0,
-      insurance_document_types: [],
       operating_hours: [],
       review_cadence_days: 30,
       last_reviewed_at: null,

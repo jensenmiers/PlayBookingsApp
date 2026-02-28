@@ -17,7 +17,7 @@ It is intentionally not a column-by-column reference.
 
 <!-- AUTO-SNAPSHOT:DB:START -->
 - Generated at: 2026-02-27 (America/Los_Angeles)
-- Latest migration in repo: `20260228000100_add_regular_booking_template_sync_queue.sql` (26 total)
+- Latest migration in repo: `20260228000200_remove_redundant_insurance_columns_from_venue_admin_configs.sql` (27 total)
 - Distinct tables referenced in app code via `.from()`: 13
 - App table sample: `audit_logs`, `availability`, `bookings`, `payments`, `recurring_bookings`, `regular_template_sync_queue`, `slot_instances`, `slot_interactions`, `slot_modal_content`, `slot_templates`, `users`, `venue_admin_configs` (+1 more)
 - Live key-table check: 19/19 tables available
@@ -79,6 +79,9 @@ It is intentionally not a column-by-column reference.
    - Templates can reference `pricing_rules`.
    - Generated instances receive `slot_instance_pricing` snapshots for runtime reads.
 5. `venues.max_advance_booking_days` remains present for legacy compatibility, but policy enforcement now prioritizes admin config minimum-advance controls.
+6. Insurance policy controls were simplified:
+   - `venues.insurance_required` is now the only venue-level insurance gate.
+   - `venue_admin_configs.insurance_requires_manual_approval` and `venue_admin_configs.insurance_document_types` were removed.
 
 ## Operational Notes
 

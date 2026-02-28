@@ -140,8 +140,6 @@ export function getDefaultVenueAdminConfig(venueId: string): VenueAdminConfig {
     operating_hours: [],
     blackout_dates: [],
     holiday_dates: [],
-    insurance_requires_manual_approval: true,
-    insurance_document_types: [],
     policy_cancel: null,
     policy_refund: null,
     policy_reschedule: null,
@@ -185,13 +183,6 @@ export function normalizeVenueAdminConfig(
     operating_hours: normalizeOperatingHours(row.operating_hours),
     blackout_dates: Array.isArray(row.blackout_dates) ? row.blackout_dates : [],
     holiday_dates: Array.isArray(row.holiday_dates) ? row.holiday_dates : [],
-    insurance_requires_manual_approval:
-      row.insurance_requires_manual_approval === undefined
-        ? defaults.insurance_requires_manual_approval
-        : Boolean(row.insurance_requires_manual_approval),
-    insurance_document_types: Array.isArray(row.insurance_document_types)
-      ? row.insurance_document_types.filter((item) => typeof item === 'string' && item.trim().length > 0)
-      : [],
     policy_cancel: row.policy_cancel ?? null,
     policy_refund: row.policy_refund ?? null,
     policy_reschedule: row.policy_reschedule ?? null,
@@ -276,10 +267,6 @@ export function calculateVenueConfigCompleteness(
     { key: 'min_advance_days', ok: config.min_advance_booking_days >= 0 },
     { key: 'lead_time', ok: config.min_advance_lead_time_hours >= 0 },
     { key: 'amenities', ok: Array.isArray(venue.amenities) && venue.amenities.length > 0 },
-    {
-      key: 'insurance_document_types',
-      ok: !venue.insurance_required || config.insurance_document_types.length > 0,
-    },
   ]
 
   const passed = checks.filter((check) => check.ok).length

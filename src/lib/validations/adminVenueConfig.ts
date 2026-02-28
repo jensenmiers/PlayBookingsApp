@@ -41,8 +41,6 @@ export const updateVenueAdminConfigSchema = z
     operating_hours: z.array(operatingHourWindowSchema).optional(),
     blackout_dates: z.array(dateSchema).optional(),
     holiday_dates: z.array(dateSchema).optional(),
-    insurance_requires_manual_approval: z.boolean().optional(),
-    insurance_document_types: z.array(z.string().min(1)).optional(),
     policy_cancel: z.string().nullable().optional(),
     policy_refund: z.string().nullable().optional(),
     policy_reschedule: z.string().nullable().optional(),

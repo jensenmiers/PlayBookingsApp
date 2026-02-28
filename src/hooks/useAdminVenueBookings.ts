@@ -54,8 +54,32 @@ export function useAdminVenueBookings(venueId: string | null) {
     void refetch()
   }, [refetch])
 
+  const approveInsurance = useCallback(async (bookingId: string): Promise<{ success: boolean; error: string | null }> => {
+    if (!venueId) {
+      return { success: false, error: 'Venue is required' }
+    }
+
+    try {
+      const response = await fetch(`/api/admin/venues/${venueId}/bookings/${bookingId}/insurance-approve`, {
+        method: 'POST',
+      })
+      const result = await response.json()
+      if (!response.ok || !result.success) {
+        return { success: false, error: result.error?.message || 'Failed to approve insurance' }
+      }
+
+      return { success: true, error: null }
+    } catch (error) {
+      return {
+        success: false,
+        error: error instanceof Error ? error.message : 'Failed to approve insurance',
+      }
+    }
+  }, [venueId])
+
   return {
     ...state,
     refetch,
+    approveInsurance,
   }
 }

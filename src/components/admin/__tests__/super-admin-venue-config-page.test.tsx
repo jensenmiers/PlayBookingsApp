@@ -18,6 +18,7 @@ const mockUseAdminVenueBookings = useAdminVenueBookings as jest.Mock
 
 const mockRefetch = jest.fn().mockResolvedValue(undefined)
 const mockBookingsRefetch = jest.fn().mockResolvedValue(undefined)
+const mockApproveInsurance = jest.fn().mockResolvedValue({ success: true, error: null })
 
 const buildMockAdminVenuesData = () => [
   {
@@ -50,8 +51,6 @@ const buildMockAdminVenuesData = () => [
       operating_hours: [],
       blackout_dates: [],
       holiday_dates: [],
-      insurance_requires_manual_approval: true,
-      insurance_document_types: [],
       policy_cancel: null,
       policy_refund: null,
       policy_reschedule: null,
@@ -107,8 +106,6 @@ const buildMockAdminVenuesData = () => [
       operating_hours: [],
       blackout_dates: [],
       holiday_dates: [],
-      insurance_requires_manual_approval: true,
-      insurance_document_types: [],
       policy_cancel: null,
       policy_refund: null,
       policy_reschedule: null,
@@ -254,6 +251,7 @@ describe('SuperAdminVenueConfigPage', () => {
       loading: false,
       error: null,
       refetch: mockBookingsRefetch,
+      approveInsurance: mockApproveInsurance,
       data: [],
     } as any)
   })
@@ -322,6 +320,55 @@ describe('SuperAdminVenueConfigPage', () => {
         Node.DOCUMENT_POSITION_FOLLOWING
       )
     }
+  })
+
+  it('renders two booking mode toggles and removes legacy insurance controls', async () => {
+    render(<SuperAdminVenueConfigPage />)
+
+    await screen.findByRole('heading', { name: 'Booking Mode', level: 3 })
+
+    expect(screen.getByRole('button', { name: 'Instant' })).toBeInTheDocument()
+    expect(screen.getByRole('button', { name: 'Manual approval' })).toBeInTheDocument()
+    expect(screen.getByRole('button', { name: 'Required' })).toBeInTheDocument()
+    expect(screen.getByRole('button', { name: 'Not required' })).toBeInTheDocument()
+
+    expect(screen.queryByLabelText(/manual insurance approval required/i)).not.toBeInTheDocument()
+    expect(screen.queryByPlaceholderText(/insurance document types/i)).not.toBeInTheDocument()
+  })
+
+  it('saves insurance toggle without legacy insurance fields', async () => {
+    mockPatchAdminVenueConfig.mockResolvedValue({})
+
+    render(<SuperAdminVenueConfigPage />)
+
+    fireEvent.click(await screen.findByRole('button', { name: 'Required' }))
+    fireEvent.click(screen.getByRole('button', { name: /save changes/i }))
+
+    await waitFor(() => {
+      expect(mockPatchAdminVenueConfig).toHaveBeenCalledWith(
+        'venue-1',
+        expect.objectContaining({
+          insurance_required: true,
+        })
+      )
+    })
+
+    const payload = mockPatchAdminVenueConfig.mock.calls.at(-1)?.[1]
+    expect(payload).not.toHaveProperty('insurance_requires_manual_approval')
+    expect(payload).not.toHaveProperty('insurance_document_types')
+  })
+
+  it('shows pending-state helper copy for booking mode combinations', async () => {
+    render(<SuperAdminVenueConfigPage />)
+
+    await screen.findByRole('heading', { name: 'Booking Mode', level: 3 })
+
+    expect(screen.getByText(/new bookings will start as pending payment/i)).toBeInTheDocument()
+    fireEvent.click(screen.getByRole('button', { name: 'Required' }))
+    expect(screen.getByText(/new bookings will start as pending insurance/i)).toBeInTheDocument()
+    fireEvent.click(screen.getByRole('button', { name: 'Manual approval' }))
+    fireEvent.click(screen.getByRole('button', { name: 'Not required' }))
+    expect(screen.getByText(/new bookings will start as pending approval/i)).toBeInTheDocument()
   })
 
   it('saves weekly drop-in templates when schedule windows are added', async () => {
@@ -463,6 +510,7 @@ describe('SuperAdminVenueConfigPage', () => {
       loading: false,
       error: null,
       refetch: mockBookingsRefetch,
+      approveInsurance: mockApproveInsurance,
       data: buildMockVenueBookings(),
     } as any)
 
@@ -491,11 +539,12 @@ describe('SuperAdminVenueConfigPage', () => {
     expect(screen.getByText('Completed')).toBeInTheDocument()
   })
 
-  it('renders booking rows as read-only content without row links or row action buttons', async () => {
+  it('renders timeline rows without row links and shows insurance approval action only when applicable', async () => {
     mockUseAdminVenueBookings.mockReturnValue({
       loading: false,
       error: null,
       refetch: mockBookingsRefetch,
+      approveInsurance: mockApproveInsurance,
       data: buildMockVenueBookings(),
     } as any)
 
@@ -503,6 +552,26 @@ describe('SuperAdminVenueConfigPage', () => {
 
     const renterText = await screen.findByText('Pat Pay')
     expect(renterText.closest('a')).toBeNull()
-    expect(renterText.closest('button')).toBeNull()
+    expect(screen.getByRole('button', { name: /approve insurance/i })).toBeInTheDocument()
+  })
+
+  it('approves insurance for pending-insurance bookings and refetches timeline', async () => {
+    mockUseAdminVenueBookings.mockReturnValue({
+      loading: false,
+      error: null,
+      refetch: mockBookingsRefetch,
+      approveInsurance: mockApproveInsurance,
+      data: buildMockVenueBookings(),
+    } as any)
+
+    render(<SuperAdminVenueConfigPage />)
+
+    const approveButton = await screen.findByRole('button', { name: /approve insurance/i })
+    fireEvent.click(approveButton)
+
+    await waitFor(() => {
+      expect(mockApproveInsurance).toHaveBeenCalledWith('booking-pending-insurance')
+      expect(mockBookingsRefetch).toHaveBeenCalled()
+    })
   })
 })

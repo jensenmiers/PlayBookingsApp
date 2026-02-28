@@ -348,8 +348,6 @@ export async function PATCH(request: NextRequest, context: RouteContext): Promis
       'operating_hours',
       'blackout_dates',
       'holiday_dates',
-      'insurance_requires_manual_approval',
-      'insurance_document_types',
       'policy_cancel',
       'policy_refund',
       'policy_reschedule',

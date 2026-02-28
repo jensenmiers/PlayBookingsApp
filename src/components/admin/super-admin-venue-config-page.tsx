@@ -47,8 +47,6 @@ type VenueConfigDraft = {
   drop_in_price: string
   instant_booking: boolean
   insurance_required: boolean
-  insurance_requires_manual_approval: boolean
-  insurance_document_types: string
   min_advance_booking_days: string
   min_advance_lead_time_hours: string
   blackout_dates: string
@@ -179,8 +177,6 @@ function createDraft(item: AdminVenueConfigItem): VenueConfigDraft {
     drop_in_price: item.config.drop_in_price === null ? '' : String(item.config.drop_in_price),
     instant_booking: item.venue.instant_booking,
     insurance_required: item.venue.insurance_required,
-    insurance_requires_manual_approval: item.config.insurance_requires_manual_approval,
-    insurance_document_types: item.config.insurance_document_types.join(', '),
     min_advance_booking_days: String(item.config.min_advance_booking_days),
     min_advance_lead_time_hours: String(item.config.min_advance_lead_time_hours),
     blackout_dates: item.config.blackout_dates.join(', '),
@@ -361,15 +357,6 @@ function buildPatchFromDraft(
 
   if (draft.insurance_required !== item.venue.insurance_required) {
     patch.insurance_required = draft.insurance_required
-  }
-
-  if (draft.insurance_requires_manual_approval !== item.config.insurance_requires_manual_approval) {
-    patch.insurance_requires_manual_approval = draft.insurance_requires_manual_approval
-  }
-
-  const documentTypes = parseCommaList(draft.insurance_document_types)
-  if (!arraysEqual(documentTypes, item.config.insurance_document_types)) {
-    patch.insurance_document_types = documentTypes
   }
 
   const minAdvanceDays = parseNonNegativeInteger(draft.min_advance_booking_days)
@@ -563,6 +550,18 @@ function resolveTimelineBadge(
   }
 }
 
+function getBookingModeHelperText(draft: VenueConfigDraft): string {
+  if (draft.insurance_required) {
+    return 'New bookings will start as Pending Insurance until a super-admin approves insurance.'
+  }
+
+  if (draft.instant_booking) {
+    return 'New bookings will start as Pending Payment and can be paid immediately.'
+  }
+
+  return 'New bookings will start as Pending Approval until the venue owner confirms.'
+}
+
 function TimePillSelect({
   value,
   options,
@@ -628,11 +627,15 @@ export function SuperAdminVenueConfigPage() {
     loading: venueBookingsLoading,
     error: venueBookingsError,
     refetch: refetchVenueBookings,
+    approveInsurance,
   } = useAdminVenueBookings(selectedVenueId)
   const [draft, setDraft] = useState<VenueConfigDraft | null>(null)
   const [isSaving, setIsSaving] = useState(false)
   const [saveError, setSaveError] = useState<string | null>(null)
   const [saveMessage, setSaveMessage] = useState<string | null>(null)
+  const [insuranceActionBookingId, setInsuranceActionBookingId] = useState<string | null>(null)
+  const [insuranceActionError, setInsuranceActionError] = useState<string | null>(null)
+  const [insuranceActionMessage, setInsuranceActionMessage] = useState<string | null>(null)
 
   useEffect(() => {
     if (!selectedVenueId && data && data.length > 0) {
@@ -674,6 +677,9 @@ export function SuperAdminVenueConfigPage() {
     setDraft(createDraft(selectedItem))
     setSaveError(null)
     setSaveMessage(null)
+    setInsuranceActionError(null)
+    setInsuranceActionMessage(null)
+    setInsuranceActionBookingId(null)
   }, [selectedItem])
 
   useEffect(() => {
@@ -799,6 +805,26 @@ export function SuperAdminVenueConfigPage() {
       setSaveError(savePatchError instanceof Error ? savePatchError.message : 'Failed to save changes')
     } finally {
       setIsSaving(false)
+    }
+  }
+
+  const handleApproveInsurance = async (bookingId: string) => {
+    setInsuranceActionBookingId(bookingId)
+    setInsuranceActionError(null)
+    setInsuranceActionMessage(null)
+
+    try {
+      const result = await approveInsurance(bookingId)
+      if (!result.success) {
+        setInsuranceActionError(result.error || 'Failed to approve insurance')
+        return
+      }
+      await refetchVenueBookings()
+      setInsuranceActionMessage('Insurance approved')
+    } catch (actionError) {
+      setInsuranceActionError(actionError instanceof Error ? actionError.message : 'Failed to approve insurance')
+    } finally {
+      setInsuranceActionBookingId(null)
     }
   }
 
@@ -937,55 +963,75 @@ export function SuperAdminVenueConfigPage() {
               title="Booking Mode"
               description="Control instant booking and insurance requirements."
             >
-              <label className="flex items-center gap-2 text-sm text-secondary-50/80">
-                <input
-                  type="checkbox"
-                  checked={draft.instant_booking}
-                  onChange={(event) => {
-                    updateDraft((previous) => ({
-                      ...previous,
-                      instant_booking: event.target.checked,
-                    }))
-                  }}
-                />
-                Instant booking
-              </label>
-              <label className="flex items-center gap-2 text-sm text-secondary-50/80">
-                <input
-                  type="checkbox"
-                  checked={draft.insurance_required}
-                  onChange={(event) => {
-                    updateDraft((previous) => ({
-                      ...previous,
-                      insurance_required: event.target.checked,
-                    }))
-                  }}
-                />
-                Insurance required
-              </label>
-              <label className="flex items-center gap-2 text-sm text-secondary-50/80">
-                <input
-                  type="checkbox"
-                  checked={draft.insurance_requires_manual_approval}
-                  onChange={(event) => {
-                    updateDraft((previous) => ({
-                      ...previous,
-                      insurance_requires_manual_approval: event.target.checked,
-                    }))
-                  }}
-                />
-                Manual insurance approval required
-              </label>
-              <Input
-                value={draft.insurance_document_types}
-                placeholder="Insurance document types (comma-separated)"
-                onChange={(event) => {
-                  updateDraft((previous) => ({
-                    ...previous,
-                    insurance_document_types: event.target.value,
-                  }))
-                }}
-              />
+              <div className="space-y-3">
+                <div className="space-y-1">
+                  <p className="text-xs font-medium text-secondary-50/70">Booking mode</p>
+                  <div className="inline-flex rounded-full border border-secondary-50/15 bg-secondary-800 p-1">
+                    <button
+                      type="button"
+                      className={cn(
+                        'rounded-full px-3 py-1.5 text-xs font-medium transition-colors',
+                        draft.instant_booking
+                          ? 'bg-primary-400 text-secondary-900'
+                          : 'text-secondary-50/70 hover:text-secondary-50'
+                      )}
+                      onClick={() => {
+                        updateDraft((previous) => ({ ...previous, instant_booking: true }))
+                      }}
+                    >
+                      Instant
+                    </button>
+                    <button
+                      type="button"
+                      className={cn(
+                        'rounded-full px-3 py-1.5 text-xs font-medium transition-colors',
+                        !draft.instant_booking
+                          ? 'bg-primary-400 text-secondary-900'
+                          : 'text-secondary-50/70 hover:text-secondary-50'
+                      )}
+                      onClick={() => {
+                        updateDraft((previous) => ({ ...previous, instant_booking: false }))
+                      }}
+                    >
+                      Manual approval
+                    </button>
+                  </div>
+                </div>
+                <div className="space-y-1">
+                  <p className="text-xs font-medium text-secondary-50/70">Insurance</p>
+                  <div className="inline-flex rounded-full border border-secondary-50/15 bg-secondary-800 p-1">
+                    <button
+                      type="button"
+                      className={cn(
+                        'rounded-full px-3 py-1.5 text-xs font-medium transition-colors',
+                        draft.insurance_required
+                          ? 'bg-primary-400 text-secondary-900'
+                          : 'text-secondary-50/70 hover:text-secondary-50'
+                      )}
+                      onClick={() => {
+                        updateDraft((previous) => ({ ...previous, insurance_required: true }))
+                      }}
+                    >
+                      Required
+                    </button>
+                    <button
+                      type="button"
+                      className={cn(
+                        'rounded-full px-3 py-1.5 text-xs font-medium transition-colors',
+                        !draft.insurance_required
+                          ? 'bg-primary-400 text-secondary-900'
+                          : 'text-secondary-50/70 hover:text-secondary-50'
+                      )}
+                      onClick={() => {
+                        updateDraft((previous) => ({ ...previous, insurance_required: false }))
+                      }}
+                    >
+                      Not required
+                    </button>
+                  </div>
+                </div>
+                <p className="text-xs text-secondary-50/60">{getBookingModeHelperText(draft)}</p>
+              </div>
             </ConfigRow>
 
             <ConfigRow
@@ -1388,6 +1434,12 @@ export function SuperAdminVenueConfigPage() {
               title="Venue Bookings Timeline"
               description="Single chronological feed of all venue bookings with upcoming first, then past."
             >
+              {insuranceActionError ? (
+                <p className="text-xs text-red-300">{insuranceActionError}</p>
+              ) : null}
+              {insuranceActionMessage ? (
+                <p className="text-xs text-primary-400">{insuranceActionMessage}</p>
+              ) : null}
               {venueBookingsLoading ? (
                 <p className="text-xs text-secondary-50/60">Loading bookings...</p>
               ) : venueBookingsError ? (
@@ -1410,6 +1462,10 @@ export function SuperAdminVenueConfigPage() {
                 <div data-testid="venue-bookings-timeline" className="space-y-2">
                   {timelineBookings.upcoming.map((booking) => {
                     const badge = resolveTimelineBadge(booking, selectedItem.venue.instant_booking, false)
+                    const canApproveInsurance =
+                      booking.status === 'pending'
+                      && booking.insurance_required
+                      && !booking.insurance_approved
 
                     return (
                       <div
@@ -1423,6 +1479,19 @@ export function SuperAdminVenueConfigPage() {
                             <p className="text-sm font-medium text-secondary-50">{formatRenterLabel(booking.renter)}</p>
                             <p className="text-xs text-secondary-50/70">{booking.renter?.email || 'No email on file'}</p>
                             <p className="text-xs text-secondary-50/60">{formatBookingTimelineDate(booking)}</p>
+                            {canApproveInsurance ? (
+                              <Button
+                                type="button"
+                                variant="outline"
+                                size="sm"
+                                disabled={insuranceActionBookingId === booking.id}
+                                onClick={() => {
+                                  void handleApproveInsurance(booking.id)
+                                }}
+                              >
+                                {insuranceActionBookingId === booking.id ? 'Approving...' : 'Approve Insurance'}
+                              </Button>
+                            ) : null}
                           </div>
                           <div className="flex flex-col items-end gap-1">
                             <span className="text-xs font-semibold text-secondary-50">${booking.total_amount.toFixed(2)}</span>

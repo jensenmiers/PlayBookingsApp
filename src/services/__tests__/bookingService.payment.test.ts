@@ -242,5 +242,62 @@ describe('BookingService - Payment Flow', () => {
       expect(result.requiresImmediatePayment).toBe(false)
       expect(result.awaitingInsuranceApproval).toBe(true)
     })
+
+    it('always requires explicit insurance approval when insurance_required=true', async () => {
+      const venue = createVenue({ instant_booking: true, insurance_required: true })
+      const mockBooking = {
+        id: 'booking-456',
+        ...bookingData,
+        renter_id: 'user-123',
+        status: 'pending' as const,
+        total_amount: 100,
+        insurance_approved: false,
+        insurance_required: true,
+        recurring_type: 'none' as const,
+        created_at: new Date().toISOString(),
+        updated_at: new Date().toISOString(),
+      }
+
+      const supabaseClient = await createClient()
+      ;(supabaseClient.from as jest.Mock).mockImplementation((table: string) => {
+        if (table === 'venues') {
+          return {
+            select: jest.fn().mockReturnThis(),
+            eq: jest.fn().mockReturnThis(),
+            single: jest.fn().mockResolvedValue({ data: venue, error: null }),
+          }
+        }
+        if (table === 'venue_admin_configs') {
+          return {
+            select: jest.fn().mockReturnThis(),
+            eq: jest.fn().mockReturnThis(),
+            maybeSingle: jest.fn().mockResolvedValue({
+              data: { insurance_requires_manual_approval: false },
+              error: null,
+            }),
+          }
+        }
+        return mockSupabase
+      })
+
+      mockBookingRepo.create = jest.fn().mockResolvedValue(mockBooking)
+      mockBookingRepo.findConflictingBookings = jest.fn().mockResolvedValue([])
+      mockBookingRepo.findConflictingRecurring = jest.fn().mockResolvedValue([])
+
+      const availabilityRepo = (bookingService as unknown as { availabilityRepo: { findByVenueAndDate: jest.Mock } }).availabilityRepo
+      availabilityRepo.findByVenueAndDate = jest.fn().mockResolvedValue([])
+
+      const auditService = (bookingService as unknown as { auditService: { logCreate: jest.Mock } }).auditService
+      auditService.logCreate = jest.fn().mockResolvedValue(undefined)
+
+      await bookingService.createBooking(bookingData, 'user-123')
+
+      expect(mockBookingRepo.create).toHaveBeenCalledWith(
+        expect.objectContaining({
+          insurance_required: true,
+          insurance_approved: false,
+        })
+      )
+    })
   })
 })
