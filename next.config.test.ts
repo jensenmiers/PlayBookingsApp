@@ -15,3 +15,9 @@ describe('next image configuration', () => {
     expect(hasBynderHost).toBe(true)
   })
 })
+
+describe('next turbopack configuration', () => {
+  it('pins turbopack root to this workspace', () => {
+    expect(nextConfig.turbopack?.root).toBe(process.cwd())
+  })
+})
