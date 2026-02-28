@@ -307,4 +307,194 @@ describe('AvailabilityService (unified slots)', () => {
       payment_method: 'on_site',
     })
   })
+
+  it('uses template-generated regular slots when regular schedule mode is template', async () => {
+    const from = jest.fn((table: string) => {
+      if (table === 'venues') {
+        return createQuery({
+          data: { instant_booking: false },
+          error: null,
+        })
+      }
+      if (table === 'venue_admin_configs') {
+        return createQuery({
+          data: {
+            venue_id: 'venue-1',
+            regular_schedule_mode: 'template',
+            drop_in_enabled: false,
+            drop_in_price: null,
+          },
+          error: null,
+        })
+      }
+      if (table === 'availability') {
+        return createQuery({
+          data: [
+            {
+              id: 'availability-legacy',
+              venue_id: 'venue-1',
+              date: '2026-02-23',
+              start_time: '08:00:00',
+              end_time: '09:00:00',
+              is_available: true,
+            },
+          ],
+          error: null,
+        })
+      }
+      if (table === 'bookings') {
+        return createQuery({ data: [], error: null })
+      }
+      if (table === 'recurring_bookings') {
+        return createQuery({ data: [], error: null })
+      }
+      if (table === 'slot_instances') {
+        return createQuery({
+          data: [
+            {
+              id: 'slot-regular-template',
+              venue_id: 'venue-1',
+              date: '2026-02-23',
+              start_time: '17:00:00',
+              end_time: '18:00:00',
+              action_type: 'instant_book',
+              blocks_inventory: true,
+            },
+          ],
+          error: null,
+        })
+      }
+      if (table === 'slot_modal_content') {
+        return createQuery({ data: [], error: null })
+      }
+      if (table === 'slot_instance_pricing') {
+        return createQuery({ data: [], error: null })
+      }
+      throw new Error(`Unexpected table query: ${table}`)
+    })
+
+    mockCreateClient.mockResolvedValue({ from })
+    mockComputeAvailableSlots.mockReturnValue([
+      {
+        date: '2026-02-23',
+        start_time: '08:00:00',
+        end_time: '09:00:00',
+        venue_id: 'venue-1',
+        availability_id: 'availability-legacy',
+      },
+    ])
+
+    const service = new AvailabilityService()
+    const result = await service.getAvailableSlots('venue-1', '2026-02-23', '2026-02-23')
+
+    expect(result).toEqual([
+      {
+        date: '2026-02-23',
+        start_time: '17:00:00',
+        end_time: '18:00:00',
+        venue_id: 'venue-1',
+        availability_id: null,
+        slot_instance_id: 'slot-regular-template',
+        action_type: 'instant_book',
+        modal_content: null,
+        slot_pricing: null,
+      },
+    ])
+    expect(mockComputeAvailableSlots).not.toHaveBeenCalled()
+  })
+
+  it('falls back to legacy availability records when regular schedule mode is legacy', async () => {
+    const from = jest.fn((table: string) => {
+      if (table === 'venues') {
+        return createQuery({
+          data: { instant_booking: false },
+          error: null,
+        })
+      }
+      if (table === 'venue_admin_configs') {
+        return createQuery({
+          data: {
+            venue_id: 'venue-1',
+            regular_schedule_mode: 'legacy',
+            drop_in_enabled: false,
+            drop_in_price: null,
+          },
+          error: null,
+        })
+      }
+      if (table === 'availability') {
+        return createQuery({
+          data: [
+            {
+              id: 'availability-legacy',
+              venue_id: 'venue-1',
+              date: '2026-02-23',
+              start_time: '08:00:00',
+              end_time: '09:00:00',
+              is_available: true,
+            },
+          ],
+          error: null,
+        })
+      }
+      if (table === 'bookings') {
+        return createQuery({ data: [], error: null })
+      }
+      if (table === 'recurring_bookings') {
+        return createQuery({ data: [], error: null })
+      }
+      if (table === 'slot_instances') {
+        return createQuery({
+          data: [
+            {
+              id: 'slot-regular-template',
+              venue_id: 'venue-1',
+              date: '2026-02-23',
+              start_time: '17:00:00',
+              end_time: '18:00:00',
+              action_type: 'instant_book',
+              blocks_inventory: true,
+            },
+          ],
+          error: null,
+        })
+      }
+      if (table === 'slot_modal_content') {
+        return createQuery({ data: [], error: null })
+      }
+      if (table === 'slot_instance_pricing') {
+        return createQuery({ data: [], error: null })
+      }
+      throw new Error(`Unexpected table query: ${table}`)
+    })
+
+    mockCreateClient.mockResolvedValue({ from })
+    mockComputeAvailableSlots.mockReturnValue([
+      {
+        date: '2026-02-23',
+        start_time: '08:00:00',
+        end_time: '09:00:00',
+        venue_id: 'venue-1',
+        availability_id: 'availability-legacy',
+      },
+    ])
+
+    const service = new AvailabilityService()
+    const result = await service.getAvailableSlots('venue-1', '2026-02-23', '2026-02-23')
+
+    expect(result).toEqual([
+      {
+        date: '2026-02-23',
+        start_time: '08:00:00',
+        end_time: '09:00:00',
+        venue_id: 'venue-1',
+        availability_id: 'availability-legacy',
+        slot_instance_id: null,
+        action_type: 'request_private',
+        modal_content: null,
+        slot_pricing: null,
+      },
+    ])
+    expect(mockComputeAvailableSlots).toHaveBeenCalledTimes(1)
+  })
 })

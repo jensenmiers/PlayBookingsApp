@@ -10,11 +10,41 @@ import type { ApiResponse } from '@/types/api'
 import type { DropInTemplateWindow, Venue, VenueAdminConfig } from '@/types'
 
 type RouteContext = { params: Promise<{ id: string }> }
-type DropInTemplateRow = {
+const REGULAR_TEMPLATE_NAME_PREFIX = 'Regular Booking Window '
+
+type SlotTemplateRow = {
   venue_id: string
+  name: string
+  action_type: 'instant_book' | 'request_private' | 'info_only_open_gym'
   day_of_week: number
   start_time: string
   end_time: string
+}
+
+type RegularTemplateSyncQueueRow = {
+  venue_id: string
+  reason: string | null
+  run_after: string | null
+  last_error: string | null
+  updated_at: string | null
+}
+
+type TemplateSyncState = {
+  status: 'synced' | 'pending' | 'failed'
+  reason: string | null
+  run_after: string | null
+  last_error: string | null
+  updated_at: string | null
+}
+
+type RegularTemplateRow = DropInTemplateWindow & {
+  action_type: 'instant_book' | 'request_private'
+}
+
+function isRegularActionType(
+  actionType: SlotTemplateRow['action_type']
+): actionType is RegularTemplateRow['action_type'] {
+  return actionType === 'instant_book' || actionType === 'request_private'
 }
 
 function normalizeTime(value: string): string {
@@ -27,7 +57,7 @@ function normalizeTime(value: string): string {
   return value
 }
 
-function normalizeDropInTemplates(rawTemplates: DropInTemplateWindow[]): DropInTemplateWindow[] {
+function normalizeTemplateWindows(rawTemplates: DropInTemplateWindow[]): DropInTemplateWindow[] {
   const normalized = rawTemplates.map((template) => ({
     day_of_week: Number(template.day_of_week),
     start_time: normalizeTime(template.start_time),
@@ -63,6 +93,27 @@ function buildDropInTemplateRows(venueId: string, templates: DropInTemplateWindo
   }))
 }
 
+function buildRegularTemplateRows(
+  venueId: string,
+  actionType: 'instant_book' | 'request_private',
+  templates: DropInTemplateWindow[]
+) {
+  return templates.map((template, index) => ({
+    venue_id: venueId,
+    name: `${REGULAR_TEMPLATE_NAME_PREFIX}${index + 1}`,
+    action_type: actionType,
+    day_of_week: template.day_of_week,
+    start_time: template.start_time,
+    end_time: template.end_time,
+    slot_interval_minutes: 60,
+    blocks_inventory: false,
+    is_active: true,
+    metadata: {
+      source: 'super_admin_regular_weekly_schedule',
+    },
+  }))
+}
+
 function templatesEqual(left: DropInTemplateWindow[], right: DropInTemplateWindow[]): boolean {
   if (left.length !== right.length) {
     return false
@@ -78,6 +129,64 @@ function templatesEqual(left: DropInTemplateWindow[], right: DropInTemplateWindo
   })
 }
 
+function extractDropInTemplates(rows: SlotTemplateRow[]): DropInTemplateWindow[] {
+  return normalizeTemplateWindows(
+    rows
+      .filter((row) => row.action_type === 'info_only_open_gym')
+      .map((row) => ({
+        day_of_week: Number(row.day_of_week),
+        start_time: row.start_time,
+        end_time: row.end_time,
+      }))
+  )
+}
+
+function extractRegularTemplates(rows: SlotTemplateRow[]): RegularTemplateRow[] {
+  const regularRows = rows
+    .filter((row) => row.name.startsWith(REGULAR_TEMPLATE_NAME_PREFIX))
+
+  const dedupedByWindow = new Map<string, RegularTemplateRow>()
+  for (const row of regularRows) {
+    if (!isRegularActionType(row.action_type)) {
+      continue
+    }
+    const window: RegularTemplateRow = {
+      day_of_week: Number(row.day_of_week),
+      start_time: row.start_time,
+      end_time: row.end_time,
+      action_type: row.action_type,
+    }
+    dedupedByWindow.set(`${window.day_of_week}-${window.start_time}-${window.end_time}`, window)
+  }
+
+  return Array.from(dedupedByWindow.values()).sort((left, right) => {
+    if (left.day_of_week !== right.day_of_week) {
+      return left.day_of_week - right.day_of_week
+    }
+    return left.start_time.localeCompare(right.start_time)
+  })
+}
+
+function toSyncState(row: RegularTemplateSyncQueueRow | null): TemplateSyncState {
+  if (!row) {
+    return {
+      status: 'synced',
+      reason: null,
+      run_after: null,
+      last_error: null,
+      updated_at: null,
+    }
+  }
+
+  return {
+    status: row.last_error ? 'failed' : 'pending',
+    reason: row.reason,
+    run_after: row.run_after,
+    last_error: row.last_error,
+    updated_at: row.updated_at,
+  }
+}
+
 export async function GET(_request: NextRequest, context: RouteContext): Promise<Response> {
   try {
     const auth = await requireAuth()
@@ -90,15 +199,25 @@ export async function GET(_request: NextRequest, context: RouteContext): Promise
 
     const adminClient = createAdminClient()
 
-    const [{ data: venue, error: venueError }, { data: configRow, error: configError }, { data: templateRows, error: templateError }] = await Promise.all([
+    const [
+      { data: venue, error: venueError },
+      { data: configRow, error: configError },
+      { data: templateRows, error: templateError },
+      { data: regularSyncRow, error: regularSyncError },
+    ] = await Promise.all([
       adminClient.from('venues').select('*').eq('id', id).single(),
       adminClient.from('venue_admin_configs').select('*').eq('venue_id', id).maybeSingle(),
       adminClient
         .from('slot_templates')
-        .select('venue_id, day_of_week, start_time, end_time')
+        .select('venue_id, name, action_type, day_of_week, start_time, end_time')
         .eq('venue_id', id)
-        .eq('action_type', 'info_only_open_gym')
+        .in('action_type', ['info_only_open_gym', 'instant_book', 'request_private'])
         .eq('is_active', true),
+      adminClient
+        .from('regular_template_sync_queue')
+        .select('venue_id, reason, run_after, last_error, updated_at')
+        .eq('venue_id', id)
+        .maybeSingle(),
     ])
 
     if (venueError || !venue) {
@@ -108,16 +227,32 @@ export async function GET(_request: NextRequest, context: RouteContext): Promise
       throw new Error(`Failed to fetch venue config: ${configError.message}`)
     }
     if (templateError) {
-      throw new Error(`Failed to fetch drop-in templates: ${templateError.message}`)
+      throw new Error(`Failed to fetch slot templates: ${templateError.message}`)
+    }
+    const isMissingRegularSyncTable = regularSyncError?.code === '42P01'
+      || regularSyncError?.message?.toLowerCase().includes('regular_template_sync_queue')
+    if (regularSyncError && !isMissingRegularSyncTable) {
+      throw new Error(`Failed to fetch regular sync queue: ${regularSyncError.message}`)
     }
 
     const config = normalizeVenueAdminConfig(id, configRow || null)
-    const dropInTemplates = normalizeDropInTemplates((templateRows || []) as DropInTemplateWindow[])
+    const templates = (templateRows || []) as SlotTemplateRow[]
+    const dropInTemplates = extractDropInTemplates(templates)
+    const regularTemplates = extractRegularTemplates(templates).map((template) => ({
+      day_of_week: template.day_of_week,
+      start_time: template.start_time,
+      end_time: template.end_time,
+    }))
+    const regularSlotSync = toSyncState(
+      isMissingRegularSyncTable ? null : ((regularSyncRow as RegularTemplateSyncQueueRow | null) || null)
+    )
     const completeness = calculateVenueConfigCompleteness(venue as Venue, config)
     const response: ApiResponse<{
       venue: Venue
       config: VenueAdminConfig
       drop_in_templates: DropInTemplateWindow[]
+      regular_booking_templates: DropInTemplateWindow[]
+      regular_slot_sync: TemplateSyncState
       completeness: ReturnType<typeof calculateVenueConfigCompleteness>
     }> = {
       success: true,
@@ -125,6 +260,8 @@ export async function GET(_request: NextRequest, context: RouteContext): Promise
         venue: venue as Venue,
         config,
         drop_in_templates: dropInTemplates,
+        regular_booking_templates: regularTemplates,
+        regular_slot_sync: regularSlotSync,
         completeness,
       },
     }
@@ -154,9 +291,9 @@ export async function PATCH(request: NextRequest, context: RouteContext): Promis
         adminClient.from('venue_admin_configs').select('*').eq('venue_id', id).maybeSingle(),
         adminClient
           .from('slot_templates')
-          .select('venue_id, day_of_week, start_time, end_time')
+          .select('venue_id, name, action_type, day_of_week, start_time, end_time')
           .eq('venue_id', id)
-          .eq('action_type', 'info_only_open_gym')
+          .in('action_type', ['info_only_open_gym', 'instant_book', 'request_private'])
           .eq('is_active', true),
       ])
 
@@ -167,12 +304,25 @@ export async function PATCH(request: NextRequest, context: RouteContext): Promis
       throw new Error(`Failed to fetch venue config before update: ${existingConfigError.message}`)
     }
     if (existingTemplatesError) {
-      throw new Error(`Failed to fetch drop-in templates before update: ${existingTemplatesError.message}`)
+      throw new Error(`Failed to fetch slot templates before update: ${existingTemplatesError.message}`)
     }
 
     const templatePatchValue = body.drop_in_templates as DropInTemplateWindow[] | undefined
-    const nextDropInTemplates = templatePatchValue ? normalizeDropInTemplates(templatePatchValue) : null
-    const currentDropInTemplates = normalizeDropInTemplates((existingTemplateRows || []) as DropInTemplateRow[])
+    const nextDropInTemplates = templatePatchValue ? normalizeTemplateWindows(templatePatchValue) : null
+    const regularTemplatePatchValue = body.regular_booking_templates as DropInTemplateWindow[] | undefined
+    const nextRegularTemplates = regularTemplatePatchValue ? normalizeTemplateWindows(regularTemplatePatchValue) : null
+    const existingTemplates = (existingTemplateRows || []) as SlotTemplateRow[]
+    const currentDropInTemplates = extractDropInTemplates(existingTemplates)
+    const currentRegularTemplatesWithAction = extractRegularTemplates(existingTemplates)
+    const currentRegularTemplates = currentRegularTemplatesWithAction.map((template) => ({
+      day_of_week: template.day_of_week,
+      start_time: template.start_time,
+      end_time: template.end_time,
+    }))
+    const currentRegularScheduleMode = normalizeVenueAdminConfig(
+      id,
+      (existingConfig as Partial<VenueAdminConfig>) || null
+    ).regular_schedule_mode
 
     const venueUpdates: Record<string, unknown> = {}
     const venueFields = [
@@ -192,6 +342,7 @@ export async function PATCH(request: NextRequest, context: RouteContext): Promis
     const configFields = [
       'drop_in_enabled',
       'drop_in_price',
+      'regular_schedule_mode',
       'min_advance_booking_days',
       'min_advance_lead_time_hours',
       'operating_hours',
@@ -219,7 +370,23 @@ export async function PATCH(request: NextRequest, context: RouteContext): Promis
       configUpdates.last_reviewed_at = new Date().toISOString()
     }
 
-    if (Object.keys(venueUpdates).length === 0 && Object.keys(configUpdates).length === 0 && !nextDropInTemplates) {
+    const effectiveRegularActionType: 'instant_book' | 'request_private' =
+      (body.instant_booking !== undefined ? body.instant_booking : existingVenue.instant_booking)
+        ? 'instant_book'
+        : 'request_private'
+
+    const shouldStickTemplateMode =
+      currentRegularScheduleMode === 'template' || (nextRegularTemplates !== null && nextRegularTemplates.length > 0)
+    if (shouldStickTemplateMode) {
+      configUpdates.regular_schedule_mode = 'template'
+    }
+
+    if (
+      Object.keys(venueUpdates).length === 0
+      && Object.keys(configUpdates).length === 0
+      && nextDropInTemplates === null
+      && nextRegularTemplates === null
+    ) {
       throw badRequest('No updates provided')
     }
 
@@ -251,7 +418,7 @@ export async function PATCH(request: NextRequest, context: RouteContext): Promis
       }
     }
 
-    let templatesUpdated = false
+    let dropInTemplatesUpdated = false
     if (nextDropInTemplates && !templatesEqual(nextDropInTemplates, currentDropInTemplates)) {
       const { error: deleteTemplatesError } = await adminClient
         .from('slot_templates')
@@ -273,14 +440,57 @@ export async function PATCH(request: NextRequest, context: RouteContext): Promis
         }
       }
 
-      templatesUpdated = true
+      dropInTemplatesUpdated = true
     }
 
-    const shouldQueueSlotRefresh = templatesUpdated || body.drop_in_enabled !== undefined || body.drop_in_price !== undefined
-    if (shouldQueueSlotRefresh) {
+    const actionTypeNeedsUpdate = currentRegularTemplatesWithAction.some(
+      (template) => template.action_type !== effectiveRegularActionType
+    )
+    const shouldRefreshRegularTemplatesForBookingModeChange =
+      currentRegularScheduleMode === 'template'
+      && currentRegularTemplates.length > 0
+      && (body.instant_booking !== undefined || actionTypeNeedsUpdate)
+    const targetRegularTemplates =
+      nextRegularTemplates ?? (shouldRefreshRegularTemplatesForBookingModeChange ? currentRegularTemplates : null)
+
+    let regularTemplatesUpdated = false
+    if (
+      targetRegularTemplates
+      && (
+        !templatesEqual(targetRegularTemplates, currentRegularTemplates)
+        || shouldRefreshRegularTemplatesForBookingModeChange
+      )
+    ) {
+      const { error: deleteRegularTemplatesError } = await adminClient
+        .from('slot_templates')
+        .delete()
+        .eq('venue_id', id)
+        .in('action_type', ['instant_book', 'request_private'])
+        .ilike('name', `${REGULAR_TEMPLATE_NAME_PREFIX}%`)
+
+      if (deleteRegularTemplatesError) {
+        throw new Error(`Failed to replace regular booking templates: ${deleteRegularTemplatesError.message}`)
+      }
+
+      if (targetRegularTemplates.length > 0) {
+        const { error: insertRegularTemplatesError } = await adminClient
+          .from('slot_templates')
+          .insert(buildRegularTemplateRows(id, effectiveRegularActionType, targetRegularTemplates))
+
+        if (insertRegularTemplatesError) {
+          throw new Error(`Failed to save regular booking templates: ${insertRegularTemplatesError.message}`)
+        }
+      }
+
+      regularTemplatesUpdated = true
+    }
+
+    const shouldQueueDropInSlotRefresh =
+      dropInTemplatesUpdated || body.drop_in_enabled !== undefined || body.drop_in_price !== undefined
+    if (shouldQueueDropInSlotRefresh) {
       const { error: queueError } = await adminClient.rpc('enqueue_drop_in_template_sync', {
         p_venue_id: id,
-        p_reason: templatesUpdated ? 'drop_in_templates_updated' : 'drop_in_policy_updated',
+        p_reason: dropInTemplatesUpdated ? 'drop_in_templates_updated' : 'drop_in_policy_updated',
         p_delay_minutes: 5,
       })
 
@@ -289,16 +499,40 @@ export async function PATCH(request: NextRequest, context: RouteContext): Promis
       }
     }
 
-    const [{ data: updatedVenue, error: updatedVenueError }, { data: updatedConfigRow, error: updatedConfigError }, { data: updatedTemplateRows, error: updatedTemplatesError }] =
+    const shouldQueueRegularSlotRefresh =
+      regularTemplatesUpdated || shouldRefreshRegularTemplatesForBookingModeChange
+    if (shouldQueueRegularSlotRefresh) {
+      const { error: regularQueueError } = await adminClient.rpc('enqueue_regular_template_sync', {
+        p_venue_id: id,
+        p_reason: regularTemplatesUpdated ? 'regular_templates_updated' : 'regular_policy_updated',
+        p_delay_minutes: 5,
+      })
+
+      if (regularQueueError) {
+        throw new Error(`Failed to queue regular slot sync: ${regularQueueError.message}`)
+      }
+    }
+
+    const [
+      { data: updatedVenue, error: updatedVenueError },
+      { data: updatedConfigRow, error: updatedConfigError },
+      { data: updatedTemplateRows, error: updatedTemplatesError },
+      { data: updatedRegularSyncRow, error: updatedRegularSyncError },
+    ] =
       await Promise.all([
         adminClient.from('venues').select('*').eq('id', id).single(),
         adminClient.from('venue_admin_configs').select('*').eq('venue_id', id).maybeSingle(),
         adminClient
           .from('slot_templates')
-          .select('venue_id, day_of_week, start_time, end_time')
+          .select('venue_id, name, action_type, day_of_week, start_time, end_time')
           .eq('venue_id', id)
-          .eq('action_type', 'info_only_open_gym')
+          .in('action_type', ['info_only_open_gym', 'instant_book', 'request_private'])
           .eq('is_active', true),
+        adminClient
+          .from('regular_template_sync_queue')
+          .select('venue_id, reason, run_after, last_error, updated_at')
+          .eq('venue_id', id)
+          .maybeSingle(),
       ])
 
     if (updatedVenueError || !updatedVenue) {
@@ -308,11 +542,27 @@ export async function PATCH(request: NextRequest, context: RouteContext): Promis
       throw new Error(`Failed to refetch venue config after update: ${updatedConfigError.message}`)
     }
     if (updatedTemplatesError) {
-      throw new Error(`Failed to refetch drop-in templates after update: ${updatedTemplatesError.message}`)
+      throw new Error(`Failed to refetch slot templates after update: ${updatedTemplatesError.message}`)
+    }
+    const isMissingRegularSyncTable = updatedRegularSyncError?.code === '42P01'
+      || updatedRegularSyncError?.message?.toLowerCase().includes('regular_template_sync_queue')
+    if (updatedRegularSyncError && !isMissingRegularSyncTable) {
+      throw new Error(`Failed to refetch regular sync state after update: ${updatedRegularSyncError.message}`)
     }
 
     const normalizedConfig = normalizeVenueAdminConfig(id, (updatedConfigRow as Partial<VenueAdminConfig>) || null)
-    const normalizedTemplates = normalizeDropInTemplates((updatedTemplateRows || []) as DropInTemplateRow[])
+    const updatedTemplates = (updatedTemplateRows || []) as SlotTemplateRow[]
+    const normalizedDropInTemplates = extractDropInTemplates(updatedTemplates)
+    const normalizedRegularTemplates = extractRegularTemplates(updatedTemplates).map((template) => ({
+      day_of_week: template.day_of_week,
+      start_time: template.start_time,
+      end_time: template.end_time,
+    }))
+    const normalizedRegularSync = toSyncState(
+      isMissingRegularSyncTable
+        ? null
+        : ((updatedRegularSyncRow as RegularTemplateSyncQueueRow | null) || null)
+    )
 
     const { error: auditError } = await adminClient
       .from('audit_logs')
@@ -324,11 +574,13 @@ export async function PATCH(request: NextRequest, context: RouteContext): Promis
           venue: existingVenue,
           config: existingConfig,
           drop_in_templates: currentDropInTemplates,
+          regular_booking_templates: currentRegularTemplates,
         },
         new_values: {
           venue: updatedVenue,
           config: normalizedConfig,
-          drop_in_templates: normalizedTemplates,
+          drop_in_templates: normalizedDropInTemplates,
+          regular_booking_templates: normalizedRegularTemplates,
         },
         user_id: auth.userId,
       })
@@ -342,13 +594,17 @@ export async function PATCH(request: NextRequest, context: RouteContext): Promis
       venue: Venue
       config: VenueAdminConfig
       drop_in_templates: DropInTemplateWindow[]
+      regular_booking_templates: DropInTemplateWindow[]
+      regular_slot_sync: TemplateSyncState
       completeness: ReturnType<typeof calculateVenueConfigCompleteness>
     }> = {
       success: true,
       data: {
         venue: updatedVenue as Venue,
         config: normalizedConfig,
-        drop_in_templates: normalizedTemplates,
+        drop_in_templates: normalizedDropInTemplates,
+        regular_booking_templates: normalizedRegularTemplates,
+        regular_slot_sync: normalizedRegularSync,
         completeness,
       },
       message: 'Venue configuration updated',

@@ -140,7 +140,7 @@ export class AvailabilityService {
         .gte('date', dateFrom)
         .lte('date', dateTo)
         .eq('is_active', true)
-        .eq('action_type', 'info_only_open_gym')
+        .in('action_type', ['instant_book', 'request_private', 'info_only_open_gym'])
         .order('date', { ascending: true })
         .order('start_time', { ascending: true }),
 
@@ -184,8 +184,12 @@ export class AvailabilityService {
     const bookings = (bookingsResult.data || []) as Booking[]
     const recurringBookings = (recurringResult.data || []) as RecurringBooking[]
     const adminConfig = normalizeVenueAdminConfig(venueId, isMissingConfigTable ? null : (adminConfigRow || null))
+    const allSlotInstances = ((infoSlotsResult.data || []) as SlotInstanceRow[])
     const infoSlots = adminConfig.drop_in_enabled
-      ? ((infoSlotsResult.data || []) as SlotInstanceRow[])
+      ? allSlotInstances.filter((slot) => slot.action_type === 'info_only_open_gym')
+      : []
+    const templateRegularSlots = adminConfig.regular_schedule_mode === 'template'
+      ? allSlotInstances.filter((slot) => slot.action_type !== 'info_only_open_gym')
       : []
     const modalContentRows = (modalContentResult.data || []) as SlotModalContentRow[]
 
@@ -204,15 +208,46 @@ export class AvailabilityService {
     }
 
     const regularActionType: SlotActionType = venue.instant_booking ? 'instant_book' : 'request_private'
-    const computedSlots = computeAvailableSlots(availability, bookings, recurringBookings)
+    const computedSlots = adminConfig.regular_schedule_mode === 'legacy'
+      ? computeAvailableSlots(availability, bookings, recurringBookings)
+      : []
 
-    const regularSlots: UnifiedAvailableSlot[] = computedSlots.map((slot: ComputedSlot) => ({
+    const legacyRegularSlots: UnifiedAvailableSlot[] = computedSlots.map((slot: ComputedSlot) => ({
       ...slot,
       action_type: regularActionType,
       slot_instance_id: null,
       modal_content: null,
       slot_pricing: null,
     }))
+
+    const templateRegularSlotsWithAvailability: UnifiedAvailableSlot[] = templateRegularSlots
+      .filter((slot) => {
+        const overlapsBooking = bookings.some((booking) => {
+          if (booking.date !== slot.date) return false
+          return overlaps(slot.start_time, slot.end_time, booking.start_time, booking.end_time)
+        })
+        if (overlapsBooking) return false
+
+        return !recurringBookings.some((booking) => {
+          if (booking.date !== slot.date) return false
+          return overlaps(slot.start_time, slot.end_time, booking.start_time, booking.end_time)
+        })
+      })
+      .map((slot) => ({
+        date: slot.date,
+        start_time: slot.start_time,
+        end_time: slot.end_time,
+        venue_id: slot.venue_id,
+        availability_id: null,
+        slot_instance_id: slot.id,
+        action_type: slot.action_type,
+        modal_content: null,
+        slot_pricing: null,
+      }))
+
+    const regularSlots = (adminConfig.regular_schedule_mode === 'template'
+      ? templateRegularSlotsWithAvailability
+      : legacyRegularSlots)
       .filter((slot) => isSlotAllowedByVenueConfig(slot, adminConfig))
 
     const blockingInfoSlots = infoSlots.filter((slot) => slot.blocks_inventory)

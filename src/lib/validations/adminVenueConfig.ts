@@ -35,6 +35,7 @@ export const updateVenueAdminConfigSchema = z
 
     drop_in_enabled: z.boolean().optional(),
     drop_in_price: z.number().positive().nullable().optional(),
+    regular_schedule_mode: z.enum(['legacy', 'template']).optional(),
     min_advance_booking_days: z.number().int().min(0).optional(),
     min_advance_lead_time_hours: z.number().int().min(0).optional(),
     operating_hours: z.array(operatingHourWindowSchema).optional(),
@@ -48,6 +49,7 @@ export const updateVenueAdminConfigSchema = z
     policy_no_show: z.string().nullable().optional(),
     policy_operating_hours_notes: z.string().nullable().optional(),
     drop_in_templates: z.array(dropInTemplateWindowSchema).optional(),
+    regular_booking_templates: z.array(dropInTemplateWindowSchema).optional(),
     review_cadence_days: z.number().int().min(1).max(365).optional(),
     last_reviewed_at: z.string().datetime().nullable().optional(),
     mark_reviewed_now: z.boolean().optional(),

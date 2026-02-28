@@ -39,6 +39,18 @@ describe('normalizeVenueAdminConfig', () => {
     expect(config.policy_refund).toBe('No refunds after game start.')
     expect(config.policy_operating_hours_notes).toBe('Open daily; call host for holiday schedules.')
   })
+
+  it('defaults regular schedule mode to legacy when not provided', () => {
+    const config = normalizeVenueAdminConfig('venue-1', {})
+    expect(config.regular_schedule_mode).toBe('legacy')
+  })
+
+  it('preserves template regular schedule mode when provided', () => {
+    const config = normalizeVenueAdminConfig('venue-1', {
+      regular_schedule_mode: 'template',
+    })
+    expect(config.regular_schedule_mode).toBe('template')
+  })
 })
 
 describe('venue admin policy enforcement', () => {

@@ -8,6 +8,7 @@ export type RecurringType = 'none' | 'weekly' | 'monthly'
 export type SlotActionType = 'instant_book' | 'request_private' | 'info_only_open_gym'
 export type SlotPricingUnit = 'hour' | 'person' | 'session'
 export type SlotPaymentMethod = 'in_app' | 'on_site'
+export type RegularScheduleMode = 'legacy' | 'template'
 
 export interface SlotModalContent {
   title: string
@@ -77,6 +78,7 @@ export interface VenueAdminConfig {
   venue_id: string
   drop_in_enabled: boolean
   drop_in_price: number | null
+  regular_schedule_mode: RegularScheduleMode
   min_advance_booking_days: number
   min_advance_lead_time_hours: number
   operating_hours: OperatingHourWindow[]

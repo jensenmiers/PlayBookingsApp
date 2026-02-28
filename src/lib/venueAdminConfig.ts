@@ -134,6 +134,7 @@ export function getDefaultVenueAdminConfig(venueId: string): VenueAdminConfig {
     venue_id: venueId,
     drop_in_enabled: false,
     drop_in_price: null,
+    regular_schedule_mode: 'legacy',
     min_advance_booking_days: 0,
     min_advance_lead_time_hours: 0,
     operating_hours: [],
@@ -170,6 +171,7 @@ export function normalizeVenueAdminConfig(
       : Number(row.drop_in_price)
   const normalizedDropInPrice =
     dropInPrice !== null && Number.isFinite(dropInPrice) && dropInPrice > 0 ? dropInPrice : null
+  const regularScheduleMode = row.regular_schedule_mode === 'template' ? 'template' : 'legacy'
 
   return {
     ...defaults,
@@ -177,6 +179,7 @@ export function normalizeVenueAdminConfig(
     venue_id: venueId,
     drop_in_enabled: dropInEnabled,
     drop_in_price: normalizedDropInPrice,
+    regular_schedule_mode: regularScheduleMode,
     min_advance_booking_days: Math.max(0, Number(row.min_advance_booking_days || 0)),
     min_advance_lead_time_hours: Math.max(0, Number(row.min_advance_lead_time_hours || 0)),
     operating_hours: normalizeOperatingHours(row.operating_hours),

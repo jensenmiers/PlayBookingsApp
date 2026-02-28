@@ -3,10 +3,22 @@
 import { useCallback, useEffect, useState } from 'react'
 import type { DropInTemplateWindow, Venue, VenueAdminConfig } from '@/types'
 
+export type AdminTemplateSyncStatus = 'synced' | 'pending' | 'failed'
+
+export interface AdminTemplateSyncState {
+  status: AdminTemplateSyncStatus
+  reason: string | null
+  run_after: string | null
+  last_error: string | null
+  updated_at: string | null
+}
+
 export interface AdminVenueConfigItem {
   venue: Venue
   config: VenueAdminConfig
   drop_in_templates: DropInTemplateWindow[]
+  regular_booking_templates: DropInTemplateWindow[]
+  regular_slot_sync: AdminTemplateSyncState
   completeness: {
     score: number
     missing_fields: string[]

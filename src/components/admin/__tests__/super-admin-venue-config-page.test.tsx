@@ -44,6 +44,7 @@ const buildMockAdminVenuesData = () => [
       venue_id: 'venue-1',
       drop_in_enabled: false,
       drop_in_price: null,
+      regular_schedule_mode: 'legacy',
       min_advance_booking_days: 0,
       min_advance_lead_time_hours: 0,
       operating_hours: [],
@@ -67,6 +68,14 @@ const buildMockAdminVenuesData = () => [
       missing_fields: [],
     },
     drop_in_templates: [],
+    regular_booking_templates: [],
+    regular_slot_sync: {
+      status: 'synced',
+      reason: null,
+      run_after: null,
+      last_error: null,
+      updated_at: null,
+    },
   },
   {
     venue: {
@@ -92,6 +101,7 @@ const buildMockAdminVenuesData = () => [
       venue_id: 'venue-2',
       drop_in_enabled: false,
       drop_in_price: null,
+      regular_schedule_mode: 'legacy',
       min_advance_booking_days: 0,
       min_advance_lead_time_hours: 0,
       operating_hours: [],
@@ -115,6 +125,14 @@ const buildMockAdminVenuesData = () => [
       missing_fields: [],
     },
     drop_in_templates: [],
+    regular_booking_templates: [],
+    regular_slot_sync: {
+      status: 'synced',
+      reason: null,
+      run_after: null,
+      last_error: null,
+      updated_at: null,
+    },
   },
 ]
 
@@ -291,6 +309,7 @@ describe('SuperAdminVenueConfigPage', () => {
       'Advance Booking Rules',
       'Amenities Checklist',
       'Policies',
+      'Regular Booking Weekly Schedule',
       'Blackout Dates + Holidays',
       'Drop-In Open Gym',
       'Drop-In Weekly Schedule',
@@ -310,7 +329,7 @@ describe('SuperAdminVenueConfigPage', () => {
 
     render(<SuperAdminVenueConfigPage />)
 
-    fireEvent.click(await screen.findByRole('button', { name: /add window/i }))
+    fireEvent.click(await screen.findByRole('button', { name: /add drop-in window/i }))
     fireEvent.click(screen.getByRole('button', { name: /save changes/i }))
 
     await waitFor(() => {
@@ -360,7 +379,7 @@ describe('SuperAdminVenueConfigPage', () => {
 
     render(<SuperAdminVenueConfigPage />)
 
-    fireEvent.click(await screen.findByRole('button', { name: /add window/i }))
+    fireEvent.click(await screen.findByRole('button', { name: /add drop-in window/i }))
 
     const startTimeSelect = screen.getByLabelText('Drop-in start time row 1')
     fireEvent.change(startTimeSelect, { target: { value: '17:00' } })
@@ -388,7 +407,7 @@ describe('SuperAdminVenueConfigPage', () => {
   it('uses non-collapsing grid widths so day-of-week pills remain visible', async () => {
     render(<SuperAdminVenueConfigPage />)
 
-    fireEvent.click(await screen.findByRole('button', { name: /add window/i }))
+    fireEvent.click(await screen.findByRole('button', { name: /add drop-in window/i }))
 
     const daySelect = screen.getByLabelText('Drop-in day row 1')
     const row = daySelect.closest('div')
@@ -410,6 +429,30 @@ describe('SuperAdminVenueConfigPage', () => {
         'venue-1',
         expect.objectContaining({
           min_advance_booking_days: 2,
+        })
+      )
+    })
+  })
+
+  it('saves weekly regular booking templates when schedule windows are added', async () => {
+    mockPatchAdminVenueConfig.mockResolvedValue({})
+
+    render(<SuperAdminVenueConfigPage />)
+
+    fireEvent.click(await screen.findByRole('button', { name: /add regular window/i }))
+    fireEvent.click(screen.getByRole('button', { name: /save changes/i }))
+
+    await waitFor(() => {
+      expect(mockPatchAdminVenueConfig).toHaveBeenCalledWith(
+        'venue-1',
+        expect.objectContaining({
+          regular_booking_templates: [
+            expect.objectContaining({
+              day_of_week: 1,
+              start_time: '12:00:00',
+              end_time: '13:00:00',
+            }),
+          ],
         })
       )
     })

@@ -58,6 +58,7 @@ type VenueConfigDraft = {
   policy_refund: string
   policy_no_show: string
   policy_operating_hours_notes: string
+  regular_booking_templates: DropInTemplateDraftWindow[]
   drop_in_templates: DropInTemplateDraftWindow[]
 }
 
@@ -189,6 +190,11 @@ function createDraft(item: AdminVenueConfigItem): VenueConfigDraft {
     policy_refund: item.config.policy_refund ?? '',
     policy_no_show: item.config.policy_no_show ?? '',
     policy_operating_hours_notes: item.config.policy_operating_hours_notes ?? '',
+    regular_booking_templates: (item.regular_booking_templates || []).map((window) => ({
+      day_of_week: window.day_of_week,
+      start_time: formatTimeForInput(window.start_time),
+      end_time: formatTimeForInput(window.end_time),
+    })),
     drop_in_templates: item.drop_in_templates.map((window) => ({
       day_of_week: window.day_of_week,
       start_time: formatTimeForInput(window.start_time),
@@ -298,6 +304,29 @@ function buildPatchFromDraft(
   }
   if (dropInPrice !== item.config.drop_in_price) {
     patch.drop_in_price = dropInPrice
+  }
+
+  for (const window of draft.regular_booking_templates) {
+    if (!window.start_time || !window.end_time) {
+      return { patch: {}, error: 'Each regular booking template window requires start and end times.' }
+    }
+    if (window.start_time >= window.end_time) {
+      return { patch: {}, error: 'Each regular booking template window must end after it starts.' }
+    }
+  }
+
+  const normalizedDraftRegularTemplates = normalizeDraftTemplates(draft.regular_booking_templates)
+  const normalizedCurrentRegularTemplates = normalizeDraftTemplates(
+    item.regular_booking_templates.map((window) => ({
+      day_of_week: window.day_of_week,
+      start_time: window.start_time,
+      end_time: window.end_time,
+    }))
+  )
+  const regularTemplatesChanged =
+    JSON.stringify(normalizedDraftRegularTemplates) !== JSON.stringify(normalizedCurrentRegularTemplates)
+  if (regularTemplatesChanged) {
+    patch.regular_booking_templates = normalizedDraftRegularTemplates
   }
 
   for (const window of draft.drop_in_templates) {
@@ -410,6 +439,17 @@ function formatLastSavedAt(item: AdminVenueConfigItem): string {
 
   const latest = new Date(Math.max(...timestamps.map((value) => value.getTime())))
   return latest.toLocaleString()
+}
+
+function formatRegularSyncStatusLabel(item: AdminVenueConfigItem | null): string {
+  const status = item?.regular_slot_sync?.status || 'synced'
+  if (status === 'pending') {
+    return 'Regular slot sync pending'
+  }
+  if (status === 'failed') {
+    return 'Regular slot sync failed'
+  }
+  return 'Regular slot sync synced'
 }
 
 function getBookingStartMs(booking: AdminVenueBookingFeedItem): number {
@@ -798,6 +838,21 @@ export function SuperAdminVenueConfigPage() {
         </p>
         <div className="flex flex-wrap items-center gap-3 text-xs">
           {hasUnsavedChanges ? <span className="text-amber-300">Unsaved changes</span> : <span className="text-secondary-50/60">All changes saved</span>}
+          {selectedItem
+            ? (
+              <span
+                className={cn(
+                  (selectedItem.regular_slot_sync?.status || 'synced') === 'failed'
+                    ? 'text-red-300'
+                    : (selectedItem.regular_slot_sync?.status || 'synced') === 'pending'
+                      ? 'text-amber-300'
+                      : 'text-secondary-50/60'
+                )}
+              >
+                {formatRegularSyncStatusLabel(selectedItem)}
+              </span>
+              )
+            : null}
           {isSaving ? <span className="text-primary-400">Saving...</span> : null}
           {saveMessage ? <span className="text-primary-400">{saveMessage}</span> : null}
           {saveError ? <span className="text-red-300">{saveError}</span> : null}
@@ -1090,6 +1145,95 @@ export function SuperAdminVenueConfigPage() {
             </ConfigRow>
 
             <ConfigRow
+              title="Regular Booking Weekly Schedule"
+              description="Recurring weekly windows used to generate in-app rentable regular booking sessions."
+            >
+              <div className="space-y-2">
+                {draft.regular_booking_templates.map((window, index) => (
+                  <div
+                    key={`${window.day_of_week}-${window.start_time}-${window.end_time}-${index}`}
+                    className="grid grid-cols-[minmax(9.5rem,1.15fr)_minmax(7.5rem,8.5rem)_minmax(7.5rem,8.5rem)_auto] items-center gap-3"
+                  >
+                    <select
+                      aria-label={`Regular booking day row ${index + 1}`}
+                      className="h-11 w-full appearance-none rounded-full border border-secondary-50/15 bg-secondary-800 px-5 py-2 text-sm font-medium text-secondary-50 shadow-xs outline-none transition-[border-color,box-shadow] hover:border-secondary-50/30 focus-visible:border-primary-400 focus-visible:ring-[3px] focus-visible:ring-primary-400/30"
+                      value={window.day_of_week}
+                      onChange={(event) => {
+                        updateDraft((previous) => {
+                          const next = [...previous.regular_booking_templates]
+                          next[index] = { ...next[index], day_of_week: Number(event.target.value) }
+                          return { ...previous, regular_booking_templates: next }
+                        })
+                      }}
+                    >
+                      {DAY_OPTIONS.map((option) => (
+                        <option key={option.value} value={option.value}>
+                          {option.label}
+                        </option>
+                      ))}
+                    </select>
+
+                    <TimePillSelect
+                      ariaLabel={`Regular booking start time row ${index + 1}`}
+                      value={window.start_time}
+                      options={getTimePillOptions(window.start_time)}
+                      onChange={(value) => {
+                        updateDraft((previous) => {
+                          const next = [...previous.regular_booking_templates]
+                          next[index] = { ...next[index], start_time: value }
+                          return { ...previous, regular_booking_templates: next }
+                        })
+                      }}
+                    />
+
+                    <TimePillSelect
+                      ariaLabel={`Regular booking end time row ${index + 1}`}
+                      value={window.end_time}
+                      options={getTimePillOptions(window.end_time)}
+                      onChange={(value) => {
+                        updateDraft((previous) => {
+                          const next = [...previous.regular_booking_templates]
+                          next[index] = { ...next[index], end_time: value }
+                          return { ...previous, regular_booking_templates: next }
+                        })
+                      }}
+                    />
+                    <Button
+                      type="button"
+                      variant="ghost"
+                      className="h-11 rounded-xl px-3 text-secondary-50/80 hover:text-secondary-50"
+                      onClick={() => {
+                        updateDraft((previous) => ({
+                          ...previous,
+                          regular_booking_templates: previous.regular_booking_templates.filter(
+                            (_, rowIndex) => rowIndex !== index
+                          ),
+                        }))
+                      }}
+                    >
+                      Remove
+                    </Button>
+                  </div>
+                ))}
+              </div>
+              <Button
+                type="button"
+                variant="outline"
+                onClick={() => {
+                  updateDraft((previous) => ({
+                    ...previous,
+                    regular_booking_templates: [
+                      ...previous.regular_booking_templates,
+                      { day_of_week: 1, start_time: '12:00', end_time: '13:00' },
+                    ],
+                  }))
+                }}
+              >
+                Add Regular Window
+              </Button>
+            </ConfigRow>
+
+            <ConfigRow
               title="Blackout Dates + Holidays"
               description="Any listed date blocks booking and availability for this venue."
             >
@@ -1227,7 +1371,7 @@ export function SuperAdminVenueConfigPage() {
                   }))
                 }}
               >
-                Add Window
+                Add Drop-In Window
               </Button>
             </ConfigRow>
 
