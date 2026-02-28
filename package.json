@@ -2,7 +2,9 @@
   "name": "playbookings",
   "version": "0.1.0",
   "private": true,
-  "engines": { "node": "20.x" },
+  "engines": {
+    "node": "20.x"
+  },
   "description": "A web-based facility rental marketplace for indoor basketball courts",
   "scripts": {
     "dev": "next dev --turbopack",
@@ -63,6 +65,7 @@
     "@types/node": "^20",
     "@types/react": "^19",
     "@types/react-dom": "^19",
+    "agentation": "^2.2.1",
     "culori": "^3.3.0",
     "dotenv": "^17.2.3",
     "eslint": "^9",

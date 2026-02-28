@@ -3,6 +3,7 @@ import { DM_Sans, DM_Serif_Display } from "next/font/google";
 import { Geist_Mono } from "next/font/google";
 import { Analytics } from "@vercel/analytics/next";
 import { Providers } from "@/components/providers/providers";
+import { AgentationProvider } from "@/components/providers/agentation-provider";
 import "./globals.css";
 
 const dmSans = DM_Sans({
@@ -72,6 +73,7 @@ export default function RootLayout({
         <Providers>
           {children}
         </Providers>
+        <AgentationProvider />
         <Analytics />
       </body>
     </html>
