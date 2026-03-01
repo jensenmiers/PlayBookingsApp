@@ -82,7 +82,7 @@ export interface CheckConflictsRequest {
 
 export type CheckConflictsResponse = ApiResponse<{
   hasConflict: boolean
-  conflictType?: 'time_overlap' | 'availability_unavailable' | 'advance_booking_exceeded'
+  conflictType?: 'time_overlap' | 'slot_unavailable' | 'advance_booking_exceeded'
   conflictingBookingId?: string
   message?: string
 }>

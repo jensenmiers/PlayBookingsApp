@@ -29,6 +29,14 @@ type RegularTemplateSyncQueueRow = {
   updated_at: string | null
 }
 
+type DropInTemplateSyncQueueRow = {
+  venue_id: string
+  reason: string | null
+  run_after: string | null
+  last_error: string | null
+  updated_at: string | null
+}
+
 type TemplateSyncState = {
   status: 'synced' | 'pending' | 'failed'
   reason: string | null
@@ -204,6 +212,7 @@ export async function GET(_request: NextRequest, context: RouteContext): Promise
       { data: configRow, error: configError },
       { data: templateRows, error: templateError },
       { data: regularSyncRow, error: regularSyncError },
+      { data: dropInSyncRow, error: dropInSyncError },
     ] = await Promise.all([
       adminClient.from('venues').select('*').eq('id', id).single(),
       adminClient.from('venue_admin_configs').select('*').eq('venue_id', id).maybeSingle(),
@@ -215,6 +224,11 @@ export async function GET(_request: NextRequest, context: RouteContext): Promise
         .eq('is_active', true),
       adminClient
         .from('regular_template_sync_queue')
+        .select('venue_id, reason, run_after, last_error, updated_at')
+        .eq('venue_id', id)
+        .maybeSingle(),
+      adminClient
+        .from('drop_in_template_sync_queue')
         .select('venue_id, reason, run_after, last_error, updated_at')
         .eq('venue_id', id)
         .maybeSingle(),
@@ -234,6 +248,11 @@ export async function GET(_request: NextRequest, context: RouteContext): Promise
     if (regularSyncError && !isMissingRegularSyncTable) {
       throw new Error(`Failed to fetch regular sync queue: ${regularSyncError.message}`)
     }
+    const isMissingDropInSyncTable = dropInSyncError?.code === '42P01'
+      || dropInSyncError?.message?.toLowerCase().includes('drop_in_template_sync_queue')
+    if (dropInSyncError && !isMissingDropInSyncTable) {
+      throw new Error(`Failed to fetch drop-in sync queue: ${dropInSyncError.message}`)
+    }
 
     const config = normalizeVenueAdminConfig(id, configRow || null)
     const templates = (templateRows || []) as SlotTemplateRow[]
@@ -246,12 +265,16 @@ export async function GET(_request: NextRequest, context: RouteContext): Promise
     const regularSlotSync = toSyncState(
       isMissingRegularSyncTable ? null : ((regularSyncRow as RegularTemplateSyncQueueRow | null) || null)
     )
+    const dropInSlotSync = toSyncState(
+      isMissingDropInSyncTable ? null : ((dropInSyncRow as DropInTemplateSyncQueueRow | null) || null)
+    )
     const completeness = calculateVenueConfigCompleteness(venue as Venue, config)
     const response: ApiResponse<{
       venue: Venue
       config: VenueAdminConfig
       drop_in_templates: DropInTemplateWindow[]
       regular_booking_templates: DropInTemplateWindow[]
+      drop_in_slot_sync: TemplateSyncState
       regular_slot_sync: TemplateSyncState
       completeness: ReturnType<typeof calculateVenueConfigCompleteness>
     }> = {
@@ -261,6 +284,7 @@ export async function GET(_request: NextRequest, context: RouteContext): Promise
         config,
         drop_in_templates: dropInTemplates,
         regular_booking_templates: regularTemplates,
+        drop_in_slot_sync: dropInSlotSync,
         regular_slot_sync: regularSlotSync,
         completeness,
       },
@@ -485,11 +509,26 @@ export async function PATCH(request: NextRequest, context: RouteContext): Promis
 
     const shouldQueueDropInSlotRefresh =
       dropInTemplatesUpdated || body.drop_in_enabled !== undefined || body.drop_in_price !== undefined
+    const shouldQueueRegularSlotRefresh =
+      regularTemplatesUpdated || shouldRefreshRegularTemplatesForBookingModeChange
+    const shouldInlineRefreshSlotInstances = shouldQueueDropInSlotRefresh || shouldQueueRegularSlotRefresh
+    if (shouldInlineRefreshSlotInstances) {
+      const { error: inlineRefreshError } = await adminClient.rpc('refresh_slot_instances_from_templates', {
+        p_venue_id: id,
+        p_start_date: new Date().toISOString().slice(0, 10),
+        p_end_date: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000).toISOString().slice(0, 10),
+      })
+
+      if (inlineRefreshError) {
+        throw new Error(`Failed to refresh slot instances inline: ${inlineRefreshError.message}`)
+      }
+    }
+
     if (shouldQueueDropInSlotRefresh) {
       const { error: queueError } = await adminClient.rpc('enqueue_drop_in_template_sync', {
         p_venue_id: id,
         p_reason: dropInTemplatesUpdated ? 'drop_in_templates_updated' : 'drop_in_policy_updated',
-        p_delay_minutes: 5,
+        p_delay_minutes: 0,
       })
 
       if (queueError) {
@@ -497,13 +536,11 @@ export async function PATCH(request: NextRequest, context: RouteContext): Promis
       }
     }
 
-    const shouldQueueRegularSlotRefresh =
-      regularTemplatesUpdated || shouldRefreshRegularTemplatesForBookingModeChange
     if (shouldQueueRegularSlotRefresh) {
       const { error: regularQueueError } = await adminClient.rpc('enqueue_regular_template_sync', {
         p_venue_id: id,
         p_reason: regularTemplatesUpdated ? 'regular_templates_updated' : 'regular_policy_updated',
-        p_delay_minutes: 5,
+        p_delay_minutes: 0,
       })
 
       if (regularQueueError) {
@@ -516,6 +553,7 @@ export async function PATCH(request: NextRequest, context: RouteContext): Promis
       { data: updatedConfigRow, error: updatedConfigError },
       { data: updatedTemplateRows, error: updatedTemplatesError },
       { data: updatedRegularSyncRow, error: updatedRegularSyncError },
+      { data: updatedDropInSyncRow, error: updatedDropInSyncError },
     ] =
       await Promise.all([
         adminClient.from('venues').select('*').eq('id', id).single(),
@@ -528,6 +566,11 @@ export async function PATCH(request: NextRequest, context: RouteContext): Promis
           .eq('is_active', true),
         adminClient
           .from('regular_template_sync_queue')
+          .select('venue_id, reason, run_after, last_error, updated_at')
+          .eq('venue_id', id)
+          .maybeSingle(),
+        adminClient
+          .from('drop_in_template_sync_queue')
           .select('venue_id, reason, run_after, last_error, updated_at')
           .eq('venue_id', id)
           .maybeSingle(),
@@ -547,6 +590,11 @@ export async function PATCH(request: NextRequest, context: RouteContext): Promis
     if (updatedRegularSyncError && !isMissingRegularSyncTable) {
       throw new Error(`Failed to refetch regular sync state after update: ${updatedRegularSyncError.message}`)
     }
+    const isMissingDropInSyncTable = updatedDropInSyncError?.code === '42P01'
+      || updatedDropInSyncError?.message?.toLowerCase().includes('drop_in_template_sync_queue')
+    if (updatedDropInSyncError && !isMissingDropInSyncTable) {
+      throw new Error(`Failed to refetch drop-in sync state after update: ${updatedDropInSyncError.message}`)
+    }
 
     const normalizedConfig = normalizeVenueAdminConfig(id, (updatedConfigRow as Partial<VenueAdminConfig>) || null)
     const updatedTemplates = (updatedTemplateRows || []) as SlotTemplateRow[]
@@ -560,6 +608,11 @@ export async function PATCH(request: NextRequest, context: RouteContext): Promis
       isMissingRegularSyncTable
         ? null
         : ((updatedRegularSyncRow as RegularTemplateSyncQueueRow | null) || null)
+    )
+    const normalizedDropInSync = toSyncState(
+      isMissingDropInSyncTable
+        ? null
+        : ((updatedDropInSyncRow as DropInTemplateSyncQueueRow | null) || null)
     )
 
     const { error: auditError } = await adminClient
@@ -593,6 +646,7 @@ export async function PATCH(request: NextRequest, context: RouteContext): Promis
       config: VenueAdminConfig
       drop_in_templates: DropInTemplateWindow[]
       regular_booking_templates: DropInTemplateWindow[]
+      drop_in_slot_sync: TemplateSyncState
       regular_slot_sync: TemplateSyncState
       completeness: ReturnType<typeof calculateVenueConfigCompleteness>
     }> = {
@@ -602,6 +656,7 @@ export async function PATCH(request: NextRequest, context: RouteContext): Promis
         config: normalizedConfig,
         drop_in_templates: normalizedDropInTemplates,
         regular_booking_templates: normalizedRegularTemplates,
+        drop_in_slot_sync: normalizedDropInSync,
         regular_slot_sync: normalizedRegularSync,
         completeness,
       },

@@ -18,6 +18,7 @@ export interface AdminVenueConfigItem {
   config: VenueAdminConfig
   drop_in_templates: DropInTemplateWindow[]
   regular_booking_templates: DropInTemplateWindow[]
+  drop_in_slot_sync: AdminTemplateSyncState
   regular_slot_sync: AdminTemplateSyncState
   completeness: {
     score: number

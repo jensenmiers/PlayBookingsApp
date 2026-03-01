@@ -6,12 +6,8 @@ import type { Venue } from '@/types'
 
 // Mock the dependencies before importing BookingService
 jest.mock('@/repositories/bookingRepository')
-jest.mock('@/repositories/availabilityRepository')
 jest.mock('../auditService')
 jest.mock('../paymentService')
-jest.mock('@/utils/conflictDetection', () => ({
-  checkBookingConflicts: jest.fn().mockReturnValue({ hasConflict: false }),
-}))
 jest.mock('@/lib/stripe', () => ({
   stripe: {
     paymentIntents: { create: jest.fn() },
@@ -77,6 +73,7 @@ describe('BookingService - Payment Flow', () => {
 
     bookingService = new BookingService()
     mockBookingRepo = (bookingService as unknown as { bookingRepo: jest.Mocked<BookingRepository> }).bookingRepo
+    jest.spyOn(bookingService, 'checkConflicts').mockResolvedValue({ hasConflict: false })
   })
 
   describe('createBooking - Payment Flags', () => {
@@ -128,10 +125,6 @@ describe('BookingService - Payment Flow', () => {
       mockBookingRepo.findConflictingBookings = jest.fn().mockResolvedValue([])
       mockBookingRepo.findConflictingRecurring = jest.fn().mockResolvedValue([])
 
-      // Mock availability repo
-      const availabilityRepo = (bookingService as unknown as { availabilityRepo: { findByVenueAndDate: jest.Mock } }).availabilityRepo
-      availabilityRepo.findByVenueAndDate = jest.fn().mockResolvedValue([])
-
       // Mock audit service
       const auditService = (bookingService as unknown as { auditService: { logCreate: jest.Mock } }).auditService
       auditService.logCreate = jest.fn().mockResolvedValue(undefined)
@@ -181,9 +174,6 @@ describe('BookingService - Payment Flow', () => {
       mockBookingRepo.findConflictingBookings = jest.fn().mockResolvedValue([])
       mockBookingRepo.findConflictingRecurring = jest.fn().mockResolvedValue([])
 
-      const availabilityRepo = (bookingService as unknown as { availabilityRepo: { findByVenueAndDate: jest.Mock } }).availabilityRepo
-      availabilityRepo.findByVenueAndDate = jest.fn().mockResolvedValue([])
-
       const auditService = (bookingService as unknown as { auditService: { logCreate: jest.Mock } }).auditService
       auditService.logCreate = jest.fn().mockResolvedValue(undefined)
 
@@ -230,9 +220,6 @@ describe('BookingService - Payment Flow', () => {
       mockBookingRepo.create = jest.fn().mockResolvedValue(mockBooking)
       mockBookingRepo.findConflictingBookings = jest.fn().mockResolvedValue([])
       mockBookingRepo.findConflictingRecurring = jest.fn().mockResolvedValue([])
-
-      const availabilityRepo = (bookingService as unknown as { availabilityRepo: { findByVenueAndDate: jest.Mock } }).availabilityRepo
-      availabilityRepo.findByVenueAndDate = jest.fn().mockResolvedValue([])
 
       const auditService = (bookingService as unknown as { auditService: { logCreate: jest.Mock } }).auditService
       auditService.logCreate = jest.fn().mockResolvedValue(undefined)
@@ -283,9 +270,6 @@ describe('BookingService - Payment Flow', () => {
       mockBookingRepo.create = jest.fn().mockResolvedValue(mockBooking)
       mockBookingRepo.findConflictingBookings = jest.fn().mockResolvedValue([])
       mockBookingRepo.findConflictingRecurring = jest.fn().mockResolvedValue([])
-
-      const availabilityRepo = (bookingService as unknown as { availabilityRepo: { findByVenueAndDate: jest.Mock } }).availabilityRepo
-      availabilityRepo.findByVenueAndDate = jest.fn().mockResolvedValue([])
 
       const auditService = (bookingService as unknown as { auditService: { logCreate: jest.Mock } }).auditService
       auditService.logCreate = jest.fn().mockResolvedValue(undefined)

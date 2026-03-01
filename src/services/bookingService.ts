@@ -3,10 +3,8 @@
  */
 
 import { BookingRepository } from '@/repositories/bookingRepository'
-import { AvailabilityRepository } from '@/repositories/availabilityRepository'
 import { AuditService } from './auditService'
 import { PaymentService } from './paymentService'
-import { checkBookingConflicts } from '@/utils/conflictDetection'
 import { calculateRecurringDates } from '@/utils/recurringGenerator'
 import { getCancellationInfo, calculateDuration, isPastBookingStart } from '@/utils/dateHelpers'
 import { conflict, badRequest, notFound } from '@/utils/errorHandling'
@@ -14,9 +12,42 @@ import { getBookingPolicyViolation, normalizeVenueAdminConfig } from '@/lib/venu
 import type { Booking, RecurringBooking, CreateBookingForm, BookingStatus, BookingWithPaymentInfo, CancellationResult, BookingWithVenue } from '@/types'
 import { createClient } from '@/lib/supabase/server'
 
+type BookingConflictResult = {
+  hasConflict: boolean
+  conflictType?: 'time_overlap' | 'slot_unavailable' | 'advance_booking_exceeded'
+  conflictingBookingId?: string
+  message?: string
+}
+
+type ExternalAvailabilityBlockRow = {
+  id: string
+  venue_id: string
+  source: string
+  source_event_id: string | null
+  start_at: string
+  end_at: string
+  status: 'active' | 'cancelled'
+}
+
+function overlapsExternalBlock(
+  date: string,
+  startTime: string,
+  endTime: string,
+  block: ExternalAvailabilityBlockRow
+): boolean {
+  const [year, month, day] = date.split('-').map(Number)
+  const [startHour, startMinute] = startTime.split(':').map(Number)
+  const [endHour, endMinute] = endTime.split(':').map(Number)
+  const slotStart = new Date(year, month - 1, day, startHour, startMinute || 0, 0, 0).getTime()
+  const slotEnd = new Date(year, month - 1, day, endHour, endMinute || 0, 0, 0).getTime()
+  const blockStart = new Date(block.start_at).getTime()
+  const blockEnd = new Date(block.end_at).getTime()
+
+  return slotStart < blockEnd && slotEnd > blockStart
+}
+
 export class BookingService {
   private bookingRepo = new BookingRepository()
-  private availabilityRepo = new AvailabilityRepository()
   private auditService = new AuditService()
   private paymentService = new PaymentService()
 
@@ -131,24 +162,99 @@ export class BookingService {
     startTime: string,
     endTime: string,
     excludeBookingId?: string
-  ) {
-    // Get all relevant bookings and recurring bookings
-    const [bookings, recurringBookings, availabilityBlocks] = await Promise.all([
+  ): Promise<BookingConflictResult> {
+    const supabase = await createClient()
+
+    const [bookings, recurringBookings, venueResult, slotInstancesResult, externalBlocksResult] = await Promise.all([
       this.bookingRepo.findConflictingBookings(venueId, date, startTime, endTime, excludeBookingId),
       this.bookingRepo.findConflictingRecurring(venueId, date, startTime, endTime),
-      this.availabilityRepo.findByVenueAndDate(venueId, date),
+      supabase
+        .from('venues')
+        .select('instant_booking')
+        .eq('id', venueId)
+        .single(),
+      supabase
+        .from('slot_instances')
+        .select('id, action_type')
+        .eq('venue_id', venueId)
+        .eq('date', date)
+        .eq('start_time', startTime)
+        .eq('end_time', endTime)
+        .eq('is_active', true)
+        .in('action_type', ['instant_book', 'request_private']),
+      supabase
+        .from('external_availability_blocks')
+        .select('id, venue_id, source, source_event_id, start_at, end_at, status')
+        .eq('venue_id', venueId)
+        .eq('status', 'active'),
     ])
 
-    return checkBookingConflicts(
-      bookings,
-      recurringBookings,
-      availabilityBlocks,
-      venueId,
-      date,
-      startTime,
-      endTime,
-      excludeBookingId
+    if (bookings.length > 0) {
+      return {
+        hasConflict: true,
+        conflictType: 'time_overlap',
+        conflictingBookingId: bookings[0].id,
+        message: 'Booking time conflicts with existing booking',
+      }
+    }
+
+    if (recurringBookings.length > 0) {
+      return {
+        hasConflict: true,
+        conflictType: 'time_overlap',
+        conflictingBookingId: recurringBookings[0].id,
+        message: 'Booking time conflicts with existing recurring booking',
+      }
+    }
+
+    if (venueResult.error || !venueResult.data) {
+      return {
+        hasConflict: true,
+        conflictType: 'slot_unavailable',
+        message: 'Venue not found while validating slot availability',
+      }
+    }
+
+    if (slotInstancesResult.error) {
+      throw new Error(`Failed to validate slot availability: ${slotInstancesResult.error.message}`)
+    }
+
+    const expectedActionType = venueResult.data.instant_booking ? 'instant_book' : 'request_private'
+    const matchingSlot = ((slotInstancesResult.data || []) as Array<{ id: string; action_type: string }>)
+      .some((slot) => slot.action_type === expectedActionType)
+
+    if (!matchingSlot) {
+      return {
+        hasConflict: true,
+        conflictType: 'slot_unavailable',
+        message: 'Requested time slot is not available',
+      }
+    }
+
+    const isMissingExternalBlocksTable = externalBlocksResult.error?.code === '42P01'
+      || externalBlocksResult.error?.message?.toLowerCase().includes('external_availability_blocks')
+    if (externalBlocksResult.error && !isMissingExternalBlocksTable) {
+      throw new Error(`Failed to validate external availability blocks: ${externalBlocksResult.error.message}`)
+    }
+
+    const externalBlocks = isMissingExternalBlocksTable
+      ? []
+      : ((externalBlocksResult.data || []) as ExternalAvailabilityBlockRow[])
+    const hasExternalBlock = externalBlocks.some((block) =>
+      overlapsExternalBlock(date, startTime, endTime, block)
     )
+
+    if (hasExternalBlock) {
+      return {
+        hasConflict: true,
+        conflictType: 'slot_unavailable',
+        message: 'Requested time slot is blocked by an external calendar event',
+      }
+    }
+
+    return {
+      hasConflict: false,
+    }
   }
 
   /**

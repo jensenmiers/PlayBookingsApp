@@ -428,15 +428,29 @@ function formatLastSavedAt(item: AdminVenueConfigItem): string {
   return latest.toLocaleString()
 }
 
-function formatRegularSyncStatusLabel(item: AdminVenueConfigItem | null): string {
-  const status = item?.regular_slot_sync?.status || 'synced'
+function getCombinedSlotSyncStatus(item: AdminVenueConfigItem | null): 'synced' | 'pending' | 'failed' {
+  const statuses = [
+    item?.regular_slot_sync?.status || 'synced',
+    item?.drop_in_slot_sync?.status || 'synced',
+  ]
+  if (statuses.includes('failed')) {
+    return 'failed'
+  }
+  if (statuses.includes('pending')) {
+    return 'pending'
+  }
+  return 'synced'
+}
+
+function formatSlotSyncStatusLabel(item: AdminVenueConfigItem | null): string {
+  const status = getCombinedSlotSyncStatus(item)
   if (status === 'pending') {
-    return 'Regular slot sync pending'
+    return 'Slot sync pending'
   }
   if (status === 'failed') {
-    return 'Regular slot sync failed'
+    return 'Slot sync failed'
   }
-  return 'Regular slot sync synced'
+  return 'Slot sync synced'
 }
 
 function getBookingStartMs(booking: AdminVenueBookingFeedItem): number {
@@ -868,14 +882,14 @@ export function SuperAdminVenueConfigPage() {
             ? (
               <span
                 className={cn(
-                  (selectedItem.regular_slot_sync?.status || 'synced') === 'failed'
+                  getCombinedSlotSyncStatus(selectedItem) === 'failed'
                     ? 'text-red-300'
-                    : (selectedItem.regular_slot_sync?.status || 'synced') === 'pending'
+                    : getCombinedSlotSyncStatus(selectedItem) === 'pending'
                       ? 'text-amber-300'
                       : 'text-secondary-50/60'
                 )}
               >
-                {formatRegularSyncStatusLabel(selectedItem)}
+                {formatSlotSyncStatusLabel(selectedItem)}
               </span>
               )
             : null}

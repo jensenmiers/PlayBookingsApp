@@ -25,6 +25,14 @@ type RegularTemplateSyncQueueRow = {
   updated_at: string | null
 }
 
+type DropInTemplateSyncQueueRow = {
+  venue_id: string
+  reason: string | null
+  run_after: string | null
+  last_error: string | null
+  updated_at: string | null
+}
+
 type TemplateSyncState = {
   status: 'synced' | 'pending' | 'failed'
   reason: string | null
@@ -38,6 +46,7 @@ type AdminVenueConfigListItem = {
   config: VenueAdminConfig
   drop_in_templates: DropInTemplateWindow[]
   regular_booking_templates: DropInTemplateWindow[]
+  drop_in_slot_sync: TemplateSyncState
   regular_slot_sync: TemplateSyncState
   completeness: {
     score: number
@@ -96,6 +105,7 @@ export async function GET(): Promise<Response> {
       { data: configRows, error: configsError },
       { data: templateRows, error: templatesError },
       { data: regularSyncRows, error: regularSyncError },
+      { data: dropInSyncRows, error: dropInSyncError },
     ] = await Promise.all([
       adminClient
         .from('venues')
@@ -111,6 +121,9 @@ export async function GET(): Promise<Response> {
         .eq('is_active', true),
       adminClient
         .from('regular_template_sync_queue')
+        .select('venue_id, reason, run_after, last_error, updated_at'),
+      adminClient
+        .from('drop_in_template_sync_queue')
         .select('venue_id, reason, run_after, last_error, updated_at'),
     ])
 
@@ -129,6 +142,11 @@ export async function GET(): Promise<Response> {
       || regularSyncError?.message?.toLowerCase().includes('regular_template_sync_queue')
     if (regularSyncError && !isMissingRegularSyncTable) {
       throw new Error(`Failed to fetch regular sync queue: ${regularSyncError.message}`)
+    }
+    const isMissingDropInSyncTable = dropInSyncError?.code === '42P01'
+      || dropInSyncError?.message?.toLowerCase().includes('drop_in_template_sync_queue')
+    if (dropInSyncError && !isMissingDropInSyncTable) {
+      throw new Error(`Failed to fetch drop-in sync queue: ${dropInSyncError.message}`)
     }
 
     const configByVenueId = new Map<string, Partial<VenueAdminConfig>>()
@@ -169,18 +187,26 @@ export async function GET(): Promise<Response> {
         regularSyncByVenueId.set(row.venue_id, row)
       }
     }
+    const dropInSyncByVenueId = new Map<string, DropInTemplateSyncQueueRow>()
+    if (!isMissingDropInSyncTable) {
+      for (const row of (dropInSyncRows || []) as DropInTemplateSyncQueueRow[]) {
+        dropInSyncByVenueId.set(row.venue_id, row)
+      }
+    }
 
     const items: AdminVenueConfigListItem[] = ((venues || []) as Venue[]).map((venue) => {
       const config = normalizeVenueAdminConfig(venue.id, configByVenueId.get(venue.id) || null)
       const completeness = calculateVenueConfigCompleteness(venue, config)
       const dropInTemplates = normalizeTemplateWindows(dropInTemplatesByVenueId.get(venue.id) || [])
       const regularBookingTemplates = normalizeTemplateWindows(regularTemplatesByVenueId.get(venue.id) || [])
+      const dropInSlotSync = toSyncState(dropInSyncByVenueId.get(venue.id) || null)
       const regularSlotSync = toSyncState(regularSyncByVenueId.get(venue.id) || null)
       return {
         venue,
         config,
         drop_in_templates: dropInTemplates,
         regular_booking_templates: regularBookingTemplates,
+        drop_in_slot_sync: dropInSlotSync,
         regular_slot_sync: regularSlotSync,
         completeness,
       }

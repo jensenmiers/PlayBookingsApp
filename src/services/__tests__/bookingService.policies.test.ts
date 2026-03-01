@@ -1,12 +1,8 @@
-import type { Availability, Venue } from '@/types'
+import type { Venue } from '@/types'
 
 jest.mock('@/repositories/bookingRepository')
-jest.mock('@/repositories/availabilityRepository')
 jest.mock('../auditService')
 jest.mock('../paymentService')
-jest.mock('@/utils/conflictDetection', () => ({
-  checkBookingConflicts: jest.fn().mockReturnValue({ hasConflict: false }),
-}))
 jest.mock('@/lib/stripe', () => ({
   stripe: {
     paymentIntents: { create: jest.fn() },
@@ -59,19 +55,6 @@ describe('BookingService.createBooking - venue policy enforcement', () => {
     updated_at: '2025-01-01T00:00:00Z',
   }
 
-  const baseAvailability: Availability[] = [
-    {
-      id: 'a1',
-      venue_id: 'venue-123',
-      date: '2026-02-25',
-      start_time: '08:00:00',
-      end_time: '22:00:00',
-      is_available: true,
-      created_at: '2026-01-01T00:00:00Z',
-      updated_at: '2026-01-01T00:00:00Z',
-    },
-  ]
-
   const makeSupabase = ({
     venue = baseVenue,
     adminConfig = null,
@@ -116,6 +99,7 @@ describe('BookingService.createBooking - venue policy enforcement', () => {
 
     bookingService = new BookingService()
     mockBookingRepo = (bookingService as unknown as { bookingRepo: jest.Mocked<BookingRepository> }).bookingRepo
+    jest.spyOn(bookingService, 'checkConflicts').mockResolvedValue({ hasConflict: false })
 
     mockBookingRepo.findConflictingBookings = jest.fn().mockResolvedValue([])
     mockBookingRepo.findConflictingRecurring = jest.fn().mockResolvedValue([])
@@ -134,9 +118,6 @@ describe('BookingService.createBooking - venue policy enforcement', () => {
       created_at: '2026-02-25T10:00:00Z',
       updated_at: '2026-02-25T10:00:00Z',
     })
-
-    const availabilityRepo = (bookingService as unknown as { availabilityRepo: { findByVenueAndDate: jest.Mock } }).availabilityRepo
-    availabilityRepo.findByVenueAndDate = jest.fn().mockResolvedValue(baseAvailability)
 
     const auditService = (bookingService as unknown as { auditService: { logCreate: jest.Mock } }).auditService
     auditService.logCreate = jest.fn().mockResolvedValue(undefined)

@@ -68,6 +68,13 @@ const buildMockAdminVenuesData = () => [
     },
     drop_in_templates: [],
     regular_booking_templates: [],
+    drop_in_slot_sync: {
+      status: 'synced',
+      reason: null,
+      run_after: null,
+      last_error: null,
+      updated_at: null,
+    },
     regular_slot_sync: {
       status: 'synced',
       reason: null,
@@ -123,6 +130,13 @@ const buildMockAdminVenuesData = () => [
     },
     drop_in_templates: [],
     regular_booking_templates: [],
+    drop_in_slot_sync: {
+      status: 'synced',
+      reason: null,
+      run_after: null,
+      last_error: null,
+      updated_at: null,
+    },
     regular_slot_sync: {
       status: 'synced',
       reason: null,
@@ -369,6 +383,28 @@ describe('SuperAdminVenueConfigPage', () => {
     fireEvent.click(screen.getByRole('button', { name: 'Manual approval' }))
     fireEvent.click(screen.getByRole('button', { name: 'Not required' }))
     expect(screen.getByText(/new bookings will start as pending approval/i)).toBeInTheDocument()
+  })
+
+  it('shows combined slot sync status when either regular or drop-in sync is pending/failed', async () => {
+    const data = buildMockAdminVenuesData()
+    data[0].drop_in_slot_sync = {
+      status: 'failed',
+      reason: 'drop_in_templates_updated',
+      run_after: null,
+      last_error: 'processor timeout',
+      updated_at: '2026-02-21T12:05:00.000Z',
+    }
+
+    mockUseAdminVenues.mockReturnValue({
+      loading: false,
+      error: null,
+      refetch: mockRefetch,
+      data,
+    } as any)
+
+    render(<SuperAdminVenueConfigPage />)
+
+    await screen.findByText('Slot sync failed')
   })
 
   it('saves weekly drop-in templates when schedule windows are added', async () => {

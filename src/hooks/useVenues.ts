@@ -30,6 +30,26 @@ interface UseAsyncState<T> {
   error: string | null
 }
 
+type ExternalAvailabilityBlockClientRow = {
+  id: string
+  venue_id: string
+  start_at: string
+  end_at: string
+  status: 'active' | 'cancelled'
+}
+
+function overlapsExternalBlock(
+  slot: { date: string; start_time: string; end_time: string },
+  block: ExternalAvailabilityBlockClientRow
+): boolean {
+  const slotStartMs = timeStringToDate(slot.date, slot.start_time).getTime()
+  const slotEndMs = timeStringToDate(slot.date, slot.end_time).getTime()
+  const blockStartMs = new Date(block.start_at).getTime()
+  const blockEndMs = new Date(block.end_at).getTime()
+
+  return slotStartMs < blockEndMs && slotEndMs > blockStartMs
+}
+
 /**
  * Fetch list of venues with optional filters
  */
@@ -183,7 +203,8 @@ export function useVenueBySlug(slug: string | null) {
 }
 
 /**
- * Fetch availability for a venue on a specific date
+ * Legacy shape helper for availability-like slots for a single venue/day.
+ * Reads from slot_instances instead of availability.
  */
 export function useVenueAvailability(venueId: string | null, date: string | null) {
   const [state, setState] = useState<UseAsyncState<Availability[]>>({
@@ -203,15 +224,37 @@ export function useVenueAvailability(venueId: string | null, date: string | null
       try {
         const supabase = createClient()
         const { data, error } = await supabase
-          .from('availability')
-          .select('*')
+          .from('slot_instances')
+          .select('id, venue_id, date, start_time, end_time, created_at, updated_at')
           .eq('venue_id', venueId)
           .eq('date', date)
-          .eq('is_available', true)
+          .eq('is_active', true)
+          .in('action_type', ['instant_book', 'request_private'])
           .order('start_time', { ascending: true })
 
         if (error) throw error
-        setState({ data: data || [], loading: false, error: null })
+        setState({
+          data: ((data || []) as Array<{
+            id: string
+            venue_id: string
+            date: string
+            start_time: string
+            end_time: string
+            created_at: string
+            updated_at: string
+          }>).map((slot) => ({
+            id: slot.id,
+            venue_id: slot.venue_id,
+            date: slot.date,
+            start_time: slot.start_time,
+            end_time: slot.end_time,
+            is_available: true,
+            created_at: slot.created_at,
+            updated_at: slot.updated_at,
+          })),
+          loading: false,
+          error: null,
+        })
       } catch (error) {
         console.error('Availability fetch error:', error)
         const message = error instanceof Error ? error.message : 'Failed to fetch availability'
@@ -339,16 +382,23 @@ export function useAvailabilitySlots(filters?: {
         minStartTime = format(nextHour, 'HH:mm:ss')
       }
 
-      // Build query with join to venues
-      // Note: Supabase uses the foreign key relationship name for joins
+      // Build query with join to venues from slot_instances.
       let query = supabase
-        .from('availability')
+        .from('slot_instances')
         .select(`
-          *,
+          id,
+          venue_id,
+          date,
+          start_time,
+          end_time,
+          created_at,
+          updated_at,
+          action_type,
           venue:venues (*)
         `)
         .eq('date', selectedDate)
-        .eq('is_available', true)
+        .eq('is_active', true)
+        .in('action_type', ['instant_book', 'request_private'])
 
       // Filter by minimum start time if today
       if (minStartTime) {
@@ -370,17 +420,20 @@ export function useAvailabilitySlots(filters?: {
         throw error
       }
 
-      const transformedData: AvailabilityWithVenue[] = (data || []).map((item) => ({
-        id: item.id,
-        venue_id: item.venue_id,
-        date: item.date,
-        start_time: item.start_time,
-        end_time: item.end_time,
-        is_available: item.is_available,
-        created_at: item.created_at,
-        updated_at: item.updated_at,
-        venue: item.venue as Venue,
-      }))
+      const transformedData: AvailabilityWithVenue[] = (data || []).map((item) => {
+        const venueRecord = Array.isArray(item.venue) ? item.venue[0] : item.venue
+        return {
+          id: item.id,
+          venue_id: item.venue_id,
+          date: item.date,
+          start_time: item.start_time,
+          end_time: item.end_time,
+          is_available: true,
+          created_at: item.created_at,
+          updated_at: item.updated_at,
+          venue: venueRecord as Venue,
+        }
+      })
         .filter((item: AvailabilityWithVenue) => {
           // Additional client-side filtering for today to ensure slots are in the future
           if (isToday) {
@@ -413,13 +466,31 @@ export function useAvailabilitySlots(filters?: {
         configByVenueId.set(venueId, normalizeVenueAdminConfig(venueId, row))
       }
 
+      const { data: externalBlockRows, error: externalBlocksError } = await supabase
+        .from('external_availability_blocks')
+        .select('id, venue_id, start_at, end_at, status')
+        .in('venue_id', venueIds)
+        .eq('status', 'active')
+
+      const isMissingExternalBlocksTable = externalBlocksError?.code === '42P01'
+        || externalBlocksError?.message?.toLowerCase().includes('external_availability_blocks')
+      if (externalBlocksError && !isMissingExternalBlocksTable) {
+        throw externalBlocksError
+      }
+
+      const externalBlocks = isMissingExternalBlocksTable
+        ? []
+        : ((externalBlockRows || []) as ExternalAvailabilityBlockClientRow[])
+
       const policyFiltered = transformedData.filter((item) => {
         const config = configByVenueId.get(item.venue_id)
         if (!config) {
-          return true
+          return !externalBlocks.some(
+            (block) => block.venue_id === item.venue_id && overlapsExternalBlock(item, block)
+          )
         }
 
-        return isSlotAllowedByVenueConfig(
+        const isPolicyAllowed = isSlotAllowedByVenueConfig(
           {
             date: item.date,
             start_time: item.start_time,
@@ -427,6 +498,11 @@ export function useAvailabilitySlots(filters?: {
           },
           config
         )
+        const isExternallyBlocked = externalBlocks.some(
+          (block) => block.venue_id === item.venue_id && overlapsExternalBlock(item, block)
+        )
+
+        return isPolicyAllowed && !isExternallyBlocked
       })
 
       setState({ data: policyFiltered, loading: false, error: null })

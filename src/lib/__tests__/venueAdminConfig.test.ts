@@ -40,14 +40,21 @@ describe('normalizeVenueAdminConfig', () => {
     expect(config.policy_operating_hours_notes).toBe('Open daily; call host for holiday schedules.')
   })
 
-  it('defaults regular schedule mode to legacy when not provided', () => {
+  it('defaults regular schedule mode to template when not provided', () => {
     const config = normalizeVenueAdminConfig('venue-1', {})
-    expect(config.regular_schedule_mode).toBe('legacy')
+    expect(config.regular_schedule_mode).toBe('template')
   })
 
   it('preserves template regular schedule mode when provided', () => {
     const config = normalizeVenueAdminConfig('venue-1', {
       regular_schedule_mode: 'template',
+    })
+    expect(config.regular_schedule_mode).toBe('template')
+  })
+
+  it('normalizes legacy regular schedule mode to template', () => {
+    const config = normalizeVenueAdminConfig('venue-1', {
+      regular_schedule_mode: 'legacy',
     })
     expect(config.regular_schedule_mode).toBe('template')
   })
