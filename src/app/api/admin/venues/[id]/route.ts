@@ -515,8 +515,8 @@ export async function PATCH(request: NextRequest, context: RouteContext): Promis
     if (shouldInlineRefreshSlotInstances) {
       const { error: inlineRefreshError } = await adminClient.rpc('refresh_slot_instances_from_templates', {
         p_venue_id: id,
-        p_start_date: new Date().toISOString().slice(0, 10),
-        p_end_date: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000).toISOString().slice(0, 10),
+        p_date_from: new Date().toISOString().slice(0, 10),
+        p_date_to: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000).toISOString().slice(0, 10),
       })
 
       if (inlineRefreshError) {
