@@ -60,6 +60,19 @@ const mockUnavailableVenue = {
   nextAvailable: null,
 }
 
+const mockVenueTwo = {
+  ...mockVenue,
+  id: 'venue-3',
+  name: 'Evening Hoops',
+  nextAvailable: {
+    slotId: 'slot-2',
+    date: '2026-02-20',
+    startTime: '20:00:00',
+    endTime: '21:00:00',
+    displayText: 'Today 8:00 PM',
+  },
+}
+
 describe('AvailabilityMap popup readability', () => {
   const originalToken = process.env.NEXT_PUBLIC_MAPBOX_TOKEN
 
@@ -92,7 +105,7 @@ describe('AvailabilityMap popup readability', () => {
     expect(screen.getByTestId('mock-popup')).toHaveClass('map-popup')
   })
 
-  it('renders available markers above unavailable markers via z-index', () => {
+  it('renders available markers above unavailable markers on initial load', () => {
     render(<AvailabilityMap venues={[mockUnavailableVenue, mockVenue]} />)
 
     const availableBadge = screen.getByText('Tomorrow 6:00 PM')
@@ -103,5 +116,40 @@ describe('AvailabilityMap popup readability', () => {
     expect(unavailableMarker).toBeDefined()
     expect(availableMarker).toHaveStyle({ zIndex: 2 })
     expect(unavailableMarker).toHaveStyle({ zIndex: 1 })
+  })
+
+  it('renders selected unavailable marker above unselected available marker', () => {
+    render(
+      <AvailabilityMap
+        venues={[mockUnavailableVenue, mockVenue]}
+        selectedVenueId={mockUnavailableVenue.id}
+      />
+    )
+
+    const [selectedUnavailableMarker, unselectedAvailableMarker] = screen.getAllByTestId('mock-marker')
+
+    expect(selectedUnavailableMarker).toHaveStyle({ zIndex: 3 })
+    expect(unselectedAvailableMarker).toHaveStyle({ zIndex: 2 })
+  })
+
+  it('renders selected available marker above unselected available marker', () => {
+    render(
+      <AvailabilityMap
+        venues={[mockVenue, mockVenueTwo]}
+        selectedVenueId={mockVenueTwo.id}
+      />
+    )
+
+    const selectedAvailableMarker = screen
+      .getByText('Today 8:00 PM')
+      .closest('[data-testid="mock-marker"]')
+    const unselectedAvailableMarker = screen
+      .getByText('Tomorrow 6:00 PM')
+      .closest('[data-testid="mock-marker"]')
+
+    expect(selectedAvailableMarker).not.toBeNull()
+    expect(unselectedAvailableMarker).not.toBeNull()
+    expect(selectedAvailableMarker).toHaveStyle({ zIndex: 3 })
+    expect(unselectedAvailableMarker).toHaveStyle({ zIndex: 2 })
   })
 })

@@ -125,24 +125,30 @@ export function AvailabilityMap({
         <NavigationControl position="top-right" />
 
         {/* Venue Markers */}
-        {venues.map((venue) => (
-          <Marker
-            key={venue.id}
-            latitude={venue.latitude}
-            longitude={venue.longitude}
-            anchor="bottom"
-            style={{ zIndex: venue.nextAvailable !== null ? 2 : 1 }}
-            onClick={(e) => {
-              e.originalEvent.stopPropagation()
-              handleMarkerClick(venue)
-            }}
-          >
-            <VenueMarker 
-              venue={venue} 
-              isSelected={selectedVenueId === venue.id || popupVenue?.id === venue.id}
-            />
-          </Marker>
-        ))}
+        {venues.map((venue) => {
+          const isSelected = selectedVenueId === venue.id || popupVenue?.id === venue.id
+          const hasAvailability = venue.nextAvailable !== null
+          const markerZIndex = isSelected ? 3 : hasAvailability ? 2 : 1
+
+          return (
+            <Marker
+              key={venue.id}
+              latitude={venue.latitude}
+              longitude={venue.longitude}
+              anchor="bottom"
+              style={{ zIndex: markerZIndex }}
+              onClick={(e) => {
+                e.originalEvent.stopPropagation()
+                handleMarkerClick(venue)
+              }}
+            >
+              <VenueMarker 
+                venue={venue} 
+                isSelected={isSelected}
+              />
+            </Marker>
+          )
+        })}
 
         {/* Popup for selected venue */}
         {popupVenue && (
