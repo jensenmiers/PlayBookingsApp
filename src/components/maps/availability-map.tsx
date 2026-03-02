@@ -131,6 +131,7 @@ export function AvailabilityMap({
             latitude={venue.latitude}
             longitude={venue.longitude}
             anchor="bottom"
+            style={{ zIndex: venue.nextAvailable !== null ? 2 : 1 }}
             onClick={(e) => {
               e.originalEvent.stopPropagation()
               handleMarkerClick(venue)

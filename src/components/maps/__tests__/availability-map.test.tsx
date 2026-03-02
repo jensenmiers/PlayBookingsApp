@@ -7,13 +7,16 @@ jest.mock('react-map-gl/mapbox', () => ({
   Marker: ({
     children,
     onClick,
+    style,
   }: {
     children: React.ReactNode
     onClick?: (evt: { originalEvent: { stopPropagation: () => void } }) => void
+    style?: React.CSSProperties
   }) => (
     <button
       type="button"
       data-testid="mock-marker"
+      style={style}
       onClick={() => onClick?.({ originalEvent: { stopPropagation: jest.fn() } })}
     >
       {children}
@@ -50,6 +53,13 @@ const mockVenue = {
   },
 }
 
+const mockUnavailableVenue = {
+  ...mockVenue,
+  id: 'venue-2',
+  name: 'No Slots Court',
+  nextAvailable: null,
+}
+
 describe('AvailabilityMap popup readability', () => {
   const originalToken = process.env.NEXT_PUBLIC_MAPBOX_TOKEN
 
@@ -80,5 +90,18 @@ describe('AvailabilityMap popup readability', () => {
     fireEvent.click(screen.getByTestId('mock-marker'))
 
     expect(screen.getByTestId('mock-popup')).toHaveClass('map-popup')
+  })
+
+  it('renders available markers above unavailable markers via z-index', () => {
+    render(<AvailabilityMap venues={[mockUnavailableVenue, mockVenue]} />)
+
+    const availableBadge = screen.getByText('Tomorrow 6:00 PM')
+    const availableMarker = availableBadge.closest('[data-testid="mock-marker"]')
+    const unavailableMarker = screen.getAllByTestId('mock-marker').find((marker) => marker !== availableMarker)
+
+    expect(availableMarker).not.toBeNull()
+    expect(unavailableMarker).toBeDefined()
+    expect(availableMarker).toHaveStyle({ zIndex: 2 })
+    expect(unavailableMarker).toHaveStyle({ zIndex: 1 })
   })
 })
