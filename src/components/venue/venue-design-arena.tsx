@@ -7,11 +7,8 @@ import { format } from 'date-fns'
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome'
 import {
   faArrowLeft,
-  faBolt,
-  faClock,
   faShield,
   faChevronUp,
-  faLocationDot,
   faImages,
 } from '@fortawesome/free-solid-svg-icons'
 import { Button } from '@/components/ui/button'
@@ -19,6 +16,7 @@ import { SlotBookingConfirmation } from '@/components/booking/slot-booking-confi
 import { GoogleMapsLink } from './shared'
 import { useVenueAvailabilityRange, ComputedAvailabilitySlot } from '@/hooks/useVenues'
 import { formatTime, getNextTopOfHour } from '@/utils/dateHelpers'
+import { getBookingModeDisplay } from '@/lib/booking-mode'
 import type { Venue } from '@/types'
 
 interface VenueDesignArenaProps {
@@ -35,6 +33,7 @@ export function VenueDesignArena({ venue }: VenueDesignArenaProps) {
   const [selectedSlot, setSelectedSlot] = useState<ComputedAvailabilitySlot | null>(null)
   const [showBooking, setShowBooking] = useState(false)
   const [sheetExpanded, setSheetExpanded] = useState(false)
+  const bookingMode = getBookingModeDisplay(venue.instant_booking, 'compact')
 
   const today = new Date()
   const dateFrom = format(today, 'yyyy-MM-dd')
@@ -146,9 +145,9 @@ export function VenueDesignArena({ venue }: VenueDesignArenaProps) {
               ) : null}
               <span>${venue.hourly_rate}</span>
               <span className="text-secondary-50/40">·</span>
-              <span className={`flex items-center gap-1 ${venue.instant_booking ? 'text-primary-400' : 'text-accent-400'}`}>
-                <FontAwesomeIcon icon={venue.instant_booking ? faBolt : faClock} className="text-xs" />
-                {venue.instant_booking ? 'Instant' : 'Approval'}
+              <span className={`flex items-center gap-1 ${bookingMode.mode === 'instant' ? 'text-primary-400' : 'text-accent-400'}`}>
+                <FontAwesomeIcon icon={bookingMode.icon} className="text-xs" />
+                {bookingMode.label}
               </span>
             </div>
 

@@ -48,6 +48,20 @@ function createVenue(overrides: Partial<Venue> = {}): Venue {
 }
 
 describe('VenueCard', () => {
+  it('shows Instant chip for instant-booking venues', () => {
+    render(<VenueCard venue={createVenue({ instant_booking: true })} />)
+
+    expect(screen.getByText('Instant')).toBeInTheDocument()
+    expect(screen.queryByText('Host Approval')).not.toBeInTheDocument()
+  })
+
+  it('shows Host Approval chip for non-instant venues', () => {
+    render(<VenueCard venue={createVenue({ instant_booking: false })} />)
+
+    expect(screen.getByText('Host Approval')).toBeInTheDocument()
+    expect(screen.queryByText('Instant')).not.toBeInTheDocument()
+  })
+
   it('shows Insurance chip when venue requires insurance', () => {
     render(<VenueCard venue={createVenue({ insurance_required: true })} />)
 

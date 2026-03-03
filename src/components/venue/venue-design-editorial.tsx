@@ -5,13 +5,14 @@ import { useRouter } from 'next/navigation'
 import Image from 'next/image'
 import { format } from 'date-fns'
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome'
-import { faArrowLeft, faBolt, faShield, faCalendarDays } from '@fortawesome/free-solid-svg-icons'
+import { faArrowLeft, faShield, faCalendarDays } from '@fortawesome/free-solid-svg-icons'
 import { SlotBookingConfirmation } from '@/components/booking/slot-booking-confirmation'
 import { VenueLocationMap } from '@/components/maps/venue-location-map'
 import { Calendar } from '@/components/ui/calendar'
 import { GoogleMapsLink } from './shared'
 import { useVenueAvailabilityRange, ComputedAvailabilitySlot } from '@/hooks/useVenues'
 import { formatTime } from '@/utils/dateHelpers'
+import { getBookingModeDisplay } from '@/lib/booking-mode'
 import type { Venue } from '@/types'
 
 interface VenueDesignEditorialProps {
@@ -113,7 +114,7 @@ function getSlotSecondaryLabel(slot: ComputedAvailabilitySlot, venue: Venue): st
     return paymentMethod === 'on_site' ? 'Pay on site' : 'Pay in app'
   }
 
-  return venue.instant_booking ? 'Instant' : 'Approval'
+  return getBookingModeDisplay(venue.instant_booking, 'compact').label
 }
 
 export function VenueDesignEditorial({ venue }: VenueDesignEditorialProps) {
@@ -123,6 +124,7 @@ export function VenueDesignEditorial({ venue }: VenueDesignEditorialProps) {
   const [expandedDate, setExpandedDate] = useState<string | null>(null)
   const [showDatePicker, setShowDatePicker] = useState(false)
   const [pickerDate, setPickerDate] = useState<Date | undefined>(undefined)
+  const bookingMode = getBookingModeDisplay(venue.instant_booking, 'compact')
 
   const todayStr = getDateStringInTimeZone(new Date(), LOS_ANGELES_TIME_ZONE)
   const datePills = useMemo(
@@ -312,12 +314,12 @@ export function VenueDesignEditorial({ venue }: VenueDesignEditorialProps) {
                         <span className={`flex items-center gap-1 ${
                           nextSlot.action_type === 'info_only_open_gym'
                             ? 'text-secondary-50/60'
-                            : venue.instant_booking
+                            : bookingMode.mode === 'instant'
                               ? 'text-primary-400'
                               : 'text-accent-400'
                         }`}>
                           {nextSlot.action_type !== 'info_only_open_gym' && (
-                            <FontAwesomeIcon icon={faBolt} className="text-xs" />
+                            <FontAwesomeIcon icon={bookingMode.icon} className="text-xs" />
                           )}
                           <span className="text-sm">
                             {getSlotSecondaryLabel(nextSlot, venue)}

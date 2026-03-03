@@ -29,6 +29,7 @@ import { useCurrentUser } from '@/hooks/useCurrentUser'
 import { useAuthModal } from '@/contexts/AuthModalContext'
 import { useToast } from '@/components/ui/use-toast'
 import { formatTime } from '@/utils/dateHelpers'
+import { BOOKING_APPROVAL_COPY } from '@/lib/booking-mode'
 import type { Venue, BookingWithPaymentInfo } from '@/types'
 
 const stripePromise = loadStripe(process.env.NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY!)
@@ -154,7 +155,7 @@ function StripePaymentForm({
       </div>
       {isSetupIntent && (
         <p className="hidden sm:block text-xs text-muted-foreground text-center -mt-1">
-          Your card will be charged after approval
+          {BOOKING_APPROVAL_COPY.deferredSetupSubtext}
         </p>
       )}
 
@@ -289,7 +290,7 @@ function BookingDetailsView({
             <span className="font-semibold">Payment Required:</span>{' '}
             {venue.instant_booking && !venue.insurance_required
               ? 'Your card will be charged immediately to confirm this booking.'
-              : 'Your card will be authorized now and charged after approval.'}
+              : BOOKING_APPROVAL_COPY.deferredDetailsMessage}
           </p>
         </div>
 
@@ -480,7 +481,7 @@ export function BookingPaymentFlow({
       toast({
         title: isSetupIntent ? 'Card authorized!' : 'Payment successful!',
         description: isSetupIntent 
-          ? `Your booking at ${venue.name} is pending approval. You'll be charged once approved.`
+          ? BOOKING_APPROVAL_COPY.deferredSuccessDescription(venue.name)
           : `Your booking at ${venue.name} is confirmed!`,
         variant: 'success',
       })
@@ -529,7 +530,7 @@ export function BookingPaymentFlow({
           {step === 'payment' && (
             <DialogDescription>
               {isSetupIntent
-                ? 'Authorize your card to complete the booking request'
+                ? BOOKING_APPROVAL_COPY.deferredPaymentDescription
                 : 'Enter your payment details to confirm your booking'}
             </DialogDescription>
           )}

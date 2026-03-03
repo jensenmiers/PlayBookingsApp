@@ -6,11 +6,11 @@ import { FontAwesomeIcon } from '@fortawesome/react-fontawesome'
 import {
   faLocationDot,
   faDollarSign,
-  faBolt,
   faClock,
 } from '@fortawesome/free-solid-svg-icons'
 import type { Venue } from '@/types'
 import { slugify } from '@/lib/utils'
+import { getBookingModeDisplay } from '@/lib/booking-mode'
 
 interface NextAvailableInfo {
   displayText: string  // "Today 3:00 PM" or "Tomorrow 9:00 AM"
@@ -26,6 +26,7 @@ interface VenueCardProps {
 export function VenueCard({ venue, nextAvailable }: VenueCardProps) {
   const venueSlug = slugify(venue.name)
   const hasPhoto = venue.photos && venue.photos.length > 0
+  const bookingMode = getBookingModeDisplay(venue.instant_booking, 'compact')
   const descriptionPreview = venue.description
     ? venue.description.length > 120
       ? `${venue.description.substring(0, 120)}...`
@@ -57,7 +58,7 @@ export function VenueCard({ venue, nextAvailable }: VenueCardProps) {
 
         {/* Content - right 2/3 */}
         <div className="w-2/3 p-4 flex flex-col">
-          {/* Header with name and instant booking badge */}
+          {/* Header with name and booking mode badge */}
           <div className="flex justify-between items-start mb-1">
             <Link
               href={`/venue/${venueSlug}`}
@@ -65,12 +66,16 @@ export function VenueCard({ venue, nextAvailable }: VenueCardProps) {
             >
               {venue.name}
             </Link>
-            {venue.instant_booking && (
-              <span className="flex items-center gap-1 bg-accent-400/15 text-accent-400 text-xs px-2 py-1 rounded-full whitespace-nowrap ml-2">
-                <FontAwesomeIcon icon={faBolt} className="text-xs" />
-                <span>Instant</span>
-              </span>
-            )}
+            <span
+              className={`flex items-center gap-1 text-xs px-2 py-1 rounded-full whitespace-nowrap ml-2 ${
+                bookingMode.mode === 'instant'
+                  ? 'bg-accent-400/15 text-accent-400'
+                  : 'bg-secondary-50/10 text-secondary-50/70'
+              }`}
+            >
+              <FontAwesomeIcon icon={bookingMode.icon} className="text-xs" />
+              <span>{bookingMode.label}</span>
+            </span>
           </div>
 
           {/* Description preview - truncated to 2 lines */}

@@ -1,8 +1,9 @@
 'use client'
 
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome'
-import { faBolt, faClock, faShield } from '@fortawesome/free-solid-svg-icons'
+import { faShield } from '@fortawesome/free-solid-svg-icons'
 import { cn } from '@/lib/utils'
+import { getBookingModeDisplay } from '@/lib/booking-mode'
 
 interface BookingTypeBadgeProps {
   instantBooking: boolean
@@ -19,6 +20,11 @@ export function BookingTypeBadge({
   showInsurance = true,
   className,
 }: BookingTypeBadgeProps) {
+  const bookingMode = getBookingModeDisplay(
+    instantBooking,
+    variant === 'default' ? 'full' : 'compact'
+  )
+
   const baseStyles = {
     default: 'flex items-center gap-2 text-sm',
     compact: 'flex items-center gap-1.5 text-xs',
@@ -60,10 +66,10 @@ export function BookingTypeBadge({
         )}
       >
         <FontAwesomeIcon
-          icon={instantBooking ? faBolt : faClock}
+          icon={bookingMode.icon}
           className={variant === 'glow' ? 'animate-pulse' : ''}
         />
-        <span>{instantBooking ? 'Book Instantly' : 'Requires Approval'}</span>
+        <span>{bookingMode.label}</span>
       </span>
 
       {showInsurance && insuranceRequired && (
@@ -85,6 +91,8 @@ export function BookingTypeBadgeInline({
   instantBooking,
   className,
 }: BookingTypeBadgeInlineProps) {
+  const bookingMode = getBookingModeDisplay(instantBooking, 'compact')
+
   return (
     <span
       className={cn(
@@ -94,7 +102,7 @@ export function BookingTypeBadgeInline({
       )}
     >
       <FontAwesomeIcon
-        icon={instantBooking ? faBolt : faClock}
+        icon={bookingMode.icon}
         className="text-[0.75em]"
       />
     </span>

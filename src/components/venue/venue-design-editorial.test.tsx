@@ -120,6 +120,25 @@ describe('VenueDesignEditorial coming-up pills', () => {
     expect(screen.getByText(/Today\s*·\s*12:00 PM - 1:00 PM/)).toBeInTheDocument()
   })
 
+  it('shows Host Approval with a clock icon for request slots', () => {
+    mockUseVenueAvailabilityRange.mockReturnValue({
+      data: [
+        { date: '2026-02-21', start_time: '12:00:00', end_time: '13:00:00', venue_id: 'venue-1', action_type: 'request_private' },
+      ],
+      loading: false,
+      error: null,
+    })
+
+    const { container } = render(<VenueDesignEditorial venue={createMockVenue({ instant_booking: false })} />)
+
+    const approvalLabel = screen.getByText('Host Approval')
+    const approvalContainer = approvalLabel.parentElement
+
+    expect(approvalContainer).not.toBeNull()
+    expect(approvalContainer?.querySelector('[data-icon="clock"]')).toBeInTheDocument()
+    expect(container.querySelector('[data-icon="bolt"]')).not.toBeInTheDocument()
+  })
+
   it('shows drop-in person pricing for info-only slots instead of venue hourly rate', () => {
     mockUseVenueAvailabilityRange.mockReturnValue({
       data: [

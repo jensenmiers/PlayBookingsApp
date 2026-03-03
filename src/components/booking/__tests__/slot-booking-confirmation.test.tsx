@@ -181,12 +181,29 @@ describe('SlotBookingConfirmation', () => {
   it('shows deferred payment message for non-instant venues', () => {
     const nonInstantVenue = { ...mockVenue, instant_booking: false }
     render(<SlotBookingConfirmation {...defaultProps} venue={nonInstantVenue} />)
-    expect(screen.getByText(/charged after approval/i)).toBeInTheDocument()
+    expect(screen.getByText(/charged after host approval/i)).toBeInTheDocument()
   })
 
   it('does not show deferred message for instant booking venues', () => {
     render(<SlotBookingConfirmation {...defaultProps} />)
     expect(screen.queryByText(/venue owner approval/i)).not.toBeInTheDocument()
+  })
+
+  it('shows host-approval request wording on setup-intent payment step', async () => {
+    mockMutate.mockResolvedValueOnce({ data: createBookingResponse, error: null })
+    mockCreateSetupIntent.mockResolvedValueOnce({
+      data: { clientSecret: 'seti_123_secret_abc' },
+      error: null,
+    })
+
+    const nonInstantVenue = { ...mockVenue, instant_booking: false }
+    render(<SlotBookingConfirmation {...defaultProps} venue={nonInstantVenue} />)
+
+    fireEvent.click(screen.getByRole('button', { name: /continue to payment/i }))
+
+    await waitFor(() => {
+      expect(screen.getByText(/submit your booking request/i)).toBeInTheDocument()
+    })
   })
 
   it('opens auth modal if user is not logged in', async () => {

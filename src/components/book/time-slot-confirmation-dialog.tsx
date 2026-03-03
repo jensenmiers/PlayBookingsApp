@@ -8,6 +8,7 @@ import {
   DialogFooter,
 } from '@/components/ui/dialog'
 import { Button } from '@/components/ui/button'
+import { BOOKING_APPROVAL_COPY } from '@/lib/booking-mode'
 import type { Venue } from '@/types'
 import { format } from 'date-fns'
 
@@ -90,12 +91,12 @@ export function TimeSlotConfirmationDialog({
             </div>
           </div>
 
-          {/* Instant Booking Notice */}
+          {/* Host Approval Notice */}
           {!venue.instant_booking && (
             <div className="p-3 bg-accent-400/15 border border-accent-400/30 rounded-lg">
               <p className="text-xs text-accent-400">
-                <span className="font-semibold">Approval Required:</span> This booking requires
-                venue owner approval. You&apos;ll be notified once it&apos;s confirmed.
+                <span className="font-semibold">{BOOKING_APPROVAL_COPY.confirmationDialogTitle}:</span>{' '}
+                {BOOKING_APPROVAL_COPY.confirmationDialogBody}
               </p>
             </div>
           )}
@@ -124,4 +125,3 @@ export function TimeSlotConfirmationDialog({
     </Dialog>
   )
 }
-

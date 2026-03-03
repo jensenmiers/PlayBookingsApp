@@ -4,12 +4,13 @@ import { useState, useMemo } from 'react'
 import { useRouter } from 'next/navigation'
 import { format } from 'date-fns'
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome'
-import { faArrowLeft, faBolt, faClock, faShield } from '@fortawesome/free-solid-svg-icons'
+import { faArrowLeft, faShield } from '@fortawesome/free-solid-svg-icons'
 import { Button } from '@/components/ui/button'
 import { SlotBookingConfirmation } from '@/components/booking/slot-booking-confirmation'
 import { GoogleMapsLink } from './shared'
-import { useVenueAvailabilityRange, ComputedAvailabilitySlot } from '@/hooks/useVenues'
+import { useVenueAvailabilityRange } from '@/hooks/useVenues'
 import { formatTime, getNextTopOfHour } from '@/utils/dateHelpers'
+import { getBookingModeDisplay } from '@/lib/booking-mode'
 import type { Venue } from '@/types'
 
 interface VenueDesignScoreboardProps {
@@ -25,6 +26,7 @@ export function VenueDesignScoreboard({ venue }: VenueDesignScoreboardProps) {
   const router = useRouter()
   const [selectedSlotIndex, setSelectedSlotIndex] = useState(0)
   const [showBooking, setShowBooking] = useState(false)
+  const bookingMode = getBookingModeDisplay(venue.instant_booking, 'compact')
 
   const today = new Date()
   const dateFrom = format(today, 'yyyy-MM-dd')
@@ -141,11 +143,11 @@ export function VenueDesignScoreboard({ venue }: VenueDesignScoreboardProps) {
         <div className="bg-secondary-900 p-3 text-center">
           <div className="flex items-center justify-center gap-1.5">
             <FontAwesomeIcon
-              icon={venue.instant_booking ? faBolt : faClock}
-              className={venue.instant_booking ? 'text-primary-400' : 'text-accent-400'}
+              icon={bookingMode.icon}
+              className={bookingMode.mode === 'instant' ? 'text-primary-400' : 'text-accent-400'}
             />
             <span className="text-sm font-medium">
-              {venue.instant_booking ? 'Instant' : 'Approval'}
+              {bookingMode.label}
             </span>
           </div>
           <div className="text-[10px] text-secondary-50/50 uppercase tracking-wider mt-1">

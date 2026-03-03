@@ -7,8 +7,6 @@ import { format } from 'date-fns'
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome'
 import {
   faArrowLeft,
-  faBolt,
-  faClock,
   faShield,
   faCheck,
   faHeart,
@@ -21,6 +19,7 @@ import { SlotBookingConfirmation } from '@/components/booking/slot-booking-confi
 import { GoogleMapsLink } from './shared'
 import { useVenueAvailabilityRange, ComputedAvailabilitySlot } from '@/hooks/useVenues'
 import { formatTime, getNextTopOfHour } from '@/utils/dateHelpers'
+import { getBookingModeDisplay } from '@/lib/booking-mode'
 import type { Venue } from '@/types'
 
 interface VenueDesignCommunityProps {
@@ -36,6 +35,7 @@ export function VenueDesignCommunity({ venue }: VenueDesignCommunityProps) {
   const router = useRouter()
   const [selectedSlot, setSelectedSlot] = useState<ComputedAvailabilitySlot | null>(null)
   const [showBooking, setShowBooking] = useState(false)
+  const bookingMode = getBookingModeDisplay(venue.instant_booking, 'full')
 
   const today = new Date()
   const dateFrom = format(today, 'yyyy-MM-dd')
@@ -141,15 +141,15 @@ export function VenueDesignCommunity({ venue }: VenueDesignCommunityProps) {
                 ${venue.hourly_rate}/hr
               </span>
 
-              <span
-                className={`inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-medium ${
-                  venue.instant_booking
+                <span
+                  className={`inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-medium ${
+                  bookingMode.mode === 'instant'
                     ? 'bg-green-100 text-green-700'
                     : 'bg-amber-100 text-amber-700'
                 }`}
               >
-                <FontAwesomeIcon icon={venue.instant_booking ? faBolt : faClock} />
-                {venue.instant_booking ? 'Book Instantly' : 'Requires Approval'}
+                <FontAwesomeIcon icon={bookingMode.icon} />
+                {bookingMode.label}
               </span>
             </div>
           </div>

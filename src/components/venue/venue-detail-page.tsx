@@ -7,12 +7,12 @@ import {
   faLocationDot,
   faDollarSign,
   faShield,
-  faBolt,
   faArrowLeft,
 } from '@fortawesome/free-solid-svg-icons'
 import { AvailabilitySlotsList } from './availability-slots-list'
 import { Button } from '@/components/ui/button'
 import { Navigation } from '@/components/layout/navigation'
+import { getBookingModeDisplay } from '@/lib/booking-mode'
 import type { Venue } from '@/types'
 
 interface VenueDetailPageProps {
@@ -23,6 +23,7 @@ export function VenueDetailPage({ venue }: VenueDetailPageProps) {
   const router = useRouter()
 
   const primaryPhoto = venue.photos && venue.photos.length > 0 ? venue.photos[0] : null
+  const bookingMode = getBookingModeDisplay(venue.instant_booking, 'full')
 
   return (
     <div className="min-h-screen bg-background">
@@ -81,12 +82,10 @@ export function VenueDetailPage({ venue }: VenueDetailPageProps) {
 
               {/* Features */}
               <div className="flex flex-wrap gap-4 mt-4">
-                {venue.instant_booking && (
-                  <div className="flex items-center text-secondary-50/60">
-                    <FontAwesomeIcon icon={faBolt} className="mr-2 text-secondary-50/50" />
-                    <span className="text-sm">Instant Booking</span>
-                  </div>
-                )}
+                <div className="flex items-center text-secondary-50/60">
+                  <FontAwesomeIcon icon={bookingMode.icon} className="mr-2 text-secondary-50/50" />
+                  <span className="text-sm">{bookingMode.label}</span>
+                </div>
                 {venue.insurance_required && (
                   <div className="flex items-center text-secondary-50/60">
                     <FontAwesomeIcon icon={faShield} className="mr-2 text-secondary-50/50" />
@@ -129,4 +128,3 @@ export function VenueDetailPage({ venue }: VenueDetailPageProps) {
     </div>
   )
 }
-

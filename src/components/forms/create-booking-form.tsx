@@ -25,6 +25,7 @@ function normalizeToLocalMidnight(d: Date): Date {
   return new Date(d.getFullYear(), d.getMonth(), d.getDate())
 }
 import { createBookingSchema, type CreateBookingInput } from '@/lib/validations/booking'
+import { BOOKING_APPROVAL_COPY } from '@/lib/booking-mode'
 import { formatTime } from '@/utils/dateHelpers'
 import { useCreateBooking, useCheckConflicts } from '@/hooks/useBookings'
 import { useCreatePaymentIntent, useCreateSetupIntent, useDeleteUnpaidBooking } from '@/hooks/usePaymentIntent'
@@ -320,7 +321,7 @@ export function CreateBookingForm({
               </div>
               {isSetupIntent && (
                 <p className="text-xs text-muted-foreground mt-1">
-                  Your card will be charged after approval
+                  {BOOKING_APPROVAL_COPY.deferredSetupSubtext}
                 </p>
               )}
             </div>
@@ -796,5 +797,4 @@ function WizardPaymentForm({
     </form>
   )
 }
-
 

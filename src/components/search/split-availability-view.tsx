@@ -22,6 +22,7 @@ import { AvailabilityMap } from '@/components/maps/availability-map'
 import { VenueCardSkeleton } from '@/components/search/venue-card-skeleton'
 import { ErrorMessage } from '@/components/ui/error-message'
 import Link from 'next/link'
+import { getBookingModeDisplay } from '@/lib/booking-mode'
 import { slugify } from '@/lib/utils'
 
 type ViewMode = 'map' | 'list'
@@ -342,6 +343,8 @@ function MapVenueCard({
   isSelected: boolean
   onClick: () => void 
 }) {
+  const bookingMode = getBookingModeDisplay(venue.instantBooking, 'compact')
+
   return (
     <div 
       onClick={onClick}
@@ -380,11 +383,15 @@ function MapVenueCard({
             <span className="bg-primary-400/15 text-primary-400 text-sm font-medium px-2.5 py-1 rounded-lg">
               {venue.nextAvailable.displayText}
             </span>
-            {venue.instantBooking && (
-              <span className="bg-accent-400/15 text-accent-400 text-xs px-2 py-0.5 rounded-full">
-                Instant
-              </span>
-            )}
+            <span
+              className={`text-xs px-2 py-0.5 rounded-full ${
+                bookingMode.mode === 'instant'
+                  ? 'bg-accent-400/15 text-accent-400'
+                  : 'bg-secondary-50/10 text-secondary-50/70'
+              }`}
+            >
+              {bookingMode.label}
+            </span>
             {venue.insuranceRequired && (
               <span className="bg-secondary-50/10 text-secondary-50/70 text-xs px-2 py-0.5 rounded-full">
                 Insurance

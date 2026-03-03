@@ -103,12 +103,12 @@ describe('VenueDetailPage', () => {
     expect(screen.getByText('Availability for Test Basketball Court')).toBeInTheDocument()
   })
 
-  it('shows instant booking badge when enabled', () => {
+  it('shows book instantly badge when enabled', () => {
     const mockVenue = createMockVenue({ instant_booking: true })
 
     render(<VenueDetailPage venue={mockVenue} />)
 
-    expect(screen.getByText('Instant Booking')).toBeInTheDocument()
+    expect(screen.getByText('Book Instantly')).toBeInTheDocument()
   })
 
   it('shows insurance required badge when enabled', () => {

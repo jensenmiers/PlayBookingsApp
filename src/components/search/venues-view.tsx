@@ -18,6 +18,7 @@ import { useVenues } from '@/hooks/useVenues'
 import { CreateBookingForm } from '@/components/forms/create-booking-form'
 import { VenueCardSkeleton } from '@/components/search/venue-card-skeleton'
 import { ErrorMessage } from '@/components/ui/error-message'
+import { getBookingModeDisplay } from '@/lib/booking-mode'
 import { slugify } from '@/lib/utils'
 import Image from 'next/image'
 
@@ -106,6 +107,7 @@ export function VenuesView() {
           ) : nearbyVenues.length > 0 ? (
             nearbyVenues.map((venue) => {
               const venueSlug = slugify(venue.name)
+              const bookingMode = getBookingModeDisplay(venue.instant_booking, 'compact')
               return (
                 <div key={venue.id} className="bg-secondary-800 rounded-2xl shadow-soft overflow-hidden">
                   <div className="flex">
@@ -145,11 +147,15 @@ export function VenuesView() {
                         <span>${venue.hourly_rate}/hour</span>
                       </div>
                       <div className="mb-2 flex flex-wrap gap-2">
-                        {venue.instant_booking ? (
-                          <span className="rounded-full bg-accent-400/15 px-2 py-1 text-[11px] text-accent-400">Instant</span>
-                        ) : (
-                          <span className="rounded-full bg-secondary-50/10 px-2 py-1 text-[11px] text-secondary-50/70">Approval</span>
-                        )}
+                        <span
+                          className={`rounded-full px-2 py-1 text-[11px] ${
+                            bookingMode.mode === 'instant'
+                              ? 'bg-accent-400/15 text-accent-400'
+                              : 'bg-secondary-50/10 text-secondary-50/70'
+                          }`}
+                        >
+                          {bookingMode.label}
+                        </span>
                         {venue.insurance_required && (
                           <span className="rounded-full bg-secondary-50/10 px-2 py-1 text-[11px] text-secondary-50/70">
                             Insurance

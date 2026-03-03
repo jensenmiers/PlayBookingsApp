@@ -46,6 +46,13 @@ const mockVenue = {
   },
 }
 
+const mockNonInstantVenue = {
+  ...mockVenue,
+  id: 'venue-2',
+  name: 'Request Court',
+  instantBooking: false,
+}
+
 describe('SplitAvailabilityView - Location button', () => {
   beforeEach(() => {
     jest.clearAllMocks()
@@ -151,5 +158,18 @@ describe('SplitAvailabilityView - Location button', () => {
     const root = container.firstElementChild
 
     expect(root).toHaveClass('lg:px-4')
+  })
+
+  it('shows Host Approval badge for non-instant venues in the list panel', () => {
+    ;(useVenuesWithNextAvailable as jest.Mock).mockReturnValue({
+      data: [mockNonInstantVenue],
+      loading: false,
+      error: null,
+      refetch: jest.fn(),
+    })
+
+    render(<SplitAvailabilityView />)
+
+    expect(screen.getByText('Host Approval')).toBeInTheDocument()
   })
 })
