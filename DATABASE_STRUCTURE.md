@@ -5,7 +5,7 @@ It is intentionally not a column-by-column reference.
 
 ## Known Gaps
 
-- Last verified: 2026-02-28 (America/Los_Angeles)
+- Last verified: 2026-03-02 (America/Los_Angeles)
 - Verification sources:
   - Live table existence checks with service-role Supabase queries
   - SQL migrations in `supabase/migrations`
@@ -16,10 +16,10 @@ It is intentionally not a column-by-column reference.
 ## Automated Snapshot (Generated)
 
 <!-- AUTO-SNAPSHOT:DB:START -->
-- Generated at: 2026-02-28 (America/Los_Angeles)
-- Latest migration in repo: `20260228000300_full_template_cutover_and_external_blocks.sql` (28 total)
-- Distinct tables referenced in app code via `.from()`: 14
-- App table sample: `audit_logs`, `availability`, `bookings`, `external_availability_blocks`, `payments`, `recurring_bookings`, `regular_template_sync_queue`, `slot_instances`, `slot_interactions`, `slot_modal_content`, `slot_templates`, `users` (+2 more)
+- Generated at: 2026-03-02 (America/Los_Angeles)
+- Latest migration in repo: `20260302000200_update_crossroads_address_and_coordinates.sql` (30 total)
+- Distinct tables referenced in app code via `.from()`: 15
+- App table sample: `audit_logs`, `availability`, `bookings`, `drop_in_template_sync_queue`, `external_availability_blocks`, `payments`, `recurring_bookings`, `regular_template_sync_queue`, `slot_instances`, `slot_interactions`, `slot_modal_content`, `slot_templates` (+3 more)
 - Live key-table check: 19/19 tables available
 <!-- AUTO-SNAPSHOT:DB:END -->
 
