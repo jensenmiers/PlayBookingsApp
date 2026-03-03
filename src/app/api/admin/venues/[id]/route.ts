@@ -6,6 +6,7 @@ import { validateRequest } from '@/middleware/validationMiddleware'
 import { updateVenueAdminConfigSchema } from '@/lib/validations/adminVenueConfig'
 import { badRequest, handleApiError, notFound } from '@/utils/errorHandling'
 import { calculateVenueConfigCompleteness, normalizeVenueAdminConfig } from '@/lib/venueAdminConfig'
+import { deriveRegularTemplateWindowsFromOperatingHours } from '@/lib/operatingHoursTemplates'
 import type { ApiResponse } from '@/types/api'
 import type { DropInTemplateWindow, Venue, VenueAdminConfig } from '@/types'
 
@@ -41,6 +42,20 @@ type TemplateSyncState = {
   status: 'synced' | 'pending' | 'failed'
   reason: string | null
   run_after: string | null
+  last_error: string | null
+  updated_at: string | null
+}
+
+type VenueCalendarIntegrationState = {
+  provider: string
+  google_calendar_id: string | null
+  google_calendar_name: string | null
+  google_account_email: string | null
+  status: 'disconnected' | 'connected' | 'error'
+  sync_enabled: boolean
+  sync_interval_minutes: number
+  last_synced_at: string | null
+  next_sync_at: string | null
   last_error: string | null
   updated_at: string | null
 }
@@ -213,6 +228,7 @@ export async function GET(_request: NextRequest, context: RouteContext): Promise
       { data: templateRows, error: templateError },
       { data: regularSyncRow, error: regularSyncError },
       { data: dropInSyncRow, error: dropInSyncError },
+      { data: calendarIntegrationRow, error: calendarIntegrationError },
     ] = await Promise.all([
       adminClient.from('venues').select('*').eq('id', id).single(),
       adminClient.from('venue_admin_configs').select('*').eq('venue_id', id).maybeSingle(),
@@ -230,6 +246,11 @@ export async function GET(_request: NextRequest, context: RouteContext): Promise
       adminClient
         .from('drop_in_template_sync_queue')
         .select('venue_id, reason, run_after, last_error, updated_at')
+        .eq('venue_id', id)
+        .maybeSingle(),
+      adminClient
+        .from('venue_calendar_integrations')
+        .select('provider, google_calendar_id, google_calendar_name, google_account_email, status, sync_enabled, sync_interval_minutes, last_synced_at, next_sync_at, last_error, updated_at')
         .eq('venue_id', id)
         .maybeSingle(),
     ])
@@ -252,6 +273,11 @@ export async function GET(_request: NextRequest, context: RouteContext): Promise
       || dropInSyncError?.message?.toLowerCase().includes('drop_in_template_sync_queue')
     if (dropInSyncError && !isMissingDropInSyncTable) {
       throw new Error(`Failed to fetch drop-in sync queue: ${dropInSyncError.message}`)
+    }
+    const isMissingCalendarIntegrationTable = calendarIntegrationError?.code === '42P01'
+      || calendarIntegrationError?.message?.toLowerCase().includes('venue_calendar_integrations')
+    if (calendarIntegrationError && !isMissingCalendarIntegrationTable) {
+      throw new Error(`Failed to fetch calendar integration: ${calendarIntegrationError.message}`)
     }
 
     const config = normalizeVenueAdminConfig(id, configRow || null)
@@ -276,6 +302,7 @@ export async function GET(_request: NextRequest, context: RouteContext): Promise
       regular_booking_templates: DropInTemplateWindow[]
       drop_in_slot_sync: TemplateSyncState
       regular_slot_sync: TemplateSyncState
+      calendar_integration: VenueCalendarIntegrationState | null
       completeness: ReturnType<typeof calculateVenueConfigCompleteness>
     }> = {
       success: true,
@@ -286,6 +313,9 @@ export async function GET(_request: NextRequest, context: RouteContext): Promise
         regular_booking_templates: regularTemplates,
         drop_in_slot_sync: dropInSlotSync,
         regular_slot_sync: regularSlotSync,
+        calendar_integration: isMissingCalendarIntegrationTable
+          ? null
+          : ((calendarIntegrationRow as VenueCalendarIntegrationState | null) || null),
         completeness,
       },
     }
@@ -334,7 +364,12 @@ export async function PATCH(request: NextRequest, context: RouteContext): Promis
     const templatePatchValue = body.drop_in_templates as DropInTemplateWindow[] | undefined
     const nextDropInTemplates = templatePatchValue ? normalizeTemplateWindows(templatePatchValue) : null
     const regularTemplatePatchValue = body.regular_booking_templates as DropInTemplateWindow[] | undefined
-    const nextRegularTemplates = regularTemplatePatchValue ? normalizeTemplateWindows(regularTemplatePatchValue) : null
+    const operatingHoursPatchValue = body.operating_hours as VenueAdminConfig['operating_hours'] | undefined
+    const derivedRegularTemplatesFromOperatingHours = operatingHoursPatchValue
+      ? deriveRegularTemplateWindowsFromOperatingHours(operatingHoursPatchValue)
+      : null
+    const nextRegularTemplates = derivedRegularTemplatesFromOperatingHours
+      ?? (regularTemplatePatchValue ? normalizeTemplateWindows(regularTemplatePatchValue) : null)
     const existingTemplates = (existingTemplateRows || []) as SlotTemplateRow[]
     const currentDropInTemplates = extractDropInTemplates(existingTemplates)
     const currentRegularTemplatesWithAction = extractRegularTemplates(existingTemplates)
@@ -398,7 +433,9 @@ export async function PATCH(request: NextRequest, context: RouteContext): Promis
         : 'request_private'
 
     const shouldStickTemplateMode =
-      currentRegularScheduleMode === 'template' || (nextRegularTemplates !== null && nextRegularTemplates.length > 0)
+      currentRegularScheduleMode === 'template'
+      || derivedRegularTemplatesFromOperatingHours !== null
+      || (nextRegularTemplates !== null && nextRegularTemplates.length > 0)
     if (shouldStickTemplateMode) {
       configUpdates.regular_schedule_mode = 'template'
     }
@@ -554,6 +591,7 @@ export async function PATCH(request: NextRequest, context: RouteContext): Promis
       { data: updatedTemplateRows, error: updatedTemplatesError },
       { data: updatedRegularSyncRow, error: updatedRegularSyncError },
       { data: updatedDropInSyncRow, error: updatedDropInSyncError },
+      { data: updatedCalendarIntegrationRow, error: updatedCalendarIntegrationError },
     ] =
       await Promise.all([
         adminClient.from('venues').select('*').eq('id', id).single(),
@@ -572,6 +610,11 @@ export async function PATCH(request: NextRequest, context: RouteContext): Promis
         adminClient
           .from('drop_in_template_sync_queue')
           .select('venue_id, reason, run_after, last_error, updated_at')
+          .eq('venue_id', id)
+          .maybeSingle(),
+        adminClient
+          .from('venue_calendar_integrations')
+          .select('provider, google_calendar_id, google_calendar_name, google_account_email, status, sync_enabled, sync_interval_minutes, last_synced_at, next_sync_at, last_error, updated_at')
           .eq('venue_id', id)
           .maybeSingle(),
       ])
@@ -594,6 +637,11 @@ export async function PATCH(request: NextRequest, context: RouteContext): Promis
       || updatedDropInSyncError?.message?.toLowerCase().includes('drop_in_template_sync_queue')
     if (updatedDropInSyncError && !isMissingDropInSyncTable) {
       throw new Error(`Failed to refetch drop-in sync state after update: ${updatedDropInSyncError.message}`)
+    }
+    const isMissingCalendarIntegrationTable = updatedCalendarIntegrationError?.code === '42P01'
+      || updatedCalendarIntegrationError?.message?.toLowerCase().includes('venue_calendar_integrations')
+    if (updatedCalendarIntegrationError && !isMissingCalendarIntegrationTable) {
+      throw new Error(`Failed to refetch calendar integration after update: ${updatedCalendarIntegrationError.message}`)
     }
 
     const normalizedConfig = normalizeVenueAdminConfig(id, (updatedConfigRow as Partial<VenueAdminConfig>) || null)
@@ -648,6 +696,7 @@ export async function PATCH(request: NextRequest, context: RouteContext): Promis
       regular_booking_templates: DropInTemplateWindow[]
       drop_in_slot_sync: TemplateSyncState
       regular_slot_sync: TemplateSyncState
+      calendar_integration: VenueCalendarIntegrationState | null
       completeness: ReturnType<typeof calculateVenueConfigCompleteness>
     }> = {
       success: true,
@@ -658,6 +707,9 @@ export async function PATCH(request: NextRequest, context: RouteContext): Promis
         regular_booking_templates: normalizedRegularTemplates,
         drop_in_slot_sync: normalizedDropInSync,
         regular_slot_sync: normalizedRegularSync,
+        calendar_integration: isMissingCalendarIntegrationTable
+          ? null
+          : ((updatedCalendarIntegrationRow as VenueCalendarIntegrationState | null) || null),
         completeness,
       },
       message: 'Venue configuration updated',

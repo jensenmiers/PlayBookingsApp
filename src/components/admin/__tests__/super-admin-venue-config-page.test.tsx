@@ -1,11 +1,24 @@
 import { fireEvent, render, screen, waitFor } from '@testing-library/react'
 import { SuperAdminVenueConfigPage } from '../super-admin-venue-config-page'
-import { patchAdminVenueConfig, useAdminVenues } from '@/hooks/useAdminVenues'
+import {
+  connectVenueCalendar,
+  disconnectVenueCalendar,
+  getVenueCalendarStatus,
+  patchAdminVenueConfig,
+  selectVenueCalendar,
+  syncVenueCalendarNow,
+  useAdminVenues,
+} from '@/hooks/useAdminVenues'
 import { useAdminVenueBookings } from '@/hooks/useAdminVenueBookings'
 
 jest.mock('@/hooks/useAdminVenues', () => ({
   useAdminVenues: jest.fn(),
   patchAdminVenueConfig: jest.fn(),
+  connectVenueCalendar: jest.fn(),
+  getVenueCalendarStatus: jest.fn(),
+  selectVenueCalendar: jest.fn(),
+  syncVenueCalendarNow: jest.fn(),
+  disconnectVenueCalendar: jest.fn(),
 }))
 
 jest.mock('@/hooks/useAdminVenueBookings', () => ({
@@ -14,6 +27,11 @@ jest.mock('@/hooks/useAdminVenueBookings', () => ({
 
 const mockUseAdminVenues = useAdminVenues as jest.Mock
 const mockPatchAdminVenueConfig = patchAdminVenueConfig as jest.Mock
+const mockConnectVenueCalendar = connectVenueCalendar as jest.Mock
+const mockGetVenueCalendarStatus = getVenueCalendarStatus as jest.Mock
+const mockSelectVenueCalendar = selectVenueCalendar as jest.Mock
+const mockSyncVenueCalendarNow = syncVenueCalendarNow as jest.Mock
+const mockDisconnectVenueCalendar = disconnectVenueCalendar as jest.Mock
 const mockUseAdminVenueBookings = useAdminVenueBookings as jest.Mock
 
 const mockRefetch = jest.fn().mockResolvedValue(undefined)
@@ -82,6 +100,7 @@ const buildMockAdminVenuesData = () => [
       last_error: null,
       updated_at: null,
     },
+    calendar_integration: null,
   },
   {
     venue: {
@@ -144,6 +163,7 @@ const buildMockAdminVenuesData = () => [
       last_error: null,
       updated_at: null,
     },
+    calendar_integration: null,
   },
 ]
 
@@ -268,6 +288,20 @@ describe('SuperAdminVenueConfigPage', () => {
       approveInsurance: mockApproveInsurance,
       data: [],
     } as any)
+    mockGetVenueCalendarStatus.mockResolvedValue({
+      integration: null,
+      calendars: [],
+    })
+    mockConnectVenueCalendar.mockResolvedValue({ auth_url: 'https://accounts.google.com' })
+    mockSelectVenueCalendar.mockResolvedValue(undefined)
+    mockSyncVenueCalendarNow.mockResolvedValue({
+      venueId: 'venue-1',
+      upsertedCount: 0,
+      cancelledCount: 0,
+      syncedAt: '2026-03-03T00:00:00.000Z',
+      nextSyncAt: '2026-03-03T00:05:00.000Z',
+    })
+    mockDisconnectVenueCalendar.mockResolvedValue(undefined)
   })
 
   it('does not auto-save on field blur and saves only when Save Changes is clicked', async () => {
@@ -321,10 +355,11 @@ describe('SuperAdminVenueConfigPage', () => {
       'Advance Booking Rules',
       'Amenities Checklist',
       'Policies',
-      'Regular Booking Weekly Schedule',
+      'Operating Hours',
       'Blackout Dates + Holidays',
       'Drop-In Open Gym',
       'Drop-In Weekly Schedule',
+      'Google Calendar',
       'Last Saved',
       'Venue Bookings Timeline',
     ].map((name) => screen.getByRole('heading', { name, level: 3 }))
@@ -517,19 +552,19 @@ describe('SuperAdminVenueConfigPage', () => {
     })
   })
 
-  it('saves weekly regular booking templates when schedule windows are added', async () => {
+  it('saves operating hours when operating windows are added', async () => {
     mockPatchAdminVenueConfig.mockResolvedValue({})
 
     render(<SuperAdminVenueConfigPage />)
 
-    fireEvent.click(await screen.findByRole('button', { name: /add regular window/i }))
+    fireEvent.click(await screen.findByRole('button', { name: /add operating window/i }))
     fireEvent.click(screen.getByRole('button', { name: /save changes/i }))
 
     await waitFor(() => {
       expect(mockPatchAdminVenueConfig).toHaveBeenCalledWith(
         'venue-1',
         expect.objectContaining({
-          regular_booking_templates: [
+          operating_hours: [
             expect.objectContaining({
               day_of_week: 1,
               start_time: '12:00:00',

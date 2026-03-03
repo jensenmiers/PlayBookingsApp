@@ -65,6 +65,16 @@ function createAdminClientMock() {
   const templatesIn = jest.fn(() => ({ eq: templatesFinalEq }))
   const templatesEq = jest.fn(() => ({ in: templatesIn }))
   const templatesSelect = jest.fn(() => ({ eq: templatesEq }))
+  const templateDeleteRegularILike = jest.fn().mockResolvedValue({ error: null })
+  const templateDeleteRegularIn = jest.fn(() => ({ ilike: templateDeleteRegularILike }))
+  const templateDeleteDropInEq = jest.fn().mockResolvedValue({ error: null })
+  const templateDeleteVenueEq = jest.fn(() => ({
+    eq: templateDeleteDropInEq,
+    in: templateDeleteRegularIn,
+    ilike: templateDeleteRegularILike,
+  }))
+  const templatesDelete = jest.fn(() => ({ eq: templateDeleteVenueEq }))
+  const templatesInsert = jest.fn().mockResolvedValue({ error: null })
 
   const regularSyncMaybeSingle = jest.fn().mockResolvedValue({ data: null, error: null })
   const regularSyncEq = jest.fn(() => ({ maybeSingle: regularSyncMaybeSingle }))
@@ -73,6 +83,10 @@ function createAdminClientMock() {
   const dropInSyncMaybeSingle = jest.fn().mockResolvedValue({ data: null, error: null })
   const dropInSyncEq = jest.fn(() => ({ maybeSingle: dropInSyncMaybeSingle }))
   const dropInSyncSelect = jest.fn(() => ({ eq: dropInSyncEq }))
+
+  const calendarIntegrationMaybeSingle = jest.fn().mockResolvedValue({ data: null, error: null })
+  const calendarIntegrationEq = jest.fn(() => ({ maybeSingle: calendarIntegrationMaybeSingle }))
+  const calendarIntegrationSelect = jest.fn(() => ({ eq: calendarIntegrationEq }))
 
   const auditInsert = jest.fn().mockResolvedValue({ error: null })
   const rpc = jest.fn().mockResolvedValue({ error: null })
@@ -85,13 +99,16 @@ function createAdminClientMock() {
       return { select: configSelect, upsert: configUpsert }
     }
     if (table === 'slot_templates') {
-      return { select: templatesSelect }
+      return { select: templatesSelect, delete: templatesDelete, insert: templatesInsert }
     }
     if (table === 'regular_template_sync_queue') {
       return { select: regularSyncSelect }
     }
     if (table === 'drop_in_template_sync_queue') {
       return { select: dropInSyncSelect }
+    }
+    if (table === 'venue_calendar_integrations') {
+      return { select: calendarIntegrationSelect }
     }
     if (table === 'audit_logs') {
       return { insert: auditInsert }
@@ -102,7 +119,7 @@ function createAdminClientMock() {
 
   return {
     client: { from, rpc },
-    calls: { rpc },
+    calls: { rpc, templatesInsert },
   }
 }
 
@@ -155,5 +172,39 @@ describe('PATCH /api/admin/venues/[id]', () => {
     )
     expect(refreshCall?.[1]).not.toHaveProperty('p_start_date')
     expect(refreshCall?.[1]).not.toHaveProperty('p_end_date')
+  })
+
+  it('derives regular templates from operating_hours updates', async () => {
+    const { client, calls } = createAdminClientMock()
+    mockCreateAdminClient.mockReturnValue(client)
+    mockValidateRequest.mockResolvedValue({
+      operating_hours: [
+        { day_of_week: 1, start_time: '09:00', end_time: '12:00' },
+        { day_of_week: 3, start_time: '14:00', end_time: '17:00' },
+      ],
+    })
+
+    const response = await PATCH(
+      new Request('http://localhost/api/admin/venues/venue-1', {
+        method: 'PATCH',
+        headers: { 'content-type': 'application/json' },
+        body: JSON.stringify({ operating_hours: [] }),
+      }),
+      createContext('venue-1')
+    )
+
+    expect(response.status).toBe(200)
+    expect(calls.templatesInsert).toHaveBeenCalledWith(
+      expect.arrayContaining([
+        expect.objectContaining({
+          venue_id: 'venue-1',
+          name: 'Regular Booking Window 1',
+          action_type: 'instant_book',
+          day_of_week: 1,
+          start_time: '09:00:00',
+          end_time: '12:00:00',
+        }),
+      ])
+    )
   })
 })

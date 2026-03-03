@@ -41,6 +41,20 @@ type TemplateSyncState = {
   updated_at: string | null
 }
 
+type VenueCalendarIntegrationState = {
+  provider: string
+  google_calendar_id: string | null
+  google_calendar_name: string | null
+  google_account_email: string | null
+  status: 'disconnected' | 'connected' | 'error'
+  sync_enabled: boolean
+  sync_interval_minutes: number
+  last_synced_at: string | null
+  next_sync_at: string | null
+  last_error: string | null
+  updated_at: string | null
+}
+
 type AdminVenueConfigListItem = {
   venue: Venue
   config: VenueAdminConfig
@@ -48,6 +62,7 @@ type AdminVenueConfigListItem = {
   regular_booking_templates: DropInTemplateWindow[]
   drop_in_slot_sync: TemplateSyncState
   regular_slot_sync: TemplateSyncState
+  calendar_integration: VenueCalendarIntegrationState | null
   completeness: {
     score: number
     missing_fields: string[]
@@ -106,6 +121,7 @@ export async function GET(): Promise<Response> {
       { data: templateRows, error: templatesError },
       { data: regularSyncRows, error: regularSyncError },
       { data: dropInSyncRows, error: dropInSyncError },
+      { data: calendarIntegrationRows, error: calendarIntegrationError },
     ] = await Promise.all([
       adminClient
         .from('venues')
@@ -125,6 +141,9 @@ export async function GET(): Promise<Response> {
       adminClient
         .from('drop_in_template_sync_queue')
         .select('venue_id, reason, run_after, last_error, updated_at'),
+      adminClient
+        .from('venue_calendar_integrations')
+        .select('venue_id, provider, google_calendar_id, google_calendar_name, google_account_email, status, sync_enabled, sync_interval_minutes, last_synced_at, next_sync_at, last_error, updated_at'),
     ])
 
     if (venuesError) {
@@ -147,6 +166,11 @@ export async function GET(): Promise<Response> {
       || dropInSyncError?.message?.toLowerCase().includes('drop_in_template_sync_queue')
     if (dropInSyncError && !isMissingDropInSyncTable) {
       throw new Error(`Failed to fetch drop-in sync queue: ${dropInSyncError.message}`)
+    }
+    const isMissingCalendarIntegrationTable = calendarIntegrationError?.code === '42P01'
+      || calendarIntegrationError?.message?.toLowerCase().includes('venue_calendar_integrations')
+    if (calendarIntegrationError && !isMissingCalendarIntegrationTable) {
+      throw new Error(`Failed to fetch venue calendar integrations: ${calendarIntegrationError.message}`)
     }
 
     const configByVenueId = new Map<string, Partial<VenueAdminConfig>>()
@@ -193,6 +217,12 @@ export async function GET(): Promise<Response> {
         dropInSyncByVenueId.set(row.venue_id, row)
       }
     }
+    const calendarIntegrationByVenueId = new Map<string, VenueCalendarIntegrationState>()
+    if (!isMissingCalendarIntegrationTable) {
+      for (const row of (calendarIntegrationRows || []) as Array<VenueCalendarIntegrationState & { venue_id: string }>) {
+        calendarIntegrationByVenueId.set(row.venue_id, row)
+      }
+    }
 
     const items: AdminVenueConfigListItem[] = ((venues || []) as Venue[]).map((venue) => {
       const config = normalizeVenueAdminConfig(venue.id, configByVenueId.get(venue.id) || null)
@@ -208,6 +238,7 @@ export async function GET(): Promise<Response> {
         regular_booking_templates: regularBookingTemplates,
         drop_in_slot_sync: dropInSlotSync,
         regular_slot_sync: regularSlotSync,
+        calendar_integration: calendarIntegrationByVenueId.get(venue.id) || null,
         completeness,
       }
     })

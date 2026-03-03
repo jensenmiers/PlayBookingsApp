@@ -4,7 +4,15 @@ import { useEffect, useMemo, useState } from 'react'
 import type { ReactNode } from 'react'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
-import { patchAdminVenueConfig, useAdminVenues } from '@/hooks/useAdminVenues'
+import {
+  connectVenueCalendar,
+  disconnectVenueCalendar,
+  getVenueCalendarStatus,
+  patchAdminVenueConfig,
+  selectVenueCalendar,
+  syncVenueCalendarNow,
+  useAdminVenues,
+} from '@/hooks/useAdminVenues'
 import { useAdminVenueBookings } from '@/hooks/useAdminVenueBookings'
 import type { AdminVenueConfigItem } from '@/hooks/useAdminVenues'
 import type { AdminVenueBookingFeedItem, AdminVenueBookingRenterSummary } from '@/types/api'
@@ -56,6 +64,7 @@ type VenueConfigDraft = {
   policy_refund: string
   policy_no_show: string
   policy_operating_hours_notes: string
+  operating_hours: DropInTemplateDraftWindow[]
   regular_booking_templates: DropInTemplateDraftWindow[]
   drop_in_templates: DropInTemplateDraftWindow[]
 }
@@ -186,6 +195,11 @@ function createDraft(item: AdminVenueConfigItem): VenueConfigDraft {
     policy_refund: item.config.policy_refund ?? '',
     policy_no_show: item.config.policy_no_show ?? '',
     policy_operating_hours_notes: item.config.policy_operating_hours_notes ?? '',
+    operating_hours: (item.config.operating_hours || []).map((window) => ({
+      day_of_week: window.day_of_week,
+      start_time: formatTimeForInput(window.start_time),
+      end_time: formatTimeForInput(window.end_time),
+    })),
     regular_booking_templates: (item.regular_booking_templates || []).map((window) => ({
       day_of_week: window.day_of_week,
       start_time: formatTimeForInput(window.start_time),
@@ -302,27 +316,27 @@ function buildPatchFromDraft(
     patch.drop_in_price = dropInPrice
   }
 
-  for (const window of draft.regular_booking_templates) {
+  for (const window of draft.operating_hours) {
     if (!window.start_time || !window.end_time) {
-      return { patch: {}, error: 'Each regular booking template window requires start and end times.' }
+      return { patch: {}, error: 'Each operating hours window requires start and end times.' }
     }
     if (window.start_time >= window.end_time) {
-      return { patch: {}, error: 'Each regular booking template window must end after it starts.' }
+      return { patch: {}, error: 'Each operating hours window must end after it starts.' }
     }
   }
 
-  const normalizedDraftRegularTemplates = normalizeDraftTemplates(draft.regular_booking_templates)
-  const normalizedCurrentRegularTemplates = normalizeDraftTemplates(
-    item.regular_booking_templates.map((window) => ({
+  const normalizedDraftOperatingHours = normalizeDraftTemplates(draft.operating_hours)
+  const normalizedCurrentOperatingHours = normalizeDraftTemplates(
+    item.config.operating_hours.map((window) => ({
       day_of_week: window.day_of_week,
       start_time: window.start_time,
       end_time: window.end_time,
     }))
   )
-  const regularTemplatesChanged =
-    JSON.stringify(normalizedDraftRegularTemplates) !== JSON.stringify(normalizedCurrentRegularTemplates)
-  if (regularTemplatesChanged) {
-    patch.regular_booking_templates = normalizedDraftRegularTemplates
+  const operatingHoursChanged =
+    JSON.stringify(normalizedDraftOperatingHours) !== JSON.stringify(normalizedCurrentOperatingHours)
+  if (operatingHoursChanged) {
+    patch.operating_hours = normalizedDraftOperatingHours
   }
 
   for (const window of draft.drop_in_templates) {
@@ -650,6 +664,40 @@ export function SuperAdminVenueConfigPage() {
   const [insuranceActionBookingId, setInsuranceActionBookingId] = useState<string | null>(null)
   const [insuranceActionError, setInsuranceActionError] = useState<string | null>(null)
   const [insuranceActionMessage, setInsuranceActionMessage] = useState<string | null>(null)
+  const [calendarStatusLoading, setCalendarStatusLoading] = useState(false)
+  const [calendarActionLoading, setCalendarActionLoading] = useState(false)
+  const [calendarError, setCalendarError] = useState<string | null>(null)
+  const [calendarMessage, setCalendarMessage] = useState<string | null>(null)
+  const [calendarOptions, setCalendarOptions] = useState<Array<{ id: string; summary: string; primary: boolean }>>([])
+  const [selectedCalendarId, setSelectedCalendarId] = useState<string>('')
+
+  useEffect(() => {
+    if (typeof window === 'undefined') {
+      return
+    }
+
+    const url = new URL(window.location.href)
+    const venueIdParam = url.searchParams.get('venue_id')
+    const connectedParam = url.searchParams.get('calendar_connected')
+    const errorParam = url.searchParams.get('calendar_error')
+
+    if (venueIdParam) {
+      setSelectedVenueId(venueIdParam)
+      url.searchParams.delete('venue_id')
+    }
+    if (connectedParam === '1') {
+      setCalendarMessage('Google Calendar connected')
+      url.searchParams.delete('calendar_connected')
+    }
+    if (errorParam) {
+      setCalendarError(errorParam)
+      url.searchParams.delete('calendar_error')
+    }
+
+    if (venueIdParam || connectedParam || errorParam) {
+      window.history.replaceState({}, '', url.toString())
+    }
+  }, [])
 
   useEffect(() => {
     if (!selectedVenueId && data && data.length > 0) {
@@ -685,6 +733,8 @@ export function SuperAdminVenueConfigPage() {
   useEffect(() => {
     if (!selectedItem) {
       setDraft(null)
+      setCalendarOptions([])
+      setSelectedCalendarId('')
       return
     }
 
@@ -694,7 +744,39 @@ export function SuperAdminVenueConfigPage() {
     setInsuranceActionError(null)
     setInsuranceActionMessage(null)
     setInsuranceActionBookingId(null)
+    setCalendarError(null)
+    setCalendarMessage(null)
+    setCalendarOptions([])
+    setSelectedCalendarId(selectedItem.calendar_integration?.google_calendar_id || '')
   }, [selectedItem])
+
+  useEffect(() => {
+    if (!selectedVenueId) {
+      setCalendarOptions([])
+      return
+    }
+
+    const loadCalendarStatus = async () => {
+      setCalendarStatusLoading(true)
+      setCalendarError(null)
+      try {
+        const status = await getVenueCalendarStatus(selectedVenueId, true)
+        setCalendarOptions(status.calendars || [])
+        if (status.integration?.google_calendar_id) {
+          setSelectedCalendarId(status.integration.google_calendar_id)
+        } else if (status.calendars.length > 0) {
+          const primary = status.calendars.find((calendar) => calendar.primary) || status.calendars[0]
+          setSelectedCalendarId(primary.id)
+        }
+      } catch (statusError) {
+        setCalendarError(statusError instanceof Error ? statusError.message : 'Failed to load calendar status')
+      } finally {
+        setCalendarStatusLoading(false)
+      }
+    }
+
+    void loadCalendarStatus()
+  }, [selectedVenueId])
 
   useEffect(() => {
     if (!hasUnsavedChanges) {
@@ -839,6 +921,113 @@ export function SuperAdminVenueConfigPage() {
       setInsuranceActionError(actionError instanceof Error ? actionError.message : 'Failed to approve insurance')
     } finally {
       setInsuranceActionBookingId(null)
+    }
+  }
+
+  const handleConnectCalendar = async () => {
+    if (!selectedItem) {
+      return
+    }
+
+    setCalendarActionLoading(true)
+    setCalendarError(null)
+    setCalendarMessage(null)
+    try {
+      const data = await connectVenueCalendar(selectedItem.venue.id)
+      window.location.assign(data.auth_url)
+    } catch (connectError) {
+      setCalendarError(connectError instanceof Error ? connectError.message : 'Failed to connect Google Calendar')
+      setCalendarActionLoading(false)
+    }
+  }
+
+  const handleRefreshCalendars = async () => {
+    if (!selectedItem) {
+      return
+    }
+
+    setCalendarStatusLoading(true)
+    setCalendarError(null)
+    setCalendarMessage(null)
+    try {
+      const data = await getVenueCalendarStatus(selectedItem.venue.id, true)
+      setCalendarOptions(data.calendars || [])
+      if (data.integration?.google_calendar_id) {
+        setSelectedCalendarId(data.integration.google_calendar_id)
+      }
+    } catch (statusError) {
+      setCalendarError(statusError instanceof Error ? statusError.message : 'Failed to refresh calendars')
+    } finally {
+      setCalendarStatusLoading(false)
+    }
+  }
+
+  const handleSelectCalendar = async () => {
+    if (!selectedItem || !selectedCalendarId) {
+      setCalendarError('Select a Google calendar before saving')
+      return
+    }
+
+    const selected = calendarOptions.find((calendar) => calendar.id === selectedCalendarId)
+    setCalendarActionLoading(true)
+    setCalendarError(null)
+    setCalendarMessage(null)
+    try {
+      await selectVenueCalendar(selectedItem.venue.id, {
+        calendar_id: selectedCalendarId,
+        calendar_name: selected?.summary || null,
+      })
+      await refetch()
+      setCalendarMessage('Google calendar selected')
+    } catch (selectError) {
+      setCalendarError(selectError instanceof Error ? selectError.message : 'Failed to select Google calendar')
+    } finally {
+      setCalendarActionLoading(false)
+    }
+  }
+
+  const handleSyncCalendarNow = async () => {
+    if (!selectedItem) {
+      return
+    }
+
+    setCalendarActionLoading(true)
+    setCalendarError(null)
+    setCalendarMessage(null)
+    try {
+      const result = await syncVenueCalendarNow(selectedItem.venue.id)
+      await refetch()
+      setCalendarMessage(
+        `Calendar synced (${result.upsertedCount} upserted, ${result.cancelledCount} cancelled)`
+      )
+    } catch (syncError) {
+      setCalendarError(syncError instanceof Error ? syncError.message : 'Failed to sync Google calendar')
+    } finally {
+      setCalendarActionLoading(false)
+    }
+  }
+
+  const handleDisconnectCalendar = async () => {
+    if (!selectedItem) {
+      return
+    }
+
+    const confirmed = window.confirm('Disconnect Google Calendar for this venue?')
+    if (!confirmed) {
+      return
+    }
+
+    setCalendarActionLoading(true)
+    setCalendarError(null)
+    setCalendarMessage(null)
+    try {
+      await disconnectVenueCalendar(selectedItem.venue.id)
+      await refetch()
+      setCalendarMessage('Google Calendar disconnected')
+    } catch (disconnectError) {
+      setCalendarError(disconnectError instanceof Error ? disconnectError.message : 'Failed to disconnect Google Calendar')
+    } finally {
+      setCalendarActionLoading(false)
     }
   }
 
@@ -1205,24 +1394,24 @@ export function SuperAdminVenueConfigPage() {
             </ConfigRow>
 
             <ConfigRow
-              title="Regular Booking Weekly Schedule"
-              description="Recurring weekly windows used to generate in-app rentable regular booking sessions."
+              title="Operating Hours"
+              description="Source-of-truth weekly windows for regular booking template generation."
             >
               <div className="space-y-2">
-                {draft.regular_booking_templates.map((window, index) => (
+                {draft.operating_hours.map((window, index) => (
                   <div
                     key={`${window.day_of_week}-${window.start_time}-${window.end_time}-${index}`}
                     className="grid grid-cols-[minmax(9.5rem,1.15fr)_minmax(7.5rem,8.5rem)_minmax(7.5rem,8.5rem)_auto] items-center gap-3"
                   >
                     <select
-                      aria-label={`Regular booking day row ${index + 1}`}
+                      aria-label={`Operating hours day row ${index + 1}`}
                       className="h-11 w-full appearance-none rounded-full border border-secondary-50/15 bg-secondary-800 px-5 py-2 text-sm font-medium text-secondary-50 shadow-xs outline-none transition-[border-color,box-shadow] hover:border-secondary-50/30 focus-visible:border-primary-400 focus-visible:ring-[3px] focus-visible:ring-primary-400/30"
                       value={window.day_of_week}
                       onChange={(event) => {
                         updateDraft((previous) => {
-                          const next = [...previous.regular_booking_templates]
+                          const next = [...previous.operating_hours]
                           next[index] = { ...next[index], day_of_week: Number(event.target.value) }
-                          return { ...previous, regular_booking_templates: next }
+                          return { ...previous, operating_hours: next }
                         })
                       }}
                     >
@@ -1234,27 +1423,27 @@ export function SuperAdminVenueConfigPage() {
                     </select>
 
                     <TimePillSelect
-                      ariaLabel={`Regular booking start time row ${index + 1}`}
+                      ariaLabel={`Operating hours start time row ${index + 1}`}
                       value={window.start_time}
                       options={getTimePillOptions(window.start_time)}
                       onChange={(value) => {
                         updateDraft((previous) => {
-                          const next = [...previous.regular_booking_templates]
+                          const next = [...previous.operating_hours]
                           next[index] = { ...next[index], start_time: value }
-                          return { ...previous, regular_booking_templates: next }
+                          return { ...previous, operating_hours: next }
                         })
                       }}
                     />
 
                     <TimePillSelect
-                      ariaLabel={`Regular booking end time row ${index + 1}`}
+                      ariaLabel={`Operating hours end time row ${index + 1}`}
                       value={window.end_time}
                       options={getTimePillOptions(window.end_time)}
                       onChange={(value) => {
                         updateDraft((previous) => {
-                          const next = [...previous.regular_booking_templates]
+                          const next = [...previous.operating_hours]
                           next[index] = { ...next[index], end_time: value }
-                          return { ...previous, regular_booking_templates: next }
+                          return { ...previous, operating_hours: next }
                         })
                       }}
                     />
@@ -1265,7 +1454,7 @@ export function SuperAdminVenueConfigPage() {
                       onClick={() => {
                         updateDraft((previous) => ({
                           ...previous,
-                          regular_booking_templates: previous.regular_booking_templates.filter(
+                          operating_hours: previous.operating_hours.filter(
                             (_, rowIndex) => rowIndex !== index
                           ),
                         }))
@@ -1282,14 +1471,14 @@ export function SuperAdminVenueConfigPage() {
                 onClick={() => {
                   updateDraft((previous) => ({
                     ...previous,
-                    regular_booking_templates: [
-                      ...previous.regular_booking_templates,
+                    operating_hours: [
+                      ...previous.operating_hours,
                       { day_of_week: 1, start_time: '12:00', end_time: '13:00' },
                     ],
                   }))
                 }}
               >
-                Add Regular Window
+                Add Operating Window
               </Button>
             </ConfigRow>
 
@@ -1433,6 +1622,131 @@ export function SuperAdminVenueConfigPage() {
               >
                 Add Drop-In Window
               </Button>
+            </ConfigRow>
+
+            <ConfigRow
+              title="Google Calendar"
+              description="Connect one Google calendar per venue. Busy events become external availability blocks."
+            >
+              <div className="space-y-2">
+                <div className="rounded-md border border-secondary-50/10 bg-secondary-800 px-3 py-2 text-xs text-secondary-50/70">
+                  <p>
+                    Status:{' '}
+                    <span className="font-medium text-secondary-50">
+                      {selectedItem.calendar_integration?.status || 'disconnected'}
+                    </span>
+                  </p>
+                  <p>
+                    Selected calendar:{' '}
+                    <span className="font-medium text-secondary-50">
+                      {selectedItem.calendar_integration?.google_calendar_name
+                        || selectedItem.calendar_integration?.google_calendar_id
+                        || 'None'}
+                    </span>
+                  </p>
+                  <p>
+                    Last sync:{' '}
+                    <span className="font-medium text-secondary-50">
+                      {selectedItem.calendar_integration?.last_synced_at
+                        ? new Date(selectedItem.calendar_integration.last_synced_at).toLocaleString()
+                        : 'Never'}
+                    </span>
+                  </p>
+                  <p>
+                    Next sync:{' '}
+                    <span className="font-medium text-secondary-50">
+                      {selectedItem.calendar_integration?.next_sync_at
+                        ? new Date(selectedItem.calendar_integration.next_sync_at).toLocaleString()
+                        : 'Not scheduled'}
+                    </span>
+                  </p>
+                </div>
+
+                {calendarError ? <p className="text-xs text-red-300">{calendarError}</p> : null}
+                {calendarMessage ? <p className="text-xs text-primary-400">{calendarMessage}</p> : null}
+
+                <div className="flex flex-wrap gap-2">
+                  <Button
+                    type="button"
+                    variant="outline"
+                    disabled={calendarActionLoading}
+                    onClick={() => {
+                      void handleConnectCalendar()
+                    }}
+                  >
+                    {calendarActionLoading ? 'Working...' : 'Connect Google Calendar'}
+                  </Button>
+                  <Button
+                    type="button"
+                    variant="outline"
+                    disabled={calendarActionLoading || calendarStatusLoading}
+                    onClick={() => {
+                      void handleRefreshCalendars()
+                    }}
+                  >
+                    {calendarStatusLoading ? 'Refreshing...' : 'Refresh Calendars'}
+                  </Button>
+                </div>
+
+                <div className="space-y-2">
+                  <label htmlFor="selected-calendar-id" className="text-xs font-medium text-secondary-50/70">
+                    Selected Google calendar
+                  </label>
+                  <select
+                    id="selected-calendar-id"
+                    aria-label="Selected Google calendar"
+                    className="h-11 w-full rounded-md border border-secondary-50/15 bg-secondary-800 px-3 py-2 text-sm text-secondary-50"
+                    value={selectedCalendarId}
+                    onChange={(event) => {
+                      setSelectedCalendarId(event.target.value)
+                    }}
+                  >
+                    <option value="">Select calendar</option>
+                    {calendarOptions.map((calendar) => (
+                      <option key={calendar.id} value={calendar.id}>
+                        {calendar.summary}{calendar.primary ? ' (Primary)' : ''}
+                      </option>
+                    ))}
+                  </select>
+                </div>
+
+                <div className="flex flex-wrap gap-2">
+                  <Button
+                    type="button"
+                    variant="outline"
+                    disabled={calendarActionLoading || !selectedCalendarId}
+                    onClick={() => {
+                      void handleSelectCalendar()
+                    }}
+                  >
+                    Save Calendar Selection
+                  </Button>
+                  <Button
+                    type="button"
+                    variant="outline"
+                    disabled={calendarActionLoading}
+                    onClick={() => {
+                      void handleSyncCalendarNow()
+                    }}
+                  >
+                    Sync Now
+                  </Button>
+                  <Button
+                    type="button"
+                    variant="outline"
+                    disabled={calendarActionLoading}
+                    onClick={() => {
+                      void handleDisconnectCalendar()
+                    }}
+                  >
+                    Disconnect Calendar
+                  </Button>
+                </div>
+
+                {selectedItem.calendar_integration?.last_error ? (
+                  <p className="text-xs text-red-300">Last sync error: {selectedItem.calendar_integration.last_error}</p>
+                ) : null}
+              </div>
             </ConfigRow>
 
             <ConfigRow

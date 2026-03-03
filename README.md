@@ -53,6 +53,8 @@ Required environment variables:
 - `SUPABASE_SERVICE_ROLE_KEY` - Your Supabase service role key
 - `GOOGLE_CLIENT_ID` - Google OAuth client ID
 - `GOOGLE_CLIENT_SECRET` - Google OAuth client secret
+- `GOOGLE_CALENDAR_STATE_SECRET` - Secret for signing Google Calendar OAuth state payloads
+- `CALENDAR_TOKEN_ENCRYPTION_KEY` - Secret used to encrypt Google Calendar OAuth tokens at rest
 - `STRIPE_SECRET_KEY` - Your Stripe secret key
 - `NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY` - Your Stripe publishable key
 - `NEXT_PUBLIC_POSTHOG_KEY` - (Optional) PostHog project API key
@@ -97,6 +99,7 @@ src/
 - `npm run build` - Build for production
 - `npm run start` - Start production server
 - `npm run lint` - Run ESLint
+- `npm run sync:google-calendars` - Process due venue Google Calendar sync jobs
 
 ## 📱 Responsive Design
 
