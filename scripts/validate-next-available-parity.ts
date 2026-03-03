@@ -68,11 +68,15 @@ async function main() {
   const mismatches: Array<{
     venue_id: string
     venue_name: string
+    reason:
+      | 'rpc_has_next_but_regular_empty'
+      | 'rpc_missing_next_but_regular_has_slot'
+      | 'slot_id_mismatch'
     rpc_next_slot_id: string | null
     regular_first_slot_id: string | null
   }> = []
 
-  for (const row of rowsWithNextSlot) {
+  for (const row of allRows) {
     const { data: regularRows, error: regularRowsError } = await supabase.rpc(
       'get_regular_available_slot_instances',
       {
@@ -91,13 +95,25 @@ async function main() {
 
     const sortedRegularRows = sortRegularSlots((regularRows || []) as RegularAvailableSlotRow[])
     const firstRegular = sortedRegularRows[0] || null
+    const rpcNextSlotId = row.next_slot_id || null
+    const regularFirstSlotId = firstRegular?.slot_id || null
+    let reason: 'rpc_has_next_but_regular_empty' | 'rpc_missing_next_but_regular_has_slot' | 'slot_id_mismatch' | null = null
 
-    if (!firstRegular || firstRegular.slot_id !== row.next_slot_id) {
+    if (rpcNextSlotId && !regularFirstSlotId) {
+      reason = 'rpc_has_next_but_regular_empty'
+    } else if (!rpcNextSlotId && regularFirstSlotId) {
+      reason = 'rpc_missing_next_but_regular_has_slot'
+    } else if (rpcNextSlotId && regularFirstSlotId && rpcNextSlotId !== regularFirstSlotId) {
+      reason = 'slot_id_mismatch'
+    }
+
+    if (reason) {
       mismatches.push({
         venue_id: row.venue_id,
         venue_name: row.venue_name,
-        rpc_next_slot_id: row.next_slot_id,
-        regular_first_slot_id: firstRegular?.slot_id || null,
+        reason,
+        rpc_next_slot_id: rpcNextSlotId,
+        regular_first_slot_id: regularFirstSlotId,
       })
     }
   }
@@ -106,7 +122,7 @@ async function main() {
     console.log(`Parity mismatches found: ${mismatches.length}`)
     for (const mismatch of mismatches) {
       console.log(
-        `- ${mismatch.venue_name} (${mismatch.venue_id}) rpc=${mismatch.rpc_next_slot_id} regular_first=${mismatch.regular_first_slot_id}`
+        `- ${mismatch.venue_name} (${mismatch.venue_id}) reason=${mismatch.reason} rpc=${mismatch.rpc_next_slot_id} regular_first=${mismatch.regular_first_slot_id}`
       )
     }
     process.exit(1)

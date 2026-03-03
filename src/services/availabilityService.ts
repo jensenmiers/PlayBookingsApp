@@ -98,6 +98,7 @@ export class AvailabilityService {
     dateTo: string
   ): Promise<UnifiedAvailableSlot[]> {
     const supabase = await createClient()
+    const now = new Date()
 
     const adminConfigQuery = supabase
       .from('venue_admin_configs')
@@ -240,6 +241,7 @@ export class AvailabilityService {
       modal_content: modalContentByAction.get(slot.action_type) || null,
       slot_pricing: dropInSlotPricing,
     }))
+      .filter((slot) => timeStringToDate(slot.date, slot.start_time) >= now)
       .filter((slot) => !externalBlocks.some((block) => overlapsExternalBlock(slot, block)))
       .filter((slot) => isSlotAllowedByVenueConfig(slot, adminConfig))
 
