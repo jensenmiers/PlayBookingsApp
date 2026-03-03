@@ -231,7 +231,7 @@ export default function Home() {
               Community Courts, Unlocked
             </p>
             
-            <h1 className="font-serif text-5xl sm:text-7xl md:text-8xl lg:text-[9rem] leading-[0.9] tracking-tight mb-8 sm:mb-12">
+            <h1 className="font-serif text-5xl sm:text-7xl md:text-8xl lg:text-[6rem] xl:text-[7rem] leading-[0.9] tracking-tight mb-8 sm:mb-12">
               <span className="block">Find a court.</span>
               <span className="block text-primary-400">Book it.</span>
               <span className="block italic font-light">Go play.</span>
