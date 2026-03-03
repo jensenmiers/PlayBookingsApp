@@ -6,8 +6,6 @@ import { calculateVenueConfigCompleteness, normalizeVenueAdminConfig } from '@/l
 import type { ApiResponse } from '@/types/api'
 import type { DropInTemplateWindow, Venue, VenueAdminConfig } from '@/types'
 
-const REGULAR_TEMPLATE_NAME_PREFIX = 'Regular Booking Window '
-
 type SlotTemplateRow = {
   venue_id: string
   name: string
@@ -193,10 +191,6 @@ export async function GET(): Promise<Response> {
         const windows = dropInTemplatesByVenueId.get(row.venue_id) || []
         windows.push(templateWindow)
         dropInTemplatesByVenueId.set(row.venue_id, windows)
-        continue
-      }
-
-      if (!row.name.startsWith(REGULAR_TEMPLATE_NAME_PREFIX)) {
         continue
       }
 

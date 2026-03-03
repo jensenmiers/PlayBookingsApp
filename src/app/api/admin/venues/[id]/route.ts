@@ -166,13 +166,10 @@ function extractDropInTemplates(rows: SlotTemplateRow[]): DropInTemplateWindow[]
 
 function extractRegularTemplates(rows: SlotTemplateRow[]): RegularTemplateRow[] {
   const regularRows = rows
-    .filter((row) => row.name.startsWith(REGULAR_TEMPLATE_NAME_PREFIX))
+    .filter((row) => isRegularActionType(row.action_type))
 
   const dedupedByWindow = new Map<string, RegularTemplateRow>()
   for (const row of regularRows) {
-    if (!isRegularActionType(row.action_type)) {
-      continue
-    }
     const window: RegularTemplateRow = {
       day_of_week: Number(row.day_of_week),
       start_time: row.start_time,
@@ -337,6 +334,9 @@ export async function PATCH(request: NextRequest, context: RouteContext): Promis
     }
 
     const body = await validateRequest(request, updateVenueAdminConfigSchema)
+    if (body.regular_booking_templates !== undefined) {
+      throw badRequest('regular_booking_templates is deprecated; update operating_hours instead')
+    }
     const adminClient = createAdminClient()
 
     const [{ data: existingVenue, error: existingVenueError }, { data: existingConfig, error: existingConfigError }, { data: existingTemplateRows, error: existingTemplatesError }] =
@@ -363,13 +363,11 @@ export async function PATCH(request: NextRequest, context: RouteContext): Promis
 
     const templatePatchValue = body.drop_in_templates as DropInTemplateWindow[] | undefined
     const nextDropInTemplates = templatePatchValue ? normalizeTemplateWindows(templatePatchValue) : null
-    const regularTemplatePatchValue = body.regular_booking_templates as DropInTemplateWindow[] | undefined
     const operatingHoursPatchValue = body.operating_hours as VenueAdminConfig['operating_hours'] | undefined
     const derivedRegularTemplatesFromOperatingHours = operatingHoursPatchValue
       ? deriveRegularTemplateWindowsFromOperatingHours(operatingHoursPatchValue)
       : null
     const nextRegularTemplates = derivedRegularTemplatesFromOperatingHours
-      ?? (regularTemplatePatchValue ? normalizeTemplateWindows(regularTemplatePatchValue) : null)
     const existingTemplates = (existingTemplateRows || []) as SlotTemplateRow[]
     const currentDropInTemplates = extractDropInTemplates(existingTemplates)
     const currentRegularTemplatesWithAction = extractRegularTemplates(existingTemplates)
@@ -525,7 +523,6 @@ export async function PATCH(request: NextRequest, context: RouteContext): Promis
         .delete()
         .eq('venue_id', id)
         .in('action_type', ['instant_book', 'request_private'])
-        .ilike('name', `${REGULAR_TEMPLATE_NAME_PREFIX}%`)
 
       if (deleteRegularTemplatesError) {
         throw new Error(`Failed to replace regular booking templates: ${deleteRegularTemplatesError.message}`)

@@ -590,6 +590,22 @@ function getBookingModeHelperText(draft: VenueConfigDraft): string {
   return 'New bookings will start as Pending Approval until the venue owner confirms.'
 }
 
+function mapCalendarErrorCodeToMessage(code: string): string {
+  if (code === 'oauth_denied') {
+    return 'Google Calendar access was denied. Please approve access and try again.'
+  }
+  if (code === 'invalid_state') {
+    return 'Google Calendar connection expired. Please connect again.'
+  }
+  if (code === 'missing_code_state') {
+    return 'Google Calendar callback was incomplete. Please reconnect and try again.'
+  }
+  if (code === 'oauth_exchange_failed') {
+    return 'Google Calendar sign-in succeeded, but token exchange failed. Please try again.'
+  }
+  return 'Google Calendar connection failed. Please try again.'
+}
+
 function TimePillSelect({
   value,
   options,
@@ -679,6 +695,7 @@ export function SuperAdminVenueConfigPage() {
     const url = new URL(window.location.href)
     const venueIdParam = url.searchParams.get('venue_id')
     const connectedParam = url.searchParams.get('calendar_connected')
+    const errorCodeParam = url.searchParams.get('calendar_error_code')
     const errorParam = url.searchParams.get('calendar_error')
 
     if (venueIdParam) {
@@ -689,12 +706,16 @@ export function SuperAdminVenueConfigPage() {
       setCalendarMessage('Google Calendar connected')
       url.searchParams.delete('calendar_connected')
     }
-    if (errorParam) {
-      setCalendarError(errorParam)
+    if (errorCodeParam) {
+      setCalendarError(mapCalendarErrorCodeToMessage(errorCodeParam))
+      url.searchParams.delete('calendar_error_code')
+      url.searchParams.delete('calendar_error')
+    } else if (errorParam) {
+      setCalendarError('Google Calendar connection failed. Please try again.')
       url.searchParams.delete('calendar_error')
     }
 
-    if (venueIdParam || connectedParam || errorParam) {
+    if (venueIdParam || connectedParam || errorCodeParam || errorParam) {
       window.history.replaceState({}, '', url.toString())
     }
   }, [])
@@ -744,7 +765,6 @@ export function SuperAdminVenueConfigPage() {
     setInsuranceActionError(null)
     setInsuranceActionMessage(null)
     setInsuranceActionBookingId(null)
-    setCalendarError(null)
     setCalendarMessage(null)
     setCalendarOptions([])
     setSelectedCalendarId(selectedItem.calendar_integration?.google_calendar_id || '')
@@ -758,7 +778,6 @@ export function SuperAdminVenueConfigPage() {
 
     const loadCalendarStatus = async () => {
       setCalendarStatusLoading(true)
-      setCalendarError(null)
       try {
         const status = await getVenueCalendarStatus(selectedVenueId, true)
         setCalendarOptions(status.calendars || [])

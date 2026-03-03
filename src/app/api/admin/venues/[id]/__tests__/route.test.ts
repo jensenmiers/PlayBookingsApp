@@ -65,13 +65,11 @@ function createAdminClientMock() {
   const templatesIn = jest.fn(() => ({ eq: templatesFinalEq }))
   const templatesEq = jest.fn(() => ({ in: templatesIn }))
   const templatesSelect = jest.fn(() => ({ eq: templatesEq }))
-  const templateDeleteRegularILike = jest.fn().mockResolvedValue({ error: null })
-  const templateDeleteRegularIn = jest.fn(() => ({ ilike: templateDeleteRegularILike }))
+  const templateDeleteRegularIn = jest.fn().mockResolvedValue({ error: null })
   const templateDeleteDropInEq = jest.fn().mockResolvedValue({ error: null })
   const templateDeleteVenueEq = jest.fn(() => ({
     eq: templateDeleteDropInEq,
     in: templateDeleteRegularIn,
-    ilike: templateDeleteRegularILike,
   }))
   const templatesDelete = jest.fn(() => ({ eq: templateDeleteVenueEq }))
   const templatesInsert = jest.fn().mockResolvedValue({ error: null })
@@ -119,7 +117,7 @@ function createAdminClientMock() {
 
   return {
     client: { from, rpc },
-    calls: { rpc, templatesInsert },
+    calls: { rpc, templatesInsert, templateDeleteRegularIn },
   }
 }
 
@@ -194,6 +192,7 @@ describe('PATCH /api/admin/venues/[id]', () => {
     )
 
     expect(response.status).toBe(200)
+    expect(calls.templateDeleteRegularIn).toHaveBeenCalledWith('action_type', ['instant_book', 'request_private'])
     expect(calls.templatesInsert).toHaveBeenCalledWith(
       expect.arrayContaining([
         expect.objectContaining({
@@ -205,6 +204,32 @@ describe('PATCH /api/admin/venues/[id]', () => {
           end_time: '12:00:00',
         }),
       ])
+    )
+  })
+
+  it('rejects regular_booking_templates patches', async () => {
+    const { client } = createAdminClientMock()
+    mockCreateAdminClient.mockReturnValue(client)
+    mockValidateRequest.mockResolvedValue({
+      regular_booking_templates: [
+        { day_of_week: 1, start_time: '09:00', end_time: '12:00' },
+      ],
+    })
+
+    const response = await PATCH(
+      new Request('http://localhost/api/admin/venues/venue-1', {
+        method: 'PATCH',
+        headers: { 'content-type': 'application/json' },
+        body: JSON.stringify({ regular_booking_templates: [] }),
+      }),
+      createContext('venue-1')
+    )
+
+    expect(response.status).toBe(400)
+    const json = await response.json()
+    expect(json.success).toBe(false)
+    expect(json.error?.message).toBe(
+      'regular_booking_templates is deprecated; update operating_hours instead'
     )
   })
 })

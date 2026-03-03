@@ -273,6 +273,7 @@ const buildMockVenueBookings = () => [
 describe('SuperAdminVenueConfigPage', () => {
   beforeEach(() => {
     jest.clearAllMocks()
+    window.history.replaceState({}, '', 'http://localhost/dashboard/super-admin')
 
     mockUseAdminVenues.mockReturnValue({
       loading: false,
@@ -302,6 +303,34 @@ describe('SuperAdminVenueConfigPage', () => {
       nextSyncAt: '2026-03-03T00:05:00.000Z',
     })
     mockDisconnectVenueCalendar.mockResolvedValue(undefined)
+  })
+
+  it('maps calendar_error_code query params to user-friendly messages', async () => {
+    window.history.replaceState(
+      {},
+      '',
+      'http://localhost/dashboard/super-admin?venue_id=venue-1&calendar_error_code=invalid_state'
+    )
+
+    render(<SuperAdminVenueConfigPage />)
+
+    expect(
+      await screen.findByText('Google Calendar connection expired. Please connect again.')
+    ).toBeInTheDocument()
+  })
+
+  it('shows a generic fallback message for legacy calendar_error query param', async () => {
+    window.history.replaceState(
+      {},
+      '',
+      'http://localhost/dashboard/super-admin?venue_id=venue-1&calendar_error=oauth2_provider_payload'
+    )
+
+    render(<SuperAdminVenueConfigPage />)
+
+    expect(
+      await screen.findByText('Google Calendar connection failed. Please try again.')
+    ).toBeInTheDocument()
   })
 
   it('does not auto-save on field blur and saves only when Save Changes is clicked', async () => {
