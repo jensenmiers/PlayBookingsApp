@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useMemo, useCallback } from 'react'
+import { useState, useMemo } from 'react'
 import { useRouter } from 'next/navigation'
 import Image from 'next/image'
 import { format } from 'date-fns'
@@ -67,19 +67,6 @@ function getTimePartsInTimeZone(date: Date, timeZone: string): {
 function getDateStringInTimeZone(date: Date, timeZone: string): string {
   const { year, month, day } = getTimePartsInTimeZone(date, timeZone)
   return `${year}-${String(month).padStart(2, '0')}-${String(day).padStart(2, '0')}`
-}
-
-function getNextTopOfHourMinutesInTimeZone(date: Date, timeZone: string): number | null {
-  const { hour, minute, second } = getTimePartsInTimeZone(date, timeZone)
-  const isExactlyTopOfHour = minute === 0 && second === 0 && date.getMilliseconds() === 0
-  const nextHour = isExactlyTopOfHour ? hour : hour + 1
-  if (nextHour >= 24) return null
-  return nextHour * 60
-}
-
-function timeToMinutes(time: string): number {
-  const [hours, minutes] = time.split(':').map(Number)
-  return hours * 60 + (minutes || 0)
 }
 
 function formatCurrencyFromCents(amountCents: number, currency: string): string {
@@ -150,22 +137,10 @@ export function VenueDesignEditorial({ venue }: VenueDesignEditorialProps) {
     pickerDateStr
   )
 
-  const isSlotBookable = useCallback((slotDate: string, slotStartTime: string): boolean => {
-    if (slotDate !== todayStr) return true
-    const nextTopHourMinutes = getNextTopOfHourMinutesInTimeZone(
-      new Date(),
-      LOS_ANGELES_TIME_ZONE
-    )
-    if (nextTopHourMinutes === null) return false
-    return timeToMinutes(slotStartTime) >= nextTopHourMinutes
-  }, [todayStr])
-
   const bookableSlots = useMemo(() => {
     if (!availability) return []
-    return availability.filter((slot) =>
-      isSlotBookable(slot.date, slot.start_time)
-    )
-  }, [availability, isSlotBookable])
+    return availability
+  }, [availability])
 
   const slotsByDate = useMemo(() => {
     const grouped = new Map<string, ComputedAvailabilitySlot[]>()
@@ -185,10 +160,8 @@ export function VenueDesignEditorial({ venue }: VenueDesignEditorialProps) {
       return slotsByDate.get(pickerDateStr) || []
     }
     if (!pickerAvailability) return []
-    return pickerAvailability.filter((slot) =>
-      isSlotBookable(slot.date, slot.start_time)
-    )
-  }, [pickerDateStr, isPickerDateInPillRange, slotsByDate, pickerAvailability, isSlotBookable])
+    return pickerAvailability
+  }, [pickerDateStr, isPickerDateInPillRange, slotsByDate, pickerAvailability])
 
   const nextSlot = bookableSlots[0]
   const primaryPhoto = venue.photos?.[0]

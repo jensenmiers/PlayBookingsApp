@@ -20,6 +20,7 @@
     "sync:regular-slots": "tsx scripts/process-regular-template-sync-queue.ts",
     "validate:template-cutover": "tsx scripts/validate-template-cutover.ts",
     "validate:no-runtime-availability": "tsx scripts/validate-no-runtime-availability.ts",
+    "validate:next-available-parity": "tsx scripts/validate-next-available-parity.ts",
     "seed:availability": "tsx scripts/seed-availability.ts",
     "seed:venues": "tsx scripts/seed-venues.ts",
     "update:venue-photo": "tsx scripts/update-venue-photo.ts"

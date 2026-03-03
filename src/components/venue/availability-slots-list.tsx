@@ -13,7 +13,7 @@ function parseLocalDate(dateStr: string): Date {
 import { Button } from '@/components/ui/button'
 import { SlotBookingConfirmation } from '@/components/booking/slot-booking-confirmation'
 import { useVenueAvailabilityRange, ComputedAvailabilitySlot } from '@/hooks/useVenues'
-import { formatTime, getNextTopOfHour } from '@/utils/dateHelpers'
+import { formatTime } from '@/utils/dateHelpers'
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome'
 import { faClock, faCalendarDays, faSpinner } from '@fortawesome/free-solid-svg-icons'
 import type { Venue } from '@/types'
@@ -60,23 +60,6 @@ export function AvailabilitySlotsList({ venue }: AvailabilitySlotsListProps) {
   }
 
   const sortedDates = Object.keys(groupedSlots).sort()
-
-  /**
-   * Check if a slot is bookable (not in the past)
-   * For today's slots, only slots starting at or after the next top-of-hour are bookable
-   * Future dates are always bookable
-   */
-  const isSlotBookable = (slotDate: string, slotStartTime: string): boolean => {
-    const todayStr = format(new Date(), 'yyyy-MM-dd')
-    if (slotDate !== todayStr) return true // Future dates are always bookable
-
-    const nextHour = getNextTopOfHour()
-    const slotStart = parseLocalDate(slotDate)
-    const [hours, minutes] = slotStartTime.split(':').map(Number)
-    slotStart.setHours(hours, minutes || 0, 0, 0)
-
-    return slotStart >= nextHour
-  }
 
   const handleBookNow = (slot: BookingSlot) => {
     setSelectedSlot(slot)
@@ -144,32 +127,24 @@ export function AvailabilitySlotsList({ venue }: AvailabilitySlotsListProps) {
                     const startTime = formatTime(slot.start_time)
                     const endTime = formatTime(slot.end_time)
                     const timeDisplay = `${startTime} - ${endTime}`
-                    const isBookable = isSlotBookable(slot.date, slot.start_time)
 
                     return (
                       <div
                         key={`${slot.date}-${slot.start_time}-${idx}`}
-                        className={`flex items-center justify-between p-4 bg-secondary-50/5 rounded-xl border border-secondary-50/10 transition-colors ${
-                          isBookable
-                            ? 'hover:border-secondary-50/10'
-                            : 'opacity-50 cursor-not-allowed'
-                        }`}
+                        className="flex items-center justify-between p-4 bg-secondary-50/5 rounded-xl border border-secondary-50/10 transition-colors hover:border-secondary-50/10"
                       >
                         <div className="flex items-center gap-3">
                           <FontAwesomeIcon
                             icon={faClock}
-                            className={isBookable ? 'text-secondary-50/60' : 'text-secondary-50/40'}
+                            className="text-secondary-50/60"
                           />
-                          <span
-                            className={`font-medium ${isBookable ? 'text-secondary-50' : 'text-secondary-50/50'}`}
-                          >
+                          <span className="font-medium text-secondary-50">
                             {timeDisplay}
                           </span>
                         </div>
                         <Button
                           onClick={() => handleBookNow(slot)}
-                          disabled={!isBookable}
-                          className="bg-secondary-600 hover:bg-secondary-700 text-white text-sm px-4 py-2 rounded-lg disabled:opacity-50 disabled:cursor-not-allowed"
+                          className="bg-secondary-600 hover:bg-secondary-700 text-white text-sm px-4 py-2 rounded-lg"
                         >
                           Book Now
                         </Button>

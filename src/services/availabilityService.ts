@@ -5,7 +5,7 @@
 
 import { createClient } from '@/lib/supabase/server'
 import { timeStringToDate } from '@/utils/dateHelpers'
-import type { Booking, RecurringBooking, SlotActionType, SlotModalContent, SlotPricing } from '@/types'
+import type { SlotActionType, SlotModalContent, SlotPricing } from '@/types'
 import { isSlotAllowedByVenueConfig, normalizeVenueAdminConfig } from '@/lib/venueAdminConfig'
 
 interface SlotInstanceRow {
@@ -16,6 +16,15 @@ interface SlotInstanceRow {
   end_time: string
   action_type: SlotActionType
   blocks_inventory: boolean
+}
+
+interface RegularAvailableSlotRow {
+  venue_id: string
+  slot_id: string
+  slot_date: string
+  start_time: string
+  end_time: string
+  action_type: SlotActionType
 }
 
 interface SlotModalContentRow {
@@ -59,15 +68,6 @@ function sortSlots(slots: UnifiedAvailableSlot[]): UnifiedAvailableSlot[] {
     }
     return a.start_time.localeCompare(b.start_time)
   })
-}
-
-function toMinutes(time: string): number {
-  const [hours, minutes] = time.split(':').map(Number)
-  return hours * 60 + minutes
-}
-
-function overlaps(aStart: string, aEnd: string, bStart: string, bEnd: string): boolean {
-  return toMinutes(aStart) < toMinutes(bEnd) && toMinutes(aEnd) > toMinutes(bStart)
 }
 
 function overlapsExternalBlock(
@@ -115,8 +115,7 @@ export class AvailabilityService {
     const [
       { data: venue, error: venueError },
       { data: adminConfigRow, error: adminConfigError },
-      bookingsResult,
-      recurringResult,
+      regularSlotsResult,
       infoSlotsResult,
       modalContentResult,
       externalBlocksResult,
@@ -129,21 +128,12 @@ export class AvailabilityService {
 
       adminConfigPromise,
 
-      supabase
-        .from('bookings')
-        .select('*')
-        .eq('venue_id', venueId)
-        .gte('date', dateFrom)
-        .lte('date', dateTo)
-        .in('status', ['pending', 'confirmed']),
-      
-      supabase
-        .from('recurring_bookings')
-        .select('*')
-        .eq('venue_id', venueId)
-        .gte('date', dateFrom)
-        .lte('date', dateTo)
-        .in('status', ['pending', 'confirmed']),
+      supabase.rpc('get_regular_available_slot_instances', {
+        p_venue_id: venueId,
+        p_date_from: dateFrom,
+        p_date_to: dateTo,
+        p_date_filter: null,
+      }),
 
       supabase
         .from('slot_instances')
@@ -152,7 +142,7 @@ export class AvailabilityService {
         .gte('date', dateFrom)
         .lte('date', dateTo)
         .eq('is_active', true)
-        .in('action_type', ['instant_book', 'request_private', 'info_only_open_gym'])
+        .eq('action_type', 'info_only_open_gym')
         .order('date', { ascending: true })
         .order('start_time', { ascending: true }),
 
@@ -178,12 +168,8 @@ export class AvailabilityService {
       throw new Error(`Failed to fetch venue admin config: ${adminConfigError.message}`)
     }
 
-    if (bookingsResult.error) {
-      throw new Error(`Failed to fetch bookings: ${bookingsResult.error.message}`)
-    }
-
-    if (recurringResult.error) {
-      throw new Error(`Failed to fetch recurring bookings: ${recurringResult.error.message}`)
+    if (regularSlotsResult.error) {
+      throw new Error(`Failed to fetch regular available slots: ${regularSlotsResult.error.message}`)
     }
 
     if (infoSlotsResult.error) {
@@ -199,17 +185,13 @@ export class AvailabilityService {
       throw new Error(`Failed to fetch external availability blocks: ${externalBlocksResult.error.message}`)
     }
 
-    const bookings = (bookingsResult.data || []) as Booking[]
-    const recurringBookings = (recurringResult.data || []) as RecurringBooking[]
     const adminConfig = normalizeVenueAdminConfig(venueId, isMissingConfigTable ? null : (adminConfigRow || null))
-    const allSlotInstances = ((infoSlotsResult.data || []) as SlotInstanceRow[])
+    const regularAvailableSlots = ((regularSlotsResult.data || []) as RegularAvailableSlotRow[])
+    const infoSlots = ((infoSlotsResult.data || []) as SlotInstanceRow[])
     const externalBlocks = isMissingExternalBlocksTable
       ? []
       : ((externalBlocksResult.data || []) as ExternalAvailabilityBlockRow[])
-    const infoSlots = adminConfig.drop_in_enabled
-      ? allSlotInstances.filter((slot) => slot.action_type === 'info_only_open_gym')
-      : []
-    const regularSlotsFromTemplates = allSlotInstances.filter((slot) => slot.action_type !== 'info_only_open_gym')
+    const enabledInfoSlots = adminConfig.drop_in_enabled ? infoSlots : []
     const modalContentRows = (modalContentResult.data || []) as SlotModalContentRow[]
 
     const modalContentByAction = new Map<SlotActionType, SlotModalContent>()
@@ -226,44 +208,17 @@ export class AvailabilityService {
       })
     }
 
-    const templateRegularSlotsWithAvailability: UnifiedAvailableSlot[] = regularSlotsFromTemplates
-      .filter((slot) => {
-        const overlapsBooking = bookings.some((booking) => {
-          if (booking.date !== slot.date) return false
-          return overlaps(slot.start_time, slot.end_time, booking.start_time, booking.end_time)
-        })
-        if (overlapsBooking) return false
-
-        return !recurringBookings.some((booking) => {
-          if (booking.date !== slot.date) return false
-          return overlaps(slot.start_time, slot.end_time, booking.start_time, booking.end_time)
-        })
-      })
-      .filter((slot) => !externalBlocks.some((block) => overlapsExternalBlock(slot, block)))
-      .map((slot) => ({
-        date: slot.date,
-        start_time: slot.start_time,
-        end_time: slot.end_time,
-        venue_id: slot.venue_id,
-        availability_id: null,
-        slot_instance_id: slot.id,
-        action_type: slot.action_type,
-        modal_content: null,
-        slot_pricing: null,
-      }))
-
-    const regularSlots = templateRegularSlotsWithAvailability
-      .filter((slot) => isSlotAllowedByVenueConfig(slot, adminConfig))
-
-    const blockingInfoSlots = infoSlots.filter((slot) => slot.blocks_inventory)
-    const filteredRegularSlots = regularSlots.filter((slot) => {
-      return !blockingInfoSlots.some((infoSlot) => {
-        if (infoSlot.date !== slot.date) {
-          return false
-        }
-        return overlaps(slot.start_time, slot.end_time, infoSlot.start_time, infoSlot.end_time)
-      })
-    })
+    const regularSlots: UnifiedAvailableSlot[] = regularAvailableSlots.map((slot) => ({
+      date: slot.slot_date,
+      start_time: slot.start_time,
+      end_time: slot.end_time,
+      venue_id: slot.venue_id,
+      availability_id: null,
+      slot_instance_id: slot.slot_id,
+      action_type: slot.action_type,
+      modal_content: null,
+      slot_pricing: null,
+    }))
 
     const dropInSlotPricing = adminConfig.drop_in_price
       ? ({
@@ -274,7 +229,7 @@ export class AvailabilityService {
         } satisfies SlotPricing)
       : null
 
-    const infoOnlySlots: UnifiedAvailableSlot[] = infoSlots.map((slot) => ({
+    const infoOnlySlots: UnifiedAvailableSlot[] = enabledInfoSlots.map((slot) => ({
       date: slot.date,
       start_time: slot.start_time,
       end_time: slot.end_time,
@@ -288,6 +243,6 @@ export class AvailabilityService {
       .filter((slot) => !externalBlocks.some((block) => overlapsExternalBlock(slot, block)))
       .filter((slot) => isSlotAllowedByVenueConfig(slot, adminConfig))
 
-    return sortSlots([...filteredRegularSlots, ...infoOnlySlots])
+    return sortSlots([...regularSlots, ...infoOnlySlots])
   }
 }

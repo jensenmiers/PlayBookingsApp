@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useRef, useEffect } from 'react'
+import { useState, useRef, useEffect, useMemo } from 'react'
 import { useRouter } from 'next/navigation'
 import Image from 'next/image'
 import { format, addDays } from 'date-fns'
@@ -10,16 +10,11 @@ import { Button } from '@/components/ui/button'
 import { SlotBookingConfirmation } from '@/components/booking/slot-booking-confirmation'
 import { GoogleMapsLink, BookingTypeBadgeInline } from './shared'
 import { useVenueAvailabilityRange, ComputedAvailabilitySlot } from '@/hooks/useVenues'
-import { formatTime, getNextTopOfHour } from '@/utils/dateHelpers'
+import { formatTime } from '@/utils/dateHelpers'
 import type { Venue } from '@/types'
 
 interface VenueDesignQuickplayProps {
   venue: Venue
-}
-
-function parseLocalDate(dateStr: string): Date {
-  const [year, month, day] = dateStr.split('-').map(Number)
-  return new Date(year, month - 1, day)
 }
 
 export function VenueDesignQuickplay({ venue }: VenueDesignQuickplayProps) {
@@ -48,26 +43,15 @@ export function VenueDesignQuickplay({ venue }: VenueDesignQuickplayProps) {
     dateTo
   )
 
-  const selectedDaySlots = availability?.filter(
-    (slot) => slot.date === days[selectedDay].date
-  ) || []
-
-  const isSlotBookable = (slotDate: string, slotStartTime: string): boolean => {
-    const todayStr = format(new Date(), 'yyyy-MM-dd')
-    if (slotDate !== todayStr) return true
-    const nextHour = getNextTopOfHour()
-    const slotStart = parseLocalDate(slotDate)
-    const [hours, minutes] = slotStartTime.split(':').map(Number)
-    slotStart.setHours(hours, minutes || 0, 0, 0)
-    return slotStart >= nextHour
-  }
+  const selectedDayDate = days[selectedDay]?.date
+  const selectedDaySlots = useMemo(() => {
+    if (!availability || !selectedDayDate) return []
+    return availability.filter((slot) => slot.date === selectedDayDate)
+  }, [availability, selectedDayDate])
 
   useEffect(() => {
     if (selectedDaySlots.length > 0 && !selectedSlot) {
-      const firstBookable = selectedDaySlots.find((s) =>
-        isSlotBookable(s.date, s.start_time)
-      )
-      if (firstBookable) setSelectedSlot(firstBookable)
+      setSelectedSlot(selectedDaySlots[0])
     }
   }, [selectedDaySlots, selectedSlot])
 
@@ -168,24 +152,20 @@ export function VenueDesignQuickplay({ venue }: VenueDesignQuickplayProps) {
             className="flex gap-3 overflow-x-auto pb-2 snap-x snap-mandatory scrollbar-hide"
           >
             {selectedDaySlots.map((slot, idx) => {
-              const isBookable = isSlotBookable(slot.date, slot.start_time)
               const isSelected = selectedSlot?.start_time === slot.start_time && selectedSlot?.date === slot.date
               const startTime = formatTime(slot.start_time)
-              const [hours, minutes] = slot.start_time.split(':').map(Number)
+              const [hours] = slot.start_time.split(':').map(Number)
               const [endHours] = slot.end_time.split(':').map(Number)
               const duration = endHours - hours
 
               return (
                 <button
                   key={`${slot.date}-${slot.start_time}-${idx}`}
-                  onClick={() => isBookable && setSelectedSlot(slot)}
-                  disabled={!isBookable}
+                  onClick={() => setSelectedSlot(slot)}
                   className={`flex-shrink-0 w-24 snap-start rounded-2xl p-3 transition-all duration-200 ${
                     isSelected
                       ? 'bg-primary-400 text-secondary-900 shadow-xl shadow-primary-400/30 scale-105'
-                      : isBookable
-                        ? 'bg-secondary-50/10 text-secondary-50 hover:bg-secondary-50/15 hover:scale-102'
-                        : 'bg-secondary-50/5 text-secondary-50/30'
+                      : 'bg-secondary-50/10 text-secondary-50 hover:bg-secondary-50/15 hover:scale-102'
                   }`}
                 >
                   <div className="text-2xl font-bold tracking-tight">

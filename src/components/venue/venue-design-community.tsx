@@ -18,7 +18,7 @@ import { Button } from '@/components/ui/button'
 import { SlotBookingConfirmation } from '@/components/booking/slot-booking-confirmation'
 import { GoogleMapsLink } from './shared'
 import { useVenueAvailabilityRange, ComputedAvailabilitySlot } from '@/hooks/useVenues'
-import { formatTime, getNextTopOfHour } from '@/utils/dateHelpers'
+import { formatTime } from '@/utils/dateHelpers'
 import { getBookingModeDisplay } from '@/lib/booking-mode'
 import type { Venue } from '@/types'
 
@@ -47,21 +47,9 @@ export function VenueDesignCommunity({ venue }: VenueDesignCommunityProps) {
     dateTo
   )
 
-  const isSlotBookable = (slotDate: string, slotStartTime: string): boolean => {
-    const todayStr = format(new Date(), 'yyyy-MM-dd')
-    if (slotDate !== todayStr) return true
-    const nextHour = getNextTopOfHour()
-    const slotStart = parseLocalDate(slotDate)
-    const [hours, minutes] = slotStartTime.split(':').map(Number)
-    slotStart.setHours(hours, minutes || 0, 0, 0)
-    return slotStart >= nextHour
-  }
-
   const bookableSlots = useMemo(() => {
     if (!availability) return []
-    return availability.filter((slot) =>
-      isSlotBookable(slot.date, slot.start_time)
-    )
+    return availability
   }, [availability])
 
   const todaySlots = bookableSlots.filter(

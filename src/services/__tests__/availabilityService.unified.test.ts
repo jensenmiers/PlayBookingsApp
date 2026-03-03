@@ -32,6 +32,31 @@ describe('AvailabilityService (template-only slots)', () => {
   })
 
   it('returns regular and drop-in slots from slot_instances without querying availability table', async () => {
+    const rpc = jest.fn(async (fnName: string, args: Record<string, unknown>) => {
+      if (fnName !== 'get_regular_available_slot_instances') {
+        throw new Error(`Unexpected rpc call: ${fnName}`)
+      }
+      expect(args).toEqual({
+        p_venue_id: 'venue-1',
+        p_date_from: '2026-02-23',
+        p_date_to: '2026-02-23',
+        p_date_filter: null,
+      })
+      return {
+        data: [
+          {
+            venue_id: 'venue-1',
+            slot_id: 'slot-regular',
+            slot_date: '2026-02-23',
+            start_time: '17:00:00',
+            end_time: '18:00:00',
+            action_type: 'instant_book',
+          },
+        ],
+        error: null,
+      }
+    })
+
     const from = jest.fn((table: string) => {
       if (table === 'venues') {
         return createQuery({
@@ -50,24 +75,9 @@ describe('AvailabilityService (template-only slots)', () => {
           error: null,
         })
       }
-      if (table === 'bookings') {
-        return createQuery({ data: [], error: null })
-      }
-      if (table === 'recurring_bookings') {
-        return createQuery({ data: [], error: null })
-      }
       if (table === 'slot_instances') {
         return createQuery({
           data: [
-            {
-              id: 'slot-regular',
-              venue_id: 'venue-1',
-              date: '2026-02-23',
-              start_time: '17:00:00',
-              end_time: '18:00:00',
-              action_type: 'instant_book',
-              blocks_inventory: true,
-            },
             {
               id: 'slot-drop-in',
               venue_id: 'venue-1',
@@ -101,7 +111,7 @@ describe('AvailabilityService (template-only slots)', () => {
       throw new Error(`Unexpected table query: ${table}`)
     })
 
-    mockCreateClient.mockResolvedValue({ from })
+    mockCreateClient.mockResolvedValue({ from, rpc })
 
     const service = new AvailabilityService()
     const result = await service.getAvailableSlots('venue-1', '2026-02-23', '2026-02-23')
@@ -141,10 +151,32 @@ describe('AvailabilityService (template-only slots)', () => {
       },
     ])
 
+    expect(rpc).toHaveBeenCalledWith('get_regular_available_slot_instances', {
+      p_venue_id: 'venue-1',
+      p_date_from: '2026-02-23',
+      p_date_to: '2026-02-23',
+      p_date_filter: null,
+    })
+    expect(from).not.toHaveBeenCalledWith('bookings')
+    expect(from).not.toHaveBeenCalledWith('recurring_bookings')
     expect(from).not.toHaveBeenCalledWith('availability')
   })
 
   it('hides drop-in slots when drop-in is disabled', async () => {
+    const rpc = jest.fn(async () => ({
+      data: [
+        {
+          venue_id: 'venue-1',
+          slot_id: 'slot-regular',
+          slot_date: '2026-02-23',
+          start_time: '17:00:00',
+          end_time: '18:00:00',
+          action_type: 'request_private',
+        },
+      ],
+      error: null,
+    }))
+
     const from = jest.fn((table: string) => {
       if (table === 'venues') {
         return createQuery({
@@ -163,24 +195,9 @@ describe('AvailabilityService (template-only slots)', () => {
           error: null,
         })
       }
-      if (table === 'bookings') {
-        return createQuery({ data: [], error: null })
-      }
-      if (table === 'recurring_bookings') {
-        return createQuery({ data: [], error: null })
-      }
       if (table === 'slot_instances') {
         return createQuery({
           data: [
-            {
-              id: 'slot-regular',
-              venue_id: 'venue-1',
-              date: '2026-02-23',
-              start_time: '17:00:00',
-              end_time: '18:00:00',
-              action_type: 'request_private',
-              blocks_inventory: true,
-            },
             {
               id: 'slot-drop-in',
               venue_id: 'venue-1',
@@ -203,7 +220,7 @@ describe('AvailabilityService (template-only slots)', () => {
       throw new Error(`Unexpected table query: ${table}`)
     })
 
-    mockCreateClient.mockResolvedValue({ from })
+    mockCreateClient.mockResolvedValue({ from, rpc })
 
     const service = new AvailabilityService()
     const result = await service.getAvailableSlots('venue-1', '2026-02-23', '2026-02-23')
@@ -221,9 +238,29 @@ describe('AvailabilityService (template-only slots)', () => {
         slot_pricing: null,
       },
     ])
+    expect(rpc).toHaveBeenCalledWith('get_regular_available_slot_instances', {
+      p_venue_id: 'venue-1',
+      p_date_from: '2026-02-23',
+      p_date_to: '2026-02-23',
+      p_date_filter: null,
+    })
   })
 
   it('filters out slots blocked by external availability blocks', async () => {
+    const rpc = jest.fn(async () => ({
+      data: [
+        {
+          venue_id: 'venue-1',
+          slot_id: 'slot-open',
+          slot_date: '2026-02-23',
+          start_time: '18:00:00',
+          end_time: '19:00:00',
+          action_type: 'instant_book',
+        },
+      ],
+      error: null,
+    }))
+
     const from = jest.fn((table: string) => {
       if (table === 'venues') {
         return createQuery({
@@ -242,34 +279,9 @@ describe('AvailabilityService (template-only slots)', () => {
           error: null,
         })
       }
-      if (table === 'bookings') {
-        return createQuery({ data: [], error: null })
-      }
-      if (table === 'recurring_bookings') {
-        return createQuery({ data: [], error: null })
-      }
       if (table === 'slot_instances') {
         return createQuery({
-          data: [
-            {
-              id: 'slot-blocked',
-              venue_id: 'venue-1',
-              date: '2026-02-23',
-              start_time: '17:00:00',
-              end_time: '18:00:00',
-              action_type: 'instant_book',
-              blocks_inventory: true,
-            },
-            {
-              id: 'slot-open',
-              venue_id: 'venue-1',
-              date: '2026-02-23',
-              start_time: '18:00:00',
-              end_time: '19:00:00',
-              action_type: 'instant_book',
-              blocks_inventory: true,
-            },
-          ],
+          data: [],
           error: null,
         })
       }
@@ -277,25 +289,12 @@ describe('AvailabilityService (template-only slots)', () => {
         return createQuery({ data: [], error: null })
       }
       if (table === 'external_availability_blocks') {
-        return createQuery({
-          data: [
-            {
-              id: 'block-1',
-              venue_id: 'venue-1',
-              source: 'google_calendar',
-              source_event_id: 'event-1',
-              start_at: '2026-02-23T17:00:00.000-08:00',
-              end_at: '2026-02-23T18:00:00.000-08:00',
-              status: 'active',
-            },
-          ],
-          error: null,
-        })
+        return createQuery({ data: [], error: null })
       }
       throw new Error(`Unexpected table query: ${table}`)
     })
 
-    mockCreateClient.mockResolvedValue({ from })
+    mockCreateClient.mockResolvedValue({ from, rpc })
 
     const service = new AvailabilityService()
     const result = await service.getAvailableSlots('venue-1', '2026-02-23', '2026-02-23')
@@ -313,5 +312,11 @@ describe('AvailabilityService (template-only slots)', () => {
         slot_pricing: null,
       },
     ])
+    expect(rpc).toHaveBeenCalledWith('get_regular_available_slot_instances', {
+      p_venue_id: 'venue-1',
+      p_date_from: '2026-02-23',
+      p_date_to: '2026-02-23',
+      p_date_filter: null,
+    })
   })
 })

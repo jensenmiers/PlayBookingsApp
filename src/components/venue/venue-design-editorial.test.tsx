@@ -120,6 +120,20 @@ describe('VenueDesignEditorial coming-up pills', () => {
     expect(screen.getByText(/Today\s*·\s*12:00 PM - 1:00 PM/)).toBeInTheDocument()
   })
 
+  it('does not apply an extra client-side top-of-hour cutoff to same-day slots', () => {
+    mockUseVenueAvailabilityRange.mockReturnValue({
+      data: [
+        { date: '2026-02-21', start_time: '11:00:00', end_time: '12:00:00', venue_id: 'venue-1', action_type: 'request_private' },
+      ],
+      loading: false,
+      error: null,
+    })
+
+    render(<VenueDesignEditorial venue={createMockVenue()} />)
+
+    expect(screen.getByText(/Today\s*·\s*11:00 AM - 12:00 PM/)).toBeInTheDocument()
+  })
+
   it('shows Host Approval with a clock icon for request slots', () => {
     mockUseVenueAvailabilityRange.mockReturnValue({
       data: [

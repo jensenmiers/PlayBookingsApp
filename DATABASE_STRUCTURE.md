@@ -17,7 +17,7 @@ It is intentionally not a column-by-column reference.
 
 <!-- AUTO-SNAPSHOT:DB:START -->
 - Generated at: 2026-03-02 (America/Los_Angeles)
-- Latest migration in repo: `20260302000200_update_crossroads_address_and_coordinates.sql` (30 total)
+- Latest migration in repo: `20260302000300_add_regular_availability_parity_core.sql` (31 total)
 - Distinct tables referenced in app code via `.from()`: 15
 - App table sample: `audit_logs`, `availability`, `bookings`, `drop_in_template_sync_queue`, `external_availability_blocks`, `payments`, `recurring_bookings`, `regular_template_sync_queue`, `slot_instances`, `slot_interactions`, `slot_modal_content`, `slot_templates` (+3 more)
 - Live key-table check: 19/19 tables available
@@ -86,12 +86,18 @@ It is intentionally not a column-by-column reference.
 7. Insurance policy controls were simplified:
    - `venues.insurance_required` is now the only venue-level insurance gate.
    - `venue_admin_configs.insurance_requires_manual_approval` and `venue_admin_configs.insurance_document_types` were removed.
+8. Regular availability parity is SQL-core-driven:
+   - `get_regular_available_slot_instances` is the canonical regular eligibility function used by both venue availability regular reads and next-available discovery.
+   - `get_venues_with_next_available` now derives next slots from that shared eligibility core.
+   - Discovery surfaces (`/search`, `/venues`, home featured) stay regular-only; drop-in info-only slots remain venue-page-only.
 
 ## Operational Notes
 
 - `slot_instances` is generated output, not canonical authoring input.
 - Canonical schedule intent lives in:
   - `slot_templates` + `venue_admin_configs`.
+- Canonical regular slot eligibility is computed by SQL function:
+  - `get_regular_available_slot_instances`.
 - `availability` remains physically present for rollback/audit and legacy tooling, but is deprecated from runtime booking/discovery.
 - Queue processing currently depends on scripts:
   - `scripts/process-drop-in-template-sync-queue.ts`
