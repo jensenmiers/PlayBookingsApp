@@ -165,8 +165,12 @@ function extractDropInTemplates(rows: SlotTemplateRow[]): DropInTemplateWindow[]
 }
 
 function extractRegularTemplates(rows: SlotTemplateRow[]): RegularTemplateRow[] {
-  const regularRows = rows
-    .filter((row) => isRegularActionType(row.action_type))
+  const regularRows = rows.filter(
+    (
+      row
+    ): row is SlotTemplateRow & { action_type: RegularTemplateRow['action_type'] } =>
+      isRegularActionType(row.action_type)
+  )
 
   const dedupedByWindow = new Map<string, RegularTemplateRow>()
   for (const row of regularRows) {
