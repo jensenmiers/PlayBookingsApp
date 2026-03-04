@@ -101,10 +101,10 @@ export function AvailabilityMap({
   if (!mapboxToken) {
     return (
       <div className={`flex items-center justify-center bg-secondary-50/5 rounded-xl ${className}`}>
-        <div className="text-center p-8">
-          <FontAwesomeIcon icon={faLocationDot} className="text-4xl text-secondary-400 mb-4" />
+        <div className="text-center p-2xl">
+          <FontAwesomeIcon icon={faLocationDot} className="text-4xl text-secondary-400 mb-l" />
           <p className="text-secondary-50/60 font-medium">Map unavailable</p>
-          <p className="text-secondary-50/50 text-sm mt-1">
+          <p className="text-secondary-50/50 text-sm mt-xs">
             Mapbox token not configured
           </p>
         </div>
@@ -167,7 +167,7 @@ export function AvailabilityMap({
       </Map>
 
       {/* Venues count badge */}
-      <div className="absolute top-4 left-4 bg-secondary-800 backdrop-blur-sm rounded-lg px-3 py-1.5 shadow-md">
+      <div className="absolute top-4 left-4 bg-secondary-800 backdrop-blur-sm rounded-lg px-m py-s shadow-md">
         <span className="text-sm font-medium text-secondary-50/70">
           {venues.length} venue{venues.length !== 1 ? 's' : ''}
         </span>
@@ -198,24 +198,24 @@ function VenueMarker({ venue, isSelected }: { venue: MapVenue; isSelected: boole
         {/* Main pin */}
         <div 
           className={`
-            rounded-full p-2 shadow-lg border-2
+            rounded-full p-s shadow-lg border-2
             ${hasAvailability 
               ? 'bg-primary-500 border-primary-600' 
-              : 'bg-gray-400 border-gray-500'
+              : 'bg-secondary-400 border-secondary-500'
             }
-            ${isSelected ? 'ring-2 ring-white ring-offset-2' : ''}
+            ${isSelected ? 'ring-2 ring-secondary-50 ring-offset-2' : ''}
           `}
         >
           <FontAwesomeIcon 
             icon={faLocationDot} 
-            className="text-white text-lg"
+            className="text-secondary-50 text-lg"
           />
         </div>
         
         {/* Availability badge */}
         {hasAvailability && (
           <div className="absolute -bottom-6 left-1/2 -translate-x-1/2 whitespace-nowrap">
-            <span className="bg-secondary-800 text-secondary-50/70 text-xs font-medium px-2 py-0.5 rounded-full shadow-md border border-secondary-50/10">
+            <span className="bg-secondary-800 text-secondary-50/70 text-xs font-medium px-s py-xxs rounded-full shadow-md border border-secondary-50/10">
               {venue.nextAvailable?.displayText}
             </span>
           </div>
@@ -232,14 +232,14 @@ function VenuePopupContent({ venue }: { venue: MapVenue }) {
   const venueSlug = slugify(venue.name)
 
   return (
-    <div className="p-1 min-w-[220px]">
+    <div className="p-xs min-w-[220px]">
       {/* Venue name and instant booking badge */}
-      <div className="flex items-start justify-between gap-2 mb-2">
+      <div className="flex items-start justify-between gap-s mb-s">
         <h3 className="font-semibold text-secondary-900 text-sm leading-tight">
           {venue.name}
         </h3>
         {venue.instantBooking && (
-          <span className="flex items-center gap-1 bg-accent-400/15 text-accent-400 text-xs px-1.5 py-0.5 rounded-full flex-shrink-0">
+          <span className="flex items-center gap-xs bg-accent-400/15 text-accent-400 text-xs px-s py-xxs rounded-full flex-shrink-0">
             <FontAwesomeIcon icon={faBolt} className="text-[10px]" />
             <span>Instant</span>
           </span>
@@ -247,33 +247,33 @@ function VenuePopupContent({ venue }: { venue: MapVenue }) {
       </div>
 
       {/* Location */}
-      <p className="text-secondary-600 text-xs mb-2">
+      <p className="text-secondary-600 text-xs mb-s">
         {venue.city}, {venue.state}
       </p>
 
       {/* Distance if available */}
       {venue.distanceMiles !== null && (
-        <p className="text-secondary-500 text-xs mb-2">
+        <p className="text-secondary-500 text-xs mb-s">
           {venue.distanceMiles.toFixed(1)} miles away
         </p>
       )}
 
       {/* Next available slot */}
       {venue.nextAvailable ? (
-        <div className="flex items-center gap-1.5 text-primary-400 text-sm font-medium mb-3">
+        <div className="flex items-center gap-s text-primary-400 text-sm font-medium mb-m">
           <FontAwesomeIcon icon={faClock} className="text-xs" />
           <span>Next: {venue.nextAvailable.displayText}</span>
         </div>
       ) : (
-        <p className="text-gray-500 text-xs mb-3">No times available</p>
+        <p className="text-secondary-500 text-xs mb-m">No times available</p>
       )}
 
       {/* Price and CTA */}
-      <div className="flex items-center justify-between gap-2">
+      <div className="flex items-center justify-between gap-s">
         <span className="text-secondary-900 font-semibold">
           ${venue.hourlyRate}<span className="text-xs font-normal text-secondary-600">/hr</span>
         </span>
-        <Button asChild size="sm" className="rounded-lg text-xs px-3 py-1 h-7">
+        <Button asChild size="sm" className="rounded-lg text-xs px-m py-xs h-7">
           <Link href={`/venue/${venueSlug}`}>
             View & Book
           </Link>

@@ -26,18 +26,18 @@ export function BookingTypeBadge({
   )
 
   const baseStyles = {
-    default: 'flex items-center gap-2 text-sm',
-    compact: 'flex items-center gap-1.5 text-xs',
-    pill: 'inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-medium',
-    glow: 'inline-flex items-center gap-2 px-3 py-1.5 rounded-lg text-sm font-medium',
-    minimal: 'inline-flex items-center gap-1 text-xs',
+    default: 'flex items-center gap-s text-sm',
+    compact: 'flex items-center gap-s text-xs',
+    pill: 'inline-flex items-center gap-s px-m py-xs rounded-full text-xs font-medium',
+    glow: 'inline-flex items-center gap-s px-m py-s rounded-lg text-sm font-medium',
+    minimal: 'inline-flex items-center gap-xs text-xs',
   }
 
   const instantStyles = {
     default: 'text-primary-400',
     compact: 'text-primary-400',
     pill: 'bg-primary-400/15 text-primary-400 border border-primary-400/30',
-    glow: 'bg-primary-400/10 text-primary-400 shadow-[0_0_20px_rgba(74,222,128,0.2)] border border-primary-400/20',
+    glow: 'bg-primary-400/10 text-primary-400 shadow-lg shadow-primary-400/20 border border-primary-400/20',
     minimal: 'text-primary-400',
   }
 
@@ -45,7 +45,7 @@ export function BookingTypeBadge({
     default: 'text-accent-400',
     compact: 'text-accent-400',
     pill: 'bg-accent-400/15 text-accent-400 border border-accent-400/30',
-    glow: 'bg-accent-400/10 text-accent-400 shadow-[0_0_20px_rgba(251,146,60,0.2)] border border-accent-400/20',
+    glow: 'bg-accent-400/10 text-accent-400 shadow-lg shadow-accent-400/20 border border-accent-400/20',
     minimal: 'text-accent-400',
   }
 
@@ -58,7 +58,7 @@ export function BookingTypeBadge({
   }
 
   return (
-    <div className={cn('flex flex-wrap gap-2', className)}>
+    <div className={cn('flex flex-wrap gap-s', className)}>
       <span
         className={cn(
           baseStyles[variant],
@@ -96,7 +96,7 @@ export function BookingTypeBadgeInline({
   return (
     <span
       className={cn(
-        'inline-flex items-center gap-1',
+        'inline-flex items-center gap-xs',
         instantBooking ? 'text-primary-400' : 'text-accent-400',
         className
       )}

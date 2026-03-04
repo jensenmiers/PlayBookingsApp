@@ -29,19 +29,19 @@ export function VenueDetailPage({ venue }: VenueDetailPageProps) {
     <div className="min-h-screen bg-background">
       <Navigation />
 
-      <div className="px-4 py-6 max-w-6xl mx-auto">
+      <div className="px-l py-xl max-w-6xl mx-auto">
         {/* Back Button */}
         <Button
           onClick={() => router.back()}
           variant="ghost"
-          className="mb-6 text-secondary-50/60 hover:text-secondary-50"
+          className="mb-xl text-secondary-50/60 hover:text-secondary-50"
         >
-          <FontAwesomeIcon icon={faArrowLeft} className="mr-2" />
+          <FontAwesomeIcon icon={faArrowLeft} className="mr-s" />
           Back
         </Button>
 
         {/* Header Section */}
-        <div className="bg-secondary-800 rounded-2xl shadow-soft overflow-hidden mb-6">
+        <div className="bg-secondary-800 rounded-2xl shadow-soft overflow-hidden mb-xl">
           {/* Photo */}
           {primaryPhoto ? (
             <div className="relative w-full h-64 md:h-96">
@@ -61,13 +61,13 @@ export function VenueDetailPage({ venue }: VenueDetailPageProps) {
           )}
 
           {/* Venue Info */}
-          <div className="p-6">
-            <h1 className="text-3xl font-bold text-secondary-50 mb-4">{venue.name}</h1>
+          <div className="p-xl">
+            <h1 className="text-3xl font-bold text-secondary-50 mb-l">{venue.name}</h1>
 
-            <div className="space-y-3 mb-6">
+            <div className="space-y-3 mb-xl">
               {/* Location */}
               <div className="flex items-center text-secondary-50/60">
-                <FontAwesomeIcon icon={faLocationDot} className="mr-3 text-secondary-50/50" />
+                <FontAwesomeIcon icon={faLocationDot} className="mr-m text-secondary-50/50" />
                 <span>
                   {venue.address}, {venue.city}, {venue.state} {venue.zip_code}
                 </span>
@@ -75,20 +75,20 @@ export function VenueDetailPage({ venue }: VenueDetailPageProps) {
 
               {/* Hourly Rate */}
               <div className="flex items-center text-secondary-50/60">
-                <FontAwesomeIcon icon={faDollarSign} className="mr-3 text-secondary-50/50" />
+                <FontAwesomeIcon icon={faDollarSign} className="mr-m text-secondary-50/50" />
                 <span className="font-semibold text-secondary-50">${venue.hourly_rate}</span>
-                <span className="ml-1">per hour</span>
+                <span className="ml-xs">per hour</span>
               </div>
 
               {/* Features */}
-              <div className="flex flex-wrap gap-4 mt-4">
+              <div className="flex flex-wrap gap-l mt-l">
                 <div className="flex items-center text-secondary-50/60">
-                  <FontAwesomeIcon icon={bookingMode.icon} className="mr-2 text-secondary-50/50" />
+                  <FontAwesomeIcon icon={bookingMode.icon} className="mr-s text-secondary-50/50" />
                   <span className="text-sm">{bookingMode.label}</span>
                 </div>
                 {venue.insurance_required && (
                   <div className="flex items-center text-secondary-50/60">
-                    <FontAwesomeIcon icon={faShield} className="mr-2 text-secondary-50/50" />
+                    <FontAwesomeIcon icon={faShield} className="mr-s text-secondary-50/50" />
                     <span className="text-sm">Insurance Required</span>
                   </div>
                 )}
@@ -97,21 +97,21 @@ export function VenueDetailPage({ venue }: VenueDetailPageProps) {
 
             {/* Description */}
             {venue.description && (
-              <div className="border-t border-secondary-50/10 pt-6">
-                <h2 className="text-lg font-semibold text-secondary-50 mb-2">About</h2>
+              <div className="border-t border-secondary-50/10 pt-xl">
+                <h2 className="text-lg font-semibold text-secondary-50 mb-s">About</h2>
                 <p className="text-secondary-50/70 leading-relaxed">{venue.description}</p>
               </div>
             )}
 
             {/* Amenities */}
             {venue.amenities && venue.amenities.length > 0 && (
-              <div className="border-t border-secondary-50/10 pt-6 mt-6">
-                <h2 className="text-lg font-semibold text-secondary-50 mb-3">Amenities</h2>
-                <div className="flex flex-wrap gap-2">
+              <div className="border-t border-secondary-50/10 pt-xl mt-xl">
+                <h2 className="text-lg font-semibold text-secondary-50 mb-m">Amenities</h2>
+                <div className="flex flex-wrap gap-s">
                   {venue.amenities.map((amenity, idx) => (
                     <span
                       key={idx}
-                      className="bg-secondary-50/5 text-secondary-50/70 text-sm px-3 py-1 rounded-full"
+                      className="bg-secondary-50/5 text-secondary-50/70 text-sm px-m py-xs rounded-full"
                     >
                       {amenity}
                     </span>

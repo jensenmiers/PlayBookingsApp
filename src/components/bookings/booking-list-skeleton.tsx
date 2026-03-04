@@ -6,9 +6,9 @@ export function BookingListSkeleton() {
       {[0, 1, 2].map((i) => (
         <div
           key={i}
-          className="rounded-2xl border border-secondary-50/10 bg-secondary-800 p-4"
+          className="rounded-2xl border border-secondary-50/10 bg-secondary-800 p-l"
         >
-          <div className="flex gap-3.5">
+          <div className="flex gap-l">
             <Skeleton className="w-16 h-16 rounded-lg flex-shrink-0" />
             <div className="flex-1 space-y-2">
               <Skeleton className="h-5 w-40" />

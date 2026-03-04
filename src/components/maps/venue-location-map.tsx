@@ -45,10 +45,10 @@ export function VenueLocationMap({
   if (!mapboxToken) {
     return (
       <div className={cn('flex items-center justify-center rounded-xl bg-secondary-50/5', className)}>
-        <div className="text-center p-6">
-          <FontAwesomeIcon icon={faLocationDot} className="text-3xl text-secondary-400 mb-3" />
+        <div className="text-center p-xl">
+          <FontAwesomeIcon icon={faLocationDot} className="text-3xl text-secondary-400 mb-m" />
           <p className="text-secondary-50/70 font-medium">Map unavailable</p>
-          <p className="text-secondary-50/50 text-sm mt-1">Mapbox token not configured</p>
+          <p className="text-secondary-50/50 text-sm mt-xs">Mapbox token not configured</p>
         </div>
       </div>
     )
@@ -57,10 +57,10 @@ export function VenueLocationMap({
   if (!hasCoordinates) {
     return (
       <div className={cn('flex items-center justify-center rounded-xl bg-secondary-50/5', className)}>
-        <div className="text-center p-6">
-          <FontAwesomeIcon icon={faLocationDot} className="text-3xl text-secondary-400 mb-3" />
+        <div className="text-center p-xl">
+          <FontAwesomeIcon icon={faLocationDot} className="text-3xl text-secondary-400 mb-m" />
           <p className="text-secondary-50/70 font-medium">Location pin unavailable</p>
-          <p className="text-secondary-50/50 text-sm mt-1">
+          <p className="text-secondary-50/50 text-sm mt-xs">
             {city}, {state}
           </p>
         </div>
@@ -81,13 +81,13 @@ export function VenueLocationMap({
         <NavigationControl position="top-right" />
 
         <Marker latitude={Number(latitude)} longitude={Number(longitude)} anchor="bottom">
-          <div className="rounded-full p-2 shadow-lg border-2 bg-primary-500 border-primary-600">
-            <FontAwesomeIcon icon={faLocationDot} className="text-white text-lg" />
+          <div className="rounded-full p-s shadow-lg border-2 bg-primary-500 border-primary-600">
+            <FontAwesomeIcon icon={faLocationDot} className="text-secondary-50 text-lg" />
           </div>
         </Marker>
       </Map>
 
-      <div className="absolute top-4 left-4 bg-secondary-800 backdrop-blur-sm rounded-lg px-3 py-1.5 shadow-md">
+      <div className="absolute top-4 left-4 bg-secondary-800 backdrop-blur-sm rounded-lg px-m py-s shadow-md">
         <span className="text-sm font-medium text-secondary-50/70">{name}</span>
       </div>
     </div>

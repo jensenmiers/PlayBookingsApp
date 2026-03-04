@@ -146,7 +146,7 @@ function StripePaymentForm({
 
   return (
     <form onSubmit={handleSubmit} className="space-y-3 sm:space-y-6">
-      <div className="flex items-center justify-center gap-2 sm:flex-col sm:gap-1 sm:text-center">
+      <div className="flex items-center justify-center gap-s sm:flex-col sm:gap-xs sm:text-center">
         <p className="text-sm font-medium text-secondary-50">{venueName}</p>
         <span className="text-muted-foreground sm:hidden">·</span>
         <p className="text-lg font-bold text-primary sm:text-2xl">
@@ -154,7 +154,7 @@ function StripePaymentForm({
         </p>
       </div>
       {isSetupIntent && (
-        <p className="hidden sm:block text-xs text-muted-foreground text-center -mt-1">
+        <p className="hidden sm:block text-xs text-muted-foreground text-center -mt-xs">
           {BOOKING_APPROVAL_COPY.deferredSetupSubtext}
         </p>
       )}
@@ -166,12 +166,12 @@ function StripePaymentForm({
       />
 
       {errorMessage && (
-        <div className="text-destructive text-sm text-center p-2 bg-destructive/15 rounded-lg">
+        <div className="text-destructive text-sm text-center p-s bg-destructive/15 rounded-lg">
           {errorMessage}
         </div>
       )}
 
-      <DialogFooter className="flex gap-2 sm:gap-3 sm:flex-row">
+      <DialogFooter className="flex gap-s sm:gap-m sm:flex-row">
         {showBackButton && onBack ? (
           <Button
             type="button"
@@ -180,7 +180,7 @@ function StripePaymentForm({
             disabled={isProcessing}
             className="flex-1"
           >
-            <FontAwesomeIcon icon={faArrowLeft} className="mr-2" />
+            <FontAwesomeIcon icon={faArrowLeft} className="mr-s" />
             Back
           </Button>
         ) : (
@@ -201,7 +201,7 @@ function StripePaymentForm({
         >
           {isProcessing ? (
             <>
-              <FontAwesomeIcon icon={faSpinner} className="animate-spin mr-2" />
+              <FontAwesomeIcon icon={faSpinner} className="animate-spin mr-s" />
               Processing...
             </>
           ) : isSetupIntent ? (
@@ -245,7 +245,7 @@ function BookingDetailsView({
 }) {
   return (
     <>
-      <div className="space-y-4 py-4">
+      <div className="space-y-4 py-l">
         {/* Venue Info */}
         <div className="space-y-1">
           <p className="text-sm font-semibold text-secondary-50">Venue</p>
@@ -275,7 +275,7 @@ function BookingDetailsView({
               ${estimatedTotal.toFixed(2)}
             </span>
           </div>
-          <div className="flex justify-between items-center pt-2 border-t border-secondary-50/10">
+          <div className="flex justify-between items-center pt-s border-t border-secondary-50/10">
             <span className="text-sm font-semibold text-secondary-50">Total</span>
             <span className="text-base font-bold text-secondary-50">
               ${estimatedTotal.toFixed(2)}
@@ -284,9 +284,9 @@ function BookingDetailsView({
         </div>
 
         {/* Payment Info Notice */}
-        <div className="p-3 bg-primary-400/15 border border-primary-400/30 rounded-lg">
+        <div className="p-m bg-primary-400/15 border border-primary-400/30 rounded-lg">
           <p className="text-xs text-primary-400">
-            <FontAwesomeIcon icon={faCreditCard} className="mr-1" />
+            <FontAwesomeIcon icon={faCreditCard} className="mr-xs" />
             <span className="font-semibold">Payment Required:</span>{' '}
             {venue.instant_booking && !venue.insurance_required
               ? 'Your card will be charged immediately to confirm this booking.'
@@ -296,7 +296,7 @@ function BookingDetailsView({
 
         {/* Error Message */}
         {error && (
-          <div className="p-3 bg-destructive/10 border border-destructive/50 rounded-lg">
+          <div className="p-m bg-destructive/10 border border-destructive/50 rounded-lg">
             <p className="text-xs text-destructive">{error}</p>
           </div>
         )}
@@ -318,7 +318,7 @@ function BookingDetailsView({
         >
           {isLoading ? (
             <>
-              <FontAwesomeIcon icon={faSpinner} className="animate-spin mr-2" />
+              <FontAwesomeIcon icon={faSpinner} className="animate-spin mr-s" />
               Creating...
             </>
           ) : variant === 'wizard' ? (
@@ -344,7 +344,7 @@ function StepIndicator({ currentStep }: { currentStep: FlowStep }) {
   const currentIndex = currentStep === 'details' ? 0 : currentStep === 'payment' ? 1 : 2
 
   return (
-    <div className="hidden sm:flex items-center justify-center gap-2 mb-4">
+    <div className="hidden sm:flex items-center justify-center gap-s mb-l">
       {steps.map((step, index) => (
         <div key={step.key} className="flex items-center">
           <div
@@ -363,7 +363,7 @@ function StepIndicator({ currentStep }: { currentStep: FlowStep }) {
             )}
           </div>
           <span
-            className={`ml-2 text-sm ${
+            className={`ml-s text-sm ${
               index <= currentIndex ? 'text-secondary-50 font-medium' : 'text-secondary-400'
             }`}
           >
@@ -371,7 +371,7 @@ function StepIndicator({ currentStep }: { currentStep: FlowStep }) {
           </span>
           {index < steps.length - 1 && (
             <div
-              className={`w-8 h-0.5 mx-2 ${
+              className={`w-8 h-0.5 mx-s ${
                 index < currentIndex ? 'bg-primary-400' : 'bg-secondary-50/10'
               }`}
             />
@@ -524,7 +524,7 @@ export function BookingPaymentFlow({
 
   return (
     <Dialog open={open} onOpenChange={handleCancel}>
-      <DialogContent className="p-4 sm:p-8 gap-3 sm:gap-5 sm:max-w-md">
+      <DialogContent className="p-l sm:p-2xl gap-m sm:gap-xl sm:max-w-md">
         <DialogHeader>
           <DialogTitle>{getDialogTitle()}</DialogTitle>
           {step === 'payment' && (
@@ -558,8 +558,8 @@ export function BookingPaymentFlow({
 
         {/* Payment Step - Loading */}
         {step === 'payment' && !clientSecret && (
-          <div className="py-8 text-center">
-            <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary mx-auto mb-4" />
+          <div className="py-2xl text-center">
+            <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary mx-auto mb-l" />
             <p className="text-sm text-muted-foreground">Preparing payment...</p>
           </div>
         )}
@@ -573,7 +573,7 @@ export function BookingPaymentFlow({
               appearance: {
                 theme: 'stripe',
                 variables: {
-                  colorPrimary: '#0066cc',
+                  colorPrimary: 'var(--primary-600)',
                   fontFamily: 'system-ui, sans-serif',
                   borderRadius: '8px',
                 },

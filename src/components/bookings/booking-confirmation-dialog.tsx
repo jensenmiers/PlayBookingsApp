@@ -68,23 +68,23 @@ export function BookingConfirmationDialog({
         <div className="space-y-4">
           {/* Venue Info */}
           {venue && (
-            <div className="rounded-lg border border-border bg-background p-4">
-              <div className="flex items-center gap-2 text-secondary-50/60 mb-2">
+            <div className="rounded-lg border border-border bg-background p-l">
+              <div className="flex items-center gap-s text-secondary-50/60 mb-s">
                 <FontAwesomeIcon icon={faMapMarkerAlt} />
                 <span className="text-sm font-medium">Venue</span>
               </div>
               <p className="text-lg font-semibold text-secondary-50">{venue.name}</p>
-              <p className="text-sm text-secondary-50/60 mt-1">
+              <p className="text-sm text-secondary-50/60 mt-xs">
                 {venue.address}, {venue.city}, {venue.state}
               </p>
             </div>
           )}
 
           {/* Date & Time */}
-          <div className="grid gap-4 md:grid-cols-2">
+          <div className="grid gap-l md:grid-cols-2">
             {bookingDate && (
-              <div className="rounded-lg border border-border bg-secondary-800 p-4">
-                <div className="flex items-center gap-2 text-secondary-50/60 mb-2">
+              <div className="rounded-lg border border-border bg-secondary-800 p-l">
+                <div className="flex items-center gap-s text-secondary-50/60 mb-s">
                   <FontAwesomeIcon icon={faCalendarDays} />
                   <span className="text-sm font-medium">Date</span>
                 </div>
@@ -94,22 +94,22 @@ export function BookingConfirmationDialog({
               </div>
             )}
 
-            <div className="rounded-lg border border-border bg-secondary-800 p-4">
-              <div className="flex items-center gap-2 text-secondary-50/60 mb-2">
+            <div className="rounded-lg border border-border bg-secondary-800 p-l">
+              <div className="flex items-center gap-s text-secondary-50/60 mb-s">
                 <FontAwesomeIcon icon={faClock} />
                 <span className="text-sm font-medium">Time</span>
               </div>
               <p className="text-lg font-semibold text-secondary-50">
                 {startTime} - {endTime}
               </p>
-              <p className="text-xs text-secondary-50/60 mt-1">{duration} hour(s)</p>
+              <p className="text-xs text-secondary-50/60 mt-xs">{duration} hour(s)</p>
             </div>
           </div>
 
           {/* Pricing */}
           {venue && (
-            <div className="rounded-lg border border-border bg-secondary-800 p-4">
-              <div className="flex items-center gap-2 text-secondary-50/60 mb-2">
+            <div className="rounded-lg border border-border bg-secondary-800 p-l">
+              <div className="flex items-center gap-s text-secondary-50/60 mb-s">
                 <FontAwesomeIcon icon={faDollarSign} />
                 <span className="text-sm font-medium">Pricing</span>
               </div>
@@ -122,7 +122,7 @@ export function BookingConfirmationDialog({
                   <span className="text-secondary-50/60">Duration:</span>
                   <span className="font-medium">{duration} hour(s)</span>
                 </div>
-                <div className="border-t pt-2 mt-2">
+                <div className="border-t pt-s mt-s">
                   <div className="flex justify-between">
                     <span className="font-semibold text-secondary-50">Total Amount:</span>
                     <span className="font-bold text-lg text-secondary-50">
@@ -136,8 +136,8 @@ export function BookingConfirmationDialog({
 
           {/* Recurring Info */}
           {bookingData.recurring_type !== 'none' && (
-            <div className="rounded-lg border border-border bg-secondary-800 p-4">
-              <p className="text-sm font-medium text-secondary-50/60 mb-1">Recurring Booking</p>
+            <div className="rounded-lg border border-border bg-secondary-800 p-l">
+              <p className="text-sm font-medium text-secondary-50/60 mb-xs">Recurring Booking</p>
               <p className="text-secondary-50">
                 {bookingData.recurring_type === 'weekly' ? 'Weekly' : 'Monthly'} recurring
                 {bookingData.recurring_end_date && (
@@ -149,8 +149,8 @@ export function BookingConfirmationDialog({
 
           {/* Notes */}
           {bookingData.notes && (
-            <div className="rounded-lg border border-border bg-secondary-800 p-4">
-              <p className="text-sm font-medium text-secondary-50/60 mb-1">Notes</p>
+            <div className="rounded-lg border border-border bg-secondary-800 p-l">
+              <p className="text-sm font-medium text-secondary-50/60 mb-xs">Notes</p>
               <p className="text-secondary-50">{bookingData.notes}</p>
             </div>
           )}

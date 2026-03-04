@@ -104,9 +104,9 @@ export function BookingList({ initialFilters, className }: BookingListProps) {
 
   if (error) {
     return (
-      <div className={cn('rounded-lg border border-destructive/50 bg-destructive/10 p-4', className)}>
+      <div className={cn('rounded-lg border border-destructive/50 bg-destructive/10 p-l', className)}>
         <p className="text-destructive">{error}</p>
-        <Button onClick={() => refetch()} variant="outline" className="mt-2">
+        <Button onClick={() => refetch()} variant="outline" className="mt-s">
           Retry
         </Button>
       </div>
@@ -116,11 +116,11 @@ export function BookingList({ initialFilters, className }: BookingListProps) {
   return (
     <div className={cn('space-y-5', className)}>
       {/* Segmented time toggle */}
-      <div className="inline-flex h-11 items-center rounded-xl bg-secondary-800 p-1">
+      <div className="inline-flex h-11 items-center rounded-xl bg-secondary-800 p-xs">
         <button
           onClick={() => handleFilterChange('time_view', 'upcoming')}
           className={cn(
-            'inline-flex h-9 items-center justify-center rounded-lg px-5 text-sm font-medium transition-all',
+            'inline-flex h-9 items-center justify-center rounded-lg px-xl text-sm font-medium transition-all',
             filters.time_view === 'upcoming'
               ? 'bg-secondary-700 text-secondary-50 shadow-soft'
               : 'text-secondary-50/50 hover:text-secondary-50'
@@ -131,7 +131,7 @@ export function BookingList({ initialFilters, className }: BookingListProps) {
         <button
           onClick={() => handleFilterChange('time_view', 'past')}
           className={cn(
-            'inline-flex h-9 items-center justify-center rounded-lg px-5 text-sm font-medium transition-all',
+            'inline-flex h-9 items-center justify-center rounded-lg px-xl text-sm font-medium transition-all',
             filters.time_view === 'past'
               ? 'bg-secondary-700 text-secondary-50 shadow-soft'
               : 'text-secondary-50/50 hover:text-secondary-50'
@@ -142,13 +142,13 @@ export function BookingList({ initialFilters, className }: BookingListProps) {
       </div>
 
       {/* Status chip bar */}
-      <div className="flex gap-2 overflow-x-auto scrollbar-hide -mt-2">
+      <div className="flex gap-s overflow-x-auto scrollbar-hide -mt-s">
         {statusChips.map((chip) => (
           <button
             key={chip.label}
             onClick={() => handleFilterChange('status', chip.value)}
             className={cn(
-              'flex-shrink-0 rounded-full px-3.5 py-1.5 text-xs font-medium transition-all border',
+              'flex-shrink-0 rounded-full px-l py-s text-xs font-medium transition-all border',
               filters.status === chip.value
                 ? 'bg-secondary-50/10 text-secondary-50 border-secondary-50/20'
                 : 'text-secondary-50/40 border-transparent hover:text-secondary-50/60 hover:bg-secondary-50/5'
@@ -161,21 +161,21 @@ export function BookingList({ initialFilters, className }: BookingListProps) {
 
       {/* Booking cards */}
       {!bookings || bookings.length === 0 ? (
-        <div className="flex flex-col items-center justify-center py-16 text-center">
-          <div className="w-14 h-14 rounded-full bg-secondary-50/5 flex items-center justify-center mb-4">
+        <div className="flex flex-col items-center justify-center py-5xl text-center">
+          <div className="w-14 h-14 rounded-full bg-secondary-50/5 flex items-center justify-center mb-l">
             <FontAwesomeIcon icon={faBasketball} className="text-secondary-50/20 text-xl" />
           </div>
           <p className="text-secondary-50/60 font-medium">
             {filters.time_view === 'past' ? 'No past bookings' : 'No upcoming bookings'}
           </p>
-          <p className="text-secondary-50/30 text-sm mt-1 max-w-[240px]">
+          <p className="text-secondary-50/30 text-sm mt-xs max-w-[240px]">
             {filters.time_view === 'past'
               ? 'Your completed and cancelled bookings will appear here'
               : 'Find a court and book your next game'}
           </p>
           {filters.time_view === 'upcoming' && (
             <Link href="/search">
-              <Button variant="outline" size="sm" className="mt-4">
+              <Button variant="outline" size="sm" className="mt-l">
                 Browse Courts
               </Button>
             </Link>
@@ -207,11 +207,11 @@ export function BookingList({ initialFilters, className }: BookingListProps) {
 
       {/* Pagination */}
       {bookings && bookings.length > 0 && (
-        <div className="flex items-center justify-between pt-2">
+        <div className="flex items-center justify-between pt-s">
           <p className="text-sm text-secondary-50/30">
             {bookings.length} booking{bookings.length !== 1 ? 's' : ''}
           </p>
-          <div className="flex items-center gap-2">
+          <div className="flex items-center gap-s">
             <Button
               variant="outline"
               size="sm"

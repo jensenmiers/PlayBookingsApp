@@ -14,8 +14,8 @@ interface TicketStatusBannerProps {
 const variantConfig = {
   pending: {
     borderColor: 'border-l-yellow-400',
-    bgColor: 'bg-yellow-400/5',
-    textColor: 'text-yellow-400',
+    bgColor: 'bg-accent-400/5',
+    textColor: 'text-accent-400',
     icon: faClock,
   },
   'pending-insurance': {
@@ -38,8 +38,8 @@ const variantConfig = {
   },
   completed: {
     borderColor: 'border-l-blue-400',
-    bgColor: 'bg-blue-400/5',
-    textColor: 'text-blue-400',
+    bgColor: 'bg-primary-400/5',
+    textColor: 'text-primary-400',
     icon: faFlagCheckered,
   },
 }
@@ -48,11 +48,11 @@ export function TicketStatusBanner({ statusVariant, statusLabel, statusDescripti
   const config = variantConfig[statusVariant]
 
   return (
-    <div className={cn('border-l-4 rounded-lg p-4 flex items-center gap-3', config.borderColor, config.bgColor)}>
+    <div className={cn('border-l-4 rounded-lg p-l flex items-center gap-m', config.borderColor, config.bgColor)}>
       <FontAwesomeIcon icon={config.icon} className={cn('text-lg', config.textColor)} />
       <div>
         <p className={cn('font-semibold text-sm', config.textColor)}>{statusLabel}</p>
-        <p className="text-secondary-50/50 text-xs mt-0.5">{statusDescription}</p>
+        <p className="text-secondary-50/50 text-xs mt-xxs">{statusDescription}</p>
       </div>
     </div>
   )

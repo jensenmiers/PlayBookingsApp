@@ -57,11 +57,11 @@ export function TicketActions({
     <div className="space-y-3">
       {/* Insurance gate message */}
       {ticketState.insuranceGated && (
-        <div className="flex items-start gap-3 p-4 bg-accent-400/5 rounded-xl border border-accent-400/10">
-          <FontAwesomeIcon icon={faShield} className="text-accent-400 mt-0.5" />
+        <div className="flex items-start gap-m p-l bg-accent-400/5 rounded-xl border border-accent-400/10">
+          <FontAwesomeIcon icon={faShield} className="text-accent-400 mt-xxs" />
           <div>
             <p className="text-secondary-50 font-medium text-sm">Insurance Required</p>
-            <p className="text-secondary-50/50 text-xs mt-0.5">
+            <p className="text-secondary-50/50 text-xs mt-xxs">
               Your insurance must be verified before you can pay for this booking.
             </p>
           </div>
@@ -71,7 +71,7 @@ export function TicketActions({
       {/* Primary CTA */}
       {ticketState.primaryAction === 'pay' && (
         <Button onClick={onPayClick} size="lg" className="w-full">
-          <FontAwesomeIcon icon={faCreditCard} className="mr-2" />
+          <FontAwesomeIcon icon={faCreditCard} className="mr-s" />
           Pay ${booking.total_amount.toFixed(2)}
         </Button>
       )}
@@ -84,21 +84,21 @@ export function TicketActions({
           zipCode={venue.zip_code}
           variant="default"
           showArrow
-          className="w-full justify-center h-12 px-6 bg-primary text-primary-foreground rounded-full font-semibold shadow-soft hover:opacity-90 transition-opacity"
+          className="w-full justify-center h-12 px-xl bg-primary text-primary-foreground rounded-full font-semibold shadow-soft hover:opacity-90 transition-opacity"
         />
       )}
 
       {ticketState.primaryAction === 'book-again' && venue && (
         <Link href={`/venue/${slugify(venue.name)}`} className="block">
           <Button size="lg" className="w-full">
-            <FontAwesomeIcon icon={faRotateRight} className="mr-2" />
+            <FontAwesomeIcon icon={faRotateRight} className="mr-s" />
             Book Again
           </Button>
         </Link>
       )}
 
       {ticketState.primaryAction === 'waiting' && (
-        <div className="text-center py-3 text-secondary-50/40 text-sm">
+        <div className="text-center py-m text-secondary-50/40 text-sm">
           Awaiting owner confirmation...
         </div>
       )}
@@ -106,7 +106,7 @@ export function TicketActions({
       {/* Add to Calendar — confirmed, upcoming bookings */}
       {booking.status === 'confirmed' && !ticketState.isPast && (
         <Button variant="outline" size="lg" className="w-full" onClick={handleAddToCalendar}>
-          <FontAwesomeIcon icon={faCalendarPlus} className="mr-2" />
+          <FontAwesomeIcon icon={faCalendarPlus} className="mr-s" />
           Add to Calendar
         </Button>
       )}

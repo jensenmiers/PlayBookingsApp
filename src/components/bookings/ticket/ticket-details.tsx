@@ -16,7 +16,7 @@ export function TicketDetails({ booking, venue, showAmount }: TicketDetailsProps
       {/* Venue location */}
       {venue && (
         <div>
-          <p className="text-secondary-50/40 text-xs uppercase tracking-widest font-medium mb-1.5">
+          <p className="text-secondary-50/40 text-xs uppercase tracking-widest font-medium mb-s">
             Venue
           </p>
           <GoogleMapsLink
@@ -32,7 +32,7 @@ export function TicketDetails({ booking, venue, showAmount }: TicketDetailsProps
 
       {/* Amount */}
       <div>
-        <p className="text-secondary-50/40 text-xs uppercase tracking-widest font-medium mb-1">
+        <p className="text-secondary-50/40 text-xs uppercase tracking-widest font-medium mb-xs">
           Total
         </p>
         {showAmount === 'prominent' ? (
@@ -49,7 +49,7 @@ export function TicketDetails({ booking, venue, showAmount }: TicketDetailsProps
       {/* Notes */}
       {booking.notes && (
         <div>
-          <p className="text-secondary-50/40 text-xs uppercase tracking-widest font-medium mb-1">
+          <p className="text-secondary-50/40 text-xs uppercase tracking-widest font-medium mb-xs">
             Notes
           </p>
           <p className="text-secondary-50/70 text-sm">{booking.notes}</p>

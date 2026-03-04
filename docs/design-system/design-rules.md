@@ -10,7 +10,7 @@ These rules are contractually enforced for scoped UI files.
 
 ## Required
 
-- Use semantic spacing tokens (`xxs`, `xs`, `s`, `m`, `l`, `xl`, `2xl`) for spacing utilities.
+- Use semantic spacing tokens (`xxs`, `xs`, `s`, `m`, `l`, `xl`, `2xl`, `3xl`, `4xl`, `5xl`, `6xl`) for spacing utilities.
 - Use semantic or palette token colors (for example `bg-primary-400`, `text-secondary-50`, `border-border`).
 - If `react-hook-form` is imported, shared form wrappers from `@/components/ui/form` must also be imported and used.
 - Use shared UI wrappers; do not import `@radix-ui/*` directly outside `src/components/ui/**`.

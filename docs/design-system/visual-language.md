@@ -13,6 +13,10 @@ Use these semantic tokens in spacing utilities (`mt-*`, `px-*`, `gap-*`, `space-
 - `l`: `1rem` (16px)
 - `xl`: `1.5rem` (24px)
 - `2xl`: `2rem` (32px)
+- `3xl`: `2.5rem` (40px)
+- `4xl`: `3rem` (48px)
+- `5xl`: `4rem` (64px)
+- `6xl`: `5rem` (80px)
 
 Allowed special values:
 

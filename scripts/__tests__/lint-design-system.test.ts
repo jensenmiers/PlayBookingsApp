@@ -25,11 +25,21 @@ describe('design-system lint rules', () => {
   })
 
   it('passes semantic spacing tokens and allowed zero/px values', () => {
-    const source = '<div className="mt-s px-m gap-xl mb-0 px-px" />'
+    const source =
+      '<div className="mt-s px-m gap-xl mb-0 px-px px-3xl py-6xl -mt-xl lg:px-l" />'
 
     const findings = checkSpacingTokenRule(source, 'src/components/search/filter.tsx')
 
     expect(findings).toHaveLength(0)
+  })
+
+  it('fails on negative numeric spacing utilities', () => {
+    const source = '<div className="-mt-6 lg:-mx-10" />'
+
+    const findings = checkSpacingTokenRule(source, 'src/components/search/filter.tsx')
+
+    expect(findings).toHaveLength(2)
+    expect(findings.map((finding) => finding.excerpt)).toEqual(['-mt-6', 'lg:-mx-10'])
   })
 
   it('fails on named color utilities and raw color literals', () => {

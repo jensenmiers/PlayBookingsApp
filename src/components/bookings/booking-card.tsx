@@ -38,11 +38,11 @@ const statusBorderColor: Record<string, string> = {
 }
 
 const statusDotColor: Record<string, string> = {
-  pending: 'bg-yellow-400',
+  pending: 'bg-accent-400',
   'pending-insurance': 'bg-accent-400',
   confirmed: 'bg-primary-400',
   cancelled: 'bg-destructive',
-  completed: 'bg-blue-400',
+  completed: 'bg-primary-400',
 }
 
 export function BookingCard({ booking, onPayClick }: BookingCardProps) {
@@ -62,8 +62,8 @@ export function BookingCard({ booking, onPayClick }: BookingCardProps) {
         statusBorderColor[ticketState.statusVariant]
       )}
     >
-      <Link href={`/my-bookings/${booking.id}`} className="block p-4">
-        <div className="flex gap-3.5">
+      <Link href={`/my-bookings/${booking.id}`} className="block p-l">
+        <div className="flex gap-l">
           {/* Venue photo thumbnail */}
           <div className="relative w-16 h-16 rounded-lg overflow-hidden flex-shrink-0">
             {primaryPhoto ? (
@@ -81,24 +81,24 @@ export function BookingCard({ booking, onPayClick }: BookingCardProps) {
 
           {/* Info */}
           <div className="flex-1 min-w-0">
-            <div className="flex items-start justify-between gap-2">
+            <div className="flex items-start justify-between gap-s">
               <h3 className="font-semibold text-secondary-50 truncate">
                 {venueName}
               </h3>
               {/* Status dot */}
               <span
                 className={cn(
-                  'w-2.5 h-2.5 rounded-full flex-shrink-0 mt-1.5',
+                  'w-2.5 h-2.5 rounded-full flex-shrink-0 mt-s',
                   statusDotColor[ticketState.statusVariant]
                 )}
               />
             </div>
-            <p className="text-sm text-secondary-50/50 mt-0.5">
+            <p className="text-sm text-secondary-50/50 mt-xxs">
               {relativeDate} · {startTime} – {endTime}
             </p>
             <p
               className={cn(
-                'font-mono text-sm mt-1',
+                'font-mono text-sm mt-xs',
                 ticketState.showAmount === 'prominent'
                   ? 'text-primary-400 font-semibold'
                   : 'text-secondary-50/40'
@@ -106,7 +106,7 @@ export function BookingCard({ booking, onPayClick }: BookingCardProps) {
             >
               ${booking.total_amount.toFixed(2)}
               {ticketState.showAmount === 'subdued' && (
-                <span className="font-sans ml-1">paid</span>
+                <span className="font-sans ml-xs">paid</span>
               )}
             </p>
           </div>
@@ -115,9 +115,9 @@ export function BookingCard({ booking, onPayClick }: BookingCardProps) {
 
       {/* Primary CTA — only Pay button on cards */}
       {ticketState.primaryAction === 'pay' && (
-        <div className="px-4 pb-4">
+        <div className="px-l pb-l">
           <Button onClick={handlePayClick} size="sm" className="w-full">
-            <FontAwesomeIcon icon={faCreditCard} className="mr-2" />
+            <FontAwesomeIcon icon={faCreditCard} className="mr-s" />
             Pay ${booking.total_amount.toFixed(2)}
           </Button>
         </div>

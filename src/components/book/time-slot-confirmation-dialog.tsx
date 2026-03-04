@@ -55,7 +55,7 @@ export function TimeSlotConfirmationDialog({
           <DialogTitle>Confirm Your Booking</DialogTitle>
         </DialogHeader>
 
-        <div className="space-y-4 py-4">
+        <div className="space-y-4 py-l">
           {/* Venue Info */}
           <div className="space-y-1">
             <p className="text-sm font-semibold text-secondary-50">Venue</p>
@@ -83,7 +83,7 @@ export function TimeSlotConfirmationDialog({
               <span className="text-sm text-secondary-50/60">Hourly Rate (1 hour)</span>
               <span className="text-sm font-medium text-secondary-50">${hourlyRate.toFixed(2)}</span>
             </div>
-            <div className="flex justify-between items-center pt-2 border-t border-secondary-50/10">
+            <div className="flex justify-between items-center pt-s border-t border-secondary-50/10">
               <span className="text-sm font-semibold text-secondary-50">Estimated Total</span>
               <span className="text-base font-bold text-secondary-50">
                 ${estimatedTotal.toFixed(2)}
@@ -93,7 +93,7 @@ export function TimeSlotConfirmationDialog({
 
           {/* Host Approval Notice */}
           {!venue.instant_booking && (
-            <div className="p-3 bg-accent-400/15 border border-accent-400/30 rounded-lg">
+            <div className="p-m bg-accent-400/15 border border-accent-400/30 rounded-lg">
               <p className="text-xs text-accent-400">
                 <span className="font-semibold">{BOOKING_APPROVAL_COPY.confirmationDialogTitle}:</span>{' '}
                 {BOOKING_APPROVAL_COPY.confirmationDialogBody}

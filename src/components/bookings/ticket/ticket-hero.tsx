@@ -14,7 +14,7 @@ export function TicketHero({ venue, onBack }: TicketHeroProps) {
   const primaryPhoto = venue?.photos?.[0]
 
   return (
-    <div className="relative h-[40vh] sm:h-[45vh] md:h-[50vh] min-h-[280px] -mx-6 lg:-mx-10">
+    <div className="relative h-[40vh] sm:h-[45vh] md:h-[50vh] min-h-[280px] -mx-xl lg:-mx-3xl">
       {/* Photo or gradient fallback */}
       {primaryPhoto ? (
         <Image
@@ -41,11 +41,11 @@ export function TicketHero({ venue, onBack }: TicketHeroProps) {
 
       {/* Venue name overlay */}
       {venue && (
-        <div className="absolute bottom-0 left-0 right-0 p-6 pb-10 z-10">
+        <div className="absolute bottom-0 left-0 right-0 p-xl pb-3xl z-10">
           <h1 className="font-serif text-3xl sm:text-4xl text-secondary-50 leading-tight">
             {venue.name}
           </h1>
-          <p className="text-secondary-50/60 text-sm mt-1">
+          <p className="text-secondary-50/60 text-sm mt-xs">
             {venue.city}, {venue.state}
           </p>
         </div>

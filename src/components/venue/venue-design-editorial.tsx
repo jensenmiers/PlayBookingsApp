@@ -195,13 +195,13 @@ export function VenueDesignEditorial({ venue }: VenueDesignEditorialProps) {
     <button
       key={`${keyPrefix}${slot.date}-${slot.start_time}-${idx}`}
       onClick={() => handleSlotSelect(slot)}
-      className="w-full p-4 bg-secondary-800/50 hover:bg-secondary-800 rounded-xl border border-secondary-50/5 hover:border-primary-400/30 text-left transition-all group flex items-center justify-between"
+      className="w-full p-l bg-secondary-800/50 hover:bg-secondary-800 rounded-xl border border-secondary-50/5 hover:border-primary-400/30 text-left transition-all group flex items-center justify-between"
     >
       <div>
         <div className="text-secondary-50 font-medium group-hover:text-primary-400 transition-colors">
           {formatTime(slot.start_time)} - {formatTime(slot.end_time)}
         </div>
-        <div className="text-xs text-secondary-50/40 mt-0.5">
+        <div className="text-xs text-secondary-50/40 mt-xxs">
           {getSlotPricingLabel(slot, venue)}
           {slot.action_type === 'info_only_open_gym' ? ` · ${getSlotSecondaryLabel(slot, venue)}` : ''}
         </div>
@@ -246,9 +246,9 @@ export function VenueDesignEditorial({ venue }: VenueDesignEditorialProps) {
         </button>
 
         {/* Editorial Typography - extra bottom padding to clear Reserve card */}
-        <div className="absolute bottom-0 left-0 right-0 p-6 pb-16 z-10">
+        <div className="absolute bottom-0 left-0 right-0 p-xl pb-5xl z-10">
           <div className="max-w-2xl mx-auto">
-            <h1 className="font-serif text-4xl sm:text-5xl text-secondary-50 leading-tight mb-2">
+            <h1 className="font-serif text-4xl sm:text-5xl text-secondary-50 leading-tight mb-s">
               {venue.name}
             </h1>
             <p className="text-secondary-50/60 text-lg">
@@ -261,30 +261,30 @@ export function VenueDesignEditorial({ venue }: VenueDesignEditorialProps) {
       {/* Content Container - constrained width for desktop */}
       <div className="max-w-2xl mx-auto">
         {/* Floating Booking Card */}
-        <div className="relative -mt-8 mx-4 z-20">
+        <div className="relative -mt-2xl mx-l z-20">
           <div className="bg-secondary-800/90 backdrop-blur-xl rounded-2xl border border-secondary-50/10 shadow-glass overflow-hidden">
             {loading ? (
-              <div className="p-5">
-                <div className="h-6 w-32 bg-secondary-50/10 rounded animate-pulse mb-2" />
+              <div className="p-xl">
+                <div className="h-6 w-32 bg-secondary-50/10 rounded animate-pulse mb-s" />
                 <div className="h-4 w-24 bg-secondary-50/10 rounded animate-pulse" />
               </div>
             ) : nextSlot ? (
               <>
-                <div className="p-5">
+                <div className="p-xl">
                   <div className="flex items-start justify-between">
                     <div>
-                      <div className="text-secondary-50/50 text-xs uppercase tracking-wider mb-1">
+                      <div className="text-secondary-50/50 text-xs uppercase tracking-wider mb-xs">
                         Next Available
                       </div>
                       <div className="text-2xl font-serif text-secondary-50">
                         {getDateDisplay(nextSlot.date)} · {formatTime(nextSlot.start_time)} - {formatTime(nextSlot.end_time)}
                       </div>
-                      <div className="flex items-center gap-3 mt-2">
+                      <div className="flex items-center gap-m mt-s">
                         <span className="text-secondary-50/70">
                           {getSlotPricingLabel(nextSlot, venue)}
                         </span>
                         <span className="text-secondary-50/30">·</span>
-                        <span className={`flex items-center gap-1 ${
+                        <span className={`flex items-center gap-xs ${
                           nextSlot.action_type === 'info_only_open_gym'
                             ? 'text-secondary-50/60'
                             : bookingMode.mode === 'instant'
@@ -305,13 +305,13 @@ export function VenueDesignEditorial({ venue }: VenueDesignEditorialProps) {
 
                 <button
                   onClick={() => handleSlotSelect(nextSlot)}
-                  className="w-full py-4 bg-primary-400 hover:bg-primary-500 text-secondary-900 font-semibold text-center transition-colors"
+                  className="w-full py-l bg-primary-400 hover:bg-primary-500 text-secondary-900 font-semibold text-center transition-colors"
                 >
                   {nextSlot.action_type === 'info_only_open_gym' ? 'View Session' : 'Reserve'}
                 </button>
               </>
             ) : (
-              <div className="p-5 text-center text-secondary-50/50">
+              <div className="p-xl text-center text-secondary-50/50">
                 No availability this week
               </div>
             )}
@@ -319,13 +319,13 @@ export function VenueDesignEditorial({ venue }: VenueDesignEditorialProps) {
         </div>
 
         {/* Coming Up Section */}
-        <div className="px-4 mt-6">
-          <h3 className="text-sm font-medium text-secondary-50/60 mb-3 tracking-wide uppercase">
+        <div className="px-l mt-xl">
+          <h3 className="text-sm font-medium text-secondary-50/60 mb-m tracking-wide uppercase">
             Coming Up
           </h3>
 
           {/* Day Pills */}
-          <div className="flex gap-2 overflow-x-auto scrollbar-hide pb-2 md:grid md:grid-cols-7 md:overflow-visible">
+          <div className="flex gap-s overflow-x-auto scrollbar-hide pb-s md:grid md:grid-cols-7 md:overflow-visible">
             {datePills.map((date) => {
               const slots = slotsByDate.get(date) || []
               const slotCount = slots.length
@@ -338,7 +338,7 @@ export function VenueDesignEditorial({ venue }: VenueDesignEditorialProps) {
                   onClick={() => handleDateClick(date)}
                   disabled={isDisabled}
                   aria-label={`coming-up-day-${date}`}
-                  className={`flex-shrink-0 px-4 py-2.5 rounded-xl text-center transition-all ${
+                  className={`flex-shrink-0 px-l py-m rounded-xl text-center transition-all ${
                     isExpanded
                       ? 'bg-primary-400 text-secondary-900'
                       : isDisabled
@@ -349,7 +349,7 @@ export function VenueDesignEditorial({ venue }: VenueDesignEditorialProps) {
                   <div className="text-sm font-medium">
                     {getShortDateDisplay(date)}
                   </div>
-                  <div className={`text-xs mt-0.5 ${isExpanded ? 'text-secondary-900/70' : 'text-secondary-50/50'}`}>
+                  <div className={`text-xs mt-xxs ${isExpanded ? 'text-secondary-900/70' : 'text-secondary-50/50'}`}>
                     {slotCount} {slotCount === 1 ? 'slot' : 'slots'}
                   </div>
                 </button>
@@ -360,25 +360,25 @@ export function VenueDesignEditorial({ venue }: VenueDesignEditorialProps) {
             <button
               onClick={() => setShowDatePicker((prev) => !prev)}
               aria-label="More dates"
-              className={`md:hidden flex-shrink-0 px-4 py-2.5 rounded-xl text-center border transition-all ${
+              className={`md:hidden flex-shrink-0 px-l py-m rounded-xl text-center border transition-all ${
                 showDatePicker
                   ? 'bg-primary-400 text-secondary-900 border-primary-400'
                   : 'bg-secondary-800/60 hover:bg-secondary-800 text-secondary-50 border-secondary-50/10'
               }`}
             >
               <div className="text-sm font-medium">More</div>
-              <div className={`text-xs mt-0.5 ${showDatePicker ? 'text-secondary-900/70' : 'text-secondary-50/50'}`}>
+              <div className={`text-xs mt-xxs ${showDatePicker ? 'text-secondary-900/70' : 'text-secondary-50/50'}`}>
                 <FontAwesomeIcon icon={faCalendarDays} />
               </div>
             </button>
           </div>
 
           {/* Desktop-only "More dates" button below pills */}
-          <div className="hidden md:flex justify-center mt-3">
+          <div className="hidden md:flex justify-center mt-m">
           <button
             onClick={() => setShowDatePicker((prev) => !prev)}
             aria-label="More dates"
-            className={`inline-flex items-center gap-2 px-4 py-2 rounded-xl text-sm transition-all ${
+            className={`inline-flex items-center gap-s px-l py-s rounded-xl text-sm transition-all ${
               showDatePicker
                 ? 'bg-primary-400 text-secondary-900'
                 : 'bg-secondary-800/60 hover:bg-secondary-800 text-secondary-50 border border-secondary-50/10'
@@ -391,7 +391,7 @@ export function VenueDesignEditorial({ venue }: VenueDesignEditorialProps) {
 
           {/* Calendar Date Picker */}
           {showDatePicker && (
-            <div className="mt-3 flex justify-center rounded-xl border border-secondary-50/10 bg-secondary-800/60 p-4 animate-in slide-in-from-top-2 duration-200">
+            <div className="mt-m flex justify-center rounded-xl border border-secondary-50/10 bg-secondary-800/60 p-l animate-in slide-in-from-top-2 duration-200">
               <Calendar
                 mode="single"
                 selected={pickerDate}
@@ -416,25 +416,25 @@ export function VenueDesignEditorial({ venue }: VenueDesignEditorialProps) {
 
           {/* Expanded Time Slots - from pill selection */}
           {expandedDate && (slotsByDate.get(expandedDate) || []).length > 0 && (
-            <div className="mt-4 space-y-2 animate-in slide-in-from-top-2 duration-200">
+            <div className="mt-l space-y-2 animate-in slide-in-from-top-2 duration-200">
               {(slotsByDate.get(expandedDate) || []).map((slot, idx) => renderSlotButton(slot, idx))}
             </div>
           )}
 
           {/* Expanded Time Slots - from calendar picker selection */}
           {pickerDateStr && !expandedDate && (
-            <div className="mt-4 space-y-2 animate-in slide-in-from-top-2 duration-200">
+            <div className="mt-l space-y-2 animate-in slide-in-from-top-2 duration-200">
               {pickerLoading && !isPickerDateInPillRange ? (
-                <div className="p-4 text-center text-secondary-50/50">Loading slots...</div>
+                <div className="p-l text-center text-secondary-50/50">Loading slots...</div>
               ) : pickerSlots.length > 0 ? (
                 <>
-                  <div className="text-xs text-secondary-50/40 mb-2">
+                  <div className="text-xs text-secondary-50/40 mb-s">
                     {format(pickerDate!, 'EEEE, MMMM d')}
                   </div>
                   {pickerSlots.map((slot, idx) => renderSlotButton(slot, idx, 'picker-'))}
                 </>
               ) : (
-                <div className="p-4 text-center text-secondary-50/50">
+                <div className="p-l text-center text-secondary-50/50">
                   No availability on {format(pickerDate!, 'EEEE, MMMM d')}
                 </div>
               )}
@@ -443,10 +443,10 @@ export function VenueDesignEditorial({ venue }: VenueDesignEditorialProps) {
         </div>
 
         {/* Content Section */}
-        <div className="px-4 py-8 space-y-8">
+        <div className="px-l py-2xl space-y-8">
           {/* Location */}
           <section>
-            <h2 className="font-serif text-xl text-secondary-50 mb-3">Location</h2>
+            <h2 className="font-serif text-xl text-secondary-50 mb-m">Location</h2>
             <GoogleMapsLink
               address={venue.address}
               city={venue.city}
@@ -461,7 +461,7 @@ export function VenueDesignEditorial({ venue }: VenueDesignEditorialProps) {
           {/* About */}
           {venue.description && (
             <section>
-              <h2 className="font-serif text-xl text-secondary-50 mb-3">About</h2>
+              <h2 className="font-serif text-xl text-secondary-50 mb-m">About</h2>
               <p className="text-secondary-50/70 leading-relaxed">
                 {venue.description}
               </p>
@@ -471,12 +471,12 @@ export function VenueDesignEditorial({ venue }: VenueDesignEditorialProps) {
           {/* Amenities */}
           {venue.amenities && venue.amenities.length > 0 && (
             <section>
-              <h2 className="font-serif text-xl text-secondary-50 mb-3">Amenities</h2>
-              <div className="flex flex-wrap gap-2">
+              <h2 className="font-serif text-xl text-secondary-50 mb-m">Amenities</h2>
+              <div className="flex flex-wrap gap-s">
                 {venue.amenities.map((amenity, i) => (
                   <span
                     key={i}
-                    className="px-3 py-1.5 bg-secondary-50/5 text-secondary-50/70 text-sm rounded-full border border-secondary-50/5"
+                    className="px-m py-s bg-secondary-50/5 text-secondary-50/70 text-sm rounded-full border border-secondary-50/5"
                   >
                     {amenity}
                   </span>
@@ -487,13 +487,13 @@ export function VenueDesignEditorial({ venue }: VenueDesignEditorialProps) {
 
           {/* Insurance Notice */}
           {venue.insurance_required && (
-            <section className="flex items-start gap-3 p-4 bg-accent-400/5 rounded-xl border border-accent-400/10">
-              <FontAwesomeIcon icon={faShield} className="text-accent-400 mt-0.5" />
+            <section className="flex items-start gap-m p-l bg-accent-400/5 rounded-xl border border-accent-400/10">
+              <FontAwesomeIcon icon={faShield} className="text-accent-400 mt-xxs" />
               <div>
                 <div className="text-secondary-50 font-medium text-sm">
                   Insurance Required
                 </div>
-                <div className="text-secondary-50/50 text-xs mt-0.5">
+                <div className="text-secondary-50/50 text-xs mt-xxs">
                   Proof of insurance must be verified before booking is confirmed
                 </div>
               </div>
@@ -503,8 +503,8 @@ export function VenueDesignEditorial({ venue }: VenueDesignEditorialProps) {
           {/* Photo Gallery */}
           {venue.photos && venue.photos.length > 1 && (
             <section>
-              <h2 className="font-serif text-xl text-secondary-50 mb-3">Gallery</h2>
-              <div className="grid grid-cols-2 gap-2">
+              <h2 className="font-serif text-xl text-secondary-50 mb-m">Gallery</h2>
+              <div className="grid grid-cols-2 gap-s">
                 {venue.photos.slice(1, 5).map((photo, i) => (
                   <div
                     key={i}
@@ -523,7 +523,7 @@ export function VenueDesignEditorial({ venue }: VenueDesignEditorialProps) {
           )}
 
           <section>
-            <h2 className="font-serif text-xl text-secondary-50 mb-3">Map</h2>
+            <h2 className="font-serif text-xl text-secondary-50 mb-m">Map</h2>
             <VenueLocationMap
               name={venue.name}
               city={venue.city}

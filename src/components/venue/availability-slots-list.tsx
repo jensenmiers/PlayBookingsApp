@@ -75,8 +75,8 @@ export function AvailabilitySlotsList({ venue }: AvailabilitySlotsListProps) {
 
   if (loading) {
     return (
-      <div className="bg-secondary-800 rounded-2xl shadow-soft p-8 text-center">
-        <FontAwesomeIcon icon={faSpinner} className="animate-spin text-secondary-50/60 text-2xl mb-4" />
+      <div className="bg-secondary-800 rounded-2xl shadow-soft p-2xl text-center">
+        <FontAwesomeIcon icon={faSpinner} className="animate-spin text-secondary-50/60 text-2xl mb-l" />
         <p className="text-secondary-50/60">Loading availability...</p>
       </div>
     )
@@ -84,7 +84,7 @@ export function AvailabilitySlotsList({ venue }: AvailabilitySlotsListProps) {
 
   if (error) {
     return (
-      <div className="bg-secondary-800 rounded-2xl shadow-soft p-6">
+      <div className="bg-secondary-800 rounded-2xl shadow-soft p-xl">
         <p className="text-destructive text-sm">Failed to load availability: {error}</p>
       </div>
     )
@@ -92,9 +92,9 @@ export function AvailabilitySlotsList({ venue }: AvailabilitySlotsListProps) {
 
   if (sortedDates.length === 0) {
     return (
-      <div className="bg-secondary-800 rounded-2xl shadow-soft p-8 text-center">
-        <FontAwesomeIcon icon={faCalendarDays} className="text-secondary-50/30 text-4xl mb-4" />
-        <p className="text-secondary-50/60 font-medium mb-2">No availability found</p>
+      <div className="bg-secondary-800 rounded-2xl shadow-soft p-2xl text-center">
+        <FontAwesomeIcon icon={faCalendarDays} className="text-secondary-50/30 text-4xl mb-l" />
+        <p className="text-secondary-50/60 font-medium mb-s">No availability found</p>
         <p className="text-secondary-50/50 text-sm">
           There are no available time slots for this venue in the next 14 days.
         </p>
@@ -104,9 +104,9 @@ export function AvailabilitySlotsList({ venue }: AvailabilitySlotsListProps) {
 
   return (
     <>
-      <div className="bg-secondary-800 rounded-2xl shadow-soft p-6">
-        <h3 className="text-xl font-bold text-secondary-50 mb-4">Available Time Slots</h3>
-        <p className="text-sm text-secondary-50/60 mb-6">
+      <div className="bg-secondary-800 rounded-2xl shadow-soft p-xl">
+        <h3 className="text-xl font-bold text-secondary-50 mb-l">Available Time Slots</h3>
+        <p className="text-sm text-secondary-50/60 mb-xl">
           Select a time slot and click &quot;Book Now&quot; to reserve this venue.
         </p>
 
@@ -116,13 +116,13 @@ export function AvailabilitySlotsList({ venue }: AvailabilitySlotsListProps) {
             const displayDate = format(parseLocalDate(date), 'EEEE, MMMM d, yyyy')
 
             return (
-              <div key={date} className="border-b border-secondary-50/10 last:border-b-0 pb-6 last:pb-0">
-                <div className="flex items-center gap-2 mb-4">
+              <div key={date} className="border-b border-secondary-50/10 last:border-b-0 pb-xl last:pb-0">
+                <div className="flex items-center gap-s mb-l">
                   <FontAwesomeIcon icon={faCalendarDays} className="text-secondary-50/60" />
                   <h4 className="font-semibold text-secondary-50">{displayDate}</h4>
                 </div>
 
-                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
+                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-m">
                   {slots.map((slot, idx) => {
                     const startTime = formatTime(slot.start_time)
                     const endTime = formatTime(slot.end_time)
@@ -131,9 +131,9 @@ export function AvailabilitySlotsList({ venue }: AvailabilitySlotsListProps) {
                     return (
                       <div
                         key={`${slot.date}-${slot.start_time}-${idx}`}
-                        className="flex items-center justify-between p-4 bg-secondary-50/5 rounded-xl border border-secondary-50/10 transition-colors hover:border-secondary-50/10"
+                        className="flex items-center justify-between p-l bg-secondary-50/5 rounded-xl border border-secondary-50/10 transition-colors hover:border-secondary-50/10"
                       >
-                        <div className="flex items-center gap-3">
+                        <div className="flex items-center gap-m">
                           <FontAwesomeIcon
                             icon={faClock}
                             className="text-secondary-50/60"
@@ -144,7 +144,7 @@ export function AvailabilitySlotsList({ venue }: AvailabilitySlotsListProps) {
                         </div>
                         <Button
                           onClick={() => handleBookNow(slot)}
-                          className="bg-secondary-600 hover:bg-secondary-700 text-white text-sm px-4 py-2 rounded-lg"
+                          className="bg-secondary-600 hover:bg-secondary-700 text-secondary-50 text-sm px-l py-s rounded-lg"
                         >
                           Book Now
                         </Button>

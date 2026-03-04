@@ -40,7 +40,7 @@ export function AvailabilityCard({ availability }: AvailabilityCardProps) {
   return (
     <>
       <div className="bg-secondary-800 rounded-2xl shadow-soft overflow-hidden border border-secondary-50/10">
-        <div className="flex items-center p-4 gap-4">
+        <div className="flex items-center p-l gap-l">
           {/* Left Column: Time and Duration */}
           <div className="flex-shrink-0 w-24">
             <div className="text-lg font-bold text-secondary-50">{startTimeDisplay}</div>
@@ -49,21 +49,21 @@ export function AvailabilityCard({ availability }: AvailabilityCardProps) {
 
           {/* Middle Column: Venue Details */}
           <div className="flex-1 min-w-0">
-            <div className="font-semibold text-secondary-50 mb-1 truncate">{venue.name}</div>
+            <div className="font-semibold text-secondary-50 mb-xs truncate">{venue.name}</div>
             <div className="text-sm text-secondary-50/60">
               {venue.city}, {venue.state}
             </div>
           </div>
 
           {/* Right Column: Price and Book Button */}
-          <div className="flex-shrink-0 flex flex-col items-end gap-2">
+          <div className="flex-shrink-0 flex flex-col items-end gap-s">
             <div className="text-lg font-bold text-secondary-50">
               ${venue.hourly_rate}
               <span className="text-sm font-normal text-secondary-50/60">/hour</span>
             </div>
             <Button
               onClick={() => setShowBookingForm(true)}
-              className="bg-secondary-600 hover:bg-secondary-700 text-white font-medium py-2 px-4 text-sm rounded-xl transition duration-200 whitespace-nowrap"
+              className="bg-secondary-600 hover:bg-secondary-700 text-secondary-50 font-medium py-s px-l text-sm rounded-xl transition duration-200 whitespace-nowrap"
             >
               Book Now
             </Button>

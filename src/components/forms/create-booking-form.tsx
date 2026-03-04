@@ -297,7 +297,7 @@ export function CreateBookingForm({
 
   return (
     <Dialog open={open} onOpenChange={handleDialogClose}>
-      <DialogContent className="p-4 sm:p-8 gap-3 sm:gap-5 max-w-2xl max-h-[90vh] overflow-y-auto">
+      <DialogContent className="p-l sm:p-2xl gap-m sm:gap-xl max-w-2xl max-h-[90vh] overflow-y-auto">
         <DialogHeader>
           <DialogTitle>
             {currentStep === 'form' ? 'Create New Booking' : 'Complete Payment'}
@@ -310,17 +310,17 @@ export function CreateBookingForm({
         {/* Payment Step */}
         {currentStep === 'payment' && clientSecret && venue && (
           <div className="space-y-3 sm:space-y-4">
-            <div className="text-center mb-2 sm:mb-4">
+            <div className="text-center mb-s sm:mb-l">
               <p className="text-xs sm:text-sm text-muted-foreground">Booking at</p>
-              <div className="flex items-center justify-center gap-2 sm:flex-col sm:gap-0">
+              <div className="flex items-center justify-center gap-s sm:flex-col sm:gap-0">
                 <p className="text-base sm:text-lg font-medium text-secondary-50">{venue.name}</p>
                 <span className="text-muted-foreground sm:hidden">·</span>
-                <p className="text-lg sm:text-2xl font-bold text-primary sm:mt-2">
+                <p className="text-lg sm:text-2xl font-bold text-primary sm:mt-s">
                   ${pendingBookingAmount.toFixed(2)}
                 </p>
               </div>
               {isSetupIntent && (
-                <p className="text-xs text-muted-foreground mt-1">
+                <p className="text-xs text-muted-foreground mt-xs">
                   {BOOKING_APPROVAL_COPY.deferredSetupSubtext}
                 </p>
               )}
@@ -331,9 +331,9 @@ export function CreateBookingForm({
               options={{
                 clientSecret,
                 appearance: {
-                  theme: 'stripe',
-                  variables: {
-                    colorPrimary: '#0066cc',
+                theme: 'stripe',
+                variables: {
+                    colorPrimary: 'var(--primary-600)',
                     fontFamily: 'system-ui, sans-serif',
                     borderRadius: '8px',
                   },
@@ -366,7 +366,7 @@ export function CreateBookingForm({
                     <select
                       {...field}
                       disabled={!!initialVenueId || venuesLoading}
-                      className="flex h-11 w-full rounded-lg border border-input bg-secondary-800/80 px-4 py-2 text-sm shadow-xs focus-visible:border-ring focus-visible:ring-ring/40 focus-visible:ring-[3px] disabled:opacity-50"
+                      className="flex h-11 w-full rounded-lg border border-input bg-secondary-800/80 px-l py-s text-sm shadow-xs focus-visible:border-ring focus-visible:ring-ring/40 focus-visible:ring-[3px] disabled:opacity-50"
                     >
                       <option value="">Select a venue</option>
                       {venues?.map((v) => (
@@ -394,7 +394,7 @@ export function CreateBookingForm({
                         <Input
                           {...field}
                           type="date"
-                          className="pr-10"
+                          className="pr-3xl"
                           onChange={(e) => {
                             field.onChange(e)
                             setConflictChecked(false)
@@ -415,7 +415,7 @@ export function CreateBookingForm({
                       </div>
                     </FormControl>
                     {showDatePicker && (
-                      <div className="border rounded-lg p-4 bg-secondary-800">
+                      <div className="border rounded-lg p-l bg-secondary-800">
                         <Calendar
                           mode="single"
                           selected={selectedDate}
@@ -434,7 +434,7 @@ export function CreateBookingForm({
             />
 
             {/* Time Selection */}
-            <div className="grid grid-cols-2 gap-4">
+            <div className="grid grid-cols-2 gap-l">
               <FormField
                 control={form.control}
                 name="start_time"
@@ -482,13 +482,13 @@ export function CreateBookingForm({
 
             {/* Conflict Warning */}
             {checkingConflicts && (
-              <div className="flex items-center gap-2 text-sm text-secondary-50/60">
+              <div className="flex items-center gap-s text-sm text-secondary-50/60">
                 <FontAwesomeIcon icon={faSpinner} className="animate-spin" />
                 <span>Checking availability...</span>
               </div>
             )}
             {hasConflict && !checkingConflicts && (
-              <div className="rounded-lg border border-destructive/50 bg-destructive/10 p-3 text-sm text-destructive">
+              <div className="rounded-lg border border-destructive/50 bg-destructive/10 p-m text-sm text-destructive">
                 {conflictData?.message || 'This time slot conflicts with an existing booking'}
               </div>
             )}
@@ -503,7 +503,7 @@ export function CreateBookingForm({
                   <FormControl>
                     <select
                       {...field}
-                      className="flex h-11 w-full rounded-lg border border-input bg-secondary-800/80 px-4 py-2 text-sm shadow-xs focus-visible:border-ring focus-visible:ring-ring/40 focus-visible:ring-[3px]"
+                      className="flex h-11 w-full rounded-lg border border-input bg-secondary-800/80 px-l py-s text-sm shadow-xs focus-visible:border-ring focus-visible:ring-ring/40 focus-visible:ring-[3px]"
                     >
                       <option value="none">One-time booking</option>
                       <option value="weekly">Weekly</option>
@@ -557,7 +557,7 @@ export function CreateBookingForm({
                     <textarea
                       {...field}
                       rows={3}
-                      className="flex w-full rounded-lg border border-input bg-secondary-800/80 px-4 py-2 text-sm shadow-xs focus-visible:border-ring focus-visible:ring-ring/40 focus-visible:ring-[3px] resize-none"
+                      className="flex w-full rounded-lg border border-input bg-secondary-800/80 px-l py-s text-sm shadow-xs focus-visible:border-ring focus-visible:ring-ring/40 focus-visible:ring-[3px] resize-none"
                       placeholder="Add any special requests or notes..."
                     />
                   </FormControl>
@@ -568,15 +568,15 @@ export function CreateBookingForm({
 
             {/* Error Message */}
             {form.formState.errors.root && (
-              <div className="rounded-lg border border-destructive/50 bg-destructive/10 p-3 text-sm text-destructive">
+              <div className="rounded-lg border border-destructive/50 bg-destructive/10 p-m text-sm text-destructive">
                 {form.formState.errors.root.message}
               </div>
             )}
 
             {/* Booking Summary */}
             {venue && watchedDate && watchedStartTime && watchedEndTime && (
-              <div className="rounded-lg border border-border bg-background p-4">
-                <h4 className="font-semibold text-sm mb-2">Booking Summary</h4>
+              <div className="rounded-lg border border-border bg-background p-l">
+                <h4 className="font-semibold text-sm mb-s">Booking Summary</h4>
                 <div className="space-y-1 text-sm text-secondary-50/70">
                   <p>
                     <span className="font-medium">Venue:</span> {venue.name}
@@ -614,7 +614,7 @@ export function CreateBookingForm({
               >
                 {createBooking.loading ? (
                   <>
-                    <FontAwesomeIcon icon={faSpinner} className="animate-spin mr-2" />
+                    <FontAwesomeIcon icon={faSpinner} className="animate-spin mr-s" />
                     Creating...
                   </>
                 ) : (
@@ -642,7 +642,7 @@ function WizardStepIndicator({ currentStep }: { currentStep: 'form' | 'payment' 
   const currentIndex = currentStep === 'form' ? 0 : 1
 
   return (
-    <div className="flex items-center justify-center gap-2 mb-2 sm:mb-4 pb-2 sm:pb-4 border-b border-secondary-50/10">
+    <div className="flex items-center justify-center gap-s mb-s sm:mb-l pb-s sm:pb-l border-b border-secondary-50/10">
       {steps.map((step, index) => (
         <div key={step.key} className="flex items-center">
           <div
@@ -661,7 +661,7 @@ function WizardStepIndicator({ currentStep }: { currentStep: 'form' | 'payment' 
             )}
           </div>
           <span
-            className={`ml-2 text-sm ${
+            className={`ml-s text-sm ${
               index <= currentIndex ? 'text-secondary-50 font-medium' : 'text-secondary-400'
             }`}
           >
@@ -669,7 +669,7 @@ function WizardStepIndicator({ currentStep }: { currentStep: 'form' | 'payment' 
           </span>
           {index < steps.length - 1 && (
             <div
-              className={`w-8 h-0.5 mx-3 ${
+              className={`w-8 h-0.5 mx-m ${
                 index < currentIndex ? 'bg-primary-400' : 'bg-secondary-50/10'
               }`}
             />
@@ -761,12 +761,12 @@ function WizardPaymentForm({
       />
 
       {errorMessage && (
-        <div className="text-destructive text-sm text-center p-2 bg-destructive/15 rounded-lg">
+        <div className="text-destructive text-sm text-center p-s bg-destructive/15 rounded-lg">
           {errorMessage}
         </div>
       )}
 
-      <DialogFooter className="flex gap-3 sm:flex-row">
+      <DialogFooter className="flex gap-m sm:flex-row">
         <Button
           type="button"
           variant="outline"
@@ -774,7 +774,7 @@ function WizardPaymentForm({
           disabled={isProcessing}
           className="flex-1"
         >
-          <FontAwesomeIcon icon={faArrowLeft} className="mr-2" />
+          <FontAwesomeIcon icon={faArrowLeft} className="mr-s" />
           Back
         </Button>
         <Button
@@ -784,7 +784,7 @@ function WizardPaymentForm({
         >
           {isProcessing ? (
             <>
-              <FontAwesomeIcon icon={faSpinner} className="animate-spin mr-2" />
+              <FontAwesomeIcon icon={faSpinner} className="animate-spin mr-s" />
               Processing...
             </>
           ) : isSetupIntent ? (
@@ -797,4 +797,3 @@ function WizardPaymentForm({
     </form>
   )
 }
-

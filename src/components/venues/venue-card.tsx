@@ -57,9 +57,9 @@ export function VenueCard({ venue, nextAvailable }: VenueCardProps) {
         </Link>
 
         {/* Content - right 2/3 */}
-        <div className="w-2/3 p-4 flex flex-col">
+        <div className="w-2/3 p-l flex flex-col">
           {/* Header with name and booking mode badge */}
-          <div className="flex justify-between items-start mb-1">
+          <div className="flex justify-between items-start mb-xs">
             <Link
               href={`/venue/${venueSlug}`}
               className="font-bold text-secondary-50 hover:text-secondary-50/60 transition-colors cursor-pointer line-clamp-1"
@@ -67,7 +67,7 @@ export function VenueCard({ venue, nextAvailable }: VenueCardProps) {
               {venue.name}
             </Link>
             <span
-              className={`flex items-center gap-1 text-xs px-2 py-1 rounded-full whitespace-nowrap ml-2 ${
+              className={`flex items-center gap-xs text-xs px-s py-xs rounded-full whitespace-nowrap ml-s ${
                 bookingMode.mode === 'instant'
                   ? 'bg-accent-400/15 text-accent-400'
                   : 'bg-secondary-50/10 text-secondary-50/70'
@@ -80,14 +80,14 @@ export function VenueCard({ venue, nextAvailable }: VenueCardProps) {
 
           {/* Description preview - truncated to 2 lines */}
           {descriptionPreview && (
-            <p className="text-secondary-50/60 text-sm mb-2 line-clamp-2">
+            <p className="text-secondary-50/60 text-sm mb-s line-clamp-2">
               {descriptionPreview}
             </p>
           )}
 
           {/* Location */}
-          <div className="flex items-center text-secondary-50/60 text-sm mb-1">
-            <FontAwesomeIcon icon={faLocationDot} className="mr-2 text-secondary-50/50" />
+          <div className="flex items-center text-secondary-50/60 text-sm mb-xs">
+            <FontAwesomeIcon icon={faLocationDot} className="mr-s text-secondary-50/50" />
             <span>
               {venue.city}, {venue.state}
             </span>
@@ -95,8 +95,8 @@ export function VenueCard({ venue, nextAvailable }: VenueCardProps) {
 
           {/* Next Available Badge */}
           {nextAvailable && (
-            <div className="flex items-center gap-1.5 mb-1">
-              <span className="inline-flex items-center gap-1 bg-green-100 text-green-700 text-xs font-medium px-2 py-0.5 rounded-full">
+            <div className="flex items-center gap-s mb-xs">
+              <span className="inline-flex items-center gap-xs bg-primary-100 text-primary-700 text-xs font-medium px-s py-xxs rounded-full">
                 <FontAwesomeIcon icon={faClock} className="text-[10px]" />
                 Next: {nextAvailable.displayText}
               </span>
@@ -104,15 +104,15 @@ export function VenueCard({ venue, nextAvailable }: VenueCardProps) {
           )}
 
           {/* Hourly rate */}
-          <div className="flex items-center text-secondary-50/60 text-sm mb-2">
-            <FontAwesomeIcon icon={faDollarSign} className="mr-2 text-secondary-50/50" />
+          <div className="flex items-center text-secondary-50/60 text-sm mb-s">
+            <FontAwesomeIcon icon={faDollarSign} className="mr-s text-secondary-50/50" />
             <span className="font-medium">${venue.hourly_rate}/hour</span>
           </div>
 
           {/* Insurance requirement */}
           {venue.insurance_required && (
-            <div className="mb-2">
-              <span className="rounded-full bg-secondary-50/10 px-2 py-1 text-[11px] text-secondary-50/70">
+            <div className="mb-s">
+              <span className="rounded-full bg-secondary-50/10 px-s py-xs text-[11px] text-secondary-50/70">
                 Insurance
               </span>
             </div>
@@ -120,11 +120,11 @@ export function VenueCard({ venue, nextAvailable }: VenueCardProps) {
 
           {/* Amenities - first 3-4 tags */}
           {venue.amenities && venue.amenities.length > 0 && (
-            <div className="flex flex-wrap gap-2 mb-3">
+            <div className="flex flex-wrap gap-s mb-m">
               {venue.amenities.slice(0, 4).map((amenity, idx) => (
                 <span
                   key={idx}
-                  className="bg-secondary-50/5 text-secondary-50/60 text-xs px-2 py-1 rounded-full"
+                  className="bg-secondary-50/5 text-secondary-50/60 text-xs px-s py-xs rounded-full"
                 >
                   {amenity}
                 </span>
@@ -133,10 +133,10 @@ export function VenueCard({ venue, nextAvailable }: VenueCardProps) {
           )}
 
           {/* Action button */}
-          <div className="flex gap-2 mt-auto">
+          <div className="flex gap-s mt-auto">
             <Link
               href={`/venue/${venueSlug}`}
-              className="flex-1 bg-secondary-600 hover:bg-secondary-700 text-white font-medium py-2 text-sm rounded-xl transition duration-200 text-center"
+              className="flex-1 bg-secondary-600 hover:bg-secondary-700 text-secondary-50 font-medium py-s text-sm rounded-xl transition duration-200 text-center"
             >
               View Details & Book
             </Link>

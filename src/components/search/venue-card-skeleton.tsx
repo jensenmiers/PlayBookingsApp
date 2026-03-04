@@ -9,15 +9,15 @@ export function VenueCardSkeleton() {
           <Skeleton className="w-full h-full rounded-none" />
         </div>
         {/* Content skeleton - right 2/3 */}
-        <div className="w-2/3 p-4">
+        <div className="w-2/3 p-l">
           {/* Title skeleton */}
-          <Skeleton className="h-5 w-3/4 mb-2" />
+          <Skeleton className="h-5 w-3/4 mb-s" />
           {/* Location skeleton */}
-          <Skeleton className="h-4 w-1/2 mb-1" />
+          <Skeleton className="h-4 w-1/2 mb-xs" />
           {/* Price skeleton */}
-          <Skeleton className="h-4 w-1/3 mb-2" />
+          <Skeleton className="h-4 w-1/3 mb-s" />
           {/* Amenities skeleton */}
-          <div className="flex space-x-2 mb-2">
+          <div className="flex space-x-2 mb-s">
             <Skeleton className="h-5 w-16 rounded-full" />
             <Skeleton className="h-5 w-20 rounded-full" />
           </div>

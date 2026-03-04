@@ -2,6 +2,8 @@ import type { Finding } from '../types'
 
 const NUMERIC_SPACING_PATTERN =
   /(^|[^A-Za-z0-9-])((?:[a-z-]+:)*-?(?:m|p|gap|space)(?:[trblxy])?-(?:-?\d+(?:\.\d+)?))(?![A-Za-z0-9-])/g
+const SPACING_TOKEN_MESSAGE =
+  'Use semantic spacing tokens (xxs/xs/s/m/l/xl/2xl/3xl/4xl/5xl/6xl) instead of numeric utility'
 
 function isAllowedNumericValue(token: string): boolean {
   const utilityToken = token.split(':').pop() ?? token
@@ -31,7 +33,7 @@ export function checkSpacingTokenRule(source: string, file: string): Finding[] {
           line: index + 1,
           column: (match.index || 0) + 1,
           excerpt: token,
-          message: `Use semantic spacing tokens (xxs/xs/s/m/l/xl/2xl) instead of numeric utility "${token}".`,
+          message: `${SPACING_TOKEN_MESSAGE} "${token}".`,
         })
       }
 

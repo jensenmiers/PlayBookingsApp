@@ -66,7 +66,7 @@ export function BookingActions({
   }
 
   return (
-    <div className={cn('flex items-center gap-2', className)}>
+    <div className={cn('flex items-center gap-s', className)}>
       {canCancel && (
         <>
           <Button
@@ -76,7 +76,7 @@ export function BookingActions({
             disabled={cancelBooking.loading}
             className="text-destructive hover:text-destructive"
           >
-            <FontAwesomeIcon icon={faXmark} className="mr-2" />
+            <FontAwesomeIcon icon={faXmark} className="mr-s" />
             Cancel
           </Button>
 
@@ -98,11 +98,11 @@ export function BookingActions({
                     value={cancelReason}
                     onChange={(e) => setCancelReason(e.target.value)}
                     placeholder="Enter cancellation reason..."
-                    className="mt-2"
+                    className="mt-s"
                   />
                 </div>
                 {cancelBooking.error && (
-                  <div className="rounded-lg border border-destructive/50 bg-destructive/10 p-3 text-sm text-destructive">
+                  <div className="rounded-lg border border-destructive/50 bg-destructive/10 p-m text-sm text-destructive">
                     {cancelBooking.error}
                   </div>
                 )}
@@ -125,12 +125,12 @@ export function BookingActions({
                 >
                   {cancelBooking.loading ? (
                     <>
-                      <FontAwesomeIcon icon={faSpinner} className="animate-spin mr-2" />
+                      <FontAwesomeIcon icon={faSpinner} className="animate-spin mr-s" />
                       Cancelling...
                     </>
                   ) : (
                     <>
-                      <FontAwesomeIcon icon={faTrash} className="mr-2" />
+                      <FontAwesomeIcon icon={faTrash} className="mr-s" />
                       Cancel Booking
                     </>
                   )}
@@ -150,12 +150,12 @@ export function BookingActions({
         >
           {confirmBooking.loading ? (
             <>
-              <FontAwesomeIcon icon={faSpinner} className="animate-spin mr-2" />
+              <FontAwesomeIcon icon={faSpinner} className="animate-spin mr-s" />
               Confirming...
             </>
           ) : (
             <>
-              <FontAwesomeIcon icon={faCheck} className="mr-2" />
+              <FontAwesomeIcon icon={faCheck} className="mr-s" />
               Confirm
             </>
           )}

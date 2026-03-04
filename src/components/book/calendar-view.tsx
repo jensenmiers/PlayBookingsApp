@@ -120,19 +120,19 @@ export function CalendarView() {
   return (
     <div className="min-h-screen bg-background">
       {/* Venue Selection & Location Bar */}
-      <section className="px-4 pt-6 pb-4">
+      <section className="px-l pt-xl pb-l">
         <div className="space-y-4">
           <div>
-            <label className="text-sm font-medium text-secondary-50/70 mb-2 block">Select Venue</label>
+            <label className="text-sm font-medium text-secondary-50/70 mb-s block">Select Venue</label>
             {venuesLoading ? (
-              <div className="flex items-center justify-center py-4">
+              <div className="flex items-center justify-center py-l">
                 <FontAwesomeIcon icon={faSpinner} className="animate-spin text-secondary-50/60" />
               </div>
             ) : (
               <select
                 value={selectedVenueId || ''}
                 onChange={(e) => setSelectedVenueId(e.target.value || null)}
-                className="flex h-11 w-full rounded-lg border border-input bg-secondary-800 px-4 py-2 text-sm shadow-xs focus-visible:border-ring focus-visible:ring-ring/40 focus-visible:ring-[3px]"
+                className="flex h-11 w-full rounded-lg border border-input bg-secondary-800 px-l py-s text-sm shadow-xs focus-visible:border-ring focus-visible:ring-ring/40 focus-visible:ring-[3px]"
               >
                 <option value="">Select a venue</option>
                 {venues?.map((venue) => (
@@ -144,7 +144,7 @@ export function CalendarView() {
             )}
           </div>
           {selectedVenueId && selectedVenue && (
-            <Button className="w-full bg-secondary-800 rounded-full px-6 py-4 shadow-soft flex items-center justify-center space-x-3 hover:bg-secondary-50/10 transition duration-200 text-secondary-50 font-medium">
+            <Button className="w-full bg-secondary-800 rounded-full px-xl py-l shadow-soft flex items-center justify-center space-x-3 hover:bg-secondary-50/10 transition duration-200 text-secondary-50 font-medium">
               <FontAwesomeIcon icon={faLocationDot} className="text-secondary-50/60" />
               <span>{selectedVenue.name}</span>
             </Button>
@@ -154,8 +154,8 @@ export function CalendarView() {
 
       {/* Date Navigation Tabs */}
       {selectedVenueId && (
-        <section className="px-4 pb-4">
-          <div className="flex gap-2">
+        <section className="px-l pb-l">
+          <div className="flex gap-s">
             {days.map((day, index) => {
               const isSelected = index === selectedDateIndex
               const isTodayDate = isToday(day)
@@ -164,9 +164,9 @@ export function CalendarView() {
                 <Button
                   key={day.toISOString()}
                   onClick={() => setSelectedDateIndex(index)}
-                  className={`flex-1 rounded-xl py-3 transition duration-200 ${
+                  className={`flex-1 rounded-xl py-m transition duration-200 ${
                     isSelected
-                      ? 'bg-secondary-600 text-white hover:bg-secondary-700 font-semibold'
+                      ? 'bg-secondary-600 text-secondary-50 hover:bg-secondary-700 font-semibold'
                       : 'bg-secondary-800 text-secondary-50/70 hover:bg-secondary-50/10 border-2 border-secondary-50/10'
                   }`}
                 >
@@ -174,7 +174,7 @@ export function CalendarView() {
                     <span className="text-xs font-medium">
                       {isTodayDate ? 'Today' : format(day, 'EEE')}
                     </span>
-                    <span className="text-sm mt-1">{format(day, 'MMM d')}</span>
+                    <span className="text-sm mt-xs">{format(day, 'MMM d')}</span>
                   </div>
                 </Button>
               )
@@ -184,14 +184,14 @@ export function CalendarView() {
       )}
 
       {/* Availability Display */}
-      <section className="px-4 pb-6">
+      <section className="px-l pb-xl">
         {!selectedVenueId ? (
-          <div className="bg-secondary-800 rounded-2xl shadow-soft p-8 text-center text-secondary-50/60">
+          <div className="bg-secondary-800 rounded-2xl shadow-soft p-2xl text-center text-secondary-50/60">
             Please select a venue to view availability
           </div>
         ) : availabilityLoading ? (
-          <div className="bg-secondary-800 rounded-2xl shadow-soft p-8 text-center">
-            <FontAwesomeIcon icon={faSpinner} className="animate-spin text-secondary-50/60 text-2xl mb-4" />
+          <div className="bg-secondary-800 rounded-2xl shadow-soft p-2xl text-center">
+            <FontAwesomeIcon icon={faSpinner} className="animate-spin text-secondary-50/60 text-2xl mb-l" />
             <p className="text-secondary-50/60">Loading availability...</p>
           </div>
         ) : availableSlots.length === 0 ? (

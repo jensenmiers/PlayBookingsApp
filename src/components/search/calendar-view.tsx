@@ -18,11 +18,15 @@ const timeSlots = [
   { label: '8p–10p', start: '20:00:00', end: '22:00:00' },
 ]
 
+const stripedAccent = 'color-mix(in oklch, var(--secondary-500) 28%, transparent)'
+const stripedGradientStart = 'color-mix(in oklch, var(--secondary-50) 45%, transparent)'
+const stripedGradientEnd = 'color-mix(in oklch, var(--secondary-100) 40%, transparent)'
+
 const stripedBgStyle: React.CSSProperties = {
   backgroundImage:
-    'repeating-linear-gradient(45deg, transparent, transparent 2px, rgba(150, 117, 90, 0.1) 2px, rgba(150, 117, 90, 0.1) 4px)',
+    `repeating-linear-gradient(45deg, transparent, transparent 2px, ${stripedAccent} 2px, ${stripedAccent} 4px)`,
   background:
-    'linear-gradient(to bottom right, rgba(247, 243, 239, 0.5), rgba(233, 225, 216, 0.5)), repeating-linear-gradient(45deg, transparent, transparent 2px, rgba(150, 117, 90, 0.1) 2px, rgba(150, 117, 90, 0.1) 4px)',
+    `linear-gradient(to bottom right, ${stripedGradientStart}, ${stripedGradientEnd}), repeating-linear-gradient(45deg, transparent, transparent 2px, ${stripedAccent} 2px, ${stripedAccent} 4px)`,
 }
 
 export function CalendarView() {
@@ -83,19 +87,19 @@ export function CalendarView() {
   return (
     <div className="min-h-screen bg-background">
       {/* Venue Selection & Location Bar */}
-      <section className="px-4 pt-6 pb-4">
+      <section className="px-l pt-xl pb-l">
         <div className="space-y-4">
           <div>
-            <label className="text-sm font-medium text-secondary-50/70 mb-2 block">Select Venue</label>
+            <label className="text-sm font-medium text-secondary-50/70 mb-s block">Select Venue</label>
             {venuesLoading ? (
-              <div className="flex items-center justify-center py-4">
+              <div className="flex items-center justify-center py-l">
                 <FontAwesomeIcon icon={faSpinner} className="animate-spin text-secondary-50/60" />
               </div>
             ) : (
               <select
                 value={selectedVenueId || ''}
                 onChange={(e) => setSelectedVenueId(e.target.value || null)}
-                className="flex h-11 w-full rounded-lg border border-input bg-secondary-800 px-4 py-2 text-sm shadow-xs focus-visible:border-ring focus-visible:ring-ring/40 focus-visible:ring-[3px]"
+                className="flex h-11 w-full rounded-lg border border-input bg-secondary-800 px-l py-s text-sm shadow-xs focus-visible:border-ring focus-visible:ring-ring/40 focus-visible:ring-[3px]"
               >
                 <option value="">Select a venue</option>
                 {venues?.map((venue) => (
@@ -107,7 +111,7 @@ export function CalendarView() {
             )}
           </div>
           {selectedVenueId && venues && (
-            <Button className="w-full bg-secondary-800 rounded-full px-6 py-4 shadow-soft flex items-center justify-center space-x-3 hover:bg-secondary-50/10 transition duration-200 text-secondary-50 font-medium">
+            <Button className="w-full bg-secondary-800 rounded-full px-xl py-l shadow-soft flex items-center justify-center space-x-3 hover:bg-secondary-50/10 transition duration-200 text-secondary-50 font-medium">
               <FontAwesomeIcon icon={faLocationDot} className="text-secondary-50/60" />
               <span>
                 {venues.find((v) => v.id === selectedVenueId)?.name || 'Current location'}
@@ -118,25 +122,25 @@ export function CalendarView() {
       </section>
 
       {/* Availability Grid */}
-      <section className="px-4 pb-6">
+      <section className="px-l pb-xl">
         {!selectedVenueId ? (
-          <div className="bg-secondary-800 rounded-2xl shadow-soft p-8 text-center text-secondary-50/60">
+          <div className="bg-secondary-800 rounded-2xl shadow-soft p-2xl text-center text-secondary-50/60">
             Please select a venue to view availability
           </div>
         ) : (
           <div className="bg-secondary-800 rounded-2xl shadow-soft overflow-hidden">
             {/* Grid Header */}
             <div className="grid grid-cols-5 bg-secondary-50/5">
-              <div className="p-4 border-r border-secondary-50/10"></div>
+              <div className="p-l border-r border-secondary-50/10"></div>
               {days.map((day) => (
                 <div
                   key={day.toISOString()}
-                  className="p-4 text-center border-r border-secondary-50/10 last:border-r-0"
+                  className="p-l text-center border-r border-secondary-50/10 last:border-r-0"
                 >
                   <h3 className="font-bold text-secondary-50 text-sm">
                     {format(day, 'EEE')}
                   </h3>
-                  <p className="text-xs text-secondary-50/60 mt-1">{format(day, 'MMM d')}</p>
+                  <p className="text-xs text-secondary-50/60 mt-xs">{format(day, 'MMM d')}</p>
                 </div>
               ))}
             </div>
@@ -149,7 +153,7 @@ export function CalendarView() {
                 style={{ minHeight: '80px' }}
               >
                 {/* Time Label */}
-                <div className="p-4 bg-secondary-50/5 border-r border-secondary-50/10 flex items-center">
+                <div className="p-l bg-secondary-50/5 border-r border-secondary-50/10 flex items-center">
                   <span className="text-sm font-medium text-secondary-50/70">{timeSlot.label}</span>
                 </div>
 
@@ -161,9 +165,9 @@ export function CalendarView() {
                   return (
                     <div
                       key={`${timeSlot.label}-${day.toISOString()}`}
-                      className={`p-3 border-r border-secondary-50/10 last:border-r-0 ${
+                      className={`p-m border-r border-secondary-50/10 last:border-r-0 ${
                         hasAvailability ? '' : 'bg-secondary-50/5'
-                      } ${isToday ? 'bg-blue-50/50' : ''}`}
+                      } ${isToday ? 'bg-primary-50/50' : ''}`}
                       style={!hasAvailability ? stripedBgStyle : undefined}
                     >
                       {hasAvailability ? (
@@ -171,7 +175,7 @@ export function CalendarView() {
                           onClick={() => handleAvailabilityClick(day, timeSlot)}
                           className="w-full h-full bg-secondary-800 rounded-xl shadow-soft hover:shadow-glass transition duration-200 flex items-center justify-center min-h-[50px] border-2 border-transparent hover:border-secondary-50/10"
                         >
-                          <span className="text-xs font-medium text-secondary-50/70 text-center px-2">
+                          <span className="text-xs font-medium text-secondary-50/70 text-center px-s">
                             Available
                           </span>
                         </Button>
@@ -206,4 +210,3 @@ export function CalendarView() {
     </div>
   )
 }
-

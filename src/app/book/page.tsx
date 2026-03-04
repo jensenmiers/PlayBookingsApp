@@ -12,10 +12,10 @@ export default function BookPage() {
       <Navigation />
 
       {/* Segmented Control / Tab Switcher */}
-      <section className="px-4 pt-6 pb-4">
+      <section className="px-l pt-xl pb-l">
         <div className="mx-auto max-w-6xl">
           <Tabs defaultValue="venues" className="w-full">
-            <TabsList className="w-full grid grid-cols-3 bg-secondary-50/5 p-1 rounded-xl h-12 border border-secondary-50/10 shadow-soft">
+            <TabsList className="w-full grid grid-cols-3 bg-secondary-50/5 p-xs rounded-xl h-12 border border-secondary-50/10 shadow-soft">
               <TabsTrigger
                 value="venues"
                 className="rounded-lg border-2 border-transparent data-[state=active]:bg-secondary-800 data-[state=active]:text-secondary-50 data-[state=active]:font-semibold data-[state=active]:border-primary-400 data-[state=active]:shadow-md transition-all duration-200 text-secondary-50/60 hover:text-secondary-50"
@@ -36,15 +36,15 @@ export default function BookPage() {
               </TabsTrigger>
             </TabsList>
 
-            <TabsContent value="venues" className="mt-4">
+            <TabsContent value="venues" className="mt-l">
               <VenuesView />
             </TabsContent>
 
-            <TabsContent value="calendar" className="mt-4">
+            <TabsContent value="calendar" className="mt-l">
               <CalendarView />
             </TabsContent>
 
-            <TabsContent value="map" className="mt-4">
+            <TabsContent value="map" className="mt-l">
               <MapView />
             </TabsContent>
           </Tabs>

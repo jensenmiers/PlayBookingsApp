@@ -37,9 +37,9 @@ export function GoogleMapsLink({
   }
 
   const variants = {
-    default: 'flex items-center gap-2 text-secondary-50/60 hover:text-secondary-50 transition-colors cursor-pointer',
-    compact: 'flex items-center gap-1.5 text-sm text-secondary-50/60 hover:text-secondary-50 transition-colors cursor-pointer',
-    pill: 'inline-flex items-center gap-2 px-3 py-1.5 bg-secondary-50/5 hover:bg-secondary-50/10 rounded-full text-sm text-secondary-50/70 hover:text-secondary-50 transition-all cursor-pointer',
+    default: 'flex items-center gap-s text-secondary-50/60 hover:text-secondary-50 transition-colors cursor-pointer',
+    compact: 'flex items-center gap-s text-sm text-secondary-50/60 hover:text-secondary-50 transition-colors cursor-pointer',
+    pill: 'inline-flex items-center gap-s px-m py-s bg-secondary-50/5 hover:bg-secondary-50/10 rounded-full text-sm text-secondary-50/70 hover:text-secondary-50 transition-all cursor-pointer',
     minimal: 'text-secondary-50/60 hover:text-secondary-50 underline underline-offset-2 cursor-pointer transition-colors',
   }
 

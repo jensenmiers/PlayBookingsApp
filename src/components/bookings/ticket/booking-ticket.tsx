@@ -41,7 +41,7 @@ export function BookingTicket({
 
   if (error || !booking) {
     return (
-      <div className="rounded-lg border border-destructive/50 bg-destructive/10 p-4">
+      <div className="rounded-lg border border-destructive/50 bg-destructive/10 p-l">
         <p className="text-destructive">{error || 'Booking not found'}</p>
       </div>
     )
@@ -56,8 +56,8 @@ export function BookingTicket({
       <TicketHero venue={venue} onBack={() => router.push('/my-bookings')} />
 
       {/* Ticket card — floating over hero */}
-      <div className="relative -mt-6 z-10 bg-secondary-800/90 backdrop-blur-xl rounded-2xl border border-secondary-50/10 shadow-glass mx-0 sm:mx-4 overflow-hidden">
-        <div className="p-6">
+      <div className="relative -mt-xl z-10 bg-secondary-800/90 backdrop-blur-xl rounded-2xl border border-secondary-50/10 shadow-glass mx-0 sm:mx-l overflow-hidden">
+        <div className="p-xl">
           {/* Status banner */}
           <TicketStatusBanner
             statusVariant={ticketState.statusVariant}
@@ -66,7 +66,7 @@ export function BookingTicket({
           />
 
           {/* Date / Time — dominant element */}
-          <div className="mt-6">
+          <div className="mt-xl">
             <TicketDatetime
               date={booking.date}
               startTime={booking.start_time}
@@ -77,7 +77,7 @@ export function BookingTicket({
           </div>
 
           {/* Venue, amount, notes */}
-          <div className="mt-6">
+          <div className="mt-xl">
             <TicketDetails
               booking={booking}
               venue={venue}
@@ -104,9 +104,9 @@ export function BookingTicket({
 
       {/* Sticky mobile pay bar */}
       {ticketState.primaryAction === 'pay' && (
-        <div className="fixed bottom-0 left-0 right-0 z-50 sm:hidden bg-secondary-900/95 backdrop-blur-lg border-t border-secondary-50/10 px-4 py-3">
+        <div className="fixed bottom-0 left-0 right-0 z-50 sm:hidden bg-secondary-900/95 backdrop-blur-lg border-t border-secondary-50/10 px-l py-m">
           <Button onClick={openPayment} size="lg" className="w-full">
-            <FontAwesomeIcon icon={faCreditCard} className="mr-2" />
+            <FontAwesomeIcon icon={faCreditCard} className="mr-s" />
             Pay ${booking.total_amount.toFixed(2)}
           </Button>
         </div>

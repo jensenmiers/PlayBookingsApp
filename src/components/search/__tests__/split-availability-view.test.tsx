@@ -157,7 +157,7 @@ describe('SplitAvailabilityView - Location button', () => {
     const { container } = render(<SplitAvailabilityView />)
     const root = container.firstElementChild
 
-    expect(root).toHaveClass('lg:px-4')
+    expect(root).toHaveClass('lg:px-l')
   })
 
   it('shows Host Approval badge for non-instant venues in the list panel', () => {

@@ -86,7 +86,7 @@ export function VenueDesignArena({ venue }: VenueDesignArenaProps) {
 
       {/* Photo Count Badge */}
       {venue.photos && venue.photos.length > 1 && (
-        <div className="absolute top-4 right-4 z-30 px-3 py-1.5 rounded-full bg-secondary-950/60 backdrop-blur-md text-secondary-50/80 text-sm flex items-center gap-2">
+        <div className="absolute top-4 right-4 z-30 px-m py-s rounded-full bg-secondary-950/60 backdrop-blur-md text-secondary-50/80 text-sm flex items-center gap-s">
           <FontAwesomeIcon icon={faImages} className="text-xs" />
           <span>{venue.photos.length}</span>
         </div>
@@ -103,19 +103,19 @@ export function VenueDesignArena({ venue }: VenueDesignArenaProps) {
           onClick={() => setSheetExpanded(!sheetExpanded)}
           className="cursor-pointer"
         >
-          <div className="bg-gradient-to-t from-secondary-950 via-secondary-950/95 to-transparent pt-12 pb-4 px-6">
+          <div className="bg-gradient-to-t from-secondary-950 via-secondary-950/95 to-transparent pt-4xl pb-l px-xl">
             {/* Drag Handle */}
-            <div className="flex justify-center mb-4">
+            <div className="flex justify-center mb-l">
               <div className="w-10 h-1 rounded-full bg-secondary-50/30" />
             </div>
 
             {/* Venue Name */}
-            <h1 className="text-3xl sm:text-4xl font-bold text-secondary-50 mb-2">
+            <h1 className="text-3xl sm:text-4xl font-bold text-secondary-50 mb-s">
               {venue.name}
             </h1>
 
             {/* Quick Info Row */}
-            <div className="flex items-center gap-4 text-secondary-50/70 text-sm">
+            <div className="flex items-center gap-l text-secondary-50/70 text-sm">
               {loading ? (
                 <div className="h-4 w-24 bg-secondary-50/10 rounded animate-pulse" />
               ) : nextSlot ? (
@@ -128,14 +128,14 @@ export function VenueDesignArena({ venue }: VenueDesignArenaProps) {
               ) : null}
               <span>${venue.hourly_rate}</span>
               <span className="text-secondary-50/40">·</span>
-              <span className={`flex items-center gap-1 ${bookingMode.mode === 'instant' ? 'text-primary-400' : 'text-accent-400'}`}>
+              <span className={`flex items-center gap-xs ${bookingMode.mode === 'instant' ? 'text-primary-400' : 'text-accent-400'}`}>
                 <FontAwesomeIcon icon={bookingMode.icon} className="text-xs" />
                 {bookingMode.label}
               </span>
             </div>
 
             {/* Expand Indicator */}
-            <div className="flex items-center justify-center mt-3 text-secondary-50/40">
+            <div className="flex items-center justify-center mt-m text-secondary-50/40">
               <FontAwesomeIcon
                 icon={faChevronUp}
                 className={`transition-transform ${sheetExpanded ? 'rotate-180' : ''}`}
@@ -146,27 +146,27 @@ export function VenueDesignArena({ venue }: VenueDesignArenaProps) {
 
         {/* Expanded Content */}
         {sheetExpanded && (
-          <div className="bg-secondary-950 px-6 pb-8 overflow-y-auto max-h-[calc(70vh-180px)]">
+          <div className="bg-secondary-950 px-xl pb-2xl overflow-y-auto max-h-[calc(70vh-180px)]">
             {/* Time Slots Grid */}
-            <section className="mb-6">
-              <h3 className="text-xs uppercase tracking-wider text-secondary-50/40 mb-3">
+            <section className="mb-xl">
+              <h3 className="text-xs uppercase tracking-wider text-secondary-50/40 mb-m">
                 Available Times
               </h3>
               {loading ? (
-                <div className="grid grid-cols-4 gap-2">
+                <div className="grid grid-cols-4 gap-s">
                   {[1, 2, 3, 4].map((i) => (
                     <div key={i} className="h-12 rounded-lg bg-secondary-50/5 animate-pulse" />
                   ))}
                 </div>
               ) : bookableSlots.length > 0 ? (
-                <div className="grid grid-cols-4 gap-2">
+                <div className="grid grid-cols-4 gap-s">
                   {bookableSlots.slice(0, 8).map((slot, idx) => {
                     const isSelected = selectedSlot?.start_time === slot.start_time && selectedSlot?.date === slot.date
                     return (
                       <button
                         key={`${slot.date}-${slot.start_time}-${idx}`}
                         onClick={() => setSelectedSlot(slot)}
-                        className={`py-3 rounded-lg text-sm font-medium transition-all ${
+                        className={`py-m rounded-lg text-sm font-medium transition-all ${
                           isSelected
                             ? 'bg-primary-400 text-secondary-900'
                             : 'bg-secondary-50/10 text-secondary-50 hover:bg-secondary-50/15'
@@ -183,8 +183,8 @@ export function VenueDesignArena({ venue }: VenueDesignArenaProps) {
             </section>
 
             {/* Location */}
-            <section className="mb-6">
-              <h3 className="text-xs uppercase tracking-wider text-secondary-50/40 mb-3">
+            <section className="mb-xl">
+              <h3 className="text-xs uppercase tracking-wider text-secondary-50/40 mb-m">
                 Location
               </h3>
               <GoogleMapsLink
@@ -199,8 +199,8 @@ export function VenueDesignArena({ venue }: VenueDesignArenaProps) {
 
             {/* About */}
             {venue.description && (
-              <section className="mb-6">
-                <h3 className="text-xs uppercase tracking-wider text-secondary-50/40 mb-3">
+              <section className="mb-xl">
+                <h3 className="text-xs uppercase tracking-wider text-secondary-50/40 mb-m">
                   About
                 </h3>
                 <p className="text-secondary-50/70 text-sm leading-relaxed">
@@ -211,15 +211,15 @@ export function VenueDesignArena({ venue }: VenueDesignArenaProps) {
 
             {/* Amenities */}
             {venue.amenities && venue.amenities.length > 0 && (
-              <section className="mb-6">
-                <h3 className="text-xs uppercase tracking-wider text-secondary-50/40 mb-3">
+              <section className="mb-xl">
+                <h3 className="text-xs uppercase tracking-wider text-secondary-50/40 mb-m">
                   Amenities
                 </h3>
-                <div className="flex flex-wrap gap-2">
+                <div className="flex flex-wrap gap-s">
                   {venue.amenities.map((amenity, i) => (
                     <span
                       key={i}
-                      className="px-2.5 py-1 bg-secondary-50/5 text-secondary-50/60 text-xs rounded-full"
+                      className="px-m py-xs bg-secondary-50/5 text-secondary-50/60 text-xs rounded-full"
                     >
                       {amenity}
                     </span>
@@ -230,7 +230,7 @@ export function VenueDesignArena({ venue }: VenueDesignArenaProps) {
 
             {/* Insurance Notice */}
             {venue.insurance_required && (
-              <div className="flex items-center gap-2 p-3 bg-accent-400/10 rounded-lg text-accent-400 text-sm">
+              <div className="flex items-center gap-s p-m bg-accent-400/10 rounded-lg text-accent-400 text-sm">
                 <FontAwesomeIcon icon={faShield} />
                 <span>Insurance verification required</span>
               </div>
@@ -239,7 +239,7 @@ export function VenueDesignArena({ venue }: VenueDesignArenaProps) {
         )}
 
         {/* Fixed Book Button */}
-        <div className="bg-secondary-950 px-6 pb-6 pt-2">
+        <div className="bg-secondary-950 px-xl pb-xl pt-s">
           <Button
             onClick={() => {
               const slotToBook = selectedSlot || nextSlot

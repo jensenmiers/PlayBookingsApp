@@ -74,7 +74,7 @@ function InfoOnlySlotDialog({
           <DialogDescription>{content.body}</DialogDescription>
         </DialogHeader>
 
-        <div className="space-y-4 py-2">
+        <div className="space-y-4 py-s">
           <div className="space-y-1">
             <p className="text-sm font-semibold text-secondary-50">Venue</p>
             <p className="text-sm text-secondary-50/70">{venue.name}</p>
@@ -89,7 +89,7 @@ function InfoOnlySlotDialog({
           </div>
 
           {content.bullet_points && content.bullet_points.length > 0 && (
-            <ul className="list-disc pl-5 space-y-1 text-sm text-secondary-50/70">
+            <ul className="list-disc pl-xl space-y-1 text-sm text-secondary-50/70">
               {content.bullet_points.map((point, idx) => (
                 <li key={`${point}-${idx}`}>{point}</li>
               ))}

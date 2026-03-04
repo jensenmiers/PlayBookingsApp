@@ -199,17 +199,17 @@ function VenuesContent() {
     <div className="min-h-screen bg-background">
       <Navigation />
 
-      <div className="mx-auto max-w-6xl px-4 py-6">
+      <div className="mx-auto max-w-6xl px-l py-xl">
         {/* Header */}
-        <div className="mb-6">
-          <h1 className="text-3xl font-bold font-serif text-secondary-50 mb-2">All Venues</h1>
+        <div className="mb-xl">
+          <h1 className="text-3xl font-bold font-serif text-secondary-50 mb-s">All Venues</h1>
           <p className="text-secondary-50/60">Discover basketball courts available for booking</p>
         </div>
 
         {/* Search Section */}
-        <form onSubmit={handleSearchSubmit} className="mb-6">
+        <form onSubmit={handleSearchSubmit} className="mb-xl">
           <div className="relative">
-            <div className="absolute inset-y-0 left-0 pl-4 flex items-center pointer-events-none">
+            <div className="absolute inset-y-0 left-0 pl-l flex items-center pointer-events-none">
               <FontAwesomeIcon icon={faSearch} className="text-secondary-50/50" />
             </div>
             <Input
@@ -217,14 +217,14 @@ function VenuesContent() {
               placeholder="Search by venue name, city, or address..."
               value={searchQuery}
               onChange={(e) => handleSearchChange(e.target.value)}
-              className="w-full pl-12 pr-4 py-3 bg-secondary-800 rounded-xl shadow-soft"
+              className="w-full pl-4xl pr-l py-m bg-secondary-800 rounded-xl shadow-soft"
             />
           </div>
         </form>
 
         {/* Results Count */}
         {pagination && !loading && (
-          <div className="mb-4 text-secondary-50/60 text-sm">
+          <div className="mb-l text-secondary-50/60 text-sm">
             {pagination.total > 0 ? (
               <>
                 Showing {(pagination.page - 1) * pagination.limit + 1}-
@@ -248,7 +248,7 @@ function VenuesContent() {
 
         {/* Error State */}
         {error && !loading && (
-          <div className="mb-4">
+          <div className="mb-l">
             <ErrorMessage error={error} title="Failed to load venues" />
             <Button
               onClick={() => {
@@ -260,7 +260,7 @@ function VenuesContent() {
                 }
                 window.location.reload()
               }}
-              className="mt-4"
+              className="mt-l"
             >
               Try Again
             </Button>
@@ -269,7 +269,7 @@ function VenuesContent() {
 
         {/* Venues List */}
         {!loading && !error && venues.length > 0 && (
-          <div className="space-y-4 mb-6">
+          <div className="space-y-4 mb-xl">
             {venues.map((venue) => (
               <VenueCard 
                 key={venue.id} 
@@ -282,10 +282,10 @@ function VenuesContent() {
 
         {/* Empty State */}
         {!loading && !error && venues.length === 0 && (
-          <div className="text-center py-12">
-            <p className="text-secondary-50/60 text-lg mb-2">No venues found</p>
+          <div className="text-center py-4xl">
+            <p className="text-secondary-50/60 text-lg mb-s">No venues found</p>
             {searchQuery && (
-              <p className="text-secondary-50/50 text-sm mb-4">
+              <p className="text-secondary-50/50 text-sm mb-l">
                 Try adjusting your search terms
               </p>
             )}
@@ -294,7 +294,7 @@ function VenuesContent() {
 
         {/* Pagination Controls */}
         {pagination && pagination.total_pages > 1 && !loading && (
-          <div className="flex items-center justify-center gap-4 mt-6">
+          <div className="flex items-center justify-center gap-l mt-xl">
             <Button
               variant="outline"
               onClick={() => handlePageChange(currentPage - 1)}
@@ -325,9 +325,9 @@ function LoadingFallback() {
   return (
     <div className="min-h-screen bg-background">
       <Navigation />
-      <div className="mx-auto max-w-6xl px-4 py-6">
-        <div className="mb-6">
-          <h1 className="text-3xl font-bold font-serif text-secondary-50 mb-2">All Venues</h1>
+      <div className="mx-auto max-w-6xl px-l py-xl">
+        <div className="mb-xl">
+          <h1 className="text-3xl font-bold font-serif text-secondary-50 mb-s">All Venues</h1>
           <p className="text-secondary-50/60">Discover basketball courts available for booking</p>
         </div>
         <div className="space-y-4">
