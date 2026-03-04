@@ -98,3 +98,10 @@ Update this document only when one of these changes:
 - Styling stack changes (Tailwind/PostCSS/animation tooling).
 - Primitive-layer conventions change (`cn`, `cva`, `data-slot` usage).
 - A new global styling mechanism is introduced (for example CSS Modules or additional global stylesheets).
+
+## Design System Contract References
+
+- `docs/design-system/design-rules.md`
+- `docs/design-system/visual-language.md`
+- `docs/design-system/interaction-patterns.md`
+- `docs/design-system/machine-enforcement.md`

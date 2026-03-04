@@ -99,7 +99,19 @@ src/
 - `npm run build` - Build for production
 - `npm run start` - Start production server
 - `npm run lint` - Run ESLint
+- `npm run lint:design-system` - Run full design-system lint across scoped UI files
+- `npm run lint:design-system:staged` - Run design-system lint against staged scoped lines
+- `npm run lint:design-system:unpushed` - Run design-system lint against unpushed scoped lines
 - `npm run sync:google-calendars` - Process due venue Google Calendar sync jobs
+
+## 🎨 Design System Contract
+
+Design-system enforcement is contract-based (docs + routing + lint + hooks).
+
+- Rules: `docs/design-system/design-rules.md`
+- Visual language: `docs/design-system/visual-language.md`
+- Interaction patterns: `docs/design-system/interaction-patterns.md`
+- Machine enforcement: `docs/design-system/machine-enforcement.md`
 
 ## 📱 Responsive Design
 

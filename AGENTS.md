@@ -21,6 +21,7 @@ Load additional context only when relevant:
 1. `CSS_ARCHITECTURE.md` for UI or styling work
 2. `.cursor/skills/**/SKILL.md` when a task clearly matches a skill
 3. `skills/**/SKILL.md` when a task clearly matches a repo-local skill
+4. `skills/design-system/SKILL.md` for UI/styling tasks in search + booking surfaces
 
 ## Working Rules
 

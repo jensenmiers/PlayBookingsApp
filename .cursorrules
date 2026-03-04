@@ -9,6 +9,7 @@ Behavioral guidelines to reduce common LLM coding mistakes. Merge with project-s
 - Always load and follow `/Users/jensenmiers/Aug2025PlayBookingsWork/PlayBookings/AGENTS.md` before coding.
 - Treat `/Users/jensenmiers/Aug2025PlayBookingsWork/PlayBookings/AGENTS.md` as shared project policy for all assistants.
 - If this file and `AGENTS.md` overlap, follow the stricter rule.
+- For UI/styling tasks, load `/Users/jensenmiers/Aug2025PlayBookingsWork/PlayBookings/.cursor/skills/design-system/SKILL.md` before coding and follow its lint/doc contract.
 
 ## 1. Think Before Coding
 
