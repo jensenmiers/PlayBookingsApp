@@ -121,6 +121,184 @@ function createAdminClientMock() {
   }
 }
 
+function createAdminClientMockForGet({
+  templateRows,
+}: {
+  templateRows: Array<{
+    venue_id: string
+    name: string
+    action_type: 'instant_book' | 'request_private' | 'info_only_open_gym'
+    day_of_week: number
+    start_time: string
+    end_time: string
+  }>
+}) {
+  const venue = {
+    id: 'venue-1',
+    hourly_rate: 60,
+    amenities: ['lights'],
+    instant_booking: true,
+  }
+
+  const venueSingle = jest.fn().mockResolvedValue({ data: venue, error: null })
+  const venueEq = jest.fn(() => ({ single: venueSingle }))
+  const venueSelect = jest.fn(() => ({ eq: venueEq }))
+
+  const configMaybeSingle = jest.fn().mockResolvedValue({ data: null, error: null })
+  const configEq = jest.fn(() => ({ maybeSingle: configMaybeSingle }))
+  const configSelect = jest.fn(() => ({ eq: configEq }))
+
+  const templatesFinalEq = jest.fn().mockResolvedValue({ data: templateRows, error: null })
+  const templatesIn = jest.fn(() => ({ eq: templatesFinalEq }))
+  const templatesEq = jest.fn(() => ({ in: templatesIn }))
+  const templatesSelect = jest.fn(() => ({ eq: templatesEq }))
+
+  const regularSyncMaybeSingle = jest.fn().mockResolvedValue({ data: null, error: null })
+  const regularSyncEq = jest.fn(() => ({ maybeSingle: regularSyncMaybeSingle }))
+  const regularSyncSelect = jest.fn(() => ({ eq: regularSyncEq }))
+
+  const dropInSyncMaybeSingle = jest.fn().mockResolvedValue({ data: null, error: null })
+  const dropInSyncEq = jest.fn(() => ({ maybeSingle: dropInSyncMaybeSingle }))
+  const dropInSyncSelect = jest.fn(() => ({ eq: dropInSyncEq }))
+
+  const calendarIntegrationMaybeSingle = jest.fn().mockResolvedValue({ data: null, error: null })
+  const calendarIntegrationEq = jest.fn(() => ({ maybeSingle: calendarIntegrationMaybeSingle }))
+  const calendarIntegrationSelect = jest.fn(() => ({ eq: calendarIntegrationEq }))
+
+  const from = jest.fn((table: string) => {
+    if (table === 'venues') {
+      return { select: venueSelect }
+    }
+    if (table === 'venue_admin_configs') {
+      return { select: configSelect }
+    }
+    if (table === 'slot_templates') {
+      return { select: templatesSelect }
+    }
+    if (table === 'regular_template_sync_queue') {
+      return { select: regularSyncSelect }
+    }
+    if (table === 'drop_in_template_sync_queue') {
+      return { select: dropInSyncSelect }
+    }
+    if (table === 'venue_calendar_integrations') {
+      return { select: calendarIntegrationSelect }
+    }
+
+    throw new Error(`Unexpected table ${table}`)
+  })
+
+  return {
+    client: { from },
+    calls: { templatesIn },
+  }
+}
+
+describe('GET /api/admin/venues/[id]', () => {
+  let GET: (request: Request, context: RouteContext) => Promise<Response>
+
+  beforeAll(async () => {
+    const route = await import('@/app/api/admin/venues/[id]/route')
+    GET = route.GET as (request: Request, context: RouteContext) => Promise<Response>
+  })
+
+  beforeEach(() => {
+    jest.clearAllMocks()
+    mockRequireAuth.mockResolvedValue({
+      userId: 'super-admin-1',
+      user: { id: 'super-admin-1', email: 'admin@example.com' },
+    })
+    mockRequireSuperAdmin.mockReturnValue(undefined)
+  })
+
+  it('includes only regular action types in regular_booking_templates', async () => {
+    const { client } = createAdminClientMockForGet({
+      templateRows: [
+        {
+          venue_id: 'venue-1',
+          name: 'Drop-In Window 1',
+          action_type: 'info_only_open_gym',
+          day_of_week: 2,
+          start_time: '11:00:00',
+          end_time: '12:00:00',
+        },
+        {
+          venue_id: 'venue-1',
+          name: 'Random Name But Regular',
+          action_type: 'instant_book',
+          day_of_week: 1,
+          start_time: '09:00:00',
+          end_time: '10:00:00',
+        },
+        {
+          venue_id: 'venue-1',
+          name: 'Another Regular Window',
+          action_type: 'request_private',
+          day_of_week: 3,
+          start_time: '18:00:00',
+          end_time: '19:00:00',
+        },
+      ],
+    })
+    mockCreateAdminClient.mockReturnValue(client)
+
+    const response = await GET(new Request('http://localhost/api/admin/venues/venue-1'), createContext('venue-1'))
+    const json = await response.json()
+
+    expect(response.status).toBe(200)
+    expect(json.success).toBe(true)
+    expect(json.data.regular_booking_templates).toEqual([
+      { day_of_week: 1, start_time: '09:00:00', end_time: '10:00:00' },
+      { day_of_week: 3, start_time: '18:00:00', end_time: '19:00:00' },
+    ])
+    expect(json.data.regular_booking_templates).not.toContainEqual(
+      expect.objectContaining({ day_of_week: 2, start_time: '11:00:00', end_time: '12:00:00' })
+    )
+  })
+
+  it('dedupes regular templates by day/start/end window', async () => {
+    const { client } = createAdminClientMockForGet({
+      templateRows: [
+        {
+          venue_id: 'venue-1',
+          name: 'Regular A',
+          action_type: 'instant_book',
+          day_of_week: 5,
+          start_time: '20:00:00',
+          end_time: '21:00:00',
+        },
+        {
+          venue_id: 'venue-1',
+          name: 'Regular B',
+          action_type: 'request_private',
+          day_of_week: 5,
+          start_time: '20:00:00',
+          end_time: '21:00:00',
+        },
+        {
+          venue_id: 'venue-1',
+          name: 'Regular C',
+          action_type: 'request_private',
+          day_of_week: 1,
+          start_time: '08:00:00',
+          end_time: '09:00:00',
+        },
+      ],
+    })
+    mockCreateAdminClient.mockReturnValue(client)
+
+    const response = await GET(new Request('http://localhost/api/admin/venues/venue-1'), createContext('venue-1'))
+    const json = await response.json()
+
+    expect(response.status).toBe(200)
+    expect(json.success).toBe(true)
+    expect(json.data.regular_booking_templates).toEqual([
+      { day_of_week: 1, start_time: '08:00:00', end_time: '09:00:00' },
+      { day_of_week: 5, start_time: '20:00:00', end_time: '21:00:00' },
+    ])
+  })
+})
+
 describe('PATCH /api/admin/venues/[id]', () => {
   let PATCH: (request: Request, context: RouteContext) => Promise<Response>
 
