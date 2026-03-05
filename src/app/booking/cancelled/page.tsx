@@ -53,7 +53,7 @@ export default async function BookingCancelledPage({ searchParams }: CancelledPa
             View My Bookings
           </Link>
           <Link
-            href="/book"
+            href="/search"
             className="block w-full text-secondary-50/50 py-s px-l font-medium hover:text-secondary-50/70 transition-colors"
           >
             Browse Venues

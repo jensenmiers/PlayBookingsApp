@@ -51,7 +51,7 @@ export default async function BookingSuccessPage({ searchParams }: SuccessPagePr
             View My Bookings
           </Link>
           <Link
-            href="/book"
+            href="/search"
             className="block w-full bg-secondary-50/5 text-secondary-50/70 py-m px-l rounded-lg font-medium hover:bg-secondary-50/10 transition-colors"
           >
             Book Another Venue
