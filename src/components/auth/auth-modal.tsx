@@ -174,7 +174,7 @@ export function AuthModal() {
       <DialogContent className="sm:max-w-md">
         <DialogHeader className="space-y-3 text-center">
           {intent === 'host' && !contextMessage && (
-            <div className="mx-auto mb-2 inline-flex items-center gap-2 rounded-full bg-primary-400/15 px-4 py-1.5 text-sm font-semibold text-primary-400">
+            <div className="mx-auto mb-s inline-flex items-center gap-s rounded-full bg-primary-400/15 px-l py-s text-sm font-semibold text-primary-400">
               <svg className="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 10V3L4 14h7v7l9-11h-7z" />
               </svg>
@@ -189,11 +189,11 @@ export function AuthModal() {
           </DialogDescription>
         </DialogHeader>
 
-        <div className="space-y-4 py-4">
+        <div className="space-y-4 py-l">
           {/* Popup blocked error */}
           {popupBlocked && (
-            <div className="rounded-lg border border-secondary-50/10 bg-amber-400/15 p-4">
-              <p className="text-sm text-amber-400">
+            <div className="rounded-lg border border-secondary-50/10 bg-accent-400/15 p-l">
+              <p className="text-sm text-accent-400">
                 <span className="font-semibold">Popup was blocked.</span>{' '}
                 Please allow popups for this site, or click below to continue in this window.
               </p>
@@ -205,12 +205,12 @@ export function AuthModal() {
             <Button
               onClick={handleGoogleAuth}
               disabled={loading}
-              className="w-full rounded-xl bg-primary-400 py-3 text-base text-secondary-900 hover:bg-primary-500"
+              className="w-full rounded-xl bg-primary-400 py-m text-base text-secondary-900 hover:bg-primary-500"
               size="lg"
             >
               {loading ? (
                 <div className="flex items-center space-x-2">
-                  <div className="h-4 w-4 animate-spin rounded-full border-2 border-white border-t-transparent" />
+                  <div className="h-4 w-4 animate-spin rounded-full border-2 border-secondary-50 border-t-transparent" />
                   <span>Waiting for authentication...</span>
                 </div>
               ) : (
@@ -232,12 +232,12 @@ export function AuthModal() {
             <Button
               onClick={handleFallbackRedirect}
               disabled={loading}
-              className="w-full rounded-xl bg-primary-400 py-3 text-base text-secondary-900 hover:bg-primary-500"
+              className="w-full rounded-xl bg-primary-400 py-m text-base text-secondary-900 hover:bg-primary-500"
               size="lg"
             >
               {loading ? (
                 <div className="flex items-center space-x-2">
-                  <div className="h-4 w-4 animate-spin rounded-full border-2 border-white border-t-transparent" />
+                  <div className="h-4 w-4 animate-spin rounded-full border-2 border-secondary-50 border-t-transparent" />
                   <span>Redirecting...</span>
                 </div>
               ) : (

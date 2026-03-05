@@ -1,12 +1,15 @@
 const APP_SCOPE_PREFIXES = [
+  'src/app/(auth)/',
+  'src/app/auth/',
   'src/app/search/',
   'src/app/book/',
   'src/app/booking/',
-  'src/app/venue/',
+  'src/app/venue/[name]/',
   'src/app/venues/',
 ] as const
 
 const COMPONENT_SCOPE_PREFIXES = [
+  'src/components/auth/',
   'src/components/search/',
   'src/components/book/',
   'src/components/booking/',
@@ -18,7 +21,7 @@ const COMPONENT_SCOPE_PREFIXES = [
 ] as const
 
 const TEST_FILE_PATTERN = /(?:\.test\.[tj]sx?$|\.spec\.[tj]sx?$|\/__tests__\/)/
-const TRACKED_EXT_PATTERN = /\.[tj]sx$/
+const TRACKED_EXT_PATTERN = /\.[tj]sx?$/
 
 export function normalizePath(filePath: string): string {
   return filePath.replace(/\\/g, '/')

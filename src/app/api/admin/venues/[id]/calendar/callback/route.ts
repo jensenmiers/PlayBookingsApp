@@ -16,7 +16,7 @@ type CalendarCallbackErrorCode =
   | 'callback_failed'
 
 function getSuperAdminRedirectBase(origin: string): string {
-  return `${origin}/dashboard/super-admin`
+  return `${origin}/super-admin`
 }
 
 function redirectWithParams(origin: string, params: Record<string, string>): Response {

@@ -102,4 +102,31 @@ describe('Navigation', () => {
       })
     )
   })
+
+  it('does not expose removed /calendar route for venue owners', () => {
+    mockUseCurrentUser.mockReturnValue({
+      user: {
+        id: 'owner-1',
+        email: 'owner@example.com',
+        first_name: 'Owner',
+        last_name: 'User',
+        avatar_url: null,
+        is_venue_owner: true,
+      },
+      loading: false,
+      error: null,
+    })
+
+    const { container } = render(<Navigation />)
+
+    fireEvent.click(screen.getByRole('button', { name: /owner user/i }))
+    const mobileMenuButton = screen
+      .getAllByRole('button')
+      .find((button) => button.className.includes('md:hidden'))
+    if (mobileMenuButton) {
+      fireEvent.click(mobileMenuButton)
+    }
+
+    expect(container.querySelector('a[href=\"/calendar\"]')).toBeNull()
+  })
 })

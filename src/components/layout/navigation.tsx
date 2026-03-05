@@ -180,20 +180,6 @@ export function Navigation() {
                     {user.is_venue_owner && (
                       <>
                         <div className="my-1 border-t border-secondary-50/10" />
-                        <Link
-                          href="/dashboard"
-                          onClick={() => setDropdownOpen(false)}
-                          className="block px-4 py-2 text-sm text-secondary-50/70 transition-colors hover:bg-secondary-50/10 hover:text-secondary-50"
-                        >
-                          Dashboard
-                        </Link>
-                        <Link
-                          href="/calendar"
-                          onClick={() => setDropdownOpen(false)}
-                          className="block px-4 py-2 text-sm text-secondary-50/70 transition-colors hover:bg-secondary-50/10 hover:text-secondary-50"
-                        >
-                          My Availability
-                        </Link>
                       </>
                     )}
                     {isSuperAdmin && (
@@ -373,20 +359,6 @@ export function Navigation() {
                 {user.is_venue_owner && (
                   <>
                     <div className="my-2 border-t border-secondary-50/10" />
-                    <Link
-                      href="/dashboard"
-                      onClick={() => setMobileMenuOpen(false)}
-                      className="block rounded-lg px-4 py-3 text-base font-medium text-secondary-50/70 transition-colors hover:bg-secondary-50/10 hover:text-secondary-50"
-                    >
-                      Dashboard
-                    </Link>
-                    <Link
-                      href="/calendar"
-                      onClick={() => setMobileMenuOpen(false)}
-                      className="block rounded-lg px-4 py-3 text-base font-medium text-secondary-50/70 transition-colors hover:bg-secondary-50/10 hover:text-secondary-50"
-                    >
-                      My Availability
-                    </Link>
                   </>
                 )}
                 <div className="my-2 border-t border-secondary-50/10" />

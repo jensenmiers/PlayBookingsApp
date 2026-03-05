@@ -3,6 +3,7 @@ import { parseExceptionDirectives, isRuleDisabled } from '../design-system/excep
 import { checkSpacingTokenRule } from '../design-system/rules/spacing-token'
 import { checkColorTokenRule } from '../design-system/rules/color-token'
 import { checkFormWrapperRule } from '../design-system/rules/form-wrapper'
+import { isInDesignSystemScope } from '../design-system/scope'
 import type { Finding } from '../design-system/types'
 
 function applyRuleWithExceptions(
@@ -193,5 +194,25 @@ describe('changed-lines filtering', () => {
 
     expect(changedLines.get('src/components/search/filter.tsx')).toEqual(new Set([1, 2]))
     expect(changedLines.get('src/components/book/slots.tsx')).toEqual(new Set([21]))
+  })
+})
+
+describe('design-system scope', () => {
+  it('includes auth files in scope', () => {
+    expect(isInDesignSystemScope('src/app/(auth)/layout.tsx')).toBe(true)
+    expect(isInDesignSystemScope('src/app/auth/login/page.tsx')).toBe(true)
+    expect(isInDesignSystemScope('src/app/auth/callback/route.ts')).toBe(true)
+    expect(isInDesignSystemScope('src/components/auth/auth-modal.tsx')).toBe(true)
+  })
+
+  it('keeps dashboard and admin files out of scope', () => {
+    expect(isInDesignSystemScope('src/app/(dashboard)/layout.tsx')).toBe(false)
+    expect(isInDesignSystemScope('src/components/dashboard/sidebar-navigation.tsx')).toBe(false)
+    expect(isInDesignSystemScope('src/components/admin/super-admin-venue-config-page.tsx')).toBe(false)
+  })
+
+  it('keeps active venue routes in scope', () => {
+    expect(isInDesignSystemScope('src/app/venue/[name]/page.tsx')).toBe(true)
+    expect(isInDesignSystemScope('src/app/venue/[name]/not-found.tsx')).toBe(true)
   })
 })

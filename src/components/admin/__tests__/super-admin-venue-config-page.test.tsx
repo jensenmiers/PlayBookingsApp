@@ -273,7 +273,7 @@ const buildMockVenueBookings = () => [
 describe('SuperAdminVenueConfigPage', () => {
   beforeEach(() => {
     jest.clearAllMocks()
-    window.history.replaceState({}, '', 'http://localhost/dashboard/super-admin')
+    window.history.replaceState({}, '', 'http://localhost/super-admin')
 
     mockUseAdminVenues.mockReturnValue({
       loading: false,
@@ -309,7 +309,7 @@ describe('SuperAdminVenueConfigPage', () => {
     window.history.replaceState(
       {},
       '',
-      'http://localhost/dashboard/super-admin?venue_id=venue-1&calendar_error_code=invalid_state'
+      'http://localhost/super-admin?venue_id=venue-1&calendar_error_code=invalid_state'
     )
 
     render(<SuperAdminVenueConfigPage />)
@@ -323,7 +323,7 @@ describe('SuperAdminVenueConfigPage', () => {
     window.history.replaceState(
       {},
       '',
-      'http://localhost/dashboard/super-admin?venue_id=venue-1&calendar_error=oauth2_provider_payload'
+      'http://localhost/super-admin?venue_id=venue-1&calendar_error=oauth2_provider_payload'
     )
 
     render(<SuperAdminVenueConfigPage />)

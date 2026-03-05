@@ -51,11 +51,11 @@ function RegisterContent() {
   }
 
   return (
-    <div className="flex min-h-screen items-center justify-center bg-background p-4">
-      <Card className="w-full max-w-md border-secondary-50/10 bg-secondary-800 p-8 shadow-soft">
+    <div className="flex min-h-screen items-center justify-center bg-background p-l">
+      <Card className="w-full max-w-md border-secondary-50/10 bg-secondary-800 p-2xl shadow-soft">
         <CardHeader className="space-y-3 text-center">
           {isHostSignup && (
-            <div className="mx-auto mb-2 inline-flex items-center gap-2 rounded-full bg-primary-400/15 px-4 py-1.5 text-sm font-semibold text-primary-400">
+            <div className="mx-auto mb-s inline-flex items-center gap-s rounded-full bg-primary-400/15 px-l py-s text-sm font-semibold text-primary-400">
               <svg className="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 10V3L4 14h7v7l9-11h-7z" />
               </svg>
@@ -75,12 +75,12 @@ function RegisterContent() {
           <Button
             onClick={handleGoogleSignup}
             disabled={loading}
-            className="w-full rounded-xl bg-primary-400 py-3 text-base text-secondary-900 hover:bg-primary-500"
+            className="w-full rounded-xl bg-primary-400 py-m text-base text-secondary-900 hover:bg-primary-500"
             size="lg"
           >
             {loading ? (
               <div className="flex items-center space-x-2">
-                <div className="h-4 w-4 animate-spin rounded-full border-2 border-white border-t-transparent" />
+                <div className="h-4 w-4 animate-spin rounded-full border-2 border-secondary-50 border-t-transparent" />
                 <span>{isHostSignup ? 'Creating host account...' : 'Creating account...'}</span>
               </div>
             ) : (
@@ -109,7 +109,7 @@ function RegisterContent() {
 
 function LoadingFallback() {
   return (
-    <div className="flex min-h-screen items-center justify-center bg-background p-4">
+    <div className="flex min-h-screen items-center justify-center bg-background p-l">
       <div className="h-8 w-8 animate-spin rounded-full border-4 border-primary-400 border-t-transparent" />
     </div>
   )

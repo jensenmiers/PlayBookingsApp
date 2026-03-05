@@ -6,7 +6,6 @@ import { usePathname } from "next/navigation"
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome"
 import {
   faArrowRightFromBracket,
-  faCalendarDays,
   faChartLine,
   faBuilding,
   faMoneyBillTransfer,
@@ -41,7 +40,6 @@ const DEFAULT_ITEMS: SidebarNavItem[] = [
   { label: "Dashboard", href: "/dashboard", icon: faChartLine },
   { label: "My Venues", href: "/listings", icon: faBuilding },
   { label: "Incoming Bookings", href: "/my-bookings", icon: faClipboardList },
-  { label: "Availability", href: "/calendar", icon: faCalendarDays },
   { label: "Payouts", href: "/payouts", icon: faMoneyBillTransfer },
   { label: "Settings", href: "/settings", icon: faGear },
 ]

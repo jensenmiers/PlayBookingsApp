@@ -174,7 +174,7 @@ describe('GET /auth/callback', () => {
     expect(response.headers.get('Location')).toBe(`${origin}/search`)
   })
 
-  it('non-popup: existing host redirects to dashboard', async () => {
+  it('non-popup: existing host redirects to my-bookings', async () => {
     mockExchangeCodeForSession.mockResolvedValue({
       data: {
         session: {
@@ -195,7 +195,7 @@ describe('GET /auth/callback', () => {
     const request = createRequest(`${origin}/auth/callback?code=abc&returnTo=%2Fsearch`)
     const response = await GET(request)
 
-    expect(response.headers.get('Location')).toBe(`${origin}/dashboard`)
+    expect(response.headers.get('Location')).toBe(`${origin}/my-bookings`)
   })
 
   it('non-popup: existing renter with intent=host still redirects to returnTo', async () => {

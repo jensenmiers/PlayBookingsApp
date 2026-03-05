@@ -65,7 +65,7 @@ export async function GET(request: NextRequest) {
     }
 
     const finalIsHost = existingUser?.is_venue_owner ?? isHostSignup
-    const redirectPath = finalIsHost ? '/dashboard' : returnTo
+    const redirectPath = finalIsHost ? '/my-bookings' : returnTo
     return NextResponse.redirect(`${origin}${redirectPath}`)
   }
 

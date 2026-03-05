@@ -39,14 +39,14 @@ export default async function BookingCancelledPage({ searchParams }: CancelledPa
         <div className="space-y-3">
           {bookingId && (
             <Link
-              href={`/dashboard/my-bookings/${bookingId}`}
+              href={`/my-bookings/${bookingId}`}
               className="block w-full bg-primary-400 text-secondary-900 py-m px-l rounded-lg font-medium hover:bg-primary-500 transition-colors"
             >
               Complete Payment
             </Link>
           )}
           <Link
-            href="/dashboard/my-bookings"
+            href="/my-bookings"
             className="block w-full bg-secondary-50/5 text-secondary-50/70 py-m px-l rounded-lg font-medium hover:bg-secondary-50/10 transition-colors"
           >
             <FontAwesomeIcon icon={faArrowLeft} className="mr-s" />

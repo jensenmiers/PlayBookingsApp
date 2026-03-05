@@ -15,7 +15,7 @@ export default async function SuperAdminPage() {
 
   const email = session.user.email || null
   if (!isSuperAdminEmail(email)) {
-    redirect('/dashboard')
+    redirect('/my-bookings')
   }
 
   return <SuperAdminVenueConfigPage />

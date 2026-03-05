@@ -45,7 +45,7 @@ export default async function BookingSuccessPage({ searchParams }: SuccessPagePr
 
         <div className="space-y-3">
           <Link
-            href="/dashboard/my-bookings"
+            href="/my-bookings"
             className="block w-full bg-primary-400 text-secondary-900 py-m px-l rounded-lg font-medium hover:bg-primary-500 transition-colors"
           >
             View My Bookings

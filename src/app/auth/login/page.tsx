@@ -47,8 +47,8 @@ function LoginContent() {
   }
 
   return (
-    <div className="flex min-h-screen items-center justify-center bg-background p-4">
-      <Card className="w-full max-w-md border-secondary-50/10 bg-secondary-800 p-8 shadow-soft">
+    <div className="flex min-h-screen items-center justify-center bg-background p-l">
+      <Card className="w-full max-w-md border-secondary-50/10 bg-secondary-800 p-2xl shadow-soft">
         <CardHeader className="space-y-3 text-center">
           <CardTitle className="text-2xl font-bold font-serif text-secondary-50">Welcome Back</CardTitle>
           <CardDescription className="text-secondary-50/60">
@@ -59,12 +59,12 @@ function LoginContent() {
           <Button
             onClick={handleGoogleLogin}
             disabled={loading}
-            className="w-full rounded-xl bg-primary-400 py-3 text-base text-secondary-900 hover:bg-primary-500"
+            className="w-full rounded-xl bg-primary-400 py-m text-base text-secondary-900 hover:bg-primary-500"
             size="lg"
           >
             {loading ? (
               <div className="flex items-center space-x-2">
-                <div className="h-4 w-4 animate-spin rounded-full border-2 border-white border-t-transparent" />
+                <div className="h-4 w-4 animate-spin rounded-full border-2 border-secondary-50 border-t-transparent" />
                 <span>Signing in...</span>
               </div>
             ) : (
@@ -100,7 +100,7 @@ function LoginContent() {
 
 function LoadingFallback() {
   return (
-    <div className="flex min-h-screen items-center justify-center bg-background p-4">
+    <div className="flex min-h-screen items-center justify-center bg-background p-l">
       <div className="h-8 w-8 animate-spin rounded-full border-4 border-primary-400 border-t-transparent" />
     </div>
   )
