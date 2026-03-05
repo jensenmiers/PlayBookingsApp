@@ -5,11 +5,15 @@ import type { ComponentType } from "react";
 
 type AgentationComponent = ComponentType<Record<string, never>>;
 
+function isAutomatedBrowserSession(): boolean {
+  return typeof navigator !== "undefined" && navigator.webdriver === true;
+}
+
 export function AgentationProvider() {
   const [Agentation, setAgentation] = useState<AgentationComponent | null>(null);
 
   useEffect(() => {
-    if (process.env.NODE_ENV !== "development") {
+    if (process.env.NODE_ENV !== "development" || isAutomatedBrowserSession()) {
       return;
     }
 
@@ -32,7 +36,7 @@ export function AgentationProvider() {
     };
   }, []);
 
-  if (process.env.NODE_ENV !== "development" || !Agentation) {
+  if (process.env.NODE_ENV !== "development" || isAutomatedBrowserSession() || !Agentation) {
     return null;
   }
 

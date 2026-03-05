@@ -10,6 +10,10 @@ describe("AgentationProvider", () => {
 
   afterEach(() => {
     process.env.NODE_ENV = originalNodeEnv;
+    Object.defineProperty(window.navigator, "webdriver", {
+      configurable: true,
+      value: undefined,
+    });
   });
 
   it("renders Agentation in development", async () => {
@@ -26,6 +30,22 @@ describe("AgentationProvider", () => {
     process.env.NODE_ENV = "production";
 
     render(<AgentationProvider />);
+
+    expect(screen.queryByTestId("agentation-widget")).not.toBeInTheDocument();
+  });
+
+  it("does not render Agentation in automated browser sessions", async () => {
+    process.env.NODE_ENV = "development";
+    Object.defineProperty(window.navigator, "webdriver", {
+      configurable: true,
+      value: true,
+    });
+
+    render(<AgentationProvider />);
+
+    await new Promise((resolve) => {
+      setTimeout(resolve, 20);
+    });
 
     expect(screen.queryByTestId("agentation-widget")).not.toBeInTheDocument();
   });
