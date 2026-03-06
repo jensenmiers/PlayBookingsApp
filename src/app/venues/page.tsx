@@ -3,6 +3,7 @@
 import { useState, useEffect, Suspense } from 'react'
 import { useSearchParams, useRouter } from 'next/navigation'
 import { Navigation } from '@/components/layout/navigation'
+import { PublicSiteFooter } from '@/components/layout/public-site-footer'
 import { VenueCard } from '@/components/venues/venue-card'
 import { VenueCardSkeleton } from '@/components/search/venue-card-skeleton'
 import { Input } from '@/components/ui/input'
@@ -317,6 +318,8 @@ function VenuesContent() {
           </div>
         )}
       </div>
+
+      <PublicSiteFooter />
     </div>
   )
 }

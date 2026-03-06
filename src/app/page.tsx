@@ -2,6 +2,7 @@
 
 import Link from 'next/link'
 import { Navigation } from '@/components/layout/navigation'
+import { PublicSiteFooter } from '@/components/layout/public-site-footer'
 import { useState, useEffect, useRef, useMemo } from 'react'
 import { useVenues } from '@/hooks/useVenues'
 import { useVenuesWithNextAvailable } from '@/hooks/useVenuesWithNextAvailable'
@@ -415,15 +416,7 @@ export default function Home() {
         </div>
       </section>
 
-      <footer className="border-t border-secondary-50/10 px-6 py-8 sm:px-10">
-        <div className="max-w-7xl mx-auto flex flex-col sm:flex-row items-center justify-between gap-4 text-sm text-secondary-50/40">
-          <span>Play Bookings © 2026</span>
-          <div className="flex gap-6">
-            <Link href="/become-a-host" className="hover:text-secondary-50 transition-colors">List your court</Link>
-            <Link href="/venues" className="hover:text-secondary-50 transition-colors">All courts</Link>
-          </div>
-        </div>
-      </footer>
+      <PublicSiteFooter />
     </div>
   )
 }

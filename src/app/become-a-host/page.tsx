@@ -3,6 +3,7 @@
 import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { Navigation } from '@/components/layout/navigation'
+import { PublicSiteFooter } from '@/components/layout/public-site-footer'
 import { toast } from '@/components/ui/use-toast'
 import {
   HOST_ONBOARDING_UNAVAILABLE_DESCRIPTION,
@@ -178,6 +179,8 @@ export default function BecomeAHostPage() {
           </Button>
         </div>
       </section>
+
+      <PublicSiteFooter />
     </div>
   )
 }

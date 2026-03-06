@@ -16,6 +16,12 @@ describe('BecomeAHostPage', () => {
     jest.clearAllMocks()
   })
 
+  it('renders the public privacy policy link', () => {
+    render(<BecomeAHostPage />)
+
+    expect(screen.getByRole('link', { name: /privacy policy/i })).toHaveAttribute('href', '/privacy')
+  })
+
   it('shows upcoming notice instead of starting host enrollment', () => {
     render(<BecomeAHostPage />)
 

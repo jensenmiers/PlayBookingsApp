@@ -5,6 +5,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { Suspense, useState } from 'react'
 import Link from 'next/link'
 import { useSearchParams } from 'next/navigation'
+import { PublicSiteFooter } from '@/components/layout/public-site-footer'
 import { buildAuthInitiationPath } from '@/lib/auth/oauthFlow'
 import { navigateToUrl } from '@/lib/auth/clientNavigation'
 
@@ -30,7 +31,7 @@ function RegisterContent() {
   }
 
   return (
-    <div className="flex min-h-screen items-center justify-center bg-background p-l">
+    <div className="flex flex-1 items-center justify-center bg-background p-l">
       <Card className="w-full max-w-md border-secondary-50/10 bg-secondary-800 p-2xl shadow-soft">
         <CardHeader className="space-y-3 text-center">
           {isHostSignup && (
@@ -88,7 +89,7 @@ function RegisterContent() {
 
 function LoadingFallback() {
   return (
-    <div className="flex min-h-screen items-center justify-center bg-background p-l">
+    <div className="flex flex-1 items-center justify-center bg-background p-l">
       <div className="h-8 w-8 animate-spin rounded-full border-4 border-primary-400 border-t-transparent" />
     </div>
   )
@@ -96,8 +97,11 @@ function LoadingFallback() {
 
 export default function RegisterPage() {
   return (
-    <Suspense fallback={<LoadingFallback />}>
-      <RegisterContent />
-    </Suspense>
+    <div className="flex min-h-screen flex-col bg-background">
+      <Suspense fallback={<LoadingFallback />}>
+        <RegisterContent />
+      </Suspense>
+      <PublicSiteFooter />
+    </div>
   )
 }
