@@ -40,9 +40,10 @@ const sections = [
           handled inside the product.
         </p>
         <p>
-          In short: we use Google Sign-In to authenticate users, and hosts can optionally connect a Google
-          Calendar so Play Bookings can read busy times and prevent double booking. We do not sell Google user
-          data, and we do not use Google user data for advertising or unrelated product features.
+          In short: we use Google Sign-In to authenticate users, and venue admins can optionally connect a
+          Google Calendar so Play Bookings can read selected calendar timing and busy information, combine that
+          data with venue operating hours, and generate bookable availability windows. We do not sell Google
+          user data, and we do not use Google user data for advertising or unrelated product features.
         </p>
       </>
     ),
@@ -83,20 +84,20 @@ const sections = [
     content: (
       <>
         <p>
-          Hosts may choose to connect a Google Calendar to a venue. This connection provides read-only access and
-          is used to help keep venue availability accurate.
+          Venue admins may choose to connect a Google Calendar to a venue. This access is read-only and is
+          requested only when an admin explicitly chooses to connect Google Calendar for that venue.
         </p>
-        <p>When a host connects Google Calendar, Play Bookings may:</p>
+        <p>When a venue admin connects Google Calendar, Play Bookings may:</p>
         <ul className="list-disc space-y-2 pl-5 text-secondary-50/72">
           <li>Store encrypted Google OAuth access and refresh tokens and the granted scopes.</li>
           <li>List the calendars available in the connected Google account.</li>
           <li>Store the connected account email and the selected Google calendar identifier and name.</li>
-          <li>Read Google Calendar events to detect busy times.</li>
           <li>
-            Store limited event-derived metadata needed for sync and blocking, such as event identifiers,
-            timestamps, status, summary, and the selected calendar identifier.
+            Read event timing and busy information from the selected Google Calendar so Play Bookings can
+            generate bookable availability windows during configured operating hours.
           </li>
-          <li>Convert busy calendar events into venue availability blocks to prevent double booking.</li>
+          <li>Store limited event-derived metadata needed for sync and availability generation, such as event identifiers, timestamps, status, summary, and the selected calendar identifier.</li>
+          <li>Use busy periods from the selected calendar to remove overlapping bookable time during operating hours.</li>
         </ul>
         <p>
           Play Bookings does not write to Google Calendar, create calendar events, edit calendar events, or
@@ -198,7 +199,7 @@ export default function PrivacyPage() {
               <p className="font-medium text-secondary-50">Effective date: {EFFECTIVE_DATE}</p>
               <p className="mt-2">
                 In short: Google Sign-In helps you access your account, and optional Google Calendar connections
-                help hosts block unavailable times. Google Calendar access is read-only.
+                use read-only calendar data plus venue operating hours to generate accurate bookable availability.
               </p>
             </div>
 

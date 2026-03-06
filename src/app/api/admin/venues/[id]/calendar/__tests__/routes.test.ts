@@ -233,6 +233,22 @@ describe('Admin venue calendar routes', () => {
     expect(location).not.toContain('calendar_error=')
   })
 
+  it('GET /callback maps disabled Google Calendar API errors to calendar_api_disabled', async () => {
+    const route = await import('@/app/api/admin/google-calendar/callback/route')
+    mockCompleteCalendarOAuthConnection.mockRejectedValue(
+      new Error('Google API request failed (403): {"error":{"status":"PERMISSION_DENIED","reason":"SERVICE_DISABLED"}}')
+    )
+
+    const response = await route.GET(
+      new NextRequest('http://localhost/api/admin/google-calendar/callback?code=test-code&state=test-state')
+    )
+
+    expect(response.status).toBe(302)
+    const location = response.headers.get('location') || ''
+    expect(location).toContain('venue_id=venue-1')
+    expect(location).toContain('calendar_error_code=calendar_api_disabled')
+  })
+
   it('GET /callback completes the OAuth flow for the venue resolved from state', async () => {
     const route = await import('@/app/api/admin/google-calendar/callback/route')
 

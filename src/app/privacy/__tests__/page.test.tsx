@@ -17,7 +17,10 @@ describe('PrivacyPage', () => {
     expect(screen.getByRole('heading', { name: /google sign-in data use/i, level: 2 })).toBeInTheDocument()
     expect(screen.getByText(/we use google via supabase auth/i)).toBeInTheDocument()
     expect(screen.getByRole('heading', { name: /google calendar data use/i, level: 2 })).toBeInTheDocument()
-    expect(screen.getByText(/read-only access/i)).toBeInTheDocument()
+    expect(
+      screen.getByText(/requested only when an admin explicitly chooses to connect google calendar/i)
+    ).toBeInTheDocument()
+    expect(screen.getAllByText(/generate bookable availability windows/i).length).toBeGreaterThan(0)
     expect(screen.getByText(/does not write to google calendar/i)).toBeInTheDocument()
     expect(screen.getByText(/does not sell google user data/i)).toBeInTheDocument()
     expect(screen.getByRole('link', { name: /jensen@playbookings.com/i })).toHaveAttribute(

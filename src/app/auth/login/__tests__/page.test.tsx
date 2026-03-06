@@ -18,9 +18,17 @@ describe('LoginPage', () => {
     mockGet.mockReturnValue(null)
   })
 
+  it('explains that Google Sign-In does not request calendar access', () => {
+    render(<LoginPage />)
+
+    expect(
+      screen.getByText(/google sign-in only\. calendar access is requested separately/i)
+    ).toBeInTheDocument()
+  })
+
   it('renders the public privacy policy link', () => {
     render(<LoginPage />)
 
-    expect(screen.getByRole('link', { name: /privacy policy/i })).toHaveAttribute('href', '/privacy')
+    expect(screen.getAllByRole('link', { name: /privacy policy/i })[0]).toHaveAttribute('href', '/privacy')
   })
 })

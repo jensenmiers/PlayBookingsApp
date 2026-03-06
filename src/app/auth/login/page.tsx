@@ -62,6 +62,20 @@ function LoginContent() {
             )}
           </Button>
 
+          <div className="space-y-2 text-center text-sm text-secondary-50/60">
+            <p>
+              Google Sign-In only. Calendar access is requested separately only if a venue admin later chooses
+              to connect Google Calendar.
+            </p>
+            <p>
+              By continuing, you agree to our{' '}
+              <Link href="/privacy" className="font-semibold text-secondary-50/70 hover:text-primary-400">
+                Privacy Policy
+              </Link>
+              .
+            </p>
+          </div>
+
           <div className="text-center text-sm text-secondary-50/60">
             Don&apos;t have an account?{' '}
             <Link href="/auth/register" className="font-semibold text-secondary-50/70 hover:text-primary-400">

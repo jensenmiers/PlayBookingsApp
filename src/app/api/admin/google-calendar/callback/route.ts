@@ -13,6 +13,7 @@ type CalendarCallbackErrorCode =
   | 'missing_code_state'
   | 'invalid_state'
   | 'oauth_exchange_failed'
+  | 'calendar_api_disabled'
   | 'callback_failed'
 
 function getSuperAdminRedirectBase(origin: string): string {
@@ -56,6 +57,15 @@ function mapCallbackFailureToCode(error: unknown): CalendarCallbackErrorCode {
     || message.includes('did not return refresh_token')
   ) {
     return 'oauth_exchange_failed'
+  }
+
+  if (
+    message.includes('service_disabled')
+    || message.includes('accessnotconfigured')
+    || message.includes('calendar api has not been used')
+    || message.includes('calendar-json.googleapis.com')
+  ) {
+    return 'calendar_api_disabled'
   }
 
   return 'callback_failed'

@@ -603,6 +603,9 @@ function mapCalendarErrorCodeToMessage(code: string): string {
   if (code === 'oauth_exchange_failed') {
     return 'Google Calendar sign-in succeeded, but token exchange failed. Please try again.'
   }
+  if (code === 'calendar_api_disabled') {
+    return 'Google Calendar API is not enabled for the configured Google project. Enable it and try again.'
+  }
   return 'Google Calendar connection failed. Please try again.'
 }
 
@@ -703,7 +706,7 @@ export function SuperAdminVenueConfigPage() {
       url.searchParams.delete('venue_id')
     }
     if (connectedParam === '1') {
-      setCalendarMessage('Google Calendar connected')
+      setCalendarMessage('Google Calendar connected. Choose the calendar for this venue to generate availability.')
       url.searchParams.delete('calendar_connected')
     }
     if (errorCodeParam) {
@@ -997,7 +1000,7 @@ export function SuperAdminVenueConfigPage() {
         calendar_name: selected?.summary || null,
       })
       await refetch()
-      setCalendarMessage('Google calendar selected')
+      setCalendarMessage('Google Calendar selected. This calendar will be used to generate venue availability.')
     } catch (selectError) {
       setCalendarError(selectError instanceof Error ? selectError.message : 'Failed to select Google calendar')
     } finally {
@@ -1017,7 +1020,7 @@ export function SuperAdminVenueConfigPage() {
       const result = await syncVenueCalendarNow(selectedItem.venue.id)
       await refetch()
       setCalendarMessage(
-        `Calendar synced (${result.upsertedCount} upserted, ${result.cancelledCount} cancelled)`
+        `Calendar synced. Venue availability has been recalculated from operating hours and Google Calendar busy times. (${result.upsertedCount} updates, ${result.cancelledCount} cancellations)`
       )
     } catch (syncError) {
       setCalendarError(syncError instanceof Error ? syncError.message : 'Failed to sync Google calendar')
@@ -1031,7 +1034,9 @@ export function SuperAdminVenueConfigPage() {
       return
     }
 
-    const confirmed = window.confirm('Disconnect Google Calendar for this venue?')
+    const confirmed = window.confirm(
+      'Disconnect Google Calendar for this venue? PlayBookings will stop using Google Calendar busy times when generating venue availability.'
+    )
     if (!confirmed) {
       return
     }
@@ -1042,7 +1047,7 @@ export function SuperAdminVenueConfigPage() {
     try {
       await disconnectVenueCalendar(selectedItem.venue.id)
       await refetch()
-      setCalendarMessage('Google Calendar disconnected')
+      setCalendarMessage('Google Calendar disconnected. PlayBookings will no longer use calendar busy times for this venue.')
     } catch (disconnectError) {
       setCalendarError(disconnectError instanceof Error ? disconnectError.message : 'Failed to disconnect Google Calendar')
     } finally {
@@ -1645,9 +1650,19 @@ export function SuperAdminVenueConfigPage() {
 
             <ConfigRow
               title="Google Calendar"
-              description="Connect one Google calendar per venue. Busy events become external availability blocks."
+              description="Connect one Google Calendar per venue. PlayBookings uses read-only calendar access to combine this venue's operating hours with the calendar's busy times and generate bookable availability."
             >
               <div className="space-y-2">
+                <div className="rounded-md border border-secondary-50/10 bg-secondary-800 px-3 py-2 text-xs text-secondary-50/70">
+                  <p>Read-only access only. PlayBookings does not create, edit, or delete Google Calendar events.</p>
+                  <p className="mt-2">
+                    Choose the Google Calendar that represents this venue. Busy times from the selected calendar remove overlapping bookable windows during configured operating hours.
+                  </p>
+                  <p className="mt-2">
+                    Sync reads the selected calendar&apos;s current busy times and recalculates venue availability.
+                  </p>
+                </div>
+
                 <div className="rounded-md border border-secondary-50/10 bg-secondary-800 px-3 py-2 text-xs text-secondary-50/70">
                   <p>
                     Status:{' '}

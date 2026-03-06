@@ -319,6 +319,20 @@ describe('SuperAdminVenueConfigPage', () => {
     ).toBeInTheDocument()
   })
 
+  it('shows a clear message when the Google Calendar API is disabled', async () => {
+    window.history.replaceState(
+      {},
+      '',
+      'http://localhost/super-admin?venue_id=venue-1&calendar_error_code=calendar_api_disabled'
+    )
+
+    render(<SuperAdminVenueConfigPage />)
+
+    expect(
+      await screen.findByText('Google Calendar API is not enabled for the configured Google project. Enable it and try again.')
+    ).toBeInTheDocument()
+  })
+
   it('shows a generic fallback message for legacy calendar_error query param', async () => {
     window.history.replaceState(
       {},
@@ -398,6 +412,25 @@ describe('SuperAdminVenueConfigPage', () => {
         Node.DOCUMENT_POSITION_FOLLOWING
       )
     }
+  })
+
+  it('renders calendar reviewer-facing helper copy', async () => {
+    render(<SuperAdminVenueConfigPage />)
+
+    await screen.findByRole('heading', { name: 'Google Calendar', level: 3 })
+
+    expect(
+      screen.getByText(/uses read-only calendar access to combine this venue's operating hours/i)
+    ).toBeInTheDocument()
+    expect(
+      screen.getByText(/playbookings does not create, edit, or delete google calendar events/i)
+    ).toBeInTheDocument()
+    expect(
+      screen.getByText(/busy times from the selected calendar remove overlapping bookable windows/i)
+    ).toBeInTheDocument()
+    expect(
+      screen.getByText(/sync reads the selected calendar's current busy times and recalculates venue availability/i)
+    ).toBeInTheDocument()
   })
 
   it('renders two booking mode toggles and removes legacy insurance controls', async () => {

@@ -1,5 +1,6 @@
 'use client'
 
+import Link from 'next/link'
 import { useState, useEffect } from 'react'
 import {
   Dialog,
@@ -243,6 +244,20 @@ export function AuthModal() {
               Complete the sign-in in the popup window. This dialog will close automatically.
             </p>
           )}
+
+          <div className="space-y-2 text-center text-xs text-secondary-50/55">
+            <p>
+              Google Sign-In only. Calendar access is requested separately only if a venue admin later chooses
+              to connect Google Calendar.
+            </p>
+            <p>
+              By continuing, you agree to our{' '}
+              <Link href="/privacy" className="font-semibold text-secondary-50/70 hover:text-primary-400">
+                Privacy Policy
+              </Link>
+              .
+            </p>
+          </div>
         </div>
       </DialogContent>
     </Dialog>

@@ -79,6 +79,15 @@ describe('AuthModal', () => {
     expect(mockOpen.mock.calls[0][2]).toMatch(/width=500.*height=600/)
   })
 
+  it('shows Google Sign-In disclosure copy and privacy link', () => {
+    render(<AuthModal />)
+
+    expect(
+      screen.getByText(/google sign-in only\. calendar access is requested separately/i)
+    ).toBeInTheDocument()
+    expect(screen.getByRole('link', { name: /privacy policy/i })).toHaveAttribute('href', '/privacy')
+  })
+
   it('includes returnTo and intent=host in popup URL when set', () => {
     useAuthModalReturn.returnTo = '/book'
     useAuthModalReturn.intent = 'host'
