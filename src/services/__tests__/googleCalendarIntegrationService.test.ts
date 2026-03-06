@@ -13,7 +13,10 @@ jest.mock('@/lib/tokenCrypto', () => ({
 
 import { createAdminClient } from '@/lib/supabase/admin'
 import {
+  buildGoogleCalendarAuthUrl,
   completeCalendarOAuthConnection,
+  getCalendarCallbackUrl,
+  resolveVenueCalendarOAuthState,
   selectVenueCalendar,
 } from '../googleCalendarIntegrationService'
 
@@ -42,13 +45,25 @@ type TokenRow = {
   scopes: string[]
 }
 
+type OAuthStateRow = {
+  state_nonce: string
+  venue_id: string
+  initiated_by_user_id: string
+  expires_at: string
+  used_at: string | null
+  created_at?: string | null
+}
+
 function createAdminClientMock(args?: {
   integrationRow?: IntegrationRow | null
   tokenRow?: TokenRow | null
+  oauthStateRow?: OAuthStateRow | null
 }) {
   const calls = {
     integrationUpserts: [] as Array<Record<string, unknown>>,
     tokenUpserts: [] as Array<Record<string, unknown>>,
+    oauthStateInserts: [] as Array<Record<string, unknown>>,
+    oauthStateUpdates: [] as Array<Record<string, unknown>>,
   }
 
   const integrationMaybeSingle = jest
@@ -74,6 +89,22 @@ function createAdminClientMock(args?: {
   const tokenUpdateEq = jest.fn().mockResolvedValue({ error: null })
   const tokenUpdate = jest.fn(() => ({ eq: tokenUpdateEq }))
 
+  const oauthStateMaybeSingle = jest
+    .fn()
+    .mockResolvedValue({ data: args?.oauthStateRow ?? null, error: null })
+  const oauthStateEq = jest.fn(() => ({ maybeSingle: oauthStateMaybeSingle }))
+  const oauthStateSelect = jest.fn(() => ({ eq: oauthStateEq }))
+  const oauthStateInsert = jest.fn(async (payload: Record<string, unknown>) => {
+    calls.oauthStateInserts.push(payload)
+    return { error: null }
+  })
+  const oauthStateUpdateIs = jest.fn().mockResolvedValue({ error: null })
+  const oauthStateUpdateEq = jest.fn(() => ({ is: oauthStateUpdateIs }))
+  const oauthStateUpdate = jest.fn((payload: Record<string, unknown>) => {
+    calls.oauthStateUpdates.push(payload)
+    return { eq: oauthStateUpdateEq }
+  })
+
   const from = jest.fn((table: string) => {
     if (table === 'venue_calendar_integrations') {
       return {
@@ -88,6 +119,13 @@ function createAdminClientMock(args?: {
         update: tokenUpdate,
       }
     }
+    if (table === 'venue_calendar_oauth_states') {
+      return {
+        select: oauthStateSelect,
+        insert: oauthStateInsert,
+        update: oauthStateUpdate,
+      }
+    }
     throw new Error(`Unexpected table ${table}`)
   })
 
@@ -100,14 +138,14 @@ function createAdminClientMock(args?: {
 describe('googleCalendarIntegrationService', () => {
   const originalFetch = global.fetch
   const envSnapshot = {
-    GOOGLE_CLIENT_ID: process.env.GOOGLE_CLIENT_ID,
-    GOOGLE_CLIENT_SECRET: process.env.GOOGLE_CLIENT_SECRET,
+    GOOGLE_CALENDAR_CLIENT_ID: process.env.GOOGLE_CALENDAR_CLIENT_ID,
+    GOOGLE_CALENDAR_CLIENT_SECRET: process.env.GOOGLE_CALENDAR_CLIENT_SECRET,
   }
 
   beforeEach(() => {
     jest.clearAllMocks()
-    process.env.GOOGLE_CLIENT_ID = 'google-client-id'
-    process.env.GOOGLE_CLIENT_SECRET = 'google-client-secret'
+    process.env.GOOGLE_CALENDAR_CLIENT_ID = 'google-calendar-client-id'
+    process.env.GOOGLE_CALENDAR_CLIENT_SECRET = 'google-calendar-client-secret'
   })
 
   afterEach(() => {
@@ -115,8 +153,100 @@ describe('googleCalendarIntegrationService', () => {
   })
 
   afterAll(() => {
-    process.env.GOOGLE_CLIENT_ID = envSnapshot.GOOGLE_CLIENT_ID
-    process.env.GOOGLE_CLIENT_SECRET = envSnapshot.GOOGLE_CLIENT_SECRET
+    process.env.GOOGLE_CALENDAR_CLIENT_ID = envSnapshot.GOOGLE_CALENDAR_CLIENT_ID
+    process.env.GOOGLE_CALENDAR_CLIENT_SECRET = envSnapshot.GOOGLE_CALENDAR_CLIENT_SECRET
+  })
+
+  it('builds auth urls with the static callback and persists an oauth state nonce', async () => {
+    const { client, calls } = createAdminClientMock()
+    ;(createAdminClient as jest.Mock).mockReturnValue(client)
+
+    const authUrl = await buildGoogleCalendarAuthUrl({
+      origin: 'http://localhost:3000',
+      venueId: 'venue-1',
+      userId: 'super-admin-1',
+    })
+
+    const parsedUrl = new URL(authUrl)
+    const state = parsedUrl.searchParams.get('state')
+
+    expect(parsedUrl.searchParams.get('client_id')).toBe('google-calendar-client-id')
+    expect(parsedUrl.searchParams.get('redirect_uri')).toBe(
+      'http://localhost:3000/api/admin/google-calendar/callback'
+    )
+    expect(getCalendarCallbackUrl('http://localhost:3000')).toBe(
+      'http://localhost:3000/api/admin/google-calendar/callback'
+    )
+    expect(state).toEqual(expect.any(String))
+    expect(calls.oauthStateInserts).toHaveLength(1)
+    expect(calls.oauthStateInserts[0]).toEqual(
+      expect.objectContaining({
+        state_nonce: state,
+        venue_id: 'venue-1',
+        initiated_by_user_id: 'super-admin-1',
+      })
+    )
+    expect(calls.oauthStateInserts[0].expires_at).toEqual(expect.any(String))
+  })
+
+  it('rejects expired oauth state records', async () => {
+    const { client } = createAdminClientMock({
+      oauthStateRow: {
+        state_nonce: 'expired-state',
+        venue_id: 'venue-1',
+        initiated_by_user_id: 'super-admin-1',
+        expires_at: '2000-01-01T00:00:00.000Z',
+        used_at: null,
+      },
+    })
+    ;(createAdminClient as jest.Mock).mockReturnValue(client)
+
+    const result = await resolveVenueCalendarOAuthState({
+      state: 'expired-state',
+      userId: 'super-admin-1',
+    })
+
+    expect(result).toBeNull()
+  })
+
+  it('rejects already-used oauth state records', async () => {
+    const { client } = createAdminClientMock({
+      oauthStateRow: {
+        state_nonce: 'used-state',
+        venue_id: 'venue-1',
+        initiated_by_user_id: 'super-admin-1',
+        expires_at: '2099-01-01T00:00:00.000Z',
+        used_at: '2026-03-05T00:00:00.000Z',
+      },
+    })
+    ;(createAdminClient as jest.Mock).mockReturnValue(client)
+
+    const result = await resolveVenueCalendarOAuthState({
+      state: 'used-state',
+      userId: 'super-admin-1',
+    })
+
+    expect(result).toBeNull()
+  })
+
+  it('rejects oauth state records created by a different user', async () => {
+    const { client } = createAdminClientMock({
+      oauthStateRow: {
+        state_nonce: 'other-user-state',
+        venue_id: 'venue-1',
+        initiated_by_user_id: 'different-admin',
+        expires_at: '2099-01-01T00:00:00.000Z',
+        used_at: null,
+      },
+    })
+    ;(createAdminClient as jest.Mock).mockReturnValue(client)
+
+    const result = await resolveVenueCalendarOAuthState({
+      state: 'other-user-state',
+      userId: 'super-admin-1',
+    })
+
+    expect(result).toBeNull()
   })
 
   it('keeps sync disabled after OAuth completion until a calendar is selected', async () => {
@@ -147,7 +277,7 @@ describe('googleCalendarIntegrationService', () => {
       venueId: 'venue-1',
       userId: 'super-admin-1',
       code: 'oauth-code',
-      redirectUri: 'http://localhost/api/admin/venues/venue-1/calendar/callback',
+      redirectUri: 'http://localhost/api/admin/google-calendar/callback',
     })
 
     expect(calls.tokenUpserts).toHaveLength(1)

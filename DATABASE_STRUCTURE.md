@@ -17,7 +17,7 @@ It is intentionally not a column-by-column reference.
 
 <!-- AUTO-SNAPSHOT:DB:START -->
 - Generated at: 2026-03-05 (America/Los_Angeles)
-- Latest migration in repo: `20260303000200_disable_unselected_calendar_sync.sql` (33 total)
+- Latest migration in repo: `20260305000100_add_venue_calendar_oauth_states.sql` (34 total)
 - Distinct tables referenced in app code via `.from()`: 17
 - App table sample: `audit_logs`, `availability`, `bookings`, `drop_in_template_sync_queue`, `external_availability_blocks`, `payments`, `recurring_bookings`, `regular_template_sync_queue`, `slot_instances`, `slot_interactions`, `slot_modal_content`, `slot_templates` (+5 more)
 - Live key-table check: 19/19 tables available
@@ -55,6 +55,7 @@ It is intentionally not a column-by-column reference.
 - `drop_in_template_sync_queue`: async queue for regenerating drop-in-driven slot instances.
 - `regular_template_sync_queue`: async queue for regenerating regular template-driven slot instances.
 - `external_availability_blocks`: external calendar/admin blocking overlay used to hide and reject overlapping slots.
+- `venue_calendar_oauth_states`: short-lived OAuth handoff state linking the fixed Google callback back to a venue/admin pair.
 
 ### Payments, Compliance, and Supporting Data
 
@@ -90,6 +91,9 @@ It is intentionally not a column-by-column reference.
    - `get_regular_available_slot_instances` is the canonical regular eligibility function used by both venue availability regular reads and next-available discovery.
    - `get_venues_with_next_available` now derives next slots from that shared eligibility core.
    - Discovery surfaces (`/search`, `/venues`, home featured) stay regular-only; drop-in info-only slots remain venue-page-only.
+9. Google Calendar OAuth callbacks are now fixed-path:
+   - Venue-specific callback URLs were removed.
+   - Short-lived `venue_calendar_oauth_states` records now map the static callback back to the initiating venue/admin.
 
 ## Operational Notes
 

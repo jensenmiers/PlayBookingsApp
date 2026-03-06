@@ -1,4 +1,4 @@
-import { createHmac, randomBytes } from 'crypto'
+import { randomBytes } from 'crypto'
 import { createAdminClient } from '@/lib/supabase/admin'
 import { decryptSecret, encryptSecret } from '@/lib/tokenCrypto'
 import { buildCalendarBlockMutations, type GoogleCalendarEventInput } from '@/lib/googleCalendarSync'
@@ -11,19 +11,13 @@ const GOOGLE_CALENDAR_LIST_URL = 'https://www.googleapis.com/calendar/v3/users/m
 const GOOGLE_EVENTS_BASE_URL = 'https://www.googleapis.com/calendar/v3/calendars'
 const DEFAULT_SYNC_INTERVAL_MINUTES = 5
 const DEFAULT_TIME_ZONE = 'America/Los_Angeles'
+const CALENDAR_OAUTH_STATE_TTL_MS = 10 * 60 * 1000
 
 type TokenSet = {
   accessToken: string
   refreshToken: string
   accessTokenExpiresAt: string | null
   scopes: string[]
-}
-
-type OAuthStatePayload = {
-  venueId: string
-  userId: string
-  nonce: string
-  exp: number
 }
 
 type VenueCalendarIntegrationRow = {
@@ -51,6 +45,14 @@ type VenueCalendarTokenRow = {
   scopes: string[]
 }
 
+type VenueCalendarOAuthStateRow = {
+  state_nonce: string
+  venue_id: string
+  initiated_by_user_id: string
+  expires_at: string
+  used_at: string | null
+}
+
 type GoogleTokenResponse = {
   access_token: string
   expires_in: number
@@ -72,16 +74,14 @@ type GoogleEventsResponse = {
   nextSyncToken?: string
 }
 
-function getRequiredEnv(name: 'GOOGLE_CLIENT_ID' | 'GOOGLE_CLIENT_SECRET'): string {
+function getRequiredEnv(
+  name: 'GOOGLE_CALENDAR_CLIENT_ID' | 'GOOGLE_CALENDAR_CLIENT_SECRET'
+): string {
   const value = process.env[name]
   if (!value) {
     throw internalError(`Server misconfiguration: missing ${name}`)
   }
   return value
-}
-
-function getStateSigningSecret(): string {
-  return process.env.GOOGLE_CALENDAR_STATE_SECRET || process.env.SUPABASE_SERVICE_ROLE_KEY || ''
 }
 
 function getSyncIntervalMinutes(value: unknown): number {
@@ -96,74 +96,96 @@ function addMinutes(date: Date, minutes: number): string {
   return new Date(date.getTime() + minutes * 60 * 1000).toISOString()
 }
 
-function toBase64Url(value: string): string {
-  return Buffer.from(value, 'utf8').toString('base64url')
+export function getCalendarCallbackUrl(origin: string): string {
+  return `${origin}/api/admin/google-calendar/callback`
 }
 
-function fromBase64Url(value: string): string {
-  return Buffer.from(value, 'base64url').toString('utf8')
+export async function createVenueCalendarOAuthState(args: {
+  venueId: string
+  userId: string
+}): Promise<string> {
+  const adminClient = createAdminClient()
+  const stateNonce = randomBytes(32).toString('base64url')
+  const expiresAt = new Date(Date.now() + CALENDAR_OAUTH_STATE_TTL_MS).toISOString()
+
+  const { error } = await adminClient
+    .from('venue_calendar_oauth_states')
+    .insert({
+      state_nonce: stateNonce,
+      venue_id: args.venueId,
+      initiated_by_user_id: args.userId,
+      expires_at: expiresAt,
+    })
+
+  if (error) {
+    throw new Error(`Failed to persist Google calendar OAuth state: ${error.message}`)
+  }
+
+  return stateNonce
 }
 
-function signState(payloadEncoded: string): string {
-  const secret = getStateSigningSecret()
-  if (!secret) {
-    throw internalError('Server misconfiguration for calendar OAuth state')
+async function getVenueCalendarOAuthState(state: string): Promise<VenueCalendarOAuthStateRow | null> {
+  const adminClient = createAdminClient()
+  const { data, error } = await adminClient
+    .from('venue_calendar_oauth_states')
+    .select('state_nonce, venue_id, initiated_by_user_id, expires_at, used_at')
+    .eq('state_nonce', state)
+    .maybeSingle()
+
+  if (error) {
+    throw new Error(`Failed to load Google calendar OAuth state: ${error.message}`)
   }
-  return createHmac('sha256', secret).update(payloadEncoded).digest('base64url')
+
+  return (data as VenueCalendarOAuthStateRow | null) || null
 }
 
-export function createCalendarOAuthState(venueId: string, userId: string): string {
-  const payload: OAuthStatePayload = {
-    venueId,
-    userId,
-    nonce: randomBytes(8).toString('hex'),
-    exp: Date.now() + 10 * 60 * 1000,
+export async function resolveVenueCalendarOAuthState(args: {
+  state: string
+  userId: string
+}): Promise<{ venueId: string } | null> {
+  const stateRecord = await getVenueCalendarOAuthState(args.state)
+  if (!stateRecord) {
+    return null
   }
 
-  const encoded = toBase64Url(JSON.stringify(payload))
-  const signature = signState(encoded)
-  return `${encoded}.${signature}`
+  const isExpired = new Date(stateRecord.expires_at).getTime() < Date.now()
+  const initiatedByDifferentUser = stateRecord.initiated_by_user_id !== args.userId
+
+  if (stateRecord.used_at || isExpired || initiatedByDifferentUser) {
+    return null
+  }
+
+  return {
+    venueId: stateRecord.venue_id,
+  }
 }
 
-export function verifyCalendarOAuthState(
-  state: string,
-  expectedVenueId: string,
-  expectedUserId: string
-): boolean {
-  const [encodedPayload, signature] = state.split('.')
-  if (!encodedPayload || !signature) {
-    return false
-  }
-  if (signState(encodedPayload) !== signature) {
-    return false
-  }
+export async function markVenueCalendarOAuthStateUsed(state: string): Promise<void> {
+  const adminClient = createAdminClient()
+  const { error } = await adminClient
+    .from('venue_calendar_oauth_states')
+    .update({
+      used_at: new Date().toISOString(),
+    })
+    .eq('state_nonce', state)
+    .is('used_at', null)
 
-  let payload: OAuthStatePayload
-  try {
-    payload = JSON.parse(fromBase64Url(encodedPayload)) as OAuthStatePayload
-  } catch {
-    return false
+  if (error) {
+    throw new Error(`Failed to mark Google calendar OAuth state as used: ${error.message}`)
   }
-
-  if (!payload || payload.exp < Date.now()) {
-    return false
-  }
-
-  return payload.venueId === expectedVenueId && payload.userId === expectedUserId
 }
 
-export function getCalendarCallbackUrl(origin: string, venueId: string): string {
-  return `${origin}/api/admin/venues/${venueId}/calendar/callback`
-}
-
-export function buildGoogleCalendarAuthUrl(args: {
+export async function buildGoogleCalendarAuthUrl(args: {
   origin: string
   venueId: string
   userId: string
-}): string {
-  const clientId = getRequiredEnv('GOOGLE_CLIENT_ID')
-  const state = createCalendarOAuthState(args.venueId, args.userId)
-  const redirectUri = getCalendarCallbackUrl(args.origin, args.venueId)
+}): Promise<string> {
+  const clientId = getRequiredEnv('GOOGLE_CALENDAR_CLIENT_ID')
+  const state = await createVenueCalendarOAuthState({
+    venueId: args.venueId,
+    userId: args.userId,
+  })
+  const redirectUri = getCalendarCallbackUrl(args.origin)
   const params = new URLSearchParams({
     client_id: clientId,
     redirect_uri: redirectUri,
@@ -200,8 +222,8 @@ async function exchangeCodeForTokens(args: {
   code: string
   redirectUri: string
 }): Promise<TokenSet> {
-  const clientId = getRequiredEnv('GOOGLE_CLIENT_ID')
-  const clientSecret = getRequiredEnv('GOOGLE_CLIENT_SECRET')
+  const clientId = getRequiredEnv('GOOGLE_CALENDAR_CLIENT_ID')
+  const clientSecret = getRequiredEnv('GOOGLE_CALENDAR_CLIENT_SECRET')
   const response = await fetch(GOOGLE_TOKEN_URL, {
     method: 'POST',
     headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
@@ -239,8 +261,8 @@ async function refreshAccessToken(refreshToken: string): Promise<{
   accessTokenExpiresAt: string | null
   scopes: string[]
 }> {
-  const clientId = getRequiredEnv('GOOGLE_CLIENT_ID')
-  const clientSecret = getRequiredEnv('GOOGLE_CLIENT_SECRET')
+  const clientId = getRequiredEnv('GOOGLE_CALENDAR_CLIENT_ID')
+  const clientSecret = getRequiredEnv('GOOGLE_CALENDAR_CLIENT_SECRET')
   const response = await fetch(GOOGLE_TOKEN_URL, {
     method: 'POST',
     headers: { 'Content-Type': 'application/x-www-form-urlencoded' },

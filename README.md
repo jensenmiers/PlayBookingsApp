@@ -51,10 +51,11 @@ Required environment variables:
 - `NEXT_PUBLIC_SUPABASE_URL` - Your Supabase project URL
 - `NEXT_PUBLIC_SUPABASE_ANON_KEY` - Your Supabase anonymous key
 - `SUPABASE_SERVICE_ROLE_KEY` - Your Supabase service role key
-- `GOOGLE_CLIENT_ID` - Google OAuth client ID
-- `GOOGLE_CLIENT_SECRET` - Google OAuth client secret
-- `GOOGLE_CALENDAR_STATE_SECRET` - Secret for signing Google Calendar OAuth state payloads
+- `GOOGLE_CALENDAR_CLIENT_ID` - Google OAuth client ID for the venue calendar integration
+- `GOOGLE_CALENDAR_CLIENT_SECRET` - Google OAuth client secret for the venue calendar integration
 - `CALENDAR_TOKEN_ENCRYPTION_KEY` - Secret used to encrypt Google Calendar OAuth tokens at rest
+- `SUPABASE_AUTH_EXTERNAL_GOOGLE_CLIENT_ID` - Google OAuth client ID used by Supabase Auth sign-in
+- `SUPABASE_AUTH_EXTERNAL_GOOGLE_SECRET` - Google OAuth client secret used by Supabase Auth sign-in
 - `STRIPE_SECRET_KEY` - Your Stripe secret key
 - `NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY` - Your Stripe publishable key
 - `NEXT_PUBLIC_POSTHOG_KEY` - (Optional) PostHog project API key
@@ -72,6 +73,10 @@ npm run dev
 ```
 
 Open [http://localhost:3000](http://localhost:3000) in your browser.
+
+Google Calendar integration redirect URIs must be registered on the dedicated calendar OAuth client:
+- `http://localhost:3000/api/admin/google-calendar/callback`
+- `https://<your-app-origin>/api/admin/google-calendar/callback`
 
 ## 🏗️ Project Structure
 

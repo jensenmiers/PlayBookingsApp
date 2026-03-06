@@ -19,7 +19,7 @@ export async function POST(_request: NextRequest, context: RouteContext): Promis
     await assertVenueExists(venueId)
     await assertVenueHasOperatingHours(venueId)
 
-    const authUrl = buildGoogleCalendarAuthUrl({
+    const authUrl = await buildGoogleCalendarAuthUrl({
       origin: _request.nextUrl.origin,
       venueId,
       userId: auth.userId,

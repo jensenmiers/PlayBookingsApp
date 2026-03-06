@@ -17,7 +17,8 @@ const mockDisconnectVenueCalendar = jest.fn()
 const mockSelectVenueCalendar = jest.fn()
 const mockCompleteCalendarOAuthConnection = jest.fn()
 const mockGetCalendarCallbackUrl = jest.fn()
-const mockVerifyCalendarOAuthState = jest.fn()
+const mockMarkVenueCalendarOAuthStateUsed = jest.fn()
+const mockResolveVenueCalendarOAuthState = jest.fn()
 
 jest.mock('@/middleware/authMiddleware', () => ({
   requireAuth: () => mockRequireAuth(),
@@ -37,7 +38,8 @@ jest.mock('@/services/googleCalendarIntegrationService', () => ({
   selectVenueCalendar: (...args: unknown[]) => mockSelectVenueCalendar(...args),
   completeCalendarOAuthConnection: (...args: unknown[]) => mockCompleteCalendarOAuthConnection(...args),
   getCalendarCallbackUrl: (...args: unknown[]) => mockGetCalendarCallbackUrl(...args),
-  verifyCalendarOAuthState: (...args: unknown[]) => mockVerifyCalendarOAuthState(...args),
+  markVenueCalendarOAuthStateUsed: (...args: unknown[]) => mockMarkVenueCalendarOAuthStateUsed(...args),
+  resolveVenueCalendarOAuthState: (...args: unknown[]) => mockResolveVenueCalendarOAuthState(...args),
 }))
 
 type RouteContext = { params: Promise<{ id: string }> }
@@ -59,13 +61,14 @@ describe('Admin venue calendar routes', () => {
     mockAssertVenueExists.mockResolvedValue(undefined)
     mockAssertVenueHasOperatingHours.mockResolvedValue(undefined)
     mockCompleteCalendarOAuthConnection.mockResolvedValue(undefined)
-    mockGetCalendarCallbackUrl.mockReturnValue('http://localhost/api/admin/venues/venue-1/calendar/callback')
-    mockVerifyCalendarOAuthState.mockReturnValue(true)
+    mockGetCalendarCallbackUrl.mockReturnValue('http://localhost/api/admin/google-calendar/callback')
+    mockResolveVenueCalendarOAuthState.mockResolvedValue({ venueId: 'venue-1' })
+    mockMarkVenueCalendarOAuthStateUsed.mockResolvedValue(undefined)
   })
 
   it('POST /connect returns auth url', async () => {
     const route = await import('@/app/api/admin/venues/[id]/calendar/connect/route')
-    mockBuildGoogleCalendarAuthUrl.mockReturnValue('https://accounts.google.com/o/oauth2/v2/auth?x=1')
+    mockBuildGoogleCalendarAuthUrl.mockResolvedValue('https://accounts.google.com/o/oauth2/v2/auth?x=1')
 
     const response = await route.POST(
       new NextRequest('http://localhost/api/admin/venues/venue-1/calendar/connect', { method: 'POST' }),
@@ -161,26 +164,23 @@ describe('Admin venue calendar routes', () => {
   })
 
   it('GET /callback returns safe code for missing code/state params', async () => {
-    const route = await import('@/app/api/admin/venues/[id]/calendar/callback/route')
+    const route = await import('@/app/api/admin/google-calendar/callback/route')
 
     const response = await route.GET(
-      new NextRequest('http://localhost/api/admin/venues/venue-1/calendar/callback'),
-      createContext('venue-1')
+      new NextRequest('http://localhost/api/admin/google-calendar/callback')
     )
 
     expect(response.status).toBe(302)
     const location = response.headers.get('location') || ''
-    expect(location).toContain('venue_id=venue-1')
     expect(location).toContain('calendar_error_code=missing_code_state')
   })
 
   it('GET /callback returns safe code for invalid OAuth state', async () => {
-    const route = await import('@/app/api/admin/venues/[id]/calendar/callback/route')
-    mockVerifyCalendarOAuthState.mockReturnValue(false)
+    const route = await import('@/app/api/admin/google-calendar/callback/route')
+    mockResolveVenueCalendarOAuthState.mockResolvedValue(null)
 
     const response = await route.GET(
-      new NextRequest('http://localhost/api/admin/venues/venue-1/calendar/callback?code=test-code&state=test-state'),
-      createContext('venue-1')
+      new NextRequest('http://localhost/api/admin/google-calendar/callback?code=test-code&state=test-state')
     )
 
     expect(response.status).toBe(302)
@@ -190,32 +190,71 @@ describe('Admin venue calendar routes', () => {
   })
 
   it('GET /callback maps provider access_denied to oauth_denied', async () => {
-    const route = await import('@/app/api/admin/venues/[id]/calendar/callback/route')
+    const route = await import('@/app/api/admin/google-calendar/callback/route')
 
     const response = await route.GET(
-      new NextRequest('http://localhost/api/admin/venues/venue-1/calendar/callback?error=access_denied'),
-      createContext('venue-1')
+      new NextRequest('http://localhost/api/admin/google-calendar/callback?error=access_denied&state=test-state')
     )
 
     expect(response.status).toBe(302)
     const location = response.headers.get('location') || ''
+    expect(location).toContain('venue_id=venue-1')
     expect(location).toContain('calendar_error_code=oauth_denied')
     expect(location).not.toContain('calendar_error=')
   })
 
-  it('GET /callback returns generic safe code for internal callback failures', async () => {
-    const route = await import('@/app/api/admin/venues/[id]/calendar/callback/route')
-    mockCompleteCalendarOAuthConnection.mockRejectedValue(new Error('unexpected provider payload'))
+  it('GET /callback maps token exchange failures to oauth_exchange_failed', async () => {
+    const route = await import('@/app/api/admin/google-calendar/callback/route')
+    mockCompleteCalendarOAuthConnection.mockRejectedValue(new Error('OAuth token exchange failed'))
 
     const response = await route.GET(
-      new NextRequest('http://localhost/api/admin/venues/venue-1/calendar/callback?code=test-code&state=test-state'),
-      createContext('venue-1')
+      new NextRequest('http://localhost/api/admin/google-calendar/callback?code=test-code&state=test-state')
     )
 
     expect(response.status).toBe(302)
     const location = response.headers.get('location') || ''
+    expect(location).toContain('venue_id=venue-1')
+    expect(location).toContain('calendar_error_code=oauth_exchange_failed')
+  })
+
+  it('GET /callback returns generic safe code for internal callback failures', async () => {
+    const route = await import('@/app/api/admin/google-calendar/callback/route')
+    mockCompleteCalendarOAuthConnection.mockRejectedValue(new Error('unexpected provider payload'))
+
+    const response = await route.GET(
+      new NextRequest('http://localhost/api/admin/google-calendar/callback?code=test-code&state=test-state')
+    )
+
+    expect(response.status).toBe(302)
+    const location = response.headers.get('location') || ''
+    expect(location).toContain('venue_id=venue-1')
     expect(location).toContain('calendar_error_code=callback_failed')
     expect(location).not.toContain('provider')
     expect(location).not.toContain('calendar_error=')
+  })
+
+  it('GET /callback completes the OAuth flow for the venue resolved from state', async () => {
+    const route = await import('@/app/api/admin/google-calendar/callback/route')
+
+    const response = await route.GET(
+      new NextRequest('http://localhost/api/admin/google-calendar/callback?code=test-code&state=test-state')
+    )
+
+    expect(response.status).toBe(302)
+    expect(mockResolveVenueCalendarOAuthState).toHaveBeenCalledWith({
+      state: 'test-state',
+      userId: 'super-admin-1',
+    })
+    expect(mockCompleteCalendarOAuthConnection).toHaveBeenCalledWith({
+      venueId: 'venue-1',
+      userId: 'super-admin-1',
+      code: 'test-code',
+      redirectUri: 'http://localhost/api/admin/google-calendar/callback',
+    })
+    expect(mockMarkVenueCalendarOAuthStateUsed).toHaveBeenCalledWith('test-state')
+
+    const location = response.headers.get('location') || ''
+    expect(location).toContain('venue_id=venue-1')
+    expect(location).toContain('calendar_connected=1')
   })
 })

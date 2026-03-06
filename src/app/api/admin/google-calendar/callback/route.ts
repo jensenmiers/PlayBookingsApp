@@ -4,10 +4,10 @@ import { requireSuperAdmin } from '@/lib/superAdmin'
 import {
   completeCalendarOAuthConnection,
   getCalendarCallbackUrl,
-  verifyCalendarOAuthState,
+  markVenueCalendarOAuthStateUsed,
+  resolveVenueCalendarOAuthState,
 } from '@/services/googleCalendarIntegrationService'
 
-type RouteContext = { params: Promise<{ id: string }> }
 type CalendarCallbackErrorCode =
   | 'oauth_denied'
   | 'missing_code_state'
@@ -29,13 +29,18 @@ function redirectWithParams(origin: string, params: Record<string, string>): Res
 
 function redirectWithErrorCode(
   origin: string,
-  venueId: string,
+  venueId: string | null,
   code: CalendarCallbackErrorCode
 ): Response {
-  return redirectWithParams(origin, {
-    venue_id: venueId,
+  const params: Record<string, string> = {
     calendar_error_code: code,
-  })
+  }
+
+  if (venueId) {
+    params.venue_id = venueId
+  }
+
+  return redirectWithParams(origin, params)
 }
 
 function mapProviderErrorToCode(): CalendarCallbackErrorCode {
@@ -56,22 +61,24 @@ function mapCallbackFailureToCode(error: unknown): CalendarCallbackErrorCode {
   return 'callback_failed'
 }
 
-export async function GET(request: NextRequest, context: RouteContext): Promise<Response> {
+export async function GET(request: NextRequest): Promise<Response> {
+  const searchParams = request.nextUrl.searchParams
+  const code = searchParams.get('code')
+  const state = searchParams.get('state')
+  const oauthError = searchParams.get('error')
+  let venueId: string | null = null
+
   try {
     const auth = await requireAuth()
     requireSuperAdmin(auth)
 
-    const { id: venueId } = await context.params
-    if (!venueId) {
-      return redirectWithParams(request.nextUrl.origin, {
-        calendar_error_code: 'callback_failed',
-      })
-    }
-
-    const searchParams = request.nextUrl.searchParams
-    const code = searchParams.get('code')
-    const state = searchParams.get('state')
-    const oauthError = searchParams.get('error')
+    const resolvedState = state
+      ? await resolveVenueCalendarOAuthState({
+          state,
+          userId: auth.userId,
+        })
+      : null
+    venueId = resolvedState?.venueId || null
 
     if (oauthError) {
       return redirectWithErrorCode(
@@ -82,33 +89,30 @@ export async function GET(request: NextRequest, context: RouteContext): Promise<
     }
 
     if (!code || !state) {
-      return redirectWithErrorCode(request.nextUrl.origin, venueId, 'missing_code_state')
+      return redirectWithErrorCode(
+        request.nextUrl.origin,
+        venueId,
+        'missing_code_state'
+      )
     }
 
-    const stateValid = verifyCalendarOAuthState(state, venueId, auth.userId)
-    if (!stateValid) {
+    if (!resolvedState) {
       return redirectWithErrorCode(request.nextUrl.origin, venueId, 'invalid_state')
     }
 
     await completeCalendarOAuthConnection({
-      venueId,
+      venueId: resolvedState.venueId,
       userId: auth.userId,
       code,
-      redirectUri: getCalendarCallbackUrl(request.nextUrl.origin, venueId),
+      redirectUri: getCalendarCallbackUrl(request.nextUrl.origin),
     })
+    await markVenueCalendarOAuthStateUsed(state)
 
     return redirectWithParams(request.nextUrl.origin, {
-      venue_id: venueId,
+      venue_id: resolvedState.venueId,
       calendar_connected: '1',
     })
   } catch (error) {
-    // Keep callback user-friendly by returning to super-admin view with a safe error code.
-    const { id: venueId } = await context.params
-    if (!venueId) {
-      return redirectWithParams(request.nextUrl.origin, {
-        calendar_error_code: 'callback_failed',
-      })
-    }
     return redirectWithErrorCode(
       request.nextUrl.origin,
       venueId,
