@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useEffect, useCallback } from 'react'
+import { useState, useEffect } from 'react'
 import {
   Dialog,
   DialogContent,
@@ -11,27 +11,14 @@ import {
 import { Button } from '@/components/ui/button'
 import { useAuthModal } from '@/contexts/AuthModalContext'
 import { createClient } from '@/lib/supabase/client'
+import { buildAuthInitiationPath } from '@/lib/auth/oauthFlow'
+import { navigateToUrl } from '@/lib/auth/clientNavigation'
 
 export function AuthModal() {
   const { isOpen, intent, returnTo, contextMessage, closeAuthModal } = useAuthModal()
   const [loading, setLoading] = useState(false)
   const [popupBlocked, setPopupBlocked] = useState(false)
   const [popupWindow, setPopupWindow] = useState<Window | null>(null)
-
-
-  const buildAuthUrl = useCallback(() => {
-    const callbackParams = new URLSearchParams()
-    callbackParams.set('popup', 'true')
-    
-    if (returnTo) {
-      callbackParams.set('returnTo', returnTo)
-    }
-    if (intent === 'host') {
-      callbackParams.set('intent', 'host')
-    }
-    
-    return `${window.location.origin}/auth/callback?${callbackParams.toString()}`
-  }, [returnTo, intent])
 
   // Monitor popup window - when it closes, check if auth succeeded.
   useEffect(() => {
@@ -111,20 +98,21 @@ export function AuthModal() {
     setLoading(true)
     setPopupBlocked(false)
 
-    const popupParams = new URLSearchParams()
-    if (returnTo) popupParams.set('returnTo', returnTo)
-    if (intent === 'host') popupParams.set('intent', 'host')
-
-    const popupUrl = `${window.location.origin}/api/auth/popup-oauth?${popupParams.toString()}`
+    const popupUrl = buildAuthInitiationPath({
+      flowType: 'popup',
+      returnTo,
+      intent,
+    })
 
     const width = 500
     const height = 600
     const left = window.screenX + (window.outerWidth - width) / 2
     const top = window.screenY + (window.outerHeight - height) / 2
+    const popupName = `PlayBookingsAuth-${Date.now()}-${Math.random().toString(36).slice(2)}`
 
     const popup = window.open(
       popupUrl,
-      'PlayBookingsAuth',
+      popupName,
       `width=${width},height=${height},left=${left},top=${top},toolbar=no,menubar=no,scrollbars=yes,resizable=yes`
     )
 
@@ -139,19 +127,14 @@ export function AuthModal() {
   }
 
   const handleFallbackRedirect = async () => {
-    setLoading(true)
-    
-    const supabase = createClient()
-    const callbackUrl = buildAuthUrl().replace('popup=true', 'popup=false')
-
-    const { error } = await supabase.auth.signInWithOAuth({
-      provider: 'google',
-      options: {
-        redirectTo: callbackUrl,
-      },
-    })
-
-    if (error) {
+    try {
+      setLoading(true)
+      navigateToUrl(buildAuthInitiationPath({
+        flowType: 'redirect',
+        returnTo,
+        intent,
+      }))
+    } catch (error) {
       console.error('Error during redirect authentication:', error)
       setLoading(false)
     }

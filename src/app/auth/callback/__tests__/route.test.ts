@@ -1,5 +1,5 @@
 /**
- * Unit tests for auth callback route
+ * Unit tests for legacy auth callback compatibility shim
  * GET /auth/callback
  */
 
@@ -41,7 +41,7 @@ function createRequest(url: string): { nextUrl: URL } {
 
 const origin = 'http://localhost:3000'
 
-describe('GET /auth/callback', () => {
+describe('GET /auth/callback compatibility shim', () => {
   let GET: (request: { nextUrl: URL }) => Promise<{ status: number; headers: { get: (n: string) => string | null } }>
 
   beforeAll(async () => {
@@ -60,87 +60,19 @@ describe('GET /auth/callback', () => {
     consoleErrorSpy.mockRestore()
   })
 
-  it('redirects to popup-success when no code and popup=true', async () => {
-    const request = createRequest(`${origin}/auth/callback?popup=true`)
-    const response = await GET(request)
-
-    expect(response.status).toBe(302)
-    expect(response.headers.get('Location')).toBe(
-      `${origin}/auth/popup-success?error=No+code+provided`
-    )
-    expect(mockExchangeCodeForSession).not.toHaveBeenCalled()
-  })
-
-  it('redirects to login when no code and not popup', async () => {
-    const request = createRequest(`${origin}/auth/callback`)
-    const response = await GET(request)
-
-    expect(response.status).toBe(302)
-    expect(response.headers.get('Location')).toBe(
-      `${origin}/auth/login?error=No+code+provided`
-    )
-  })
-
-  it('redirects to popup-success when exchange fails and popup=true', async () => {
-    mockExchangeCodeForSession.mockResolvedValue({
-      data: null,
-      error: { message: 'Invalid code' },
-    })
-    const request = createRequest(`${origin}/auth/callback?code=abc&popup=true`)
-    const response = await GET(request)
-
-    expect(response.status).toBe(302)
-    const location = response.headers.get('Location')!
-    expect(location).toContain('/auth/popup-success?error=')
-    expect(decodeURIComponent(location)).toContain('Invalid code')
-  })
-
-  it('redirects to login when exchange fails and not popup', async () => {
-    mockExchangeCodeForSession.mockResolvedValue({
-      data: null,
-      error: { message: 'Invalid code' },
-    })
-    const request = createRequest(`${origin}/auth/callback?code=abc`)
-    const response = await GET(request)
-
-    expect(response.status).toBe(302)
-    expect(response.headers.get('Location')).toContain('/auth/login?error=')
-  })
-
-  it('redirects to popup-success with returnTo and intent when popup and exchange succeeds', async () => {
+  it('preserves legacy popup=true success path for stale popup clients', async () => {
     mockExchangeCodeForSession.mockResolvedValue({
       data: { session: { user: {} } },
       error: null,
     })
-    const request = createRequest(
-      `${origin}/auth/callback?code=abc&popup=true&returnTo=%2Fbook&intent=host`
-    )
-    const response = await GET(request)
+
+    const response = await GET(createRequest(`${origin}/auth/callback?code=abc&popup=true`))
 
     expect(response.status).toBe(302)
-    const location = response.headers.get('Location')!
-    expect(location).toContain('/auth/popup-success')
-    expect(location).toContain('returnTo=%2Fbook')
-    expect(location).toContain('intent=host')
+    expect(response.headers.get('Location')).toBe(`${origin}/auth/popup-success?returnTo=%2Fsearch`)
   })
 
-  it('popup flow never redirects to in-app path only to popup-success', async () => {
-    mockExchangeCodeForSession.mockResolvedValue({
-      data: { session: { user: {} } },
-      error: null,
-    })
-    const request = createRequest(
-      `${origin}/auth/callback?code=abc&popup=true&returnTo=%2Fsearch`
-    )
-    const response = await GET(request)
-
-    const location = response.headers.get('Location')!
-    expect(location.startsWith(`${origin}/auth/popup-success`)).toBe(true)
-    expect(location).not.toBe(`${origin}/search`)
-    expect(location).not.toBe(`${origin}/dashboard`)
-  })
-
-  it('non-popup: new user triggers upsert and redirects to returnTo', async () => {
+  it('preserves legacy non-popup redirect path for stale full-window clients', async () => {
     mockExchangeCodeForSession.mockResolvedValue({
       data: {
         session: {
@@ -155,198 +87,21 @@ describe('GET /auth/callback', () => {
     })
     mockSingle.mockResolvedValue({ data: null, error: { message: 'not found' } })
 
-    const request = createRequest(`${origin}/auth/callback?code=abc&returnTo=%2Fsearch`)
-    const response = await GET(request)
-
-    expect(mockUpsert).toHaveBeenCalledWith(
-      expect.objectContaining({
-        id: 'user-1',
-        email: 'jane@example.com',
-        first_name: 'Jane',
-        last_name: 'Doe',
-        is_renter: true,
-        is_venue_owner: false,
-        is_admin: false,
-      }),
-      { onConflict: 'id' }
+    const response = await GET(
+      createRequest(`${origin}/auth/callback?code=abc&returnTo=%2Fsearch`)
     )
+
     expect(response.status).toBe(302)
     expect(response.headers.get('Location')).toBe(`${origin}/search`)
+    expect(mockUpsert).toHaveBeenCalled()
   })
 
-  it('non-popup: existing host redirects to my-bookings', async () => {
-    mockExchangeCodeForSession.mockResolvedValue({
-      data: {
-        session: {
-          user: {
-            id: 'user-1',
-            email: 'host@example.com',
-            user_metadata: { full_name: 'Host User' },
-          },
-        },
-      },
-      error: null,
-    })
-    mockSingle.mockResolvedValue({
-      data: { id: 'user-1', is_venue_owner: true },
-      error: null,
-    })
+  it('still sends legacy popup errors to popup-success when popup=true', async () => {
+    const response = await GET(createRequest(`${origin}/auth/callback?popup=true`))
 
-    const request = createRequest(`${origin}/auth/callback?code=abc&returnTo=%2Fsearch`)
-    const response = await GET(request)
-
-    expect(response.headers.get('Location')).toBe(`${origin}/my-bookings`)
-  })
-
-  it('non-popup: existing renter with intent=host still redirects to returnTo', async () => {
-    mockExchangeCodeForSession.mockResolvedValue({
-      data: {
-        session: {
-          user: {
-            id: 'user-1',
-            email: 'renter@example.com',
-            user_metadata: { full_name: 'Renter User' },
-          },
-        },
-      },
-      error: null,
-    })
-    mockSingle.mockResolvedValue({
-      data: { id: 'user-1', is_venue_owner: false },
-      error: null,
-    })
-
-    const request = createRequest(
-      `${origin}/auth/callback?code=abc&returnTo=%2Fsearch&intent=host`
+    expect(response.status).toBe(302)
+    expect(response.headers.get('Location')).toBe(
+      `${origin}/auth/popup-success?error=No+code+provided`
     )
-    const response = await GET(request)
-
-    expect(response.headers.get('Location')).toBe(`${origin}/search`)
-  })
-
-  it('non-popup: new user with intent=host is persisted as renter-only', async () => {
-    mockExchangeCodeForSession.mockResolvedValue({
-      data: {
-        session: {
-          user: {
-            id: 'user-2',
-            email: 'new-host-intent@example.com',
-            user_metadata: { full_name: 'Host Intent User' },
-          },
-        },
-      },
-      error: null,
-    })
-    mockSingle.mockResolvedValue({ data: null, error: { message: 'not found' } })
-
-    await GET(createRequest(`${origin}/auth/callback?code=abc&intent=host`))
-
-    expect(mockUpsert).toHaveBeenCalledWith(
-      expect.objectContaining({
-        id: 'user-2',
-        is_renter: true,
-        is_venue_owner: false,
-      }),
-      { onConflict: 'id' }
-    )
-  })
-
-  it('non-popup: renter redirects to returnTo', async () => {
-    mockExchangeCodeForSession.mockResolvedValue({
-      data: {
-        session: {
-          user: {
-            id: 'user-1',
-            email: 'r@example.com',
-            user_metadata: { full_name: 'R' },
-          },
-        },
-      },
-      error: null,
-    })
-    mockSingle.mockResolvedValue({
-      data: { id: 'user-1', is_venue_owner: false },
-      error: null,
-    })
-
-    const request = createRequest(`${origin}/auth/callback?code=abc&returnTo=%2Fbook`)
-    const response = await GET(request)
-
-    expect(response.headers.get('Location')).toBe(`${origin}/book`)
-  })
-
-  it('uses default returnTo /search when omitted', async () => {
-    mockExchangeCodeForSession.mockResolvedValue({
-      data: { session: { user: {} } },
-      error: null,
-    })
-    const request = createRequest(`${origin}/auth/callback?code=abc&popup=true`)
-    const response = await GET(request)
-
-    const location = response.headers.get('Location')!
-    expect(location).toContain('returnTo=%2Fsearch')
-  })
-
-  it('parses full_name into first_name and last_name', async () => {
-    mockExchangeCodeForSession.mockResolvedValue({
-      data: {
-        session: {
-          user: {
-            id: 'u1',
-            email: 'a@b.com',
-            user_metadata: { full_name: 'Jane Doe' },
-          },
-        },
-      },
-      error: null,
-    })
-    mockSingle.mockResolvedValue({ data: null, error: {} })
-
-    await GET(createRequest(`${origin}/auth/callback?code=x`))
-
-    expect(mockUpsert).toHaveBeenCalledWith(
-      expect.objectContaining({
-        first_name: 'Jane',
-        last_name: 'Doe',
-      }),
-      { onConflict: 'id' }
-    )
-  })
-
-  it('handles empty or single-word full_name', async () => {
-    mockExchangeCodeForSession.mockResolvedValue({
-      data: {
-        session: {
-          user: {
-            id: 'u1',
-            email: 'a@b.com',
-            user_metadata: { full_name: 'Only' },
-          },
-        },
-      },
-      error: null,
-    })
-    mockSingle.mockResolvedValue({ data: null, error: {} })
-
-    await GET(createRequest(`${origin}/auth/callback?code=x`))
-
-    expect(mockUpsert).toHaveBeenCalledWith(
-      expect.objectContaining({
-        first_name: 'Only',
-        last_name: null,
-      }),
-      { onConflict: 'id' }
-    )
-  })
-
-  it('fallback redirects to returnTo when not popup and no session path', async () => {
-    mockExchangeCodeForSession.mockResolvedValue({
-      data: { session: null },
-      error: null,
-    })
-    const request = createRequest(`${origin}/auth/callback?code=abc&returnTo=%2Flistings`)
-    const response = await GET(request)
-
-    expect(response.headers.get('Location')).toBe(`${origin}/listings`)
   })
 })

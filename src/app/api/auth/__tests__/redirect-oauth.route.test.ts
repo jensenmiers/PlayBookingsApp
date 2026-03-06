@@ -1,6 +1,6 @@
 /**
- * Unit tests for popup OAuth initiation route
- * GET /api/auth/popup-oauth
+ * Unit tests for redirect OAuth initiation route
+ * GET /api/auth/redirect-oauth
  */
 
 export {}
@@ -38,17 +38,17 @@ function createRequest(url: string): { nextUrl: URL } {
   }
 }
 
-describe('GET /api/auth/popup-oauth', () => {
+describe('GET /api/auth/redirect-oauth', () => {
   let GET: (request: { nextUrl: URL }) => Promise<Response>
 
   beforeAll(async () => {
-    const route = await import('@/app/api/auth/popup-oauth/route')
+    const route = await import('@/app/api/auth/redirect-oauth/route')
     GET = route.GET as unknown as (request: { nextUrl: URL }) => Promise<Response>
   })
 
   beforeEach(() => {
     jest.clearAllMocks()
-    mockCreateAuthOAuthState.mockResolvedValue('popup-state-123')
+    mockCreateAuthOAuthState.mockResolvedValue('redirect-state-123')
   })
 
   it('redirects to OAuth URL on success', async () => {
@@ -58,96 +58,66 @@ describe('GET /api/auth/popup-oauth', () => {
       error: null,
     })
 
-    const request = createRequest('http://localhost:3000/api/auth/popup-oauth')
+    const request = createRequest('http://localhost:3000/api/auth/redirect-oauth')
     const response = await GET(request)
 
     expect(response.status).toBe(302)
     expect(response.headers.get('Location')).toBe(oauthUrl)
   })
 
-  it('creates popup flow state and uses nonce popup callback path', async () => {
+  it('creates redirect flow state and uses nonce callback path', async () => {
     mockSignInWithOAuth.mockResolvedValue({
       data: { url: 'https://accounts.google.com/authorize' },
       error: null,
     })
 
     const request = createRequest(
-      'http://localhost:3000/api/auth/popup-oauth?returnTo=%2Fdashboard&intent=host'
+      'http://localhost:3000/api/auth/redirect-oauth?returnTo=%2Fdashboard&intent=host'
     )
     await GET(request)
 
     expect(mockCreateAuthOAuthState).toHaveBeenCalledWith({
-      flowType: 'popup',
+      flowType: 'redirect',
       returnTo: '/dashboard',
       intent: 'host',
     })
     expect(mockSignInWithOAuth).toHaveBeenCalledWith({
       provider: 'google',
       options: {
-        redirectTo: 'http://localhost:3000/auth/popup-callback/popup-state-123',
+        redirectTo: 'http://localhost:3000/auth/callback/redirect-state-123',
         skipBrowserRedirect: true,
       },
     })
   })
 
-  it('does not depend on popup=true in redirectTo', async () => {
+  it('uses redirect default when returnTo is not provided', async () => {
     mockSignInWithOAuth.mockResolvedValue({
       data: { url: 'https://accounts.google.com/authorize' },
       error: null,
     })
 
-    const request = createRequest('http://localhost:3000/api/auth/popup-oauth')
-    await GET(request)
-
-    const redirectTo = mockSignInWithOAuth.mock.calls[0][0].options.redirectTo
-    expect(redirectTo).toContain('/auth/popup-callback/popup-state-123')
-    expect(redirectTo).not.toContain('popup=true')
-    expect(redirectTo).not.toContain('returnTo=')
-  })
-
-  it('uses popup default returnTo when not provided', async () => {
-    mockSignInWithOAuth.mockResolvedValue({
-      data: { url: 'https://accounts.google.com/authorize' },
-      error: null,
-    })
-
-    const request = createRequest('http://localhost:3000/api/auth/popup-oauth')
+    const request = createRequest('http://localhost:3000/api/auth/redirect-oauth')
     await GET(request)
 
     expect(mockCreateAuthOAuthState).toHaveBeenCalledWith({
-      flowType: 'popup',
+      flowType: 'redirect',
       returnTo: null,
       intent: null,
     })
   })
 
-  it('redirects to popup-success with error when OAuth returns error', async () => {
+  it('redirects to login with error when OAuth returns error', async () => {
     mockSignInWithOAuth.mockResolvedValue({
       data: null,
       error: { message: 'Provider error' },
     })
 
-    const request = createRequest('http://localhost:3000/api/auth/popup-oauth')
+    const request = createRequest('http://localhost:3000/api/auth/redirect-oauth')
     const response = await GET(request)
 
     expect(response.status).toBe(302)
     const location = response.headers.get('Location')
-    expect(location).toMatch(/^http:\/\/localhost:3000\/auth\/popup-success\?error=/)
+    expect(location).toMatch(/^http:\/\/localhost:3000\/auth\/login\?error=/)
     expect(decodeURIComponent(location!.split('error=')[1])).toBe('Provider error')
-  })
-
-  it('redirects to popup-success when no URL returned', async () => {
-    mockSignInWithOAuth.mockResolvedValue({
-      data: { url: null },
-      error: null,
-    })
-
-    const request = createRequest('http://localhost:3000/api/auth/popup-oauth')
-    const response = await GET(request)
-
-    expect(response.status).toBe(302)
-    const location = response.headers.get('Location')
-    expect(location).toMatch(/^http:\/\/localhost:3000\/auth\/popup-success\?error=/)
-    expect(decodeURIComponent(location!.split('error=')[1])).toBe('OAuth failed')
   })
 })

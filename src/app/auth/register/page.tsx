@@ -2,50 +2,29 @@
 
 import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
-import { createClient } from '@/lib/supabase/client'
 import { Suspense, useState } from 'react'
 import Link from 'next/link'
 import { useSearchParams } from 'next/navigation'
+import { buildAuthInitiationPath } from '@/lib/auth/oauthFlow'
+import { navigateToUrl } from '@/lib/auth/clientNavigation'
 
 function RegisterContent() {
   const [loading, setLoading] = useState(false)
   const searchParams = useSearchParams()
-  const supabase = createClient()
   const isHostSignup = searchParams.get('intent') === 'host'
 
   const handleGoogleSignup = async () => {
     try {
       setLoading(true)
 
-      // Get returnTo and intent params and forward them to callback
-      const returnTo = searchParams.get('returnTo')
-      const intent = searchParams.get('intent')
-      const callbackParams = new URLSearchParams()
-      if (returnTo) {
-        callbackParams.set('returnTo', returnTo)
-      }
-      if (intent) {
-        callbackParams.set('intent', intent)
-      }
-      const callbackUrl = callbackParams.toString()
-        ? `${window.location.origin}/auth/callback?${callbackParams.toString()}`
-        : `${window.location.origin}/auth/callback`
-
-      const { error } = await supabase.auth.signInWithOAuth({
-        provider: 'google',
-        options: {
-          redirectTo: callbackUrl,
-        },
-      })
-      
-      if (error) {
-        console.error('Error during authentication:', error.message)
-        alert('Error during authentication: ' + error.message)
-      }
+      navigateToUrl(buildAuthInitiationPath({
+        flowType: 'redirect',
+        returnTo: searchParams.get('returnTo'),
+        intent: searchParams.get('intent'),
+      }))
     } catch (error) {
       console.error('Unexpected error:', error)
       alert('An unexpected error occurred')
-    } finally {
       setLoading(false)
     }
   }

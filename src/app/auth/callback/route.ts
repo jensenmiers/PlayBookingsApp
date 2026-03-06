@@ -1,12 +1,15 @@
 import { createClient } from '@/lib/supabase/server'
-import { HOST_ONBOARDING_ENABLED } from '@/lib/hostOnboarding'
+import { sanitizeReturnTo } from '@/lib/auth/oauthFlow'
+import { finalizeAuthenticatedUser } from '@/services/authSessionService'
 import { NextRequest, NextResponse } from 'next/server'
 
 export async function GET(request: NextRequest) {
   const searchParams = request.nextUrl.searchParams
   const code = searchParams.get('code')
   const isPopup = searchParams.get('popup') === 'true'
-  const returnTo = searchParams.get('returnTo') || '/search'
+  const returnTo = searchParams.get('returnTo')
+    ? sanitizeReturnTo(searchParams.get('returnTo'), 'redirect')
+    : '/search'
   const intent = searchParams.get('intent')
   const origin = request.nextUrl.origin
 
@@ -30,42 +33,17 @@ export async function GET(request: NextRequest) {
 
   // For non-popup flow, handle user profile creation/update
   if (!isPopup && data.session) {
-    const user = data.session.user
-    const isHostSignup = HOST_ONBOARDING_ENABLED && intent === 'host'
+    const finalization = await finalizeAuthenticatedUser({
+      supabase,
+      session: data.session,
+      intent,
+    })
 
-    const { data: existingUser, error: fetchError } = await supabase
-      .from('users')
-      .select('id, is_venue_owner')
-      .eq('id', user.id)
-      .single()
-
-    const needsUpgrade = existingUser && !fetchError && isHostSignup && !existingUser.is_venue_owner
-
-    if (!needsUpgrade) {
-      const fullName = user.user_metadata?.full_name || ''
-      const [firstName, ...lastNameParts] = fullName.split(' ')
-
-      await supabase.from('users').upsert(
-        {
-          id: user.id,
-          email: user.email,
-          first_name: firstName || null,
-          last_name: lastNameParts.join(' ') || null,
-          is_renter: true,
-          is_venue_owner: existingUser?.is_venue_owner ?? isHostSignup,
-          is_admin: false,
-          updated_at: new Date().toISOString(),
-        },
-        { onConflict: 'id' }
-      )
-    }
-
-    if (needsUpgrade) {
+    if (finalization.needsUpgrade) {
       return NextResponse.redirect(`${origin}/auth/upgrade-to-host`)
     }
 
-    const finalIsHost = existingUser?.is_venue_owner ?? isHostSignup
-    const redirectPath = finalIsHost ? '/my-bookings' : returnTo
+    const redirectPath = finalization.finalIsHost ? '/my-bookings' : returnTo
     return NextResponse.redirect(`${origin}${redirectPath}`)
   }
 

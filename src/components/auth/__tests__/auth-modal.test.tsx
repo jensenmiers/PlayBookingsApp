@@ -9,7 +9,7 @@ import { AuthModal } from '../auth-modal'
 const mockCloseAuthModal = jest.fn()
 const mockGetSession = jest.fn()
 const mockSetSession = jest.fn()
-const mockSignInWithOAuth = jest.fn()
+const mockNavigateToUrl = jest.fn()
 
 let useAuthModalReturn: {
   isOpen: boolean
@@ -34,9 +34,12 @@ jest.mock('@/lib/supabase/client', () => ({
     auth: {
       getSession: mockGetSession,
       setSession: mockSetSession,
-      signInWithOAuth: mockSignInWithOAuth,
     },
   }),
+}))
+
+jest.mock('@/lib/auth/clientNavigation', () => ({
+  navigateToUrl: (...args: unknown[]) => mockNavigateToUrl(...args),
 }))
 
 let mockPopup: { closed: boolean; focus: () => void }
@@ -46,7 +49,7 @@ beforeEach(() => {
   jest.clearAllMocks()
   mockGetSession.mockResolvedValue({ data: { session: null }, error: null })
   mockSetSession.mockResolvedValue({ data: {}, error: null })
-  mockSignInWithOAuth.mockResolvedValue({ data: {}, error: null })
+  mockNavigateToUrl.mockReset()
   useAuthModalReturn = {
     isOpen: true,
     intent: undefined,
@@ -60,6 +63,12 @@ beforeEach(() => {
 })
 
 describe('AuthModal', () => {
+  const consoleErrorSpy = jest.spyOn(console, 'error').mockImplementation()
+
+  afterAll(() => {
+    consoleErrorSpy.mockRestore()
+  })
+
   it('opens popup to /api/auth/popup-oauth when Continue with Google is clicked', () => {
     render(<AuthModal />)
 
@@ -67,7 +76,6 @@ describe('AuthModal', () => {
 
     expect(mockOpen).toHaveBeenCalled()
     expect(mockOpen.mock.calls[0][0]).toContain('/api/auth/popup-oauth')
-    expect(mockOpen.mock.calls[0][1]).toBe('PlayBookingsAuth')
     expect(mockOpen.mock.calls[0][2]).toMatch(/width=500.*height=600/)
   })
 
@@ -80,10 +88,23 @@ describe('AuthModal', () => {
 
     expect(mockOpen).toHaveBeenCalledWith(
       expect.stringContaining('returnTo=%2Fbook'),
-      'PlayBookingsAuth',
+      expect.stringMatching(/^PlayBookingsAuth-/),
       expect.any(String)
     )
     expect(mockOpen.mock.calls[0][0]).toContain('intent=host')
+  })
+
+  it('uses a unique popup window name for each auth attempt', () => {
+    const firstRender = render(<AuthModal />)
+    fireEvent.click(screen.getByRole('button', { name: /continue with google/i }))
+    const firstPopupName = mockOpen.mock.calls[0][1]
+    firstRender.unmount()
+
+    render(<AuthModal />)
+    fireEvent.click(screen.getByRole('button', { name: /continue with google/i }))
+    const secondPopupName = mockOpen.mock.calls[1][1]
+
+    expect(firstPopupName).not.toBe(secondPopupName)
   })
 
   it('shows popup blocked message and fallback button when window.open returns null', () => {
@@ -219,7 +240,7 @@ describe('AuthModal', () => {
     expect(mockCloseAuthModal).not.toHaveBeenCalled()
   })
 
-  it('calls signInWithOAuth with redirectTo containing popup=false when Continue in this window is clicked', async () => {
+  it('navigates to redirect-oauth when Continue in this window is clicked', async () => {
     mockOpen.mockReturnValue(null)
 
     render(<AuthModal />)
@@ -229,16 +250,11 @@ describe('AuthModal', () => {
     fireEvent.click(screen.getByRole('button', { name: /continue in this window/i }))
 
     await waitFor(() => {
-      expect(mockSignInWithOAuth).toHaveBeenCalledWith({
-        provider: 'google',
-        options: {
-          redirectTo: expect.stringMatching(/popup=false/),
-        },
-      })
+      expect(mockNavigateToUrl).toHaveBeenCalledWith('/api/auth/redirect-oauth')
     })
   })
 
-  it('passes returnTo and intent in redirectTo when using Continue in this window', async () => {
+  it('passes returnTo and intent to redirect-oauth when using Continue in this window', async () => {
     useAuthModalReturn.returnTo = '/book'
     useAuthModalReturn.intent = 'host'
     mockOpen.mockReturnValue(null)
@@ -248,23 +264,24 @@ describe('AuthModal', () => {
     fireEvent.click(screen.getByRole('button', { name: /continue in this window/i }))
 
     await waitFor(() => {
-      expect(mockSignInWithOAuth).toHaveBeenCalled()
-      const redirectTo = mockSignInWithOAuth.mock.calls[0][0].options.redirectTo
-      expect(redirectTo).toMatch(/returnTo=/)
-      expect(redirectTo).toMatch(/intent=host/)
+      expect(mockNavigateToUrl).toHaveBeenCalledWith(
+        '/api/auth/redirect-oauth?returnTo=%2Fbook&intent=host'
+      )
     })
   })
 
-  it('sets loading false when signInWithOAuth returns error in fallback redirect', async () => {
+  it('sets loading false when redirect fallback navigation throws', async () => {
     mockOpen.mockReturnValue(null)
-    mockSignInWithOAuth.mockResolvedValue({ data: null, error: { message: 'OAuth error' } })
+    mockNavigateToUrl.mockImplementation(() => {
+      throw new Error('navigation failed')
+    })
 
     render(<AuthModal />)
     fireEvent.click(screen.getByRole('button', { name: /continue with google/i }))
     fireEvent.click(screen.getByRole('button', { name: /continue in this window/i }))
 
     await waitFor(() => {
-      expect(mockSignInWithOAuth).toHaveBeenCalled()
+      expect(mockNavigateToUrl).toHaveBeenCalled()
     })
     expect(screen.getByRole('button', { name: /continue in this window/i })).not.toBeDisabled()
   })

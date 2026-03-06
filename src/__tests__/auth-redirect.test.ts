@@ -1,129 +1,90 @@
 /**
- * Auth Redirect Regression Tests
- *
- * Verifies the logic for redirect handling in the authentication flow.
- * Tests security against open redirect attacks and proper URL construction.
+ * Auth flow helper regression tests
  */
 
-/**
- * Validates returnTo parameter (matches callback page logic)
- */
-function validateReturnTo(returnTo: string | null): string {
-  const defaultPath = '/book'
+import {
+  buildAuthInitiationPath,
+  sanitizeReturnTo,
+} from '@/lib/auth/oauthFlow'
 
-  if (!returnTo) {
-    return defaultPath
-  }
-
-  // Security check: only allow relative paths starting with / (but not //)
-  if (returnTo.startsWith('/') && !returnTo.startsWith('//')) {
-    return returnTo
-  }
-
-  return defaultPath
-}
-
-/**
- * Constructs callback URL with returnTo parameter (matches login/register logic)
- */
-function constructCallbackUrl(
-  returnTo: string | null,
-  origin: string = 'http://localhost:3000'
-): string {
-  if (returnTo) {
-    return `${origin}/auth/callback?returnTo=${encodeURIComponent(returnTo)}`
-  }
-  return `${origin}/auth/callback`
-}
-
-/**
- * Constructs login URL with returnTo parameter (matches AuthRequiredDialog logic)
- */
-function constructLoginUrl(
-  returnTo: string | null,
-  currentPath: string = '/'
-): string {
-  const redirectPath = returnTo || currentPath
-  if (redirectPath) {
-    return `/auth/login?returnTo=${encodeURIComponent(redirectPath)}`
-  }
-  return '/auth/login'
-}
-
-describe('validateReturnTo', () => {
-  describe('default behavior', () => {
-    it('returns /book when returnTo is null', () => {
-      expect(validateReturnTo(null)).toBe('/book')
+describe('sanitizeReturnTo', () => {
+  describe('redirect flow defaults', () => {
+    it('returns /search when redirect returnTo is null', () => {
+      expect(sanitizeReturnTo(null, 'redirect')).toBe('/search')
     })
 
-    it('preserves valid returnTo path', () => {
-      expect(validateReturnTo('/book/venue/123')).toBe('/book/venue/123')
+    it('preserves valid redirect returnTo path', () => {
+      expect(sanitizeReturnTo('/book/venue/123', 'redirect')).toBe('/book/venue/123')
+    })
+  })
+
+  describe('popup flow defaults', () => {
+    it('returns / when popup returnTo is null', () => {
+      expect(sanitizeReturnTo(null, 'popup')).toBe('/')
     })
 
-    it('accepts root path', () => {
-      expect(validateReturnTo('/')).toBe('/')
+    it('accepts root path for popup flow', () => {
+      expect(sanitizeReturnTo('/', 'popup')).toBe('/')
     })
   })
 
   describe('open redirect prevention', () => {
     it('rejects double slash (protocol-relative URL)', () => {
-      expect(validateReturnTo('//evil.com')).toBe('/book')
+      expect(sanitizeReturnTo('//evil.com', 'redirect')).toBe('/search')
     })
 
     it('rejects HTTP protocol URL', () => {
-      expect(validateReturnTo('http://evil.com')).toBe('/book')
+      expect(sanitizeReturnTo('http://evil.com', 'redirect')).toBe('/search')
     })
 
     it('rejects HTTPS protocol URL', () => {
-      expect(validateReturnTo('https://evil.com')).toBe('/book')
+      expect(sanitizeReturnTo('https://evil.com', 'popup')).toBe('/')
     })
   })
 
   describe('edge cases', () => {
     it('accepts path with query params', () => {
-      expect(validateReturnTo('/book?venue=123&date=2024-01-01')).toBe(
+      expect(sanitizeReturnTo('/book?venue=123&date=2024-01-01', 'redirect')).toBe(
         '/book?venue=123&date=2024-01-01'
       )
     })
 
     it('accepts path with hash', () => {
-      expect(validateReturnTo('/book#section')).toBe('/book#section')
+      expect(sanitizeReturnTo('/book#section', 'redirect')).toBe('/book#section')
     })
   })
 })
 
-describe('constructCallbackUrl', () => {
-  it('returns callback URL without returnTo when not provided', () => {
-    expect(constructCallbackUrl(null)).toBe('http://localhost:3000/auth/callback')
+describe('buildAuthInitiationPath', () => {
+  it('builds popup initiation path without params when not provided', () => {
+    expect(buildAuthInitiationPath({ flowType: 'popup' })).toBe('/api/auth/popup-oauth')
   })
 
-  it('encodes returnTo parameter in callback URL', () => {
-    expect(constructCallbackUrl('/book/venue/123')).toBe(
-      'http://localhost:3000/auth/callback?returnTo=%2Fbook%2Fvenue%2F123'
-    )
+  it('builds redirect initiation path with encoded returnTo', () => {
+    expect(
+      buildAuthInitiationPath({
+        flowType: 'redirect',
+        returnTo: '/book/venue/123',
+      })
+    ).toBe('/api/auth/redirect-oauth?returnTo=%2Fbook%2Fvenue%2F123')
   })
 
-  it('uses custom origin when provided', () => {
-    expect(constructCallbackUrl('/dashboard', 'https://example.com')).toBe(
-      'https://example.com/auth/callback?returnTo=%2Fdashboard'
-    )
-  })
-})
-
-describe('constructLoginUrl', () => {
-  it('uses current path when returnTo is null', () => {
-    expect(constructLoginUrl(null, '/')).toBe('/auth/login?returnTo=%2F')
+  it('includes host intent when present', () => {
+    expect(
+      buildAuthInitiationPath({
+        flowType: 'redirect',
+        returnTo: '/dashboard',
+        intent: 'host',
+      })
+    ).toBe('/api/auth/redirect-oauth?returnTo=%2Fdashboard&intent=host')
   })
 
-  it('uses explicit returnTo over current path', () => {
-    expect(constructLoginUrl('/dashboard/settings', '/book')).toBe(
-      '/auth/login?returnTo=%2Fdashboard%2Fsettings'
-    )
-  })
-
-  it('auto-captures current path when returnTo not provided', () => {
-    expect(constructLoginUrl(null, '/book/venue/456')).toBe(
-      '/auth/login?returnTo=%2Fbook%2Fvenue%2F456'
-    )
+  it('omits unsupported intents', () => {
+    expect(
+      buildAuthInitiationPath({
+        flowType: 'popup',
+        intent: 'renter',
+      })
+    ).toBe('/api/auth/popup-oauth')
   })
 })

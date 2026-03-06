@@ -2,46 +2,27 @@
 
 import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
-import { createBrowserClient } from '@supabase/ssr'
 import { Suspense, useState } from 'react'
 import Link from 'next/link'
 import { useSearchParams } from 'next/navigation'
+import { buildAuthInitiationPath } from '@/lib/auth/oauthFlow'
+import { navigateToUrl } from '@/lib/auth/clientNavigation'
 
 function LoginContent() {
   const [loading, setLoading] = useState(false)
   const searchParams = useSearchParams()
-  
-  // Create Supabase client directly with SSR package
-  const supabase = createBrowserClient(
-    process.env.NEXT_PUBLIC_SUPABASE_URL!,
-    process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
-  )
 
   const handleGoogleLogin = async () => {
     try {
       setLoading(true)
-      
-      // Get returnTo param and forward it to callback
-      const returnTo = searchParams.get('returnTo')
-      const callbackUrl = returnTo 
-        ? `${window.location.origin}/auth/callback?returnTo=${encodeURIComponent(returnTo)}`
-        : `${window.location.origin}/auth/callback`
-      
-      const { error } = await supabase.auth.signInWithOAuth({
-        provider: 'google',
-        options: {
-          redirectTo: callbackUrl,
-        },
-      })
-      
-      if (error) {
-        console.error('Error during authentication:', error.message)
-        alert('Error during authentication: ' + error.message)
-      }
+
+      navigateToUrl(buildAuthInitiationPath({
+        flowType: 'redirect',
+        returnTo: searchParams.get('returnTo'),
+      }))
     } catch (error) {
       console.error('Unexpected error:', error)
       alert('An unexpected error occurred')
-    } finally {
       setLoading(false)
     }
   }

@@ -7,15 +7,15 @@ export async function GET(request: NextRequest) {
   const searchParams = request.nextUrl.searchParams
   const returnTo = searchParams.get('returnTo')
   const intent = searchParams.get('intent')
-
   const origin = request.nextUrl.origin
+
   const stateNonce = await createAuthOAuthState({
-    flowType: 'popup',
+    flowType: 'redirect',
     returnTo,
     intent,
   })
   const callbackUrl = `${origin}${getAuthCallbackPath({
-    flowType: 'popup',
+    flowType: 'redirect',
     stateNonce,
   })}`
 
@@ -29,7 +29,7 @@ export async function GET(request: NextRequest) {
   })
 
   if (error || !data.url) {
-    return NextResponse.redirect(`${origin}/auth/popup-success?error=${encodeURIComponent(error?.message || 'OAuth failed')}`)
+    return NextResponse.redirect(`${origin}/auth/login?error=${encodeURIComponent(error?.message || 'OAuth failed')}`)
   }
 
   return NextResponse.redirect(data.url)
