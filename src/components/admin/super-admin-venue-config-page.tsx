@@ -691,6 +691,85 @@ function ConfigRow({
   )
 }
 
+function SectionGroup({
+  title,
+  description,
+  children,
+  footerAction,
+  footerHelper,
+}: {
+  title: string
+  description?: string
+  children: ReactNode
+  footerAction?: ReactNode
+  footerHelper?: string
+}) {
+  return (
+    <section className="rounded-2xl border border-secondary-50/10 bg-secondary-900 shadow-soft">
+      <div className="border-b border-secondary-50/10 px-4 py-4 md:px-6">
+        <h2 className="text-lg font-semibold text-secondary-50">{title}</h2>
+        {description ? (
+          <p className="mt-1 text-xs text-secondary-50/60">{description}</p>
+        ) : null}
+      </div>
+      <div className="px-4 md:px-6">{children}</div>
+      {footerAction ? (
+        <div className="border-t border-secondary-50/10 px-4 py-4 md:px-6">
+          {footerHelper ? (
+            <p className="mb-3 text-xs text-secondary-50/60">{footerHelper}</p>
+          ) : null}
+          {footerAction}
+        </div>
+      ) : null}
+    </section>
+  )
+}
+
+function CollapsibleRow({
+  title,
+  description,
+  children,
+  defaultExpanded = false,
+}: {
+  title: string
+  description: string
+  children: ReactNode
+  defaultExpanded?: boolean
+}) {
+  const [isExpanded, setIsExpanded] = useState(defaultExpanded)
+
+  return (
+    <div className="border-b border-secondary-50/10 py-4">
+      <button
+        type="button"
+        className="flex w-full items-center justify-between gap-3 text-left"
+        onClick={() => setIsExpanded((prev) => !prev)}
+        aria-expanded={isExpanded}
+      >
+        <div className="space-y-1">
+          <h3 className="text-sm font-semibold text-secondary-50">{title}</h3>
+          <p className="text-xs text-secondary-50/60">{description}</p>
+        </div>
+        <span
+          aria-hidden="true"
+          className={cn(
+            'text-sm text-secondary-50/60 transition-transform',
+            isExpanded ? 'rotate-180' : ''
+          )}
+        >
+          ▼
+        </span>
+      </button>
+      {isExpanded ? (
+        <div className="mt-4 grid gap-3 md:grid-cols-[1.25fr_1fr] md:items-start md:gap-6">
+          <div />
+          <div className="space-y-2">{children}</div>
+        </div>
+      ) : null}
+    </div>
+  )
+}
+
 export function SuperAdminVenueConfigPage() {
   const { data, loading, error, refetch } = useAdminVenues()
   const [selectedVenueId, setSelectedVenueId] = useState<string | null>(null)
@@ -715,6 +794,8 @@ export function SuperAdminVenueConfigPage() {
   const [calendarMessage, setCalendarMessage] = useState<string | null>(null)
   const [calendarOptions, setCalendarOptions] = useState<Array<{ id: string; summary: string; primary: boolean }>>([])
   const [selectedCalendarId, setSelectedCalendarId] = useState<string>('')
+  const [activeTab, setActiveTab] = useState<'configuration' | 'bookings'>('configuration')
+  const [blackoutExpanded, setBlackoutExpanded] = useState(false)
 
   useEffect(() => {
     if (typeof window === 'undefined') {
@@ -1114,51 +1195,12 @@ export function SuperAdminVenueConfigPage() {
   }
 
   return (
-    <div className="space-y-6">
-      <header className="space-y-2">
+    <div className="space-y-6 pb-24">
+      <header className="space-y-1">
         <h1 className="font-serif text-3xl font-bold text-secondary-50">Super Admin Venue Config</h1>
         <p className="max-w-3xl text-sm text-secondary-50/70">
-          Maintain venue booking behavior and operations. Changes are saved only when you click Save Changes.
+          Configure venue availability, pricing, policies, and amenities.
         </p>
-        <div className="flex flex-wrap items-center gap-3 text-xs">
-          {hasUnsavedChanges ? <span className="text-amber-300">Unsaved changes</span> : <span className="text-secondary-50/60">All changes saved</span>}
-          {selectedItem
-            ? (
-              <span
-                className={cn(getAvailabilityPublishStatusClassName(selectedItem))}
-              >
-                {formatAvailabilityPublishStatusLabel(selectedItem)}
-              </span>
-              )
-            : null}
-          {isSaving ? <span className="text-primary-400">{saveInFlightLabel}</span> : null}
-          {saveMessage ? <span className="text-primary-400">{saveMessage}</span> : null}
-          {saveError ? <span className="text-red-300">{saveError}</span> : null}
-        </div>
-        {selectedItem && getAvailabilityPublishHelperText(selectedItem) ? (
-          <p className="max-w-3xl text-xs text-secondary-50/60">
-            {getAvailabilityPublishHelperText(selectedItem)}
-          </p>
-        ) : null}
-        <div className="flex flex-wrap items-center gap-2">
-          <Button
-            type="button"
-            variant="outline"
-            onClick={handleDiscardChanges}
-            disabled={!hasUnsavedChanges || isSaving}
-          >
-            Discard
-          </Button>
-          <Button
-            type="button"
-            onClick={() => {
-              void handleSaveChanges()
-            }}
-            disabled={!hasUnsavedChanges || isSaving}
-          >
-            Save Changes
-          </Button>
-        </div>
       </header>
 
       <div className="grid gap-6 lg:grid-cols-[320px_1fr]">
@@ -1189,753 +1231,824 @@ export function SuperAdminVenueConfigPage() {
         </aside>
 
         {selectedItem && draft && (
-          <section className="rounded-2xl border border-secondary-50/10 bg-secondary-900 px-4 py-2 shadow-soft md:px-6">
-            <div className="border-b border-secondary-50/10 py-4">
-              <h2 className="text-xl font-semibold text-secondary-50">{selectedItem.venue.name}</h2>
-              <p className="mt-1 text-xs text-secondary-50/60">
-                Completeness {selectedItem.completeness.score}%.
-                {' '}
-                {selectedItem.completeness.missing_fields.length > 0
-                  ? `Missing: ${selectedItem.completeness.missing_fields.join(', ')}`
-                  : 'All required configuration complete.'}
-              </p>
+          <div className="space-y-6">
+            <div className="rounded-2xl border border-secondary-50/10 bg-secondary-900 shadow-soft">
+              <div className="flex items-center justify-between border-b border-secondary-50/10 px-4 py-3 md:px-6">
+                <div>
+                  <h2 className="text-xl font-semibold text-secondary-50">{selectedItem.venue.name}</h2>
+                  <p className="mt-0.5 text-xs text-secondary-50/60">
+                    Completeness {selectedItem.completeness.score}%.
+                    {' '}
+                    {selectedItem.completeness.missing_fields.length > 0
+                      ? `Missing: ${selectedItem.completeness.missing_fields.join(', ')}`
+                      : 'All required configuration complete.'}
+                  </p>
+                </div>
+                <div className="inline-flex rounded-full border border-secondary-50/15 bg-secondary-800 p-1">
+                  <button
+                    type="button"
+                    className={cn(
+                      'rounded-full px-4 py-1.5 text-xs font-medium transition-colors',
+                      activeTab === 'configuration'
+                        ? 'bg-primary-400 text-secondary-900'
+                        : 'text-secondary-50/70 hover:text-secondary-50'
+                    )}
+                    onClick={() => setActiveTab('configuration')}
+                  >
+                    Configuration
+                  </button>
+                  <button
+                    type="button"
+                    className={cn(
+                      'rounded-full px-4 py-1.5 text-xs font-medium transition-colors',
+                      activeTab === 'bookings'
+                        ? 'bg-primary-400 text-secondary-900'
+                        : 'text-secondary-50/70 hover:text-secondary-50'
+                    )}
+                    onClick={() => setActiveTab('bookings')}
+                  >
+                    Bookings
+                  </button>
+                </div>
+              </div>
             </div>
 
-            <ConfigRow
-              title="Normal Booking Price"
-              description="Flat rate for standard private booking sessions at this venue."
-            >
-              <Input
-                type="number"
-                min="1"
-                step="0.01"
-                value={draft.hourly_rate}
-                onChange={(event) => {
-                  updateDraft((previous) => ({ ...previous, hourly_rate: event.target.value }))
-                }}
-              />
-            </ConfigRow>
-
-            <ConfigRow
-              title="Booking Mode"
-              description="Control instant booking and insurance requirements."
-            >
-              <div className="space-y-3">
-                <div className="space-y-1">
-                  <p className="text-xs font-medium text-secondary-50/70">Booking mode</p>
-                  <div className="inline-flex rounded-full border border-secondary-50/15 bg-secondary-800 p-1">
-                    <button
+            {activeTab === 'configuration' && (
+              <>
+                <SectionGroup
+                  title="Define/Set Availability"
+                  description="Configure when this venue is available for bookings."
+                  footerAction={
+                    <Button
                       type="button"
-                      className={cn(
-                        'rounded-full px-3 py-1.5 text-xs font-medium transition-colors',
-                        draft.instant_booking
-                          ? 'bg-primary-400 text-secondary-900'
-                          : 'text-secondary-50/70 hover:text-secondary-50'
-                      )}
                       onClick={() => {
-                        updateDraft((previous) => ({ ...previous, instant_booking: true }))
+                        void handleSaveChanges()
                       }}
+                      disabled={!hasUnsavedChanges || isSaving}
                     >
-                      Instant
-                    </button>
-                    <button
-                      type="button"
-                      className={cn(
-                        'rounded-full px-3 py-1.5 text-xs font-medium transition-colors',
-                        !draft.instant_booking
-                          ? 'bg-primary-400 text-secondary-900'
-                          : 'text-secondary-50/70 hover:text-secondary-50'
-                      )}
-                      onClick={() => {
-                        updateDraft((previous) => ({ ...previous, instant_booking: false }))
-                      }}
-                    >
-                      Manual approval
-                    </button>
-                  </div>
-                </div>
-                <div className="space-y-1">
-                  <p className="text-xs font-medium text-secondary-50/70">Insurance</p>
-                  <div className="inline-flex rounded-full border border-secondary-50/15 bg-secondary-800 p-1">
-                    <button
-                      type="button"
-                      className={cn(
-                        'rounded-full px-3 py-1.5 text-xs font-medium transition-colors',
-                        draft.insurance_required
-                          ? 'bg-primary-400 text-secondary-900'
-                          : 'text-secondary-50/70 hover:text-secondary-50'
-                      )}
-                      onClick={() => {
-                        updateDraft((previous) => ({ ...previous, insurance_required: true }))
-                      }}
-                    >
-                      Required
-                    </button>
-                    <button
-                      type="button"
-                      className={cn(
-                        'rounded-full px-3 py-1.5 text-xs font-medium transition-colors',
-                        !draft.insurance_required
-                          ? 'bg-primary-400 text-secondary-900'
-                          : 'text-secondary-50/70 hover:text-secondary-50'
-                      )}
-                      onClick={() => {
-                        updateDraft((previous) => ({ ...previous, insurance_required: false }))
-                      }}
-                    >
-                      Not required
-                    </button>
-                  </div>
-                </div>
-                <p className="text-xs text-secondary-50/60">{getBookingModeHelperText(draft)}</p>
-              </div>
-            </ConfigRow>
-
-            <ConfigRow
-              title="Advance Booking Rules"
-              description="Same-day cutoff has been removed. Bookability now uses minimum advance days + lead time (PT)."
-            >
-              <div className="space-y-1">
-                <label htmlFor="min-advance-booking-days" className="text-xs font-medium text-secondary-50/70">
-                  Minimum advance booking days
-                </label>
-                <Input
-                  id="min-advance-booking-days"
-                  aria-label="Minimum advance booking days"
-                  type="number"
-                  min="0"
-                  step="1"
-                  value={draft.min_advance_booking_days}
-                  onChange={(event) => {
-                    updateDraft((previous) => ({
-                      ...previous,
-                      min_advance_booking_days: event.target.value,
-                    }))
-                  }}
-                />
-              </div>
-
-              <div className="space-y-1">
-                <label htmlFor="min-advance-lead-time" className="text-xs font-medium text-secondary-50/70">
-                  Minimum lead time
-                </label>
-                <select
-                  id="min-advance-lead-time"
-                  aria-label="Minimum advance lead time preset"
-                  className="h-11 w-full rounded-md border border-secondary-50/15 bg-secondary-800 px-3 py-2 text-sm text-secondary-50"
-                  value={resolveLeadTimePreset(draft.min_advance_lead_time_hours)}
-                  onChange={(event) => {
-                    const { value } = event.target
-                    if (value === 'custom') {
-                      return
-                    }
-                    updateDraft((previous) => ({
-                      ...previous,
-                      min_advance_lead_time_hours: value,
-                    }))
-                  }}
-                >
-                  {LEAD_TIME_PRESET_HOURS.map((hours) => (
-                    <option key={hours} value={String(hours)}>
-                      {formatLeadTimeLabel(hours)}
-                    </option>
-                  ))}
-                  <option value="custom">Custom (hours)</option>
-                </select>
-                {resolveLeadTimePreset(draft.min_advance_lead_time_hours) === 'custom' && (
-                  <Input
-                    aria-label="Custom minimum lead time hours"
-                    type="number"
-                    min="0"
-                    step="1"
-                    value={draft.min_advance_lead_time_hours}
-                    onChange={(event) => {
-                      updateDraft((previous) => ({
-                        ...previous,
-                        min_advance_lead_time_hours: event.target.value,
-                      }))
-                    }}
-                  />
-                )}
-                <p className="text-[11px] text-secondary-50/50">
-                  Lead time means how many hours before start time a booking must be made.
-                </p>
-              </div>
-
-              <div className="rounded-md border border-secondary-50/10 bg-secondary-800 px-3 py-2 text-xs text-secondary-50/70">
-                {(() => {
-                  const minDays = parseNonNegativeInteger(draft.min_advance_booking_days)
-                  const minLeadHours = parseNonNegativeInteger(draft.min_advance_lead_time_hours)
-                  if (minDays === null || minLeadHours === null) {
-                    return 'Enter non-negative whole numbers to preview policy behavior.'
+                      Publish Availability
+                    </Button>
                   }
-                  return formatPolicyPreview(minDays, minLeadHours)
-                })()}
-              </div>
-            </ConfigRow>
+                  footerHelper="This publishes availability changes to renters."
+                >
+                  <ConfigRow
+                    title="Base Operating Hours"
+                    description="Weekly windows for regular booking template generation."
+                  >
+                    <div className="space-y-2">
+                      {draft.operating_hours.map((window, index) => (
+                        <div
+                          key={`op-${window.day_of_week}-${window.start_time}-${window.end_time}-${index}`}
+                          className="grid grid-cols-[minmax(9.5rem,1.15fr)_minmax(7.5rem,8.5rem)_minmax(7.5rem,8.5rem)_auto] items-center gap-3"
+                        >
+                          <select
+                            aria-label={`Operating hours day row ${index + 1}`}
+                            className="h-11 w-full appearance-none rounded-full border border-secondary-50/15 bg-secondary-800 px-5 py-2 text-sm font-medium text-secondary-50 shadow-xs outline-none transition-[border-color,box-shadow] hover:border-secondary-50/30 focus-visible:border-primary-400 focus-visible:ring-[3px] focus-visible:ring-primary-400/30"
+                            value={window.day_of_week}
+                            onChange={(event) => {
+                              updateDraft((previous) => {
+                                const next = [...previous.operating_hours]
+                                next[index] = { ...next[index], day_of_week: Number(event.target.value) }
+                                return { ...previous, operating_hours: next }
+                              })
+                            }}
+                          >
+                            {DAY_OPTIONS.map((option) => (
+                              <option key={option.value} value={option.value}>
+                                {option.label}
+                              </option>
+                            ))}
+                          </select>
 
-            <ConfigRow
-              title="Amenities Checklist"
-              description="Shown on venue cards/details and used for completeness checks."
-            >
-              <div className="grid grid-cols-1 gap-2 sm:grid-cols-2">
-                {AMENITY_OPTIONS.map((amenity) => {
-                  const checked = draft.amenities.includes(amenity)
-                  return (
-                    <label key={amenity} className="flex items-center gap-2 text-sm text-secondary-50/80">
+                          <TimePillSelect
+                            ariaLabel={`Operating hours start time row ${index + 1}`}
+                            value={window.start_time}
+                            options={getTimePillOptions(window.start_time)}
+                            onChange={(value) => {
+                              updateDraft((previous) => {
+                                const next = [...previous.operating_hours]
+                                next[index] = { ...next[index], start_time: value }
+                                return { ...previous, operating_hours: next }
+                              })
+                            }}
+                          />
+
+                          <TimePillSelect
+                            ariaLabel={`Operating hours end time row ${index + 1}`}
+                            value={window.end_time}
+                            options={getTimePillOptions(window.end_time)}
+                            onChange={(value) => {
+                              updateDraft((previous) => {
+                                const next = [...previous.operating_hours]
+                                next[index] = { ...next[index], end_time: value }
+                                return { ...previous, operating_hours: next }
+                              })
+                            }}
+                          />
+                          <Button
+                            type="button"
+                            variant="ghost"
+                            className="h-11 rounded-xl px-3 text-secondary-50/80 hover:text-secondary-50"
+                            onClick={() => {
+                              updateDraft((previous) => ({
+                                ...previous,
+                                operating_hours: previous.operating_hours.filter(
+                                  (_, rowIndex) => rowIndex !== index
+                                ),
+                              }))
+                            }}
+                          >
+                            Remove
+                          </Button>
+                        </div>
+                      ))}
+                    </div>
+                    <Button
+                      type="button"
+                      variant="outline"
+                      onClick={() => {
+                        updateDraft((previous) => ({
+                          ...previous,
+                          operating_hours: [
+                            ...previous.operating_hours,
+                            { day_of_week: 1, start_time: '12:00', end_time: '13:00' },
+                          ],
+                        }))
+                      }}
+                    >
+                      Add Operating Window
+                    </Button>
+                  </ConfigRow>
+
+                  <ConfigRow
+                    title="Google Calendar"
+                    description="Connect Google Calendar to block busy times from availability."
+                  >
+                    <div className="space-y-2">
+                      <div className="rounded-md border border-secondary-50/10 bg-secondary-800 px-3 py-2 text-xs text-secondary-50/70">
+                        <p>
+                          Status:{' '}
+                          <span className="font-medium text-secondary-50">
+                            {selectedItem.calendar_integration?.status || 'disconnected'}
+                          </span>
+                        </p>
+                        <p>
+                          Selected calendar:{' '}
+                          <span className="font-medium text-secondary-50">
+                            {selectedItem.calendar_integration?.google_calendar_name
+                              || selectedItem.calendar_integration?.google_calendar_id
+                              || 'None'}
+                          </span>
+                        </p>
+                        <p>
+                          Last sync:{' '}
+                          <span className="font-medium text-secondary-50">
+                            {selectedItem.calendar_integration?.last_synced_at
+                              ? new Date(selectedItem.calendar_integration.last_synced_at).toLocaleString()
+                              : 'Never'}
+                          </span>
+                        </p>
+                      </div>
+
+                      {calendarError ? <p className="text-xs text-red-300">{calendarError}</p> : null}
+                      {calendarMessage ? <p className="text-xs text-primary-400">{calendarMessage}</p> : null}
+
+                      <div className="flex flex-wrap gap-2">
+                        <Button
+                          type="button"
+                          variant="outline"
+                          disabled={calendarActionLoading}
+                          onClick={() => {
+                            void handleConnectCalendar()
+                          }}
+                        >
+                          {calendarActionLoading ? 'Working...' : 'Connect Google Calendar'}
+                        </Button>
+                        <Button
+                          type="button"
+                          variant="outline"
+                          disabled={calendarActionLoading || calendarStatusLoading}
+                          onClick={() => {
+                            void handleRefreshCalendars()
+                          }}
+                        >
+                          {calendarStatusLoading ? 'Refreshing...' : 'Refresh Calendars'}
+                        </Button>
+                      </div>
+
+                      <div className="space-y-2">
+                        <label htmlFor="selected-calendar-id" className="text-xs font-medium text-secondary-50/70">
+                          Selected Google calendar
+                        </label>
+                        <select
+                          id="selected-calendar-id"
+                          aria-label="Selected Google calendar"
+                          className="h-11 w-full rounded-md border border-secondary-50/15 bg-secondary-800 px-3 py-2 text-sm text-secondary-50"
+                          value={selectedCalendarId}
+                          onChange={(event) => {
+                            setSelectedCalendarId(event.target.value)
+                          }}
+                        >
+                          <option value="">Select calendar</option>
+                          {calendarOptions.map((calendar) => (
+                            <option key={calendar.id} value={calendar.id}>
+                              {calendar.summary}{calendar.primary ? ' (Primary)' : ''}
+                            </option>
+                          ))}
+                        </select>
+                      </div>
+
+                      <div className="flex flex-wrap gap-2">
+                        <Button
+                          type="button"
+                          variant="outline"
+                          disabled={calendarActionLoading || !selectedCalendarId}
+                          onClick={() => {
+                            void handleSelectCalendar()
+                          }}
+                        >
+                          Save Calendar Selection
+                        </Button>
+                        <Button
+                          type="button"
+                          variant="outline"
+                          disabled={calendarActionLoading}
+                          onClick={() => {
+                            void handleSyncCalendarNow()
+                          }}
+                        >
+                          Sync Now
+                        </Button>
+                        <Button
+                          type="button"
+                          variant="outline"
+                          disabled={calendarActionLoading}
+                          onClick={() => {
+                            void handleDisconnectCalendar()
+                          }}
+                        >
+                          Disconnect Calendar
+                        </Button>
+                      </div>
+
+                      {selectedItem.calendar_integration?.last_error ? (
+                        <p className="text-xs text-red-300">Last sync error: {selectedItem.calendar_integration.last_error}</p>
+                      ) : null}
+                    </div>
+                  </ConfigRow>
+
+                  <ConfigRow
+                    title="Drop-In Open Gym"
+                    description="Enable open gym sessions with drop-in pricing and weekly schedule."
+                  >
+                    <label className="flex items-center gap-2 text-sm text-secondary-50/80">
                       <input
                         type="checkbox"
-                        checked={checked}
+                        checked={draft.drop_in_enabled}
                         onChange={(event) => {
-                          updateDraft((previous) => {
-                            const nextAmenities = event.target.checked
-                              ? Array.from(new Set([...previous.amenities, amenity]))
-                              : previous.amenities.filter((item) => item !== amenity)
-
-                            return {
-                              ...previous,
-                              amenities: nextAmenities,
-                            }
-                          })
+                          updateDraft((previous) => ({
+                            ...previous,
+                            drop_in_enabled: event.target.checked,
+                          }))
                         }}
                       />
-                      {amenity}
+                      Drop-in enabled
                     </label>
-                  )
-                })}
-              </div>
-            </ConfigRow>
-
-            <ConfigRow
-              title="Policies"
-              description="Venue-specific cancellation, refund, and no-show guidance."
-            >
-              <textarea
-                className="min-h-16 w-full rounded-md border border-secondary-50/15 bg-secondary-800 px-3 py-2 text-sm text-secondary-50"
-                value={draft.policy_cancel}
-                placeholder="Cancellation policy"
-                onChange={(event) => {
-                  updateDraft((previous) => ({ ...previous, policy_cancel: event.target.value }))
-                }}
-              />
-              <textarea
-                className="min-h-16 w-full rounded-md border border-secondary-50/15 bg-secondary-800 px-3 py-2 text-sm text-secondary-50"
-                value={draft.policy_refund}
-                placeholder="Refund policy"
-                onChange={(event) => {
-                  updateDraft((previous) => ({ ...previous, policy_refund: event.target.value }))
-                }}
-              />
-              <textarea
-                className="min-h-16 w-full rounded-md border border-secondary-50/15 bg-secondary-800 px-3 py-2 text-sm text-secondary-50"
-                value={draft.policy_no_show}
-                placeholder="No-show policy"
-                onChange={(event) => {
-                  updateDraft((previous) => ({ ...previous, policy_no_show: event.target.value }))
-                }}
-              />
-            </ConfigRow>
-
-            <ConfigRow
-              title="Operating Hours"
-              description="Source-of-truth weekly windows for regular booking template generation."
-            >
-              <div className="space-y-2">
-                {draft.operating_hours.map((window, index) => (
-                  <div
-                    key={`${window.day_of_week}-${window.start_time}-${window.end_time}-${index}`}
-                    className="grid grid-cols-[minmax(9.5rem,1.15fr)_minmax(7.5rem,8.5rem)_minmax(7.5rem,8.5rem)_auto] items-center gap-3"
-                  >
-                    <select
-                      aria-label={`Operating hours day row ${index + 1}`}
-                      className="h-11 w-full appearance-none rounded-full border border-secondary-50/15 bg-secondary-800 px-5 py-2 text-sm font-medium text-secondary-50 shadow-xs outline-none transition-[border-color,box-shadow] hover:border-secondary-50/30 focus-visible:border-primary-400 focus-visible:ring-[3px] focus-visible:ring-primary-400/30"
-                      value={window.day_of_week}
+                    <Input
+                      type="number"
+                      min="1"
+                      step="0.01"
+                      value={draft.drop_in_price}
+                      placeholder="Drop-in price per person"
                       onChange={(event) => {
-                        updateDraft((previous) => {
-                          const next = [...previous.operating_hours]
-                          next[index] = { ...next[index], day_of_week: Number(event.target.value) }
-                          return { ...previous, operating_hours: next }
-                        })
-                      }}
-                    >
-                      {DAY_OPTIONS.map((option) => (
-                        <option key={option.value} value={option.value}>
-                          {option.label}
-                        </option>
-                      ))}
-                    </select>
-
-                    <TimePillSelect
-                      ariaLabel={`Operating hours start time row ${index + 1}`}
-                      value={window.start_time}
-                      options={getTimePillOptions(window.start_time)}
-                      onChange={(value) => {
-                        updateDraft((previous) => {
-                          const next = [...previous.operating_hours]
-                          next[index] = { ...next[index], start_time: value }
-                          return { ...previous, operating_hours: next }
-                        })
+                        updateDraft((previous) => ({ ...previous, drop_in_price: event.target.value }))
                       }}
                     />
 
-                    <TimePillSelect
-                      ariaLabel={`Operating hours end time row ${index + 1}`}
-                      value={window.end_time}
-                      options={getTimePillOptions(window.end_time)}
-                      onChange={(value) => {
-                        updateDraft((previous) => {
-                          const next = [...previous.operating_hours]
-                          next[index] = { ...next[index], end_time: value }
-                          return { ...previous, operating_hours: next }
-                        })
-                      }}
-                    />
-                    <Button
-                      type="button"
-                      variant="ghost"
-                      className="h-11 rounded-xl px-3 text-secondary-50/80 hover:text-secondary-50"
-                      onClick={() => {
-                        updateDraft((previous) => ({
-                          ...previous,
-                          operating_hours: previous.operating_hours.filter(
-                            (_, rowIndex) => rowIndex !== index
-                          ),
-                        }))
-                      }}
-                    >
-                      Remove
-                    </Button>
-                  </div>
-                ))}
-              </div>
-              <Button
-                type="button"
-                variant="outline"
-                onClick={() => {
-                  updateDraft((previous) => ({
-                    ...previous,
-                    operating_hours: [
-                      ...previous.operating_hours,
-                      { day_of_week: 1, start_time: '12:00', end_time: '13:00' },
-                    ],
-                  }))
-                }}
-              >
-                Add Operating Window
-              </Button>
-            </ConfigRow>
-
-            <ConfigRow
-              title="Blackout Dates + Holidays"
-              description="Any listed date blocks booking and availability for this venue."
-            >
-              <Input
-                value={draft.blackout_dates}
-                placeholder="Blackout dates: YYYY-MM-DD, YYYY-MM-DD"
-                onChange={(event) => {
-                  updateDraft((previous) => ({
-                    ...previous,
-                    blackout_dates: event.target.value,
-                  }))
-                }}
-              />
-              <Input
-                value={draft.holiday_dates}
-                placeholder="Holiday dates: YYYY-MM-DD, YYYY-MM-DD"
-                onChange={(event) => {
-                  updateDraft((previous) => ({
-                    ...previous,
-                    holiday_dates: event.target.value,
-                  }))
-                }}
-              />
-            </ConfigRow>
-
-            <ConfigRow
-              title="Drop-In Open Gym"
-              description="Enable open gym sessions and set the per-person drop-in price."
-            >
-              <label className="flex items-center gap-2 text-sm text-secondary-50/80">
-                <input
-                  type="checkbox"
-                  checked={draft.drop_in_enabled}
-                  onChange={(event) => {
-                    updateDraft((previous) => ({
-                      ...previous,
-                      drop_in_enabled: event.target.checked,
-                    }))
-                  }}
-                />
-                Drop-in enabled
-              </label>
-              <Input
-                type="number"
-                min="1"
-                step="0.01"
-                value={draft.drop_in_price}
-                placeholder="Drop-in price"
-                onChange={(event) => {
-                  updateDraft((previous) => ({ ...previous, drop_in_price: event.target.value }))
-                }}
-              />
-            </ConfigRow>
-
-            <ConfigRow
-              title="Drop-In Weekly Schedule"
-              description="Recurring weekly windows used to generate open-gym sessions."
-            >
-              <div className="space-y-2">
-                {draft.drop_in_templates.map((window, index) => (
-                  <div
-                    key={`${window.day_of_week}-${window.start_time}-${window.end_time}-${index}`}
-                    className="grid grid-cols-[minmax(9.5rem,1.15fr)_minmax(7.5rem,8.5rem)_minmax(7.5rem,8.5rem)_auto] items-center gap-3"
-                  >
-                    <select
-                      aria-label={`Drop-in day row ${index + 1}`}
-                      className="h-11 w-full appearance-none rounded-full border border-secondary-50/15 bg-secondary-800 px-5 py-2 text-sm font-medium text-secondary-50 shadow-xs outline-none transition-[border-color,box-shadow] hover:border-secondary-50/30 focus-visible:border-primary-400 focus-visible:ring-[3px] focus-visible:ring-primary-400/30"
-                      value={window.day_of_week}
-                      onChange={(event) => {
-                        updateDraft((previous) => {
-                          const next = [...previous.drop_in_templates]
-                          next[index] = { ...next[index], day_of_week: Number(event.target.value) }
-                          return { ...previous, drop_in_templates: next }
-                        })
-                      }}
-                    >
-                      {DAY_OPTIONS.map((option) => (
-                        <option key={option.value} value={option.value}>
-                          {option.label}
-                        </option>
-                      ))}
-                    </select>
-
-                    <TimePillSelect
-                      ariaLabel={`Drop-in start time row ${index + 1}`}
-                      value={window.start_time}
-                      options={getTimePillOptions(window.start_time)}
-                      onChange={(value) => {
-                        updateDraft((previous) => {
-                          const next = [...previous.drop_in_templates]
-                          next[index] = { ...next[index], start_time: value }
-                          return { ...previous, drop_in_templates: next }
-                        })
-                      }}
-                    />
-
-                    <TimePillSelect
-                      ariaLabel={`Drop-in end time row ${index + 1}`}
-                      value={window.end_time}
-                      options={getTimePillOptions(window.end_time)}
-                      onChange={(value) => {
-                        updateDraft((previous) => {
-                          const next = [...previous.drop_in_templates]
-                          next[index] = { ...next[index], end_time: value }
-                          return { ...previous, drop_in_templates: next }
-                        })
-                      }}
-                    />
-                    <Button
-                      type="button"
-                      variant="ghost"
-                      className="h-11 rounded-xl px-3 text-secondary-50/80 hover:text-secondary-50"
-                      onClick={() => {
-                        updateDraft((previous) => ({
-                          ...previous,
-                          drop_in_templates: previous.drop_in_templates.filter((_, rowIndex) => rowIndex !== index),
-                        }))
-                      }}
-                    >
-                      Remove
-                    </Button>
-                  </div>
-                ))}
-              </div>
-              <Button
-                type="button"
-                variant="outline"
-                onClick={() => {
-                  updateDraft((previous) => ({
-                    ...previous,
-                    drop_in_templates: [
-                      ...previous.drop_in_templates,
-                      { day_of_week: 1, start_time: '12:00', end_time: '13:00' },
-                    ],
-                  }))
-                }}
-              >
-                Add Drop-In Window
-              </Button>
-            </ConfigRow>
-
-            <ConfigRow
-              title="Google Calendar"
-              description="Connect one Google Calendar per venue. PlayBookings uses read-only calendar access to combine this venue's operating hours with the calendar's busy times and generate bookable availability."
-            >
-              <div className="space-y-2">
-                <div className="rounded-md border border-secondary-50/10 bg-secondary-800 px-3 py-2 text-xs text-secondary-50/70">
-                  <p>Read-only access only. PlayBookings does not create, edit, or delete Google Calendar events.</p>
-                  <p className="mt-2">
-                    Choose the Google Calendar that represents this venue. Busy times from the selected calendar remove overlapping bookable windows during configured operating hours.
-                  </p>
-                  <p className="mt-2">
-                    Sync reads the selected calendar&apos;s current busy times and recalculates venue availability.
-                  </p>
-                </div>
-
-                <div className="rounded-md border border-secondary-50/10 bg-secondary-800 px-3 py-2 text-xs text-secondary-50/70">
-                  <p>
-                    Status:{' '}
-                    <span className="font-medium text-secondary-50">
-                      {selectedItem.calendar_integration?.status || 'disconnected'}
-                    </span>
-                  </p>
-                  <p>
-                    Selected calendar:{' '}
-                    <span className="font-medium text-secondary-50">
-                      {selectedItem.calendar_integration?.google_calendar_name
-                        || selectedItem.calendar_integration?.google_calendar_id
-                        || 'None'}
-                    </span>
-                  </p>
-                  <p>
-                    Last sync:{' '}
-                    <span className="font-medium text-secondary-50">
-                      {selectedItem.calendar_integration?.last_synced_at
-                        ? new Date(selectedItem.calendar_integration.last_synced_at).toLocaleString()
-                        : 'Never'}
-                    </span>
-                  </p>
-                  <p>
-                    Next sync:{' '}
-                    <span className="font-medium text-secondary-50">
-                      {selectedItem.calendar_integration?.next_sync_at
-                        ? new Date(selectedItem.calendar_integration.next_sync_at).toLocaleString()
-                        : 'Not scheduled'}
-                    </span>
-                  </p>
-                </div>
-
-                {calendarError ? <p className="text-xs text-red-300">{calendarError}</p> : null}
-                {calendarMessage ? <p className="text-xs text-primary-400">{calendarMessage}</p> : null}
-
-                <div className="flex flex-wrap gap-2">
-                  <Button
-                    type="button"
-                    variant="outline"
-                    disabled={calendarActionLoading}
-                    onClick={() => {
-                      void handleConnectCalendar()
-                    }}
-                  >
-                    {calendarActionLoading ? 'Working...' : 'Connect Google Calendar'}
-                  </Button>
-                  <Button
-                    type="button"
-                    variant="outline"
-                    disabled={calendarActionLoading || calendarStatusLoading}
-                    onClick={() => {
-                      void handleRefreshCalendars()
-                    }}
-                  >
-                    {calendarStatusLoading ? 'Refreshing...' : 'Refresh Calendars'}
-                  </Button>
-                </div>
-
-                <div className="space-y-2">
-                  <label htmlFor="selected-calendar-id" className="text-xs font-medium text-secondary-50/70">
-                    Selected Google calendar
-                  </label>
-                  <select
-                    id="selected-calendar-id"
-                    aria-label="Selected Google calendar"
-                    className="h-11 w-full rounded-md border border-secondary-50/15 bg-secondary-800 px-3 py-2 text-sm text-secondary-50"
-                    value={selectedCalendarId}
-                    onChange={(event) => {
-                      setSelectedCalendarId(event.target.value)
-                    }}
-                  >
-                    <option value="">Select calendar</option>
-                    {calendarOptions.map((calendar) => (
-                      <option key={calendar.id} value={calendar.id}>
-                        {calendar.summary}{calendar.primary ? ' (Primary)' : ''}
-                      </option>
-                    ))}
-                  </select>
-                </div>
-
-                <div className="flex flex-wrap gap-2">
-                  <Button
-                    type="button"
-                    variant="outline"
-                    disabled={calendarActionLoading || !selectedCalendarId}
-                    onClick={() => {
-                      void handleSelectCalendar()
-                    }}
-                  >
-                    Save Calendar Selection
-                  </Button>
-                  <Button
-                    type="button"
-                    variant="outline"
-                    disabled={calendarActionLoading}
-                    onClick={() => {
-                      void handleSyncCalendarNow()
-                    }}
-                  >
-                    Sync Now
-                  </Button>
-                  <Button
-                    type="button"
-                    variant="outline"
-                    disabled={calendarActionLoading}
-                    onClick={() => {
-                      void handleDisconnectCalendar()
-                    }}
-                  >
-                    Disconnect Calendar
-                  </Button>
-                </div>
-
-                {selectedItem.calendar_integration?.last_error ? (
-                  <p className="text-xs text-red-300">Last sync error: {selectedItem.calendar_integration.last_error}</p>
-                ) : null}
-              </div>
-            </ConfigRow>
-
-            <ConfigRow
-              title="Last Saved"
-              description="Most recent saved timestamp from venue or admin configuration updates."
-            >
-              <div className="rounded-md border border-secondary-50/10 bg-secondary-800 px-3 py-2 text-xs text-secondary-50/70">
-                {formatLastSavedAt(selectedItem)}
-              </div>
-            </ConfigRow>
-
-            <ConfigRow
-              title="Venue Bookings Timeline"
-              description="Single chronological feed of all venue bookings with upcoming first, then past."
-            >
-              {insuranceActionError ? (
-                <p className="text-xs text-red-300">{insuranceActionError}</p>
-              ) : null}
-              {insuranceActionMessage ? (
-                <p className="text-xs text-primary-400">{insuranceActionMessage}</p>
-              ) : null}
-              {venueBookingsLoading ? (
-                <p className="text-xs text-secondary-50/60">Loading bookings...</p>
-              ) : venueBookingsError ? (
-                <div className="space-y-2 rounded-md border border-red-300/30 bg-red-400/10 px-3 py-2">
-                  <p className="text-xs text-red-200">{venueBookingsError}</p>
-                  <Button
-                    type="button"
-                    variant="outline"
-                    size="sm"
-                    onClick={() => {
-                      void refetchVenueBookings()
-                    }}
-                  >
-                    Retry
-                  </Button>
-                </div>
-              ) : !venueBookings || venueBookings.length === 0 ? (
-                <p className="text-xs text-secondary-50/60">No bookings for this venue yet.</p>
-              ) : (
-                <div data-testid="venue-bookings-timeline" className="space-y-2">
-                  {timelineBookings.upcoming.map((booking) => {
-                    const badge = resolveTimelineBadge(booking, selectedItem.venue.instant_booking, false)
-                    const canApproveInsurance =
-                      booking.status === 'pending'
-                      && booking.insurance_required
-                      && !booking.insurance_approved
-
-                    return (
-                      <div
-                        key={booking.id}
-                        data-testid="venue-booking-row"
-                        data-booking-id={booking.id}
-                        className="rounded-xl border border-secondary-50/10 bg-secondary-800 px-3 py-2"
-                      >
-                        <div className="flex items-start justify-between gap-3">
-                          <div className="space-y-0.5">
-                            <p className="text-sm font-medium text-secondary-50">{formatRenterLabel(booking.renter)}</p>
-                            <p className="text-xs text-secondary-50/70">{booking.renter?.email || 'No email on file'}</p>
-                            <p className="text-xs text-secondary-50/60">{formatBookingTimelineDate(booking)}</p>
-                            {canApproveInsurance ? (
-                              <Button
-                                type="button"
-                                variant="outline"
-                                size="sm"
-                                disabled={insuranceActionBookingId === booking.id}
-                                onClick={() => {
-                                  void handleApproveInsurance(booking.id)
+                    {draft.drop_in_enabled && (
+                      <>
+                        <p className="text-xs font-medium text-secondary-50/70 pt-2">Drop-In Weekly Schedule</p>
+                        <div className="space-y-2">
+                          {draft.drop_in_templates.map((window, index) => (
+                            <div
+                              key={`di-${window.day_of_week}-${window.start_time}-${window.end_time}-${index}`}
+                              className="grid grid-cols-[minmax(9.5rem,1.15fr)_minmax(7.5rem,8.5rem)_minmax(7.5rem,8.5rem)_auto] items-center gap-3"
+                            >
+                              <select
+                                aria-label={`Drop-in day row ${index + 1}`}
+                                className="h-11 w-full appearance-none rounded-full border border-secondary-50/15 bg-secondary-800 px-5 py-2 text-sm font-medium text-secondary-50 shadow-xs outline-none transition-[border-color,box-shadow] hover:border-secondary-50/30 focus-visible:border-primary-400 focus-visible:ring-[3px] focus-visible:ring-primary-400/30"
+                                value={window.day_of_week}
+                                onChange={(event) => {
+                                  updateDraft((previous) => {
+                                    const next = [...previous.drop_in_templates]
+                                    next[index] = { ...next[index], day_of_week: Number(event.target.value) }
+                                    return { ...previous, drop_in_templates: next }
+                                  })
                                 }}
                               >
-                                {insuranceActionBookingId === booking.id ? 'Approving...' : 'Approve Insurance'}
+                                {DAY_OPTIONS.map((option) => (
+                                  <option key={option.value} value={option.value}>
+                                    {option.label}
+                                  </option>
+                                ))}
+                              </select>
+
+                              <TimePillSelect
+                                ariaLabel={`Drop-in start time row ${index + 1}`}
+                                value={window.start_time}
+                                options={getTimePillOptions(window.start_time)}
+                                onChange={(value) => {
+                                  updateDraft((previous) => {
+                                    const next = [...previous.drop_in_templates]
+                                    next[index] = { ...next[index], start_time: value }
+                                    return { ...previous, drop_in_templates: next }
+                                  })
+                                }}
+                              />
+
+                              <TimePillSelect
+                                ariaLabel={`Drop-in end time row ${index + 1}`}
+                                value={window.end_time}
+                                options={getTimePillOptions(window.end_time)}
+                                onChange={(value) => {
+                                  updateDraft((previous) => {
+                                    const next = [...previous.drop_in_templates]
+                                    next[index] = { ...next[index], end_time: value }
+                                    return { ...previous, drop_in_templates: next }
+                                  })
+                                }}
+                              />
+                              <Button
+                                type="button"
+                                variant="ghost"
+                                className="h-11 rounded-xl px-3 text-secondary-50/80 hover:text-secondary-50"
+                                onClick={() => {
+                                  updateDraft((previous) => ({
+                                    ...previous,
+                                    drop_in_templates: previous.drop_in_templates.filter((_, rowIndex) => rowIndex !== index),
+                                  }))
+                                }}
+                              >
+                                Remove
                               </Button>
-                            ) : null}
-                          </div>
-                          <div className="flex flex-col items-end gap-1">
-                            <span className="text-xs font-semibold text-secondary-50">${booking.total_amount.toFixed(2)}</span>
-                            <span
-                              className={cn(
-                                'inline-flex items-center rounded-full border px-2.5 py-0.5 text-[11px] font-medium',
-                                badge.className
-                              )}
-                            >
-                              {badge.label}
-                            </span>
-                          </div>
+                            </div>
+                          ))}
                         </div>
-                      </div>
-                    )
-                  })}
+                        <Button
+                          type="button"
+                          variant="outline"
+                          onClick={() => {
+                            updateDraft((previous) => ({
+                              ...previous,
+                              drop_in_templates: [
+                                ...previous.drop_in_templates,
+                                { day_of_week: 1, start_time: '12:00', end_time: '13:00' },
+                              ],
+                            }))
+                          }}
+                        >
+                          Add Drop-In Window
+                        </Button>
+                      </>
+                    )}
+                  </ConfigRow>
 
-                  {timelineBookings.past.length > 0 ? (
-                    <div className="pt-1">
-                      <div className="flex items-center gap-2">
-                        <div className="h-px flex-1 bg-secondary-50/15" />
-                        <p className="text-[11px] font-medium uppercase tracking-wide text-secondary-50/45">Past bookings</p>
-                        <div className="h-px flex-1 bg-secondary-50/15" />
-                      </div>
+                  <CollapsibleRow
+                    title="Blackout Dates"
+                    description="Block specific dates from availability."
+                    defaultExpanded={blackoutExpanded}
+                  >
+                    <Input
+                      value={draft.blackout_dates}
+                      placeholder="Blackout dates: YYYY-MM-DD, YYYY-MM-DD"
+                      onChange={(event) => {
+                        updateDraft((previous) => ({
+                          ...previous,
+                          blackout_dates: event.target.value,
+                        }))
+                      }}
+                    />
+                    <Input
+                      value={draft.holiday_dates}
+                      placeholder="Holiday dates: YYYY-MM-DD, YYYY-MM-DD"
+                      onChange={(event) => {
+                        updateDraft((previous) => ({
+                          ...previous,
+                          holiday_dates: event.target.value,
+                        }))
+                      }}
+                    />
+                  </CollapsibleRow>
+
+                  <ConfigRow
+                    title="Advance Booking Rules"
+                    description="Control how far in advance bookings can be made."
+                  >
+                    <div className="space-y-1">
+                      <label htmlFor="min-advance-booking-days" className="text-xs font-medium text-secondary-50/70">
+                        Minimum advance booking days
+                      </label>
+                      <Input
+                        id="min-advance-booking-days"
+                        aria-label="Minimum advance booking days"
+                        type="number"
+                        min="0"
+                        step="1"
+                        value={draft.min_advance_booking_days}
+                        onChange={(event) => {
+                          updateDraft((previous) => ({
+                            ...previous,
+                            min_advance_booking_days: event.target.value,
+                          }))
+                        }}
+                      />
                     </div>
-                  ) : null}
 
-                  {timelineBookings.past.map((booking) => {
-                    const badge = resolveTimelineBadge(booking, selectedItem.venue.instant_booking, true)
-
-                    return (
-                      <div
-                        key={booking.id}
-                        data-testid="venue-booking-row"
-                        data-booking-id={booking.id}
-                        className="rounded-xl border border-secondary-50/10 bg-secondary-800 px-3 py-2"
+                    <div className="space-y-1">
+                      <label htmlFor="min-advance-lead-time" className="text-xs font-medium text-secondary-50/70">
+                        Minimum lead time
+                      </label>
+                      <select
+                        id="min-advance-lead-time"
+                        aria-label="Minimum advance lead time preset"
+                        className="h-11 w-full rounded-md border border-secondary-50/15 bg-secondary-800 px-3 py-2 text-sm text-secondary-50"
+                        value={resolveLeadTimePreset(draft.min_advance_lead_time_hours)}
+                        onChange={(event) => {
+                          const { value } = event.target
+                          if (value === 'custom') {
+                            return
+                          }
+                          updateDraft((previous) => ({
+                            ...previous,
+                            min_advance_lead_time_hours: value,
+                          }))
+                        }}
                       >
-                        <div className="flex items-start justify-between gap-3">
-                          <div className="space-y-0.5">
-                            <p className="text-sm font-medium text-secondary-50">{formatRenterLabel(booking.renter)}</p>
-                            <p className="text-xs text-secondary-50/70">{booking.renter?.email || 'No email on file'}</p>
-                            <p className="text-xs text-secondary-50/60">{formatBookingTimelineDate(booking)}</p>
-                          </div>
-                          <div className="flex flex-col items-end gap-1">
-                            <span className="text-xs font-semibold text-secondary-50">${booking.total_amount.toFixed(2)}</span>
-                            <span
-                              className={cn(
-                                'inline-flex items-center rounded-full border px-2.5 py-0.5 text-[11px] font-medium',
-                                badge.className
-                              )}
-                            >
-                              {badge.label}
-                            </span>
-                          </div>
+                        {LEAD_TIME_PRESET_HOURS.map((hours) => (
+                          <option key={hours} value={String(hours)}>
+                            {formatLeadTimeLabel(hours)}
+                          </option>
+                        ))}
+                        <option value="custom">Custom (hours)</option>
+                      </select>
+                      {resolveLeadTimePreset(draft.min_advance_lead_time_hours) === 'custom' && (
+                        <Input
+                          aria-label="Custom minimum lead time hours"
+                          type="number"
+                          min="0"
+                          step="1"
+                          value={draft.min_advance_lead_time_hours}
+                          onChange={(event) => {
+                            updateDraft((previous) => ({
+                              ...previous,
+                              min_advance_lead_time_hours: event.target.value,
+                            }))
+                          }}
+                        />
+                      )}
+                      <p className="text-[11px] text-secondary-50/50">
+                        Lead time means how many hours before start time a booking must be made.
+                      </p>
+                    </div>
+
+                    <div className="rounded-md border border-secondary-50/10 bg-secondary-800 px-3 py-2 text-xs text-secondary-50/70">
+                      {(() => {
+                        const minDays = parseNonNegativeInteger(draft.min_advance_booking_days)
+                        const minLeadHours = parseNonNegativeInteger(draft.min_advance_lead_time_hours)
+                        if (minDays === null || minLeadHours === null) {
+                          return 'Enter non-negative whole numbers to preview policy behavior.'
+                        }
+                        return formatPolicyPreview(minDays, minLeadHours)
+                      })()}
+                    </div>
+                  </ConfigRow>
+                </SectionGroup>
+
+                <SectionGroup title="Pricing & Booking Settings">
+                  <ConfigRow
+                    title="Normal Booking Price"
+                    description="Flat rate for standard private booking sessions."
+                  >
+                    <Input
+                      type="number"
+                      min="1"
+                      step="0.01"
+                      value={draft.hourly_rate}
+                      onChange={(event) => {
+                        updateDraft((previous) => ({ ...previous, hourly_rate: event.target.value }))
+                      }}
+                    />
+                  </ConfigRow>
+
+                  <ConfigRow
+                    title="Booking Mode"
+                    description="Control instant booking and insurance requirements."
+                  >
+                    <div className="space-y-3">
+                      <div className="space-y-1">
+                        <p className="text-xs font-medium text-secondary-50/70">Booking mode</p>
+                        <div className="inline-flex rounded-full border border-secondary-50/15 bg-secondary-800 p-1">
+                          <button
+                            type="button"
+                            className={cn(
+                              'rounded-full px-3 py-1.5 text-xs font-medium transition-colors',
+                              draft.instant_booking
+                                ? 'bg-primary-400 text-secondary-900'
+                                : 'text-secondary-50/70 hover:text-secondary-50'
+                            )}
+                            onClick={() => {
+                              updateDraft((previous) => ({ ...previous, instant_booking: true }))
+                            }}
+                          >
+                            Instant
+                          </button>
+                          <button
+                            type="button"
+                            className={cn(
+                              'rounded-full px-3 py-1.5 text-xs font-medium transition-colors',
+                              !draft.instant_booking
+                                ? 'bg-primary-400 text-secondary-900'
+                                : 'text-secondary-50/70 hover:text-secondary-50'
+                            )}
+                            onClick={() => {
+                              updateDraft((previous) => ({ ...previous, instant_booking: false }))
+                            }}
+                          >
+                            Manual approval
+                          </button>
                         </div>
                       </div>
-                    )
-                  })}
+                      <div className="space-y-1">
+                        <p className="text-xs font-medium text-secondary-50/70">Insurance</p>
+                        <div className="inline-flex rounded-full border border-secondary-50/15 bg-secondary-800 p-1">
+                          <button
+                            type="button"
+                            className={cn(
+                              'rounded-full px-3 py-1.5 text-xs font-medium transition-colors',
+                              draft.insurance_required
+                                ? 'bg-primary-400 text-secondary-900'
+                                : 'text-secondary-50/70 hover:text-secondary-50'
+                            )}
+                            onClick={() => {
+                              updateDraft((previous) => ({ ...previous, insurance_required: true }))
+                            }}
+                          >
+                            Required
+                          </button>
+                          <button
+                            type="button"
+                            className={cn(
+                              'rounded-full px-3 py-1.5 text-xs font-medium transition-colors',
+                              !draft.insurance_required
+                                ? 'bg-primary-400 text-secondary-900'
+                                : 'text-secondary-50/70 hover:text-secondary-50'
+                            )}
+                            onClick={() => {
+                              updateDraft((previous) => ({ ...previous, insurance_required: false }))
+                            }}
+                          >
+                            Not required
+                          </button>
+                        </div>
+                      </div>
+                      <p className="text-xs text-secondary-50/60">{getBookingModeHelperText(draft)}</p>
+                    </div>
+                  </ConfigRow>
+                </SectionGroup>
+
+                <SectionGroup title="Policies">
+                  <ConfigRow
+                    title="Cancellation, Refund & No-Show"
+                    description="Venue-specific policy guidance for renters."
+                  >
+                    <textarea
+                      className="min-h-16 w-full rounded-md border border-secondary-50/15 bg-secondary-800 px-3 py-2 text-sm text-secondary-50"
+                      value={draft.policy_cancel}
+                      placeholder="Cancellation policy"
+                      onChange={(event) => {
+                        updateDraft((previous) => ({ ...previous, policy_cancel: event.target.value }))
+                      }}
+                    />
+                    <textarea
+                      className="min-h-16 w-full rounded-md border border-secondary-50/15 bg-secondary-800 px-3 py-2 text-sm text-secondary-50"
+                      value={draft.policy_refund}
+                      placeholder="Refund policy"
+                      onChange={(event) => {
+                        updateDraft((previous) => ({ ...previous, policy_refund: event.target.value }))
+                      }}
+                    />
+                    <textarea
+                      className="min-h-16 w-full rounded-md border border-secondary-50/15 bg-secondary-800 px-3 py-2 text-sm text-secondary-50"
+                      value={draft.policy_no_show}
+                      placeholder="No-show policy"
+                      onChange={(event) => {
+                        updateDraft((previous) => ({ ...previous, policy_no_show: event.target.value }))
+                      }}
+                    />
+                  </ConfigRow>
+                </SectionGroup>
+
+                <SectionGroup title="Amenities">
+                  <ConfigRow
+                    title="Amenities Checklist"
+                    description="Shown on venue cards/details and used for completeness checks."
+                  >
+                    <div className="grid grid-cols-1 gap-2 sm:grid-cols-2">
+                      {AMENITY_OPTIONS.map((amenity) => {
+                        const checked = draft.amenities.includes(amenity)
+                        return (
+                          <label key={amenity} className="flex items-center gap-2 text-sm text-secondary-50/80">
+                            <input
+                              type="checkbox"
+                              checked={checked}
+                              onChange={(event) => {
+                                updateDraft((previous) => {
+                                  const nextAmenities = event.target.checked
+                                    ? Array.from(new Set([...previous.amenities, amenity]))
+                                    : previous.amenities.filter((item) => item !== amenity)
+
+                                  return {
+                                    ...previous,
+                                    amenities: nextAmenities,
+                                  }
+                                })
+                              }}
+                            />
+                            {amenity}
+                          </label>
+                        )
+                      })}
+                    </div>
+                  </ConfigRow>
+                </SectionGroup>
+              </>
+            )}
+
+            {activeTab === 'bookings' && (
+              <SectionGroup title="Venue Bookings Timeline" description="Single chronological feed of all venue bookings.">
+                <div className="py-4">
+                  {insuranceActionError ? (
+                    <p className="text-xs text-red-300 mb-2">{insuranceActionError}</p>
+                  ) : null}
+                  {insuranceActionMessage ? (
+                    <p className="text-xs text-primary-400 mb-2">{insuranceActionMessage}</p>
+                  ) : null}
+                  {venueBookingsLoading ? (
+                    <p className="text-xs text-secondary-50/60">Loading bookings...</p>
+                  ) : venueBookingsError ? (
+                    <div className="space-y-2 rounded-md border border-red-300/30 bg-red-400/10 px-3 py-2">
+                      <p className="text-xs text-red-200">{venueBookingsError}</p>
+                      <Button
+                        type="button"
+                        variant="outline"
+                        size="sm"
+                        onClick={() => {
+                          void refetchVenueBookings()
+                        }}
+                      >
+                        Retry
+                      </Button>
+                    </div>
+                  ) : !venueBookings || venueBookings.length === 0 ? (
+                    <p className="text-xs text-secondary-50/60">No bookings for this venue yet.</p>
+                  ) : (
+                    <div data-testid="venue-bookings-timeline" className="space-y-2">
+                      {timelineBookings.upcoming.map((booking) => {
+                        const badge = resolveTimelineBadge(booking, selectedItem.venue.instant_booking, false)
+                        const canApproveInsurance =
+                          booking.status === 'pending'
+                          && booking.insurance_required
+                          && !booking.insurance_approved
+
+                        return (
+                          <div
+                            key={booking.id}
+                            data-testid="venue-booking-row"
+                            data-booking-id={booking.id}
+                            className="rounded-xl border border-secondary-50/10 bg-secondary-800 px-3 py-2"
+                          >
+                            <div className="flex items-start justify-between gap-3">
+                              <div className="space-y-0.5">
+                                <p className="text-sm font-medium text-secondary-50">{formatRenterLabel(booking.renter)}</p>
+                                <p className="text-xs text-secondary-50/70">{booking.renter?.email || 'No email on file'}</p>
+                                <p className="text-xs text-secondary-50/60">{formatBookingTimelineDate(booking)}</p>
+                                {canApproveInsurance ? (
+                                  <Button
+                                    type="button"
+                                    variant="outline"
+                                    size="sm"
+                                    disabled={insuranceActionBookingId === booking.id}
+                                    onClick={() => {
+                                      void handleApproveInsurance(booking.id)
+                                    }}
+                                  >
+                                    {insuranceActionBookingId === booking.id ? 'Approving...' : 'Approve Insurance'}
+                                  </Button>
+                                ) : null}
+                              </div>
+                              <div className="flex flex-col items-end gap-1">
+                                <span className="text-xs font-semibold text-secondary-50">${booking.total_amount.toFixed(2)}</span>
+                                <span
+                                  className={cn(
+                                    'inline-flex items-center rounded-full border px-2.5 py-0.5 text-[11px] font-medium',
+                                    badge.className
+                                  )}
+                                >
+                                  {badge.label}
+                                </span>
+                              </div>
+                            </div>
+                          </div>
+                        )
+                      })}
+
+                      {timelineBookings.past.length > 0 ? (
+                        <div className="pt-1">
+                          <div className="flex items-center gap-2">
+                            <div className="h-px flex-1 bg-secondary-50/15" />
+                            <p className="text-[11px] font-medium uppercase tracking-wide text-secondary-50/45">Past bookings</p>
+                            <div className="h-px flex-1 bg-secondary-50/15" />
+                          </div>
+                        </div>
+                      ) : null}
+
+                      {timelineBookings.past.map((booking) => {
+                        const badge = resolveTimelineBadge(booking, selectedItem.venue.instant_booking, true)
+
+                        return (
+                          <div
+                            key={booking.id}
+                            data-testid="venue-booking-row"
+                            data-booking-id={booking.id}
+                            className="rounded-xl border border-secondary-50/10 bg-secondary-800 px-3 py-2"
+                          >
+                            <div className="flex items-start justify-between gap-3">
+                              <div className="space-y-0.5">
+                                <p className="text-sm font-medium text-secondary-50">{formatRenterLabel(booking.renter)}</p>
+                                <p className="text-xs text-secondary-50/70">{booking.renter?.email || 'No email on file'}</p>
+                                <p className="text-xs text-secondary-50/60">{formatBookingTimelineDate(booking)}</p>
+                              </div>
+                              <div className="flex flex-col items-end gap-1">
+                                <span className="text-xs font-semibold text-secondary-50">${booking.total_amount.toFixed(2)}</span>
+                                <span
+                                  className={cn(
+                                    'inline-flex items-center rounded-full border px-2.5 py-0.5 text-[11px] font-medium',
+                                    badge.className
+                                  )}
+                                >
+                                  {badge.label}
+                                </span>
+                              </div>
+                            </div>
+                          </div>
+                        )
+                      })}
+                    </div>
+                  )}
                 </div>
-              )}
-            </ConfigRow>
-          </section>
+              </SectionGroup>
+            )}
+          </div>
         )}
+      </div>
+
+      <div className="fixed bottom-0 left-0 right-0 z-50 border-t border-secondary-50/10 bg-secondary-900/95 backdrop-blur-sm">
+        <div className="mx-auto flex max-w-7xl items-center justify-between gap-4 px-4 py-3 sm:px-6">
+          <div className="flex flex-wrap items-center gap-3 text-xs">
+            {hasUnsavedChanges ? (
+              <span className="text-amber-300">Unsaved changes</span>
+            ) : (
+              <span className="text-secondary-50/60">All changes saved</span>
+            )}
+            {selectedItem && (
+              <span className={cn(getAvailabilityPublishStatusClassName(selectedItem))}>
+                {formatAvailabilityPublishStatusLabel(selectedItem)}
+              </span>
+            )}
+            {isSaving && <span className="text-primary-400">{saveInFlightLabel}</span>}
+            {saveMessage && <span className="text-primary-400">{saveMessage}</span>}
+            {saveError && <span className="text-red-300">{saveError}</span>}
+          </div>
+          <div className="flex items-center gap-2">
+            <Button
+              type="button"
+              variant="outline"
+              onClick={handleDiscardChanges}
+              disabled={!hasUnsavedChanges || isSaving}
+            >
+              Discard
+            </Button>
+            <Button
+              type="button"
+              onClick={() => {
+                void handleSaveChanges()
+              }}
+              disabled={!hasUnsavedChanges || isSaving}
+            >
+              Save All Changes
+            </Button>
+          </div>
+        </div>
       </div>
     </div>
   )
