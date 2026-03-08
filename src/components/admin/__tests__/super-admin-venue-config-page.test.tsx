@@ -447,6 +447,21 @@ describe('SuperAdminVenueConfigPage', () => {
     expect(screen.queryByPlaceholderText(/insurance document types/i)).not.toBeInTheDocument()
   })
 
+  it('shows only the three compact policy textareas in the policies section', async () => {
+    render(<SuperAdminVenueConfigPage />)
+
+    await screen.findByRole('heading', { name: 'Policies', level: 3 })
+
+    const cancellationPolicy = screen.getByPlaceholderText('Cancellation policy')
+    const refundPolicy = screen.getByPlaceholderText('Refund policy')
+    const noShowPolicy = screen.getByPlaceholderText('No-show policy')
+
+    expect(screen.queryByPlaceholderText('Operating hours notes')).not.toBeInTheDocument()
+    expect(cancellationPolicy).toHaveClass('min-h-16')
+    expect(refundPolicy).toHaveClass('min-h-16')
+    expect(noShowPolicy).toHaveClass('min-h-16')
+  })
+
   it('saves insurance toggle without legacy insurance fields', async () => {
     mockPatchAdminVenueConfig.mockResolvedValue({})
 

@@ -1378,10 +1378,10 @@ export function SuperAdminVenueConfigPage() {
 
             <ConfigRow
               title="Policies"
-              description="Venue-specific cancellation, refund, no-show, and operating-hours guidance."
+              description="Venue-specific cancellation, refund, and no-show guidance."
             >
               <textarea
-                className="min-h-20 w-full rounded-md border border-secondary-50/15 bg-secondary-800 px-3 py-2 text-sm text-secondary-50"
+                className="min-h-16 w-full rounded-md border border-secondary-50/15 bg-secondary-800 px-3 py-2 text-sm text-secondary-50"
                 value={draft.policy_cancel}
                 placeholder="Cancellation policy"
                 onChange={(event) => {
@@ -1389,7 +1389,7 @@ export function SuperAdminVenueConfigPage() {
                 }}
               />
               <textarea
-                className="min-h-20 w-full rounded-md border border-secondary-50/15 bg-secondary-800 px-3 py-2 text-sm text-secondary-50"
+                className="min-h-16 w-full rounded-md border border-secondary-50/15 bg-secondary-800 px-3 py-2 text-sm text-secondary-50"
                 value={draft.policy_refund}
                 placeholder="Refund policy"
                 onChange={(event) => {
@@ -1397,22 +1397,11 @@ export function SuperAdminVenueConfigPage() {
                 }}
               />
               <textarea
-                className="min-h-20 w-full rounded-md border border-secondary-50/15 bg-secondary-800 px-3 py-2 text-sm text-secondary-50"
+                className="min-h-16 w-full rounded-md border border-secondary-50/15 bg-secondary-800 px-3 py-2 text-sm text-secondary-50"
                 value={draft.policy_no_show}
                 placeholder="No-show policy"
                 onChange={(event) => {
                   updateDraft((previous) => ({ ...previous, policy_no_show: event.target.value }))
-                }}
-              />
-              <textarea
-                className="min-h-20 w-full rounded-md border border-secondary-50/15 bg-secondary-800 px-3 py-2 text-sm text-secondary-50"
-                value={draft.policy_operating_hours_notes}
-                placeholder="Operating hours notes"
-                onChange={(event) => {
-                  updateDraft((previous) => ({
-                    ...previous,
-                    policy_operating_hours_notes: event.target.value,
-                  }))
                 }}
               />
             </ConfigRow>
