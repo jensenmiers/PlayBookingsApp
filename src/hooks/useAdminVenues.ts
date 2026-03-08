@@ -33,6 +33,12 @@ export interface AdminVenueConfigItem {
     last_error: string | null
     updated_at: string | null
   } | null
+  availability_publish: {
+    status: 'ready_for_renters' | 'updating_future_availability' | 'needs_attention'
+    last_published_at: string | null
+    last_error: string | null
+    last_error_source: 'slot_refresh' | 'google_block_sync' | null
+  }
   completeness: {
     score: number
     missing_fields: string[]
@@ -89,7 +95,7 @@ export function useAdminVenues() {
 export async function patchAdminVenueConfig(
   venueId: string,
   body: Record<string, unknown>
-): Promise<AdminVenueConfigItem> {
+): Promise<{ item: AdminVenueConfigItem; message?: string }> {
   const response = await fetch(`/api/admin/venues/${venueId}`, {
     method: 'PATCH',
     headers: { 'Content-Type': 'application/json' },
@@ -101,7 +107,10 @@ export async function patchAdminVenueConfig(
     throw new Error(result.error?.message || 'Failed to update venue config')
   }
 
-  return result.data as AdminVenueConfigItem
+  return {
+    item: result.data as AdminVenueConfigItem,
+    message: typeof result.message === 'string' ? result.message : undefined,
+  }
 }
 
 export async function connectVenueCalendar(venueId: string): Promise<{ auth_url: string }> {

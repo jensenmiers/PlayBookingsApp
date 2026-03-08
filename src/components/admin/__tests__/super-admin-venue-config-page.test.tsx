@@ -100,6 +100,12 @@ const buildMockAdminVenuesData = () => [
       last_error: null,
       updated_at: null,
     },
+    availability_publish: {
+      status: 'ready_for_renters',
+      last_published_at: '2026-03-07T12:00:00.000Z',
+      last_error: null,
+      last_error_source: null,
+    },
     calendar_integration: null,
   },
   {
@@ -162,6 +168,12 @@ const buildMockAdminVenuesData = () => [
       run_after: null,
       last_error: null,
       updated_at: null,
+    },
+    availability_publish: {
+      status: 'ready_for_renters',
+      last_published_at: '2026-03-07T12:00:00.000Z',
+      last_error: null,
+      last_error_source: null,
     },
     calendar_integration: null,
   },
@@ -497,15 +509,10 @@ describe('SuperAdminVenueConfigPage', () => {
     expect(screen.getByText(/new bookings will start as pending approval/i)).toBeInTheDocument()
   })
 
-  it('shows combined slot sync status when either regular or drop-in sync is pending/failed', async () => {
+  it('shows renter-facing availability status labels', async () => {
     const data = buildMockAdminVenuesData()
-    data[0].drop_in_slot_sync = {
-      status: 'failed',
-      reason: 'drop_in_templates_updated',
-      run_after: null,
-      last_error: 'processor timeout',
-      updated_at: '2026-02-21T12:05:00.000Z',
-    }
+    data[0].availability_publish.status = 'needs_attention'
+    data[1].availability_publish.status = 'updating_future_availability'
 
     mockUseAdminVenues.mockReturnValue({
       loading: false,
@@ -516,7 +523,44 @@ describe('SuperAdminVenueConfigPage', () => {
 
     render(<SuperAdminVenueConfigPage />)
 
-    await screen.findByText('Slot sync failed')
+    await screen.findByText('Needs attention')
+  })
+
+  it('shows updating renter availability while an availability-affecting save is in flight', async () => {
+    let resolvePatch: ((value: unknown) => void) | null = null
+    mockPatchAdminVenueConfig.mockReturnValue(
+      new Promise((resolve) => {
+        resolvePatch = resolve
+      })
+    )
+
+    render(<SuperAdminVenueConfigPage />)
+
+    fireEvent.click(await screen.findByRole('button', { name: 'Required' }))
+    fireEvent.click(screen.getByRole('button', { name: /save changes/i }))
+
+    expect(await screen.findByText('Updating renter availability...')).toBeInTheDocument()
+
+    resolvePatch?.({ item: buildMockAdminVenuesData()[0], message: 'Renter availability is up to date.' })
+    await waitFor(() => {
+      expect(mockPatchAdminVenueConfig).toHaveBeenCalled()
+    })
+  })
+
+  it('uses the api success message after a partial-success save', async () => {
+    mockPatchAdminVenueConfig.mockResolvedValue({
+      item: buildMockAdminVenuesData()[0],
+      message: 'Changes saved. Renter availability needs attention.',
+    })
+
+    render(<SuperAdminVenueConfigPage />)
+
+    fireEvent.click(await screen.findByRole('button', { name: 'Required' }))
+    fireEvent.click(screen.getByRole('button', { name: /save changes/i }))
+
+    expect(
+      await screen.findByText('Changes saved. Renter availability needs attention.')
+    ).toBeInTheDocument()
   })
 
   it('saves weekly drop-in templates when schedule windows are added', async () => {

@@ -7,6 +7,13 @@ import { updateVenueAdminConfigSchema } from '@/lib/validations/adminVenueConfig
 import { badRequest, handleApiError, notFound } from '@/utils/errorHandling'
 import { calculateVenueConfigCompleteness, normalizeVenueAdminConfig } from '@/lib/venueAdminConfig'
 import { deriveRegularTemplateWindowsFromOperatingHours } from '@/lib/operatingHoursTemplates'
+import { syncVenueCalendarByVenueId } from '@/services/googleCalendarIntegrationService'
+import {
+  deriveVenueAvailabilityPublishState,
+  getVenueAvailabilityPublishState,
+  recordVenueAvailabilityPublishFailure,
+  recordVenueAvailabilityPublishSuccess,
+} from '@/services/venueAvailabilityPublishService'
 import type { ApiResponse } from '@/types/api'
 import type { DropInTemplateWindow, Venue, VenueAdminConfig } from '@/types'
 
@@ -59,6 +66,8 @@ type VenueCalendarIntegrationState = {
   last_error: string | null
   updated_at: string | null
 }
+
+type AvailabilityPublishState = ReturnType<typeof deriveVenueAvailabilityPublishState>
 
 type RegularTemplateRow = DropInTemplateWindow & {
   action_type: 'instant_book' | 'request_private'
@@ -211,6 +220,52 @@ function toSyncState(row: RegularTemplateSyncQueueRow | null): TemplateSyncState
   }
 }
 
+const AVAILABILITY_AFFECTING_FIELDS = [
+  'drop_in_enabled',
+  'drop_in_price',
+  'operating_hours',
+  'drop_in_templates',
+  'instant_booking',
+  'insurance_required',
+  'min_advance_booking_days',
+  'min_advance_lead_time_hours',
+  'blackout_dates',
+  'holiday_dates',
+] as const
+
+function isAvailabilityAffectingSave(body: Record<string, unknown>): boolean {
+  return AVAILABILITY_AFFECTING_FIELDS.some((field) => body[field] !== undefined)
+}
+
+function shouldRunImmediateGoogleSync(
+  calendarIntegration: VenueCalendarIntegrationState | null
+): boolean {
+  return Boolean(
+    calendarIntegration
+    && calendarIntegration.status !== 'disconnected'
+    && calendarIntegration.google_calendar_id
+  )
+}
+
+function buildResponseMessage(args: {
+  didRunAvailabilityPublish: boolean
+  availabilityPublish: AvailabilityPublishState
+}): string {
+  if (!args.didRunAvailabilityPublish) {
+    return 'Changes saved'
+  }
+
+  if (args.availabilityPublish.status === 'needs_attention') {
+    return 'Changes saved. Renter availability needs attention.'
+  }
+
+  if (args.availabilityPublish.status === 'updating_future_availability') {
+    return 'Renter availability is up to date. Future availability is still being prepared in the background.'
+  }
+
+  return 'Renter availability is up to date.'
+}
+
 export async function GET(_request: NextRequest, context: RouteContext): Promise<Response> {
   try {
     const auth = await requireAuth()
@@ -230,6 +285,7 @@ export async function GET(_request: NextRequest, context: RouteContext): Promise
       { data: regularSyncRow, error: regularSyncError },
       { data: dropInSyncRow, error: dropInSyncError },
       { data: calendarIntegrationRow, error: calendarIntegrationError },
+      publishStateRow,
     ] = await Promise.all([
       adminClient.from('venues').select('*').eq('id', id).single(),
       adminClient.from('venue_admin_configs').select('*').eq('venue_id', id).maybeSingle(),
@@ -254,6 +310,7 @@ export async function GET(_request: NextRequest, context: RouteContext): Promise
         .select('provider, google_calendar_id, google_calendar_name, google_account_email, status, sync_enabled, sync_interval_minutes, last_synced_at, next_sync_at, last_error, updated_at')
         .eq('venue_id', id)
         .maybeSingle(),
+      getVenueAvailabilityPublishState(id),
     ])
 
     if (venueError || !venue) {
@@ -295,6 +352,15 @@ export async function GET(_request: NextRequest, context: RouteContext): Promise
     const dropInSlotSync = toSyncState(
       isMissingDropInSyncTable ? null : ((dropInSyncRow as DropInTemplateSyncQueueRow | null) || null)
     )
+    const calendarIntegration = isMissingCalendarIntegrationTable
+      ? null
+      : ((calendarIntegrationRow as VenueCalendarIntegrationState | null) || null)
+    const availabilityPublish = deriveVenueAvailabilityPublishState({
+      publishState: publishStateRow,
+      regularSlotSync,
+      dropInSlotSync,
+      calendarIntegration,
+    })
     const completeness = calculateVenueConfigCompleteness(venue as Venue, config)
     const response: ApiResponse<{
       venue: Venue
@@ -304,6 +370,7 @@ export async function GET(_request: NextRequest, context: RouteContext): Promise
       drop_in_slot_sync: TemplateSyncState
       regular_slot_sync: TemplateSyncState
       calendar_integration: VenueCalendarIntegrationState | null
+      availability_publish: AvailabilityPublishState
       completeness: ReturnType<typeof calculateVenueConfigCompleteness>
     }> = {
       success: true,
@@ -314,9 +381,8 @@ export async function GET(_request: NextRequest, context: RouteContext): Promise
         regular_booking_templates: regularTemplates,
         drop_in_slot_sync: dropInSlotSync,
         regular_slot_sync: regularSlotSync,
-        calendar_integration: isMissingCalendarIntegrationTable
-          ? null
-          : ((calendarIntegrationRow as VenueCalendarIntegrationState | null) || null),
+        calendar_integration: calendarIntegration,
+        availability_publish: availabilityPublish,
         completeness,
       },
     }
@@ -342,6 +408,7 @@ export async function PATCH(request: NextRequest, context: RouteContext): Promis
       throw badRequest('regular_booking_templates is deprecated; update operating_hours instead')
     }
     const adminClient = createAdminClient()
+    const shouldPublishAvailability = isAvailabilityAffectingSave(body as Record<string, unknown>)
 
     const [{ data: existingVenue, error: existingVenueError }, { data: existingConfig, error: existingConfigError }, { data: existingTemplateRows, error: existingTemplatesError }] =
       await Promise.all([
@@ -550,17 +617,8 @@ export async function PATCH(request: NextRequest, context: RouteContext): Promis
     const shouldQueueRegularSlotRefresh =
       regularTemplatesUpdated || shouldRefreshRegularTemplatesForBookingModeChange
     const shouldInlineRefreshSlotInstances = shouldQueueDropInSlotRefresh || shouldQueueRegularSlotRefresh
-    if (shouldInlineRefreshSlotInstances) {
-      const { error: inlineRefreshError } = await adminClient.rpc('refresh_slot_instances_from_templates', {
-        p_venue_id: id,
-        p_date_from: new Date().toISOString().slice(0, 10),
-        p_date_to: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000).toISOString().slice(0, 10),
-      })
-
-      if (inlineRefreshError) {
-        throw new Error(`Failed to refresh slot instances inline: ${inlineRefreshError.message}`)
-      }
-    }
+    let slotRefreshPublishError: string | null = null
+    let googlePublishError: string | null = null
 
     if (shouldQueueDropInSlotRefresh) {
       const { error: queueError } = await adminClient.rpc('enqueue_drop_in_template_sync', {
@@ -570,7 +628,7 @@ export async function PATCH(request: NextRequest, context: RouteContext): Promis
       })
 
       if (queueError) {
-        throw new Error(`Failed to queue drop-in slot sync: ${queueError.message}`)
+        slotRefreshPublishError = `Failed to queue drop-in slot sync: ${queueError.message}`
       }
     }
 
@@ -582,7 +640,68 @@ export async function PATCH(request: NextRequest, context: RouteContext): Promis
       })
 
       if (regularQueueError) {
-        throw new Error(`Failed to queue regular slot sync: ${regularQueueError.message}`)
+        slotRefreshPublishError = `Failed to queue regular slot sync: ${regularQueueError.message}`
+      }
+    }
+
+    if (slotRefreshPublishError) {
+      await recordVenueAvailabilityPublishFailure({
+        venueId: id,
+        errorMessage: slotRefreshPublishError,
+        errorSource: 'slot_refresh',
+      })
+    }
+
+    if (shouldPublishAvailability && shouldInlineRefreshSlotInstances) {
+      const { error: inlineRefreshError } = await adminClient.rpc('refresh_slot_instances_from_templates', {
+        p_venue_id: id,
+        p_date_from: new Date().toISOString().slice(0, 10),
+        p_date_to: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000).toISOString().slice(0, 10),
+      })
+
+      if (inlineRefreshError) {
+        slotRefreshPublishError = `Failed to refresh slot instances inline: ${inlineRefreshError.message}`
+        await recordVenueAvailabilityPublishFailure({
+          venueId: id,
+          errorMessage: slotRefreshPublishError,
+          errorSource: 'slot_refresh',
+        })
+      } else if (!slotRefreshPublishError) {
+        await recordVenueAvailabilityPublishSuccess({
+          venueId: id,
+          errorSource: 'slot_refresh',
+        })
+      }
+    }
+
+    let immediateCalendarIntegrationRow: VenueCalendarIntegrationState | null = null
+    if (shouldPublishAvailability) {
+      const { data: calendarIntegrationRow, error: calendarIntegrationLoadError } = await adminClient
+        .from('venue_calendar_integrations')
+        .select('provider, google_calendar_id, google_calendar_name, google_account_email, status, sync_enabled, sync_interval_minutes, last_synced_at, next_sync_at, last_error, updated_at')
+        .eq('venue_id', id)
+        .maybeSingle()
+
+      const isMissingCalendarIntegrationTable = calendarIntegrationLoadError?.code === '42P01'
+        || calendarIntegrationLoadError?.message?.toLowerCase().includes('venue_calendar_integrations')
+      if (calendarIntegrationLoadError && !isMissingCalendarIntegrationTable) {
+        throw new Error(`Failed to load calendar integration for publish: ${calendarIntegrationLoadError.message}`)
+      }
+      immediateCalendarIntegrationRow = isMissingCalendarIntegrationTable
+        ? null
+        : ((calendarIntegrationRow as VenueCalendarIntegrationState | null) || null)
+
+      if (shouldRunImmediateGoogleSync(immediateCalendarIntegrationRow)) {
+        try {
+          await syncVenueCalendarByVenueId({
+            venueId: id,
+            userId: auth.userId,
+          })
+        } catch (error) {
+          googlePublishError = error instanceof Error ? error.message : 'Immediate Google Calendar sync failed'
+        }
+      } else if (!slotRefreshPublishError) {
+        await recordVenueAvailabilityPublishSuccess({ venueId: id })
       }
     }
 
@@ -593,6 +712,7 @@ export async function PATCH(request: NextRequest, context: RouteContext): Promis
       { data: updatedRegularSyncRow, error: updatedRegularSyncError },
       { data: updatedDropInSyncRow, error: updatedDropInSyncError },
       { data: updatedCalendarIntegrationRow, error: updatedCalendarIntegrationError },
+      publishStateRow,
     ] =
       await Promise.all([
         adminClient.from('venues').select('*').eq('id', id).single(),
@@ -618,6 +738,7 @@ export async function PATCH(request: NextRequest, context: RouteContext): Promis
           .select('provider, google_calendar_id, google_calendar_name, google_account_email, status, sync_enabled, sync_interval_minutes, last_synced_at, next_sync_at, last_error, updated_at')
           .eq('venue_id', id)
           .maybeSingle(),
+        getVenueAvailabilityPublishState(id),
       ])
 
     if (updatedVenueError || !updatedVenue) {
@@ -663,6 +784,32 @@ export async function PATCH(request: NextRequest, context: RouteContext): Promis
         ? null
         : ((updatedDropInSyncRow as DropInTemplateSyncQueueRow | null) || null)
     )
+    const normalizedCalendarIntegration = isMissingCalendarIntegrationTable
+      ? null
+      : ((updatedCalendarIntegrationRow as VenueCalendarIntegrationState | null) || null)
+    const responsePublishState = (
+      slotRefreshPublishError
+        ? {
+            venue_id: id,
+            last_published_at: publishStateRow?.last_published_at || null,
+            last_publish_error: slotRefreshPublishError,
+            last_publish_error_source: 'slot_refresh' as const,
+          }
+        : googlePublishError
+          ? {
+              venue_id: id,
+              last_published_at: publishStateRow?.last_published_at || null,
+              last_publish_error: googlePublishError,
+              last_publish_error_source: 'google_block_sync' as const,
+            }
+          : publishStateRow
+    ) || null
+    const availabilityPublish = deriveVenueAvailabilityPublishState({
+      publishState: responsePublishState,
+      regularSlotSync: normalizedRegularSync,
+      dropInSlotSync: normalizedDropInSync,
+      calendarIntegration: normalizedCalendarIntegration,
+    })
 
     const { error: auditError } = await adminClient
       .from('audit_logs')
@@ -698,6 +845,7 @@ export async function PATCH(request: NextRequest, context: RouteContext): Promis
       drop_in_slot_sync: TemplateSyncState
       regular_slot_sync: TemplateSyncState
       calendar_integration: VenueCalendarIntegrationState | null
+      availability_publish: AvailabilityPublishState
       completeness: ReturnType<typeof calculateVenueConfigCompleteness>
     }> = {
       success: true,
@@ -708,12 +856,14 @@ export async function PATCH(request: NextRequest, context: RouteContext): Promis
         regular_booking_templates: normalizedRegularTemplates,
         drop_in_slot_sync: normalizedDropInSync,
         regular_slot_sync: normalizedRegularSync,
-        calendar_integration: isMissingCalendarIntegrationTable
-          ? null
-          : ((updatedCalendarIntegrationRow as VenueCalendarIntegrationState | null) || null),
+        calendar_integration: normalizedCalendarIntegration,
+        availability_publish: availabilityPublish,
         completeness,
       },
-      message: 'Venue configuration updated',
+      message: buildResponseMessage({
+        didRunAvailabilityPublish: shouldPublishAvailability,
+        availabilityPublish,
+      }),
     }
 
     return Response.json(response)

@@ -2,6 +2,10 @@ import { randomBytes } from 'crypto'
 import { createAdminClient } from '@/lib/supabase/admin'
 import { decryptSecret, encryptSecret } from '@/lib/tokenCrypto'
 import { buildCalendarBlockMutations, type GoogleCalendarEventInput } from '@/lib/googleCalendarSync'
+import {
+  recordVenueAvailabilityPublishFailure,
+  recordVenueAvailabilityPublishSuccess,
+} from '@/services/venueAvailabilityPublishService'
 import { badRequest, internalError, notFound } from '@/utils/errorHandling'
 
 const GOOGLE_AUTH_BASE_URL = 'https://accounts.google.com/o/oauth2/v2/auth'
@@ -748,6 +752,12 @@ export async function syncVenueCalendarByVenueId(args: {
       throw new Error(`Failed to update calendar integration after sync: ${updateError.message}`)
     }
 
+    await recordVenueAvailabilityPublishSuccess({
+      venueId: args.venueId,
+      errorSource: 'google_block_sync',
+      publishedAt: syncedAt,
+    })
+
     return {
       venueId: args.venueId,
       upsertedCount: mutationResult.upsertedCount,
@@ -773,6 +783,12 @@ export async function syncVenueCalendarByVenueId(args: {
     if (updateError) {
       throw new Error(`Google calendar sync failed: ${message}; and status update failed: ${updateError.message}`)
     }
+
+    await recordVenueAvailabilityPublishFailure({
+      venueId: args.venueId,
+      errorMessage: message,
+      errorSource: 'google_block_sync',
+    })
 
     throw badRequest(message)
   }

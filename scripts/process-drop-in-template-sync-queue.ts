@@ -3,6 +3,7 @@
 import { createClient } from '@supabase/supabase-js'
 import * as dotenv from 'dotenv'
 import { resolve } from 'path'
+import { recordVenueAvailabilityPublishSuccess } from '../src/services/venueAvailabilityPublishService'
 
 dotenv.config({ path: resolve(process.cwd(), '.env.local') })
 dotenv.config({ path: resolve(process.cwd(), '.env') })
@@ -39,6 +40,10 @@ async function main() {
   const rows = Array.isArray(data) ? data : []
   console.log(`Processed ${rows.length} venue(s) from drop-in template sync queue`)
   for (const row of rows as Array<{ venue_id: string; refreshed_rows: number }>) {
+    await recordVenueAvailabilityPublishSuccess({
+      venueId: row.venue_id,
+      errorSource: 'slot_refresh',
+    })
     console.log(`- ${row.venue_id}: refreshed ${row.refreshed_rows} slot instance row(s)`)
   }
 }

@@ -442,29 +442,54 @@ function formatLastSavedAt(item: AdminVenueConfigItem): string {
   return latest.toLocaleString()
 }
 
-function getCombinedSlotSyncStatus(item: AdminVenueConfigItem | null): 'synced' | 'pending' | 'failed' {
-  const statuses = [
-    item?.regular_slot_sync?.status || 'synced',
-    item?.drop_in_slot_sync?.status || 'synced',
-  ]
-  if (statuses.includes('failed')) {
-    return 'failed'
-  }
-  if (statuses.includes('pending')) {
-    return 'pending'
-  }
-  return 'synced'
+const AVAILABILITY_AFFECTING_PATCH_FIELDS = [
+  'drop_in_enabled',
+  'drop_in_price',
+  'operating_hours',
+  'drop_in_templates',
+  'instant_booking',
+  'insurance_required',
+  'min_advance_booking_days',
+  'min_advance_lead_time_hours',
+  'blackout_dates',
+  'holiday_dates',
+] as const
+
+function isAvailabilityAffectingPatch(patch: Record<string, unknown>): boolean {
+  return AVAILABILITY_AFFECTING_PATCH_FIELDS.some((field) => patch[field] !== undefined)
 }
 
-function formatSlotSyncStatusLabel(item: AdminVenueConfigItem | null): string {
-  const status = getCombinedSlotSyncStatus(item)
-  if (status === 'pending') {
-    return 'Slot sync pending'
+function formatAvailabilityPublishStatusLabel(item: AdminVenueConfigItem | null): string {
+  const status = item?.availability_publish?.status || 'ready_for_renters'
+  if (status === 'needs_attention') {
+    return 'Needs attention'
   }
-  if (status === 'failed') {
-    return 'Slot sync failed'
+  if (status === 'updating_future_availability') {
+    return 'Updating future availability'
   }
-  return 'Slot sync synced'
+  return 'Ready for renters'
+}
+
+function getAvailabilityPublishStatusClassName(item: AdminVenueConfigItem | null): string {
+  const status = item?.availability_publish?.status || 'ready_for_renters'
+  if (status === 'needs_attention') {
+    return 'text-red-300'
+  }
+  if (status === 'updating_future_availability') {
+    return 'text-amber-300'
+  }
+  return 'text-secondary-50/60'
+}
+
+function getAvailabilityPublishHelperText(item: AdminVenueConfigItem | null): string | null {
+  const status = item?.availability_publish?.status || 'ready_for_renters'
+  if (status === 'updating_future_availability') {
+    return 'Future availability is still being prepared in the background.'
+  }
+  if (status === 'needs_attention') {
+    return item?.availability_publish?.last_error || 'Renter availability may not fully reflect the latest saved changes.'
+  }
+  return null
 }
 
 function getBookingStartMs(booking: AdminVenueBookingFeedItem): number {
@@ -678,6 +703,7 @@ export function SuperAdminVenueConfigPage() {
   } = useAdminVenueBookings(selectedVenueId)
   const [draft, setDraft] = useState<VenueConfigDraft | null>(null)
   const [isSaving, setIsSaving] = useState(false)
+  const [saveInFlightLabel, setSaveInFlightLabel] = useState<string>('Saving...')
   const [saveError, setSaveError] = useState<string | null>(null)
   const [saveMessage, setSaveMessage] = useState<string | null>(null)
   const [insuranceActionBookingId, setInsuranceActionBookingId] = useState<string | null>(null)
@@ -769,6 +795,7 @@ export function SuperAdminVenueConfigPage() {
     setInsuranceActionMessage(null)
     setInsuranceActionBookingId(null)
     setCalendarMessage(null)
+    setSaveInFlightLabel('Saving...')
     setCalendarOptions([])
     setSelectedCalendarId(selectedItem.calendar_integration?.google_calendar_id || '')
   }, [selectedItem])
@@ -914,15 +941,19 @@ export function SuperAdminVenueConfigPage() {
     setIsSaving(true)
     setSaveError(null)
     setSaveMessage(null)
+    setSaveInFlightLabel(
+      isAvailabilityAffectingPatch(patch) ? 'Updating renter availability...' : 'Saving...'
+    )
 
     try {
-      await patchAdminVenueConfig(selectedItem.venue.id, patch)
+      const result = await patchAdminVenueConfig(selectedItem.venue.id, patch)
       await refetch()
-      setSaveMessage('Changes saved')
+      setSaveMessage(result.message || 'Changes saved')
     } catch (savePatchError) {
       setSaveError(savePatchError instanceof Error ? savePatchError.message : 'Failed to save changes')
     } finally {
       setIsSaving(false)
+      setSaveInFlightLabel('Saving...')
     }
   }
 
@@ -1094,22 +1125,21 @@ export function SuperAdminVenueConfigPage() {
           {selectedItem
             ? (
               <span
-                className={cn(
-                  getCombinedSlotSyncStatus(selectedItem) === 'failed'
-                    ? 'text-red-300'
-                    : getCombinedSlotSyncStatus(selectedItem) === 'pending'
-                      ? 'text-amber-300'
-                      : 'text-secondary-50/60'
-                )}
+                className={cn(getAvailabilityPublishStatusClassName(selectedItem))}
               >
-                {formatSlotSyncStatusLabel(selectedItem)}
+                {formatAvailabilityPublishStatusLabel(selectedItem)}
               </span>
               )
             : null}
-          {isSaving ? <span className="text-primary-400">Saving...</span> : null}
+          {isSaving ? <span className="text-primary-400">{saveInFlightLabel}</span> : null}
           {saveMessage ? <span className="text-primary-400">{saveMessage}</span> : null}
           {saveError ? <span className="text-red-300">{saveError}</span> : null}
         </div>
+        {selectedItem && getAvailabilityPublishHelperText(selectedItem) ? (
+          <p className="max-w-3xl text-xs text-secondary-50/60">
+            {getAvailabilityPublishHelperText(selectedItem)}
+          </p>
+        ) : null}
         <div className="flex flex-wrap items-center gap-2">
           <Button
             type="button"

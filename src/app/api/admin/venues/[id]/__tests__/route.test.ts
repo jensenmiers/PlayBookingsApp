@@ -8,6 +8,7 @@ const mockRequireAuth = jest.fn()
 const mockRequireSuperAdmin = jest.fn()
 const mockValidateRequest = jest.fn()
 const mockCreateAdminClient = jest.fn()
+const mockSyncVenueCalendarByVenueId = jest.fn()
 
 jest.mock('@/middleware/authMiddleware', () => ({
   requireAuth: () => mockRequireAuth(),
@@ -25,6 +26,10 @@ jest.mock('@/lib/supabase/admin', () => ({
   createAdminClient: () => mockCreateAdminClient(),
 }))
 
+jest.mock('@/services/googleCalendarIntegrationService', () => ({
+  syncVenueCalendarByVenueId: (...args: unknown[]) => mockSyncVenueCalendarByVenueId(...args),
+}))
+
 type RouteContext = { params: Promise<{ id: string }> }
 
 function createContext(id: string): RouteContext {
@@ -33,7 +38,9 @@ function createContext(id: string): RouteContext {
   }
 }
 
-function createAdminClientMock() {
+function createAdminClientMock(args?: {
+  calendarIntegrationRow?: Record<string, unknown> | null
+}) {
   const venue = {
     id: 'venue-1',
     hourly_rate: 60,
@@ -82,9 +89,16 @@ function createAdminClientMock() {
   const dropInSyncEq = jest.fn(() => ({ maybeSingle: dropInSyncMaybeSingle }))
   const dropInSyncSelect = jest.fn(() => ({ eq: dropInSyncEq }))
 
-  const calendarIntegrationMaybeSingle = jest.fn().mockResolvedValue({ data: null, error: null })
+  const calendarIntegrationMaybeSingle = jest
+    .fn()
+    .mockResolvedValue({ data: args?.calendarIntegrationRow ?? null, error: null })
   const calendarIntegrationEq = jest.fn(() => ({ maybeSingle: calendarIntegrationMaybeSingle }))
   const calendarIntegrationSelect = jest.fn(() => ({ eq: calendarIntegrationEq }))
+
+  const publishStateMaybeSingle = jest.fn().mockResolvedValue({ data: null, error: null })
+  const publishStateEq = jest.fn(() => ({ maybeSingle: publishStateMaybeSingle }))
+  const publishStateSelect = jest.fn(() => ({ eq: publishStateEq }))
+  const publishStateUpsert = jest.fn().mockResolvedValue({ error: null })
 
   const auditInsert = jest.fn().mockResolvedValue({ error: null })
   const rpc = jest.fn().mockResolvedValue({ error: null })
@@ -108,6 +122,9 @@ function createAdminClientMock() {
     if (table === 'venue_calendar_integrations') {
       return { select: calendarIntegrationSelect }
     }
+    if (table === 'venue_availability_publish_states') {
+      return { select: publishStateSelect, upsert: publishStateUpsert }
+    }
     if (table === 'audit_logs') {
       return { insert: auditInsert }
     }
@@ -117,7 +134,7 @@ function createAdminClientMock() {
 
   return {
     client: { from, rpc },
-    calls: { rpc, templatesInsert, templateDeleteRegularIn },
+    calls: { rpc, templatesInsert, templateDeleteRegularIn, publishStateUpsert },
   }
 }
 
@@ -165,6 +182,10 @@ function createAdminClientMockForGet({
   const calendarIntegrationEq = jest.fn(() => ({ maybeSingle: calendarIntegrationMaybeSingle }))
   const calendarIntegrationSelect = jest.fn(() => ({ eq: calendarIntegrationEq }))
 
+  const publishStateMaybeSingle = jest.fn().mockResolvedValue({ data: null, error: null })
+  const publishStateEq = jest.fn(() => ({ maybeSingle: publishStateMaybeSingle }))
+  const publishStateSelect = jest.fn(() => ({ eq: publishStateEq }))
+
   const from = jest.fn((table: string) => {
     if (table === 'venues') {
       return { select: venueSelect }
@@ -183,6 +204,9 @@ function createAdminClientMockForGet({
     }
     if (table === 'venue_calendar_integrations') {
       return { select: calendarIntegrationSelect }
+    }
+    if (table === 'venue_availability_publish_states') {
+      return { select: publishStateSelect }
     }
 
     throw new Error(`Unexpected table ${table}`)
@@ -209,6 +233,13 @@ describe('GET /api/admin/venues/[id]', () => {
       user: { id: 'super-admin-1', email: 'admin@example.com' },
     })
     mockRequireSuperAdmin.mockReturnValue(undefined)
+    mockSyncVenueCalendarByVenueId.mockResolvedValue({
+      venueId: 'venue-1',
+      upsertedCount: 1,
+      cancelledCount: 0,
+      syncedAt: '2026-03-07T11:30:00.000Z',
+      nextSyncAt: '2026-03-07T11:35:00.000Z',
+    })
   })
 
   it('includes only regular action types in regular_booking_templates', async () => {
@@ -348,6 +379,101 @@ describe('PATCH /api/admin/venues/[id]', () => {
     )
     expect(refreshCall?.[1]).not.toHaveProperty('p_start_date')
     expect(refreshCall?.[1]).not.toHaveProperty('p_end_date')
+  })
+
+  it('does not run blocking publish work for non-availability saves', async () => {
+    const { client, calls } = createAdminClientMock()
+    mockCreateAdminClient.mockReturnValue(client)
+    mockValidateRequest.mockResolvedValue({
+      hourly_rate: 125,
+    })
+
+    const response = await PATCH(
+      new Request('http://localhost/api/admin/venues/venue-1', {
+        method: 'PATCH',
+        headers: { 'content-type': 'application/json' },
+        body: JSON.stringify({ hourly_rate: 125 }),
+      }),
+      createContext('venue-1')
+    )
+
+    expect(response.status).toBe(200)
+    expect(calls.rpc).not.toHaveBeenCalledWith(
+      'refresh_slot_instances_from_templates',
+      expect.any(Object)
+    )
+    expect(mockSyncVenueCalendarByVenueId).not.toHaveBeenCalled()
+  })
+
+  it('returns success with needs_attention when immediate slot publish fails after persistence', async () => {
+    const { client, calls } = createAdminClientMock()
+    mockCreateAdminClient.mockReturnValue(client)
+    mockValidateRequest.mockResolvedValue({
+      drop_in_enabled: false,
+    })
+    calls.rpc.mockImplementation(async (fnName: string) => {
+      if (fnName === 'enqueue_drop_in_template_sync') {
+        return { error: null }
+      }
+      if (fnName === 'refresh_slot_instances_from_templates') {
+        return { error: { message: 'inline refresh timeout' } }
+      }
+      return { error: null }
+    })
+
+    const response = await PATCH(
+      new Request('http://localhost/api/admin/venues/venue-1', {
+        method: 'PATCH',
+        headers: { 'content-type': 'application/json' },
+        body: JSON.stringify({ drop_in_enabled: false }),
+      }),
+      createContext('venue-1')
+    )
+    const json = await response.json()
+
+    expect(response.status).toBe(200)
+    expect(json.success).toBe(true)
+    expect(json.message).toContain('needs attention')
+    expect(json.data.availability_publish.status).toBe('needs_attention')
+    expect(calls.publishStateUpsert).toHaveBeenCalled()
+  })
+
+  it('returns success with needs_attention when immediate Google sync fails after persistence', async () => {
+    const { client } = createAdminClientMock({
+      calendarIntegrationRow: {
+        provider: 'google_calendar',
+        google_calendar_id: 'primary',
+        google_calendar_name: 'Primary',
+        google_account_email: 'primary@example.com',
+        status: 'connected',
+        sync_enabled: true,
+        sync_interval_minutes: 5,
+        last_synced_at: null,
+        next_sync_at: null,
+        last_error: null,
+        updated_at: null,
+      },
+    })
+    mockCreateAdminClient.mockReturnValue(client)
+    mockValidateRequest.mockResolvedValue({
+      min_advance_booking_days: 2,
+    })
+    mockSyncVenueCalendarByVenueId.mockRejectedValue(new Error('Google sync timeout'))
+
+    const response = await PATCH(
+      new Request('http://localhost/api/admin/venues/venue-1', {
+        method: 'PATCH',
+        headers: { 'content-type': 'application/json' },
+        body: JSON.stringify({ min_advance_booking_days: 2 }),
+      }),
+      createContext('venue-1')
+    )
+    const json = await response.json()
+
+    expect(response.status).toBe(200)
+    expect(json.success).toBe(true)
+    expect(json.message).toContain('needs attention')
+    expect(json.data.availability_publish.status).toBe('needs_attention')
   })
 
   it('derives regular templates from operating_hours updates', async () => {

@@ -11,6 +11,16 @@ jest.mock('@/lib/tokenCrypto', () => ({
   decryptSecret: (value: string) => value.replace(/^enc:/, ''),
 }))
 
+const mockRecordVenueAvailabilityPublishFailure = jest.fn()
+const mockRecordVenueAvailabilityPublishSuccess = jest.fn()
+
+jest.mock('@/services/venueAvailabilityPublishService', () => ({
+  recordVenueAvailabilityPublishFailure: (...args: unknown[]) =>
+    mockRecordVenueAvailabilityPublishFailure(...args),
+  recordVenueAvailabilityPublishSuccess: (...args: unknown[]) =>
+    mockRecordVenueAvailabilityPublishSuccess(...args),
+}))
+
 import { createAdminClient } from '@/lib/supabase/admin'
 import {
   buildGoogleCalendarAuthUrl,
@@ -18,6 +28,7 @@ import {
   getCalendarCallbackUrl,
   resolveVenueCalendarOAuthState,
   selectVenueCalendar,
+  syncVenueCalendarByVenueId,
 } from '../googleCalendarIntegrationService'
 
 type IntegrationRow = {
@@ -75,6 +86,11 @@ function createAdminClientMock(args?: {
     calls.integrationUpserts.push(payload)
     return { error: null }
   })
+  const integrationUpdateEq = jest.fn().mockResolvedValue({ error: null })
+  const integrationUpdate = jest.fn((payload: Record<string, unknown>) => {
+    calls.integrationUpserts.push(payload)
+    return { eq: integrationUpdateEq }
+  })
 
   const tokenMaybeSingle = jest
     .fn()
@@ -105,11 +121,23 @@ function createAdminClientMock(args?: {
     return { eq: oauthStateUpdateEq }
   })
 
+  const externalBlocksUpsert = jest.fn().mockResolvedValue({ error: null })
+  const externalBlocksSelectEq3 = jest.fn().mockResolvedValue({ data: [], error: null })
+  const externalBlocksSelectEq2 = jest.fn(() => ({ eq: externalBlocksSelectEq3 }))
+  const externalBlocksSelectEq1 = jest.fn(() => ({ eq: externalBlocksSelectEq2 }))
+  const externalBlocksSelect = jest.fn(() => ({ eq: externalBlocksSelectEq1 }))
+  const externalBlocksUpdateEq3 = jest.fn().mockResolvedValue({ error: null })
+  const externalBlocksUpdateIn = jest.fn(() => ({ eq: externalBlocksUpdateEq3 }))
+  const externalBlocksUpdateEq2 = jest.fn(() => ({ in: externalBlocksUpdateIn }))
+  const externalBlocksUpdateEq1 = jest.fn(() => ({ eq: externalBlocksUpdateEq2 }))
+  const externalBlocksUpdate = jest.fn(() => ({ eq: externalBlocksUpdateEq1 }))
+
   const from = jest.fn((table: string) => {
     if (table === 'venue_calendar_integrations') {
       return {
         select: integrationSelect,
         upsert: integrationUpsert,
+        update: integrationUpdate,
       }
     }
     if (table === 'venue_calendar_tokens') {
@@ -124,6 +152,13 @@ function createAdminClientMock(args?: {
         select: oauthStateSelect,
         insert: oauthStateInsert,
         update: oauthStateUpdate,
+      }
+    }
+    if (table === 'external_availability_blocks') {
+      return {
+        upsert: externalBlocksUpsert,
+        select: externalBlocksSelect,
+        update: externalBlocksUpdate,
       }
     }
     throw new Error(`Unexpected table ${table}`)
@@ -146,6 +181,8 @@ describe('googleCalendarIntegrationService', () => {
     jest.clearAllMocks()
     process.env.GOOGLE_CALENDAR_CLIENT_ID = 'google-calendar-client-id'
     process.env.GOOGLE_CALENDAR_CLIENT_SECRET = 'google-calendar-client-secret'
+    mockRecordVenueAvailabilityPublishFailure.mockResolvedValue(undefined)
+    mockRecordVenueAvailabilityPublishSuccess.mockResolvedValue(undefined)
   })
 
   afterEach(() => {
@@ -357,5 +394,110 @@ describe('googleCalendarIntegrationService', () => {
       })
     )
     expect(calls.integrationUpserts[0].next_sync_at).toEqual(expect.any(String))
+  })
+
+  it('clears google_block_sync publish attention after a successful calendar sync', async () => {
+    const { client } = createAdminClientMock({
+      integrationRow: {
+        venue_id: 'venue-1',
+        provider: 'google_calendar',
+        google_calendar_id: 'calendar-b',
+        google_calendar_name: 'Calendar B',
+        google_account_email: 'primary@example.com',
+        status: 'connected',
+        sync_enabled: true,
+        sync_interval_minutes: 5,
+        last_synced_at: null,
+        next_sync_at: null,
+        sync_cursor: null,
+        last_error: null,
+        updated_by: 'super-admin-1',
+        updated_at: null,
+      },
+      tokenRow: {
+        venue_id: 'venue-1',
+        access_token_encrypted: 'enc:still-valid-access-token',
+        refresh_token_encrypted: 'enc:refresh-token',
+        access_token_expires_at: '2099-01-01T00:00:00.000Z',
+        scopes: ['https://www.googleapis.com/auth/calendar.readonly'],
+      },
+    })
+    ;(createAdminClient as jest.Mock).mockReturnValue(client)
+
+    global.fetch = jest.fn().mockResolvedValue({
+      ok: true,
+      json: async () => ({
+        items: [
+          {
+            id: 'event-1',
+            status: 'confirmed',
+            start: { dateTime: '2026-03-08T10:00:00-08:00' },
+            end: { dateTime: '2026-03-08T11:00:00-08:00' },
+          },
+        ],
+        nextSyncToken: 'sync-token-1',
+      }),
+    }) as unknown as typeof global.fetch
+
+    await syncVenueCalendarByVenueId({
+      venueId: 'venue-1',
+      userId: 'super-admin-1',
+    })
+
+    expect(mockRecordVenueAvailabilityPublishSuccess).toHaveBeenCalledWith(
+      expect.objectContaining({
+        venueId: 'venue-1',
+        errorSource: 'google_block_sync',
+      })
+    )
+  })
+
+  it('records google_block_sync publish attention after a failed calendar sync', async () => {
+    const { client } = createAdminClientMock({
+      integrationRow: {
+        venue_id: 'venue-1',
+        provider: 'google_calendar',
+        google_calendar_id: 'calendar-b',
+        google_calendar_name: 'Calendar B',
+        google_account_email: 'primary@example.com',
+        status: 'connected',
+        sync_enabled: true,
+        sync_interval_minutes: 5,
+        last_synced_at: null,
+        next_sync_at: null,
+        sync_cursor: null,
+        last_error: null,
+        updated_by: 'super-admin-1',
+        updated_at: null,
+      },
+      tokenRow: {
+        venue_id: 'venue-1',
+        access_token_encrypted: 'enc:still-valid-access-token',
+        refresh_token_encrypted: 'enc:refresh-token',
+        access_token_expires_at: '2099-01-01T00:00:00.000Z',
+        scopes: ['https://www.googleapis.com/auth/calendar.readonly'],
+      },
+    })
+    ;(createAdminClient as jest.Mock).mockReturnValue(client)
+
+    global.fetch = jest.fn().mockResolvedValue({
+      ok: false,
+      status: 500,
+      text: async () => 'provider timeout',
+    }) as unknown as typeof global.fetch
+
+    await expect(
+      syncVenueCalendarByVenueId({
+        venueId: 'venue-1',
+        userId: 'super-admin-1',
+      })
+    ).rejects.toThrow('provider timeout')
+
+    expect(mockRecordVenueAvailabilityPublishFailure).toHaveBeenCalledWith(
+      expect.objectContaining({
+        venueId: 'venue-1',
+        errorSource: 'google_block_sync',
+      })
+    )
   })
 })

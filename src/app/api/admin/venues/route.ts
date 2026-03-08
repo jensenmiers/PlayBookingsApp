@@ -3,6 +3,10 @@ import { requireSuperAdmin } from '@/lib/superAdmin'
 import { createAdminClient } from '@/lib/supabase/admin'
 import { handleApiError } from '@/utils/errorHandling'
 import { calculateVenueConfigCompleteness, normalizeVenueAdminConfig } from '@/lib/venueAdminConfig'
+import {
+  deriveVenueAvailabilityPublishState,
+  listVenueAvailabilityPublishStates,
+} from '@/services/venueAvailabilityPublishService'
 import type { ApiResponse } from '@/types/api'
 import type { DropInTemplateWindow, Venue, VenueAdminConfig } from '@/types'
 
@@ -61,6 +65,7 @@ type AdminVenueConfigListItem = {
   drop_in_slot_sync: TemplateSyncState
   regular_slot_sync: TemplateSyncState
   calendar_integration: VenueCalendarIntegrationState | null
+  availability_publish: ReturnType<typeof deriveVenueAvailabilityPublishState>
   completeness: {
     score: number
     missing_fields: string[]
@@ -120,6 +125,7 @@ export async function GET(): Promise<Response> {
       { data: regularSyncRows, error: regularSyncError },
       { data: dropInSyncRows, error: dropInSyncError },
       { data: calendarIntegrationRows, error: calendarIntegrationError },
+      publishStateRows,
     ] = await Promise.all([
       adminClient
         .from('venues')
@@ -142,6 +148,7 @@ export async function GET(): Promise<Response> {
       adminClient
         .from('venue_calendar_integrations')
         .select('venue_id, provider, google_calendar_id, google_calendar_name, google_account_email, status, sync_enabled, sync_interval_minutes, last_synced_at, next_sync_at, last_error, updated_at'),
+      listVenueAvailabilityPublishStates(),
     ])
 
     if (venuesError) {
@@ -217,6 +224,10 @@ export async function GET(): Promise<Response> {
         calendarIntegrationByVenueId.set(row.venue_id, row)
       }
     }
+    const publishStateByVenueId = new Map<string, (typeof publishStateRows)[number]>()
+    for (const row of publishStateRows) {
+      publishStateByVenueId.set(row.venue_id, row)
+    }
 
     const items: AdminVenueConfigListItem[] = ((venues || []) as Venue[]).map((venue) => {
       const config = normalizeVenueAdminConfig(venue.id, configByVenueId.get(venue.id) || null)
@@ -225,6 +236,7 @@ export async function GET(): Promise<Response> {
       const regularBookingTemplates = normalizeTemplateWindows(regularTemplatesByVenueId.get(venue.id) || [])
       const dropInSlotSync = toSyncState(dropInSyncByVenueId.get(venue.id) || null)
       const regularSlotSync = toSyncState(regularSyncByVenueId.get(venue.id) || null)
+      const calendarIntegration = calendarIntegrationByVenueId.get(venue.id) || null
       return {
         venue,
         config,
@@ -232,7 +244,13 @@ export async function GET(): Promise<Response> {
         regular_booking_templates: regularBookingTemplates,
         drop_in_slot_sync: dropInSlotSync,
         regular_slot_sync: regularSlotSync,
-        calendar_integration: calendarIntegrationByVenueId.get(venue.id) || null,
+        calendar_integration: calendarIntegration,
+        availability_publish: deriveVenueAvailabilityPublishState({
+          publishState: publishStateByVenueId.get(venue.id) || null,
+          regularSlotSync,
+          dropInSlotSync,
+          calendarIntegration,
+        }),
         completeness,
       }
     })
