@@ -109,6 +109,11 @@ src/
 - `npm run lint:design-system:unpushed` - Run design-system lint against unpushed scoped lines
 - `npm run sync:google-calendars` - Process due venue Google Calendar sync jobs
 
+Production background jobs:
+- Long-horizon availability backfill is processed by the Supabase database job `availability_backfill_worker_every_5_minutes`.
+- Cadence is every 5 minutes.
+- The repo-local scripts `npm run sync:regular-slots` and `npm run sync:drop-in-slots` remain available for manual maintenance or local verification.
+
 ## 🎨 Design System Contract
 
 Design-system enforcement is contract-based (docs + routing + lint + hooks).

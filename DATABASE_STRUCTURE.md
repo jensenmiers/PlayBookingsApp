@@ -77,6 +77,7 @@ It is intentionally not a column-by-column reference.
 3. Slot generation is hybrid real-time + async:
    - Admin edits trigger inline refresh for ~30 days via `refresh_slot_instances_from_templates`.
    - Admin edits also enqueue zero-delay long-horizon refresh (`enqueue_drop_in_template_sync`, `enqueue_regular_template_sync`) for 180-day coverage.
+   - Long-horizon queue draining is handled by the Supabase cron job `availability_backfill_worker_every_5_minutes`.
 4. Slot pricing is normalized and snapshotted:
    - Templates can reference `pricing_rules`.
    - Generated instances receive `slot_instance_pricing` snapshots for runtime reads.
@@ -106,6 +107,9 @@ It is intentionally not a column-by-column reference.
 - Queue processing currently depends on scripts:
   - `scripts/process-drop-in-template-sync-queue.ts`
   - `scripts/process-regular-template-sync-queue.ts`
+- Production long-horizon queue processing source of truth:
+  - Supabase cron job `availability_backfill_worker_every_5_minutes` running every 5 minutes.
+  - The scripts above are fallback/manual runners, not the primary production scheduler.
 
 ## When To Update This File
 
