@@ -3,6 +3,7 @@
  */
 
 import type { Booking, CancellationResult, RecurringBooking } from './index'
+import type { DropInTemplateWindow, OperatingHourWindow } from './index'
 
 /**
  * Generic API response wrapper
@@ -151,3 +152,43 @@ export interface GetAvailabilityParams {
 }
 
 export type GetAvailabilityResponse = ApiResponse<AvailableSlot[]>
+
+export type AdminVenueAvailabilityPreviewReason =
+  | 'closed'
+  | 'blackout'
+  | 'holiday'
+  | 'advance_notice'
+  | 'google_blocked'
+  | 'fully_booked'
+
+export interface AdminVenueAvailabilityPreviewWindow {
+  start_time: string
+  end_time: string
+}
+
+export interface AdminVenueAvailabilityPreviewDay {
+  date: string
+  private_booking: AdminVenueAvailabilityPreviewWindow[]
+  drop_in: AdminVenueAvailabilityPreviewWindow[]
+  reason_chips: AdminVenueAvailabilityPreviewReason[]
+}
+
+export interface AdminVenueAvailabilityPreviewRequest {
+  operating_hours: OperatingHourWindow[]
+  drop_in_enabled: boolean
+  drop_in_price: number | null
+  drop_in_templates: DropInTemplateWindow[]
+  instant_booking: boolean
+  min_advance_booking_days: number
+  min_advance_lead_time_hours: number
+  blackout_dates: string[]
+  holiday_dates: string[]
+}
+
+export type AdminVenueAvailabilityPreviewResponse = ApiResponse<{
+  days: string[]
+  live_preview: AdminVenueAvailabilityPreviewDay[]
+  draft_preview: AdminVenueAvailabilityPreviewDay[]
+  changed_day_count: number
+  has_unpublished_changes: boolean
+}>

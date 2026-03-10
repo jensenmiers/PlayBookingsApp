@@ -1,8 +1,9 @@
-import { fireEvent, render, screen, waitFor } from '@testing-library/react'
+import { act, fireEvent, render, screen, waitFor } from '@testing-library/react'
 import { SuperAdminVenueConfigPage } from '../super-admin-venue-config-page'
 import {
   connectVenueCalendar,
   disconnectVenueCalendar,
+  getAdminVenueAvailabilityPreview,
   getVenueCalendarStatus,
   patchAdminVenueConfig,
   selectVenueCalendar,
@@ -14,6 +15,7 @@ import { useAdminVenueBookings } from '@/hooks/useAdminVenueBookings'
 jest.mock('@/hooks/useAdminVenues', () => ({
   useAdminVenues: jest.fn(),
   patchAdminVenueConfig: jest.fn(),
+  getAdminVenueAvailabilityPreview: jest.fn(),
   connectVenueCalendar: jest.fn(),
   getVenueCalendarStatus: jest.fn(),
   selectVenueCalendar: jest.fn(),
@@ -27,6 +29,7 @@ jest.mock('@/hooks/useAdminVenueBookings', () => ({
 
 const mockUseAdminVenues = useAdminVenues as jest.Mock
 const mockPatchAdminVenueConfig = patchAdminVenueConfig as jest.Mock
+const mockGetAdminVenueAvailabilityPreview = getAdminVenueAvailabilityPreview as jest.Mock
 const mockConnectVenueCalendar = connectVenueCalendar as jest.Mock
 const mockGetVenueCalendarStatus = getVenueCalendarStatus as jest.Mock
 const mockSelectVenueCalendar = selectVenueCalendar as jest.Mock
@@ -37,6 +40,31 @@ const mockUseAdminVenueBookings = useAdminVenueBookings as jest.Mock
 const mockRefetch = jest.fn().mockResolvedValue(undefined)
 const mockBookingsRefetch = jest.fn().mockResolvedValue(undefined)
 const mockApproveInsurance = jest.fn().mockResolvedValue({ success: true, error: null })
+
+const buildMockAvailabilityPreview = (overrides?: Partial<{
+  changed_day_count: number
+  has_unpublished_changes: boolean
+}>) => ({
+  days: ['2099-01-01', '2099-01-02', '2099-01-03', '2099-01-04', '2099-01-05', '2099-01-06', '2099-01-07'],
+  live_preview: [
+    {
+      date: '2099-01-01',
+      private_booking: [{ start_time: '09:00:00', end_time: '12:00:00' }],
+      drop_in: [{ start_time: '18:00:00', end_time: '20:00:00' }],
+      reason_chips: ['google_blocked'],
+    },
+  ],
+  draft_preview: [
+    {
+      date: '2099-01-01',
+      private_booking: [{ start_time: '10:00:00', end_time: '12:00:00' }],
+      drop_in: [{ start_time: '18:00:00', end_time: '20:00:00' }],
+      reason_chips: ['google_blocked', 'fully_booked'],
+    },
+  ],
+  changed_day_count: overrides?.changed_day_count ?? 1,
+  has_unpublished_changes: overrides?.has_unpublished_changes ?? true,
+})
 
 const buildMockAdminVenuesData = () => [
   {
@@ -283,8 +311,16 @@ const buildMockVenueBookings = () => [
 ]
 
 describe('SuperAdminVenueConfigPage', () => {
+  const flushPreviewTimers = async () => {
+    await act(async () => {
+      jest.advanceTimersByTime(300)
+      await Promise.resolve()
+    })
+  }
+
   beforeEach(() => {
     jest.clearAllMocks()
+    jest.useFakeTimers()
     window.history.replaceState({}, '', 'http://localhost/super-admin')
 
     mockUseAdminVenues.mockReturnValue({
@@ -305,6 +341,7 @@ describe('SuperAdminVenueConfigPage', () => {
       integration: null,
       calendars: [],
     })
+    mockGetAdminVenueAvailabilityPreview.mockResolvedValue(buildMockAvailabilityPreview())
     mockConnectVenueCalendar.mockResolvedValue({ auth_url: 'https://accounts.google.com' })
     mockSelectVenueCalendar.mockResolvedValue(undefined)
     mockSyncVenueCalendarNow.mockResolvedValue({
@@ -315,6 +352,75 @@ describe('SuperAdminVenueConfigPage', () => {
       nextSyncAt: '2026-03-03T00:05:00.000Z',
     })
     mockDisconnectVenueCalendar.mockResolvedValue(undefined)
+  })
+
+  afterEach(() => {
+    jest.clearAllTimers()
+    jest.useRealTimers()
+  })
+
+  it('renders the next 7 days preview rail on the configuration tab', async () => {
+    render(<SuperAdminVenueConfigPage />)
+
+    await flushPreviewTimers()
+
+    expect((await screen.findAllByText('Next 7 Days')).length).toBeGreaterThan(0)
+    expect(screen.getAllByText('Unpublished changes affect 1 of 7 days').length).toBeGreaterThan(0)
+  })
+
+  it('refetches the preview when switching venues', async () => {
+    render(<SuperAdminVenueConfigPage />)
+
+    await flushPreviewTimers()
+    await waitFor(() => {
+      expect(mockGetAdminVenueAvailabilityPreview).toHaveBeenCalledWith(
+        'venue-1',
+        expect.any(Object)
+      )
+    })
+
+    fireEvent.click(screen.getByRole('button', { name: /beta court/i }))
+    await flushPreviewTimers()
+
+    await waitFor(() => {
+      expect(mockGetAdminVenueAvailabilityPreview).toHaveBeenCalledWith(
+        'venue-2',
+        expect.any(Object)
+      )
+    })
+  })
+
+  it('refetches the preview only for availability-affecting edits', async () => {
+    render(<SuperAdminVenueConfigPage />)
+
+    await flushPreviewTimers()
+    await waitFor(() => {
+      expect(mockGetAdminVenueAvailabilityPreview).toHaveBeenCalledTimes(1)
+    })
+
+    fireEvent.change(await screen.findByDisplayValue('100'), { target: { value: '125' } })
+    await flushPreviewTimers()
+
+    expect(mockGetAdminVenueAvailabilityPreview).toHaveBeenCalledTimes(1)
+
+    fireEvent.click(screen.getByRole('button', { name: 'Add Operating Window' }))
+    await flushPreviewTimers()
+
+    await waitFor(() => {
+      expect(mockGetAdminVenueAvailabilityPreview).toHaveBeenCalledTimes(2)
+    })
+  })
+
+  it('renders grouped day windows and concise reason chips in the preview rail', async () => {
+    render(<SuperAdminVenueConfigPage />)
+
+    await flushPreviewTimers()
+
+    expect((await screen.findAllByText('Private booking')).length).toBeGreaterThan(0)
+    expect(screen.getAllByText('Drop-in').length).toBeGreaterThan(0)
+    expect(screen.getAllByText('9:00 AM - 12:00 PM').length).toBeGreaterThan(0)
+    expect(screen.getAllByText('Google blocked').length).toBeGreaterThan(0)
+    expect(screen.getAllByText('Fully booked').length).toBeGreaterThan(0)
   })
 
   it('maps calendar_error_code query params to user-friendly messages', async () => {

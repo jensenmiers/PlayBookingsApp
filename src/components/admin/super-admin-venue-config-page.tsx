@@ -7,6 +7,7 @@ import { Input } from '@/components/ui/input'
 import {
   connectVenueCalendar,
   disconnectVenueCalendar,
+  getAdminVenueAvailabilityPreview,
   getVenueCalendarStatus,
   patchAdminVenueConfig,
   selectVenueCalendar,
@@ -15,7 +16,14 @@ import {
 } from '@/hooks/useAdminVenues'
 import { useAdminVenueBookings } from '@/hooks/useAdminVenueBookings'
 import type { AdminVenueConfigItem } from '@/hooks/useAdminVenues'
-import type { AdminVenueBookingFeedItem, AdminVenueBookingRenterSummary } from '@/types/api'
+import type {
+  AdminVenueAvailabilityPreviewDay,
+  AdminVenueAvailabilityPreviewReason,
+  AdminVenueAvailabilityPreviewRequest,
+  AdminVenueAvailabilityPreviewResponse,
+  AdminVenueBookingFeedItem,
+  AdminVenueBookingRenterSummary,
+} from '@/types/api'
 import { formatTime, timeStringToDate } from '@/utils/dateHelpers'
 import { cn } from '@/lib/utils'
 
@@ -246,6 +254,26 @@ function formatLeadTimeLabel(hours: number): string {
   return `${hours} hour${hours === 1 ? '' : 's'}`
 }
 
+function formatPreviewReasonLabel(reason: AdminVenueAvailabilityPreviewReason): string {
+  if (reason === 'advance_notice') return 'Advance notice'
+  if (reason === 'google_blocked') return 'Google blocked'
+  if (reason === 'fully_booked') return 'Fully booked'
+  return reason.charAt(0).toUpperCase() + reason.slice(1)
+}
+
+function formatPreviewDateLabel(date: string): string {
+  const [year, month, day] = date.split('-').map(Number)
+  return new Date(year, month - 1, day).toLocaleDateString('en-US', {
+    weekday: 'short',
+    month: 'short',
+    day: 'numeric',
+  })
+}
+
+function formatPreviewWindowLabel(startTime: string, endTime: string): string {
+  return `${formatTime(startTime)} - ${formatTime(endTime)}`
+}
+
 function formatPolicyPreview(minDays: number, minLeadHours: number): string {
   const now = new Date()
   const earliest = new Date(now)
@@ -287,6 +315,51 @@ function normalizeDraftTemplates(value: DropInTemplateDraftWindow[]): DropInTemp
     }
     return left.end_time.localeCompare(right.end_time)
   })
+}
+
+function buildAvailabilityPreviewFingerprint(draft: VenueConfigDraft): string {
+  return JSON.stringify({
+    operating_hours: draft.operating_hours,
+    drop_in_enabled: draft.drop_in_enabled,
+    drop_in_templates: draft.drop_in_templates,
+    instant_booking: draft.instant_booking,
+    min_advance_booking_days: draft.min_advance_booking_days,
+    min_advance_lead_time_hours: draft.min_advance_lead_time_hours,
+    blackout_dates: draft.blackout_dates,
+    holiday_dates: draft.holiday_dates,
+  })
+}
+
+function buildAvailabilityPreviewRequest(draft: VenueConfigDraft): AdminVenueAvailabilityPreviewRequest | null {
+  const minAdvanceDays = parseNonNegativeInteger(draft.min_advance_booking_days)
+  const minLeadHours = parseNonNegativeInteger(draft.min_advance_lead_time_hours)
+  if (minAdvanceDays === null || minLeadHours === null) {
+    return null
+  }
+
+  const dropInRaw = draft.drop_in_price.trim()
+  const dropInPrice = dropInRaw.length === 0 ? null : parsePositiveNumber(dropInRaw)
+  if (dropInRaw.length > 0 && dropInPrice === null) {
+    return null
+  }
+
+  const validateWindows = (windows: DropInTemplateDraftWindow[]) =>
+    windows.every((window) => window.start_time && window.end_time && window.start_time < window.end_time)
+  if (!validateWindows(draft.operating_hours) || !validateWindows(draft.drop_in_templates)) {
+    return null
+  }
+
+  return {
+    operating_hours: normalizeDraftTemplates(draft.operating_hours),
+    drop_in_enabled: draft.drop_in_enabled,
+    drop_in_price: dropInPrice,
+    drop_in_templates: normalizeDraftTemplates(draft.drop_in_templates),
+    instant_booking: draft.instant_booking,
+    min_advance_booking_days: minAdvanceDays,
+    min_advance_lead_time_hours: minLeadHours,
+    blackout_dates: parseDateList(draft.blackout_dates),
+    holiday_dates: parseDateList(draft.holiday_dates),
+  }
 }
 
 function buildPatchFromDraft(
@@ -589,6 +662,143 @@ function getBookingModeHelperText(draft: VenueConfigDraft): string {
   return 'New bookings will start as Pending Approval until the venue owner confirms.'
 }
 
+function PreviewWindowList({
+  title,
+  windows,
+}: {
+  title: string
+  windows: AdminVenueAvailabilityPreviewDay['private_booking']
+}) {
+  if (windows.length === 0) {
+    return null
+  }
+
+  return (
+    <div className="space-y-2">
+      <p className="text-[11px] font-semibold uppercase tracking-[0.16em] text-secondary-50/45">{title}</p>
+      <div className="space-y-1">
+        {windows.map((window, index) => (
+          <div
+            key={`${title}-${window.start_time}-${window.end_time}-${index}`}
+            className="rounded-xl border border-secondary-50/10 bg-secondary-800/80 px-3 py-2 text-sm text-secondary-50"
+          >
+            {formatPreviewWindowLabel(window.start_time, window.end_time)}
+          </div>
+        ))}
+      </div>
+    </div>
+  )
+}
+
+function AvailabilityPreviewPanel({
+  preview,
+  loading,
+  error,
+}: {
+  preview: AdminVenueAvailabilityPreviewResponse['data'] | null
+  loading: boolean
+  error: string | null
+}) {
+  const activeDays = preview
+    ? (preview.has_unpublished_changes ? preview.draft_preview : preview.live_preview)
+    : []
+
+  return (
+    <section className="rounded-2xl border border-secondary-50/10 bg-secondary-900 shadow-soft">
+      <div className="border-b border-secondary-50/10 px-4 py-4">
+        <div className="flex items-center justify-between gap-3">
+          <div>
+            <h3 className="text-lg font-semibold text-secondary-50">Next 7 Days</h3>
+            <p className="mt-1 text-xs text-secondary-50/60">What renters will actually see over the next week.</p>
+          </div>
+          <div className="flex flex-wrap items-center justify-end gap-2">
+            {preview?.has_unpublished_changes ? (
+              <>
+                <span className="rounded-full border border-primary-400/40 bg-primary-400/10 px-3 py-1 text-[11px] font-semibold uppercase tracking-[0.16em] text-primary-300">
+                  Draft
+                </span>
+                <span className="rounded-full border border-secondary-50/15 bg-secondary-800 px-3 py-1 text-[11px] font-semibold uppercase tracking-[0.16em] text-secondary-50/75">
+                  Live
+                </span>
+              </>
+            ) : (
+              <span className="rounded-full border border-secondary-50/15 bg-secondary-800 px-3 py-1 text-[11px] font-semibold uppercase tracking-[0.16em] text-secondary-50/75">
+                Live
+              </span>
+            )}
+          </div>
+        </div>
+        {preview?.has_unpublished_changes ? (
+          <p className="mt-3 text-xs font-medium text-primary-300">
+            Unpublished changes affect {preview.changed_day_count} of 7 days
+          </p>
+        ) : null}
+      </div>
+
+      <div className="space-y-3 px-4 py-4">
+        {error ? <p className="text-xs text-red-300">{error}</p> : null}
+        {loading && !preview ? (
+          <p className="text-sm text-secondary-50/60">Loading renter preview...</p>
+        ) : null}
+
+        {activeDays.map((day, index) => {
+          const liveDay = preview?.live_preview[index] || null
+          const dayChanged = Boolean(preview?.has_unpublished_changes) && JSON.stringify(day) !== JSON.stringify(liveDay)
+
+          return (
+            <article
+              key={day.date}
+              className="space-y-3 rounded-2xl border border-secondary-50/10 bg-secondary-950/50 p-4"
+            >
+              <div className="flex items-start justify-between gap-3">
+                <div>
+                  <h4 className="text-sm font-semibold text-secondary-50">{formatPreviewDateLabel(day.date)}</h4>
+                  {dayChanged ? (
+                    <p className="mt-1 text-xs text-secondary-50/55">Live now shown below for comparison.</p>
+                  ) : null}
+                </div>
+                {day.reason_chips.length > 0 ? (
+                  <div className="flex max-w-[12rem] flex-wrap justify-end gap-2">
+                    {day.reason_chips.map((reason) => (
+                      <span
+                        key={`${day.date}-${reason}`}
+                        className="rounded-full border border-secondary-50/15 bg-secondary-800 px-2.5 py-1 text-[11px] font-medium text-secondary-50/80"
+                      >
+                        {formatPreviewReasonLabel(reason)}
+                      </span>
+                    ))}
+                  </div>
+                ) : null}
+              </div>
+
+              <PreviewWindowList title="Private booking" windows={day.private_booking} />
+              <PreviewWindowList title="Drop-in" windows={day.drop_in} />
+
+              {day.private_booking.length === 0 && day.drop_in.length === 0 ? (
+                <p className="text-sm text-secondary-50/60">No renter availability</p>
+              ) : null}
+
+              {dayChanged && liveDay ? (
+                <div className="rounded-xl border border-secondary-50/10 bg-secondary-900/70 px-3 py-3">
+                  <p className="text-[11px] font-semibold uppercase tracking-[0.16em] text-secondary-50/45">Live now</p>
+                  {liveDay.private_booking.length === 0 && liveDay.drop_in.length === 0 ? (
+                    <p className="mt-2 text-sm text-secondary-50/60">No renter availability</p>
+                  ) : (
+                    <div className="mt-2 space-y-2">
+                      <PreviewWindowList title="Private booking" windows={liveDay.private_booking} />
+                      <PreviewWindowList title="Drop-in" windows={liveDay.drop_in} />
+                    </div>
+                  )}
+                </div>
+              ) : null}
+            </article>
+          )
+        })}
+      </div>
+    </section>
+  )
+}
+
 function mapCalendarErrorCodeToMessage(code: string): string {
   if (code === 'oauth_denied') {
     return 'Google Calendar access was denied. Please approve access and try again.'
@@ -769,7 +979,10 @@ export function SuperAdminVenueConfigPage() {
   const [calendarOptions, setCalendarOptions] = useState<Array<{ id: string; summary: string; primary: boolean }>>([])
   const [selectedCalendarId, setSelectedCalendarId] = useState<string>('')
   const [activeTab, setActiveTab] = useState<'configuration' | 'bookings'>('configuration')
-  const [blackoutExpanded, setBlackoutExpanded] = useState(false)
+  const blackoutExpanded = false
+  const [availabilityPreview, setAvailabilityPreview] = useState<AdminVenueAvailabilityPreviewResponse['data'] | null>(null)
+  const [availabilityPreviewLoading, setAvailabilityPreviewLoading] = useState(false)
+  const [availabilityPreviewError, setAvailabilityPreviewError] = useState<string | null>(null)
 
   useEffect(() => {
     if (typeof window === 'undefined') {
@@ -835,6 +1048,27 @@ export function SuperAdminVenueConfigPage() {
     return JSON.stringify(draft) !== JSON.stringify(baselineDraft)
   }, [draft, baselineDraft])
 
+  const availabilityPreviewRequest = useMemo(() => {
+    if (!draft) {
+      return null
+    }
+    return buildAvailabilityPreviewRequest(draft)
+  }, [draft])
+
+  const availabilityPreviewRequestKey = useMemo(() => {
+    if (!availabilityPreviewRequest) {
+      return null
+    }
+    return JSON.stringify(availabilityPreviewRequest)
+  }, [availabilityPreviewRequest])
+
+  const availabilityPreviewFingerprint = useMemo(() => {
+    if (!draft) {
+      return null
+    }
+    return buildAvailabilityPreviewFingerprint(draft)
+  }, [draft])
+
   useEffect(() => {
     if (!selectedItem) {
       setDraft(null)
@@ -853,7 +1087,52 @@ export function SuperAdminVenueConfigPage() {
     setSaveInFlightLabel('Saving...')
     setCalendarOptions([])
     setSelectedCalendarId(selectedItem.calendar_integration?.google_calendar_id || '')
+    setAvailabilityPreview(null)
+    setAvailabilityPreviewError(null)
   }, [selectedItem])
+
+  useEffect(() => {
+    if (!selectedItem || !availabilityPreviewFingerprint) {
+      return
+    }
+
+    if (!availabilityPreviewRequestKey) {
+      setAvailabilityPreviewError('Fix invalid availability fields to refresh the 7-day renter preview.')
+      return
+    }
+
+    let cancelled = false
+    const timeoutId = window.setTimeout(() => {
+      setAvailabilityPreviewLoading(true)
+      const previewRequest = JSON.parse(availabilityPreviewRequestKey) as AdminVenueAvailabilityPreviewRequest
+      void getAdminVenueAvailabilityPreview(selectedItem.venue.id, previewRequest)
+        .then((result) => {
+          if (cancelled) {
+            return
+          }
+          setAvailabilityPreview(result)
+          setAvailabilityPreviewError(null)
+        })
+        .catch((previewError) => {
+          if (cancelled) {
+            return
+          }
+          setAvailabilityPreviewError(
+            previewError instanceof Error ? previewError.message : 'Failed to load renter availability preview'
+          )
+        })
+        .finally(() => {
+          if (!cancelled) {
+            setAvailabilityPreviewLoading(false)
+          }
+        })
+    }, 300)
+
+    return () => {
+      cancelled = true
+      window.clearTimeout(timeoutId)
+    }
+  }, [selectedItem, availabilityPreviewRequestKey, availabilityPreviewFingerprint])
 
   useEffect(() => {
     if (!selectedVenueId) {
@@ -1248,8 +1527,9 @@ export function SuperAdminVenueConfigPage() {
             </div>
 
             {activeTab === 'configuration' && (
-              <>
-                <SectionGroup
+              <div className="grid gap-6 xl:grid-cols-[minmax(0,1fr)_22rem] xl:items-start">
+                <div className="space-y-6">
+                  <SectionGroup
                   title="Define/Set Availability"
                   description="Configure when this venue is available for bookings."
                   footerAction={
@@ -1267,7 +1547,7 @@ export function SuperAdminVenueConfigPage() {
                 >
                   <ConfigRow
                     title="Base Operating Hours"
-                    description="Weekly windows for regular booking template generation."
+                    description="These hours define the first layer and outer bounds of renter availability."
                   >
                     <div className="space-y-2">
                       {draft.operating_hours.map((window, index) => (
@@ -1696,6 +1976,13 @@ export function SuperAdminVenueConfigPage() {
                       })()}
                     </div>
                   </ConfigRow>
+                  <div className="xl:hidden">
+                    <AvailabilityPreviewPanel
+                      preview={availabilityPreview}
+                      loading={availabilityPreviewLoading}
+                      error={availabilityPreviewError}
+                    />
+                  </div>
                 </SectionGroup>
 
                 <SectionGroup title="Pricing & Booking Settings">
@@ -1855,7 +2142,16 @@ export function SuperAdminVenueConfigPage() {
                     </div>
                   </ConfigRow>
                 </SectionGroup>
-              </>
+                </div>
+
+                <div className="hidden xl:block xl:sticky xl:top-6">
+                  <AvailabilityPreviewPanel
+                    preview={availabilityPreview}
+                    loading={availabilityPreviewLoading}
+                    error={availabilityPreviewError}
+                  />
+                </div>
+              </div>
             )}
 
             {activeTab === 'bookings' && (

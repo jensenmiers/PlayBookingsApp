@@ -2,6 +2,10 @@
 
 import { useCallback, useEffect, useState } from 'react'
 import type { DropInTemplateWindow, Venue, VenueAdminConfig } from '@/types'
+import type {
+  AdminVenueAvailabilityPreviewRequest,
+  AdminVenueAvailabilityPreviewResponse,
+} from '@/types/api'
 
 export type AdminTemplateSyncStatus = 'synced' | 'pending' | 'failed'
 
@@ -111,6 +115,24 @@ export async function patchAdminVenueConfig(
     item: result.data as AdminVenueConfigItem,
     message: typeof result.message === 'string' ? result.message : undefined,
   }
+}
+
+export async function getAdminVenueAvailabilityPreview(
+  venueId: string,
+  body: AdminVenueAvailabilityPreviewRequest
+): Promise<AdminVenueAvailabilityPreviewResponse['data']> {
+  const response = await fetch(`/api/admin/venues/${venueId}/availability-preview`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify(body),
+  })
+  const result = await response.json()
+
+  if (!response.ok || !result.success) {
+    throw new Error(result.error?.message || 'Failed to load venue availability preview')
+  }
+
+  return result.data as AdminVenueAvailabilityPreviewResponse['data']
 }
 
 export async function connectVenueCalendar(venueId: string): Promise<{ auth_url: string }> {
