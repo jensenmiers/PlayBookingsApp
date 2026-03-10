@@ -18,6 +18,15 @@ const baseRequest: AdminVenueAvailabilityPreviewRequest = {
   holiday_dates: [],
 }
 
+const dropInRequest: AdminVenueAvailabilityPreviewRequest = {
+  ...baseRequest,
+  drop_in_enabled: true,
+  drop_in_price: 15,
+  drop_in_templates: [
+    { day_of_week: 2, start_time: '18:00:00', end_time: '20:00:00' },
+  ],
+}
+
 describe('adminAvailabilityPreviewService', () => {
   it('builds private-booking preview windows from operating hours', () => {
     const days = buildDraftAvailabilityPreviewDays({
@@ -131,6 +140,63 @@ describe('adminAvailabilityPreviewService', () => {
         ],
         drop_in: [],
         reason_chips: [],
+      },
+    ])
+  })
+
+  it('splits draft drop-in windows around partial Google blocks', () => {
+    const days = buildDraftAvailabilityPreviewDays({
+      dateRange: ['2026-03-10'],
+      request: dropInRequest,
+      now: new Date('2026-03-09T08:00:00-08:00'),
+      bookings: [],
+      recurringBookings: [],
+      externalBlocks: [
+        {
+          start_at: '2026-03-10T18:30:00-07:00',
+          end_at: '2026-03-10T19:00:00-07:00',
+          source: 'google_calendar',
+          status: 'active',
+        },
+      ],
+    })
+
+    expect(days).toEqual([
+      {
+        date: '2026-03-10',
+        private_booking: [{ start_time: '09:00:00', end_time: '12:00:00' }],
+        drop_in: [
+          { start_time: '18:00:00', end_time: '18:30:00' },
+          { start_time: '19:00:00', end_time: '20:00:00' },
+        ],
+        reason_chips: ['google_blocked'],
+      },
+    ])
+  })
+
+  it('removes draft drop-in windows when Google blocks cover the full interval', () => {
+    const days = buildDraftAvailabilityPreviewDays({
+      dateRange: ['2026-03-10'],
+      request: dropInRequest,
+      now: new Date('2026-03-09T08:00:00-08:00'),
+      bookings: [],
+      recurringBookings: [],
+      externalBlocks: [
+        {
+          start_at: '2026-03-10T18:00:00-07:00',
+          end_at: '2026-03-10T20:00:00-07:00',
+          source: 'google_calendar',
+          status: 'active',
+        },
+      ],
+    })
+
+    expect(days).toEqual([
+      {
+        date: '2026-03-10',
+        private_booking: [{ start_time: '09:00:00', end_time: '12:00:00' }],
+        drop_in: [],
+        reason_chips: ['google_blocked'],
       },
     ])
   })

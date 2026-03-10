@@ -337,6 +337,35 @@ function getBlockingRangesForDate(
   return [...bookingRanges, ...blockRanges]
 }
 
+function getExternalBlockRangesForDate(
+  date: string,
+  externalBlocks: PreviewExternalBlock[]
+): Array<{ start: number; end: number }> {
+  return externalBlocks
+    .filter((block) => block.status === 'active')
+    .filter((block) => {
+      const blockStart = new Date(block.start_at)
+      const blockEnd = new Date(block.end_at)
+      return getDateStringInTimeZone(blockStart, PLATFORM_TIME_ZONE) <= date
+        && getDateStringInTimeZone(blockEnd, PLATFORM_TIME_ZONE) >= date
+    })
+    .map((block) => {
+      const blockStart = new Date(block.start_at)
+      const blockEnd = new Date(block.end_at)
+      const sameStartDate = getDateStringInTimeZone(blockStart, PLATFORM_TIME_ZONE) === date
+      const sameEndDate = getDateStringInTimeZone(blockEnd, PLATFORM_TIME_ZONE) === date
+      const startParts = getTimePartsInTimeZone(blockStart, PLATFORM_TIME_ZONE)
+      const endParts = getTimePartsInTimeZone(blockEnd, PLATFORM_TIME_ZONE)
+      const start = sameStartDate
+        ? startParts.hours * 60 + startParts.minutes
+        : 0
+      const end = sameEndDate
+        ? endParts.hours * 60 + endParts.minutes
+        : 24 * 60
+      return { start, end }
+    })
+}
+
 function getReasonChips(args: {
   date: string
   request: AdminVenueAvailabilityPreviewRequest
@@ -514,6 +543,7 @@ export function buildDraftAvailabilityPreviewDays(args: PreviewDayBuildArgs): Ad
 
   for (const date of args.dateRange) {
     const blockingRanges = getBlockingRangesForDate(date, args.bookings, args.recurringBookings, args.externalBlocks)
+    const externalBlockRanges = getExternalBlockRangesForDate(date, args.externalBlocks)
     const privateWindows = expandWindowsForDate(date, privateTemplates)
       .filter((window) => isSlotAllowedByVenueConfig(window, policyConfig, args.now))
       .flatMap((window) => splitWindowByRanges(window, blockingRanges).map((slot) => ({
@@ -523,11 +553,10 @@ export function buildDraftAvailabilityPreviewDays(args: PreviewDayBuildArgs): Ad
 
     const dropInWindows = expandWindowsForDate(date, dropInTemplates)
       .filter((window) => isSlotAllowedByVenueConfig(window, policyConfig, args.now))
-      .filter((window) => !args.externalBlocks.some((block) => block.status === 'active' && overlapsBlock(window, block)))
-      .map((window) => ({
-        ...window,
+      .flatMap((window) => splitWindowByRanges(window, externalBlockRanges).map((slot) => ({
+        ...slot,
         kind: 'drop_in' as const,
-      }))
+      })))
 
     draftSlots.push(...privateWindows, ...dropInWindows)
   }
