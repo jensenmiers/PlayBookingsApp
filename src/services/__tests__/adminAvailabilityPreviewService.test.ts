@@ -104,6 +104,37 @@ describe('adminAvailabilityPreviewService', () => {
     ])
   })
 
+  it('does not mark a partially booked day as fully booked when private availability remains', () => {
+    const days = buildDraftAvailabilityPreviewDays({
+      dateRange: ['2026-03-10'],
+      request: baseRequest,
+      now: new Date('2026-03-09T08:00:00-08:00'),
+      bookings: [
+        {
+          venue_id: 'venue-1',
+          date: '2026-03-10',
+          start_time: '10:00:00',
+          end_time: '11:00:00',
+          status: 'confirmed',
+        },
+      ],
+      recurringBookings: [],
+      externalBlocks: [],
+    })
+
+    expect(days).toEqual([
+      {
+        date: '2026-03-10',
+        private_booking: [
+          { start_time: '09:00:00', end_time: '10:00:00' },
+          { start_time: '11:00:00', end_time: '12:00:00' },
+        ],
+        drop_in: [],
+        reason_chips: [],
+      },
+    ])
+  })
+
   it('counts changed days between live and draft previews', () => {
     expect(
       countChangedPreviewDays(

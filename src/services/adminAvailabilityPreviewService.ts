@@ -428,7 +428,11 @@ function getReasonChips(args: {
           > zonedDateTimeToDate(booking.date, booking.start_time, PLATFORM_TIME_ZONE).getTime()
       )
     )
-  if (hasBookingConflict) {
+  const isFullyBooked =
+    args.privateBaseWindows.length > 0
+    && args.privateVisibleWindows.length === 0
+    && hasBookingConflict
+  if (isFullyBooked) {
     reasons.push('fully_booked')
   }
 
