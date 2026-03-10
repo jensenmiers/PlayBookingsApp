@@ -55,9 +55,7 @@ describe('POST /api/admin/venues/[id]/availability-preview', () => {
     mockValidateRequest.mockResolvedValue({
       operating_hours: [],
       drop_in_enabled: false,
-      drop_in_price: null,
       drop_in_templates: [],
-      instant_booking: true,
       min_advance_booking_days: 0,
       min_advance_lead_time_hours: 0,
       blackout_dates: [],

@@ -411,6 +411,34 @@ describe('SuperAdminVenueConfigPage', () => {
     })
   })
 
+  it('does not refetch the preview when instant booking changes', async () => {
+    render(<SuperAdminVenueConfigPage />)
+
+    await flushPreviewTimers()
+    await waitFor(() => {
+      expect(mockGetAdminVenueAvailabilityPreview).toHaveBeenCalledTimes(1)
+    })
+
+    fireEvent.click(screen.getByRole('button', { name: 'Manual approval' }))
+    await flushPreviewTimers()
+
+    expect(mockGetAdminVenueAvailabilityPreview).toHaveBeenCalledTimes(1)
+  })
+
+  it('does not refetch the preview when drop-in price changes', async () => {
+    render(<SuperAdminVenueConfigPage />)
+
+    await flushPreviewTimers()
+    await waitFor(() => {
+      expect(mockGetAdminVenueAvailabilityPreview).toHaveBeenCalledTimes(1)
+    })
+
+    fireEvent.change(screen.getByPlaceholderText('Drop-in price per person'), { target: { value: '20' } })
+    await flushPreviewTimers()
+
+    expect(mockGetAdminVenueAvailabilityPreview).toHaveBeenCalledTimes(1)
+  })
+
   it('renders grouped day windows and concise reason chips in the preview rail', async () => {
     render(<SuperAdminVenueConfigPage />)
 
@@ -421,6 +449,23 @@ describe('SuperAdminVenueConfigPage', () => {
     expect(screen.getAllByText('9:00 AM - 12:00 PM').length).toBeGreaterThan(0)
     expect(screen.getAllByText('Google blocked').length).toBeGreaterThan(0)
     expect(screen.getAllByText('Fully booked').length).toBeGreaterThan(0)
+  })
+
+  it('stays in live mode when the preview payload reports no visible changes', async () => {
+    mockGetAdminVenueAvailabilityPreview.mockResolvedValue(
+      buildMockAvailabilityPreview({
+        changed_day_count: 0,
+        has_unpublished_changes: false,
+      })
+    )
+
+    render(<SuperAdminVenueConfigPage />)
+
+    await flushPreviewTimers()
+
+    expect((await screen.findAllByText('Live')).length).toBeGreaterThan(0)
+    expect(screen.queryByText('Draft')).not.toBeInTheDocument()
+    expect(screen.queryByText(/unpublished changes affect/i)).not.toBeInTheDocument()
   })
 
   it('maps calendar_error_code query params to user-friendly messages', async () => {

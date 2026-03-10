@@ -52,10 +52,8 @@ type PreviewSummaryBuildArgs = PreviewDayBuildArgs & {
 }
 
 type PreviewRequestComparisonArgs = {
-  venueId: string
   currentConfig: ReturnType<typeof normalizeVenueAdminConfig>
   currentDropInTemplates: DropInTemplateWindow[]
-  instantBooking: boolean
 }
 
 function normalizeTime(value: string): string {
@@ -111,9 +109,7 @@ function buildComparisonRequest(args: PreviewRequestComparisonArgs): AdminVenueA
   return normalizePreviewRequest({
     operating_hours: args.currentConfig.operating_hours,
     drop_in_enabled: args.currentConfig.drop_in_enabled,
-    drop_in_price: args.currentConfig.drop_in_price,
     drop_in_templates: args.currentDropInTemplates,
-    instant_booking: args.instantBooking,
     min_advance_booking_days: args.currentConfig.min_advance_booking_days,
     min_advance_lead_time_hours: args.currentConfig.min_advance_lead_time_hours,
     blackout_dates: args.currentConfig.blackout_dates,
@@ -144,9 +140,7 @@ export function normalizePreviewRequest(
   return {
     operating_hours: normalizeWindows(request.operating_hours),
     drop_in_enabled: request.drop_in_enabled,
-    drop_in_price: request.drop_in_price,
     drop_in_templates: normalizeWindows(request.drop_in_templates),
-    instant_booking: request.instant_booking,
     min_advance_booking_days: request.min_advance_booking_days,
     min_advance_lead_time_hours: request.min_advance_lead_time_hours,
     blackout_dates: [...request.blackout_dates].sort((a, b) => a.localeCompare(b)),
@@ -394,7 +388,7 @@ function getReasonChips(args: {
   const privatePolicyFiltered = args.privateBaseWindows.some((window) => !isSlotAllowedByVenueConfig(window, {
     venue_id: 'preview',
     drop_in_enabled: args.request.drop_in_enabled,
-    drop_in_price: args.request.drop_in_price,
+    drop_in_price: null,
     regular_schedule_mode: 'template',
     min_advance_booking_days: args.request.min_advance_booking_days,
     min_advance_lead_time_hours: args.request.min_advance_lead_time_hours,
@@ -415,7 +409,7 @@ function getReasonChips(args: {
   const dropInPolicyFiltered = args.dropInBaseWindows.some((window) => !isSlotAllowedByVenueConfig(window, {
     venue_id: 'preview',
     drop_in_enabled: args.request.drop_in_enabled,
-    drop_in_price: args.request.drop_in_price,
+    drop_in_price: null,
     regular_schedule_mode: 'template',
     min_advance_booking_days: args.request.min_advance_booking_days,
     min_advance_lead_time_hours: args.request.min_advance_lead_time_hours,
@@ -481,7 +475,7 @@ function buildPolicyConfig(request: AdminVenueAvailabilityPreviewRequest) {
   return {
     venue_id: 'preview',
     drop_in_enabled: request.drop_in_enabled,
-    drop_in_price: request.drop_in_price,
+    drop_in_price: null,
     regular_schedule_mode: 'template' as const,
     min_advance_booking_days: request.min_advance_booking_days,
     min_advance_lead_time_hours: request.min_advance_lead_time_hours,
@@ -643,7 +637,7 @@ export class AdminAvailabilityPreviewService {
       { data: recurringRows, error: recurringError },
       externalBlocksResult,
     ] = await Promise.all([
-      adminClient.from('venues').select('id, instant_booking').eq('id', args.venueId).maybeSingle(),
+      adminClient.from('venues').select('id').eq('id', args.venueId).maybeSingle(),
       adminClient.from('venue_admin_configs').select('*').eq('venue_id', args.venueId).maybeSingle(),
       adminClient
         .from('slot_templates')
@@ -706,12 +700,9 @@ export class AdminAvailabilityPreviewService {
     )
 
     const liveRequest = buildComparisonRequest({
-      venueId: args.venueId,
       currentConfig,
       currentDropInTemplates,
-      instantBooking: Boolean((venue as { instant_booking?: boolean }).instant_booking),
     })
-    const hasUnpublishedChanges = JSON.stringify(liveRequest) !== JSON.stringify(normalizedRequest)
 
     const availabilityService = new AvailabilityService()
     const liveSlots = await availabilityService.getAvailableSlots(args.venueId, dateFrom, dateTo)
@@ -739,13 +730,14 @@ export class AdminAvailabilityPreviewService {
       recurringBookings: previewRecurring,
       externalBlocks: previewExternalBlocks,
     })
+    const changedDayCount = countChangedPreviewDays(livePreview, draftPreview)
 
     return {
       days: dateRange,
       live_preview: livePreview,
       draft_preview: draftPreview,
-      changed_day_count: countChangedPreviewDays(livePreview, draftPreview),
-      has_unpublished_changes: hasUnpublishedChanges,
+      changed_day_count: changedDayCount,
+      has_unpublished_changes: changedDayCount > 0,
     }
   }
 }

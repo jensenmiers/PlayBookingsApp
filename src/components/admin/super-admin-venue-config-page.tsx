@@ -322,7 +322,6 @@ function buildAvailabilityPreviewFingerprint(draft: VenueConfigDraft): string {
     operating_hours: draft.operating_hours,
     drop_in_enabled: draft.drop_in_enabled,
     drop_in_templates: draft.drop_in_templates,
-    instant_booking: draft.instant_booking,
     min_advance_booking_days: draft.min_advance_booking_days,
     min_advance_lead_time_hours: draft.min_advance_lead_time_hours,
     blackout_dates: draft.blackout_dates,
@@ -337,12 +336,6 @@ function buildAvailabilityPreviewRequest(draft: VenueConfigDraft): AdminVenueAva
     return null
   }
 
-  const dropInRaw = draft.drop_in_price.trim()
-  const dropInPrice = dropInRaw.length === 0 ? null : parsePositiveNumber(dropInRaw)
-  if (dropInRaw.length > 0 && dropInPrice === null) {
-    return null
-  }
-
   const validateWindows = (windows: DropInTemplateDraftWindow[]) =>
     windows.every((window) => window.start_time && window.end_time && window.start_time < window.end_time)
   if (!validateWindows(draft.operating_hours) || !validateWindows(draft.drop_in_templates)) {
@@ -352,9 +345,7 @@ function buildAvailabilityPreviewRequest(draft: VenueConfigDraft): AdminVenueAva
   return {
     operating_hours: normalizeDraftTemplates(draft.operating_hours),
     drop_in_enabled: draft.drop_in_enabled,
-    drop_in_price: dropInPrice,
     drop_in_templates: normalizeDraftTemplates(draft.drop_in_templates),
-    instant_booking: draft.instant_booking,
     min_advance_booking_days: minAdvanceDays,
     min_advance_lead_time_hours: minLeadHours,
     blackout_dates: parseDateList(draft.blackout_dates),

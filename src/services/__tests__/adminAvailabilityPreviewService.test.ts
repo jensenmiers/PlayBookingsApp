@@ -1,5 +1,19 @@
+const mockCreateAdminClient = jest.fn()
+const mockGetAvailableSlots = jest.fn()
+
+jest.mock('@/lib/supabase/admin', () => ({
+  createAdminClient: () => mockCreateAdminClient(),
+}))
+
+jest.mock('@/services/availabilityService', () => ({
+  AvailabilityService: jest.fn().mockImplementation(() => ({
+    getAvailableSlots: (...args: unknown[]) => mockGetAvailableSlots(...args),
+  })),
+}))
+
 import type { AdminVenueAvailabilityPreviewRequest } from '@/types/api'
 import {
+  AdminAvailabilityPreviewService,
   buildDraftAvailabilityPreviewDays,
   countChangedPreviewDays,
 } from '../adminAvailabilityPreviewService'
@@ -9,9 +23,7 @@ const baseRequest: AdminVenueAvailabilityPreviewRequest = {
     { day_of_week: 2, start_time: '09:00:00', end_time: '12:00:00' },
   ],
   drop_in_enabled: false,
-  drop_in_price: null,
   drop_in_templates: [],
-  instant_booking: true,
   min_advance_booking_days: 0,
   min_advance_lead_time_hours: 0,
   blackout_dates: [],
@@ -21,13 +33,60 @@ const baseRequest: AdminVenueAvailabilityPreviewRequest = {
 const dropInRequest: AdminVenueAvailabilityPreviewRequest = {
   ...baseRequest,
   drop_in_enabled: true,
-  drop_in_price: 15,
   drop_in_templates: [
     { day_of_week: 2, start_time: '18:00:00', end_time: '20:00:00' },
   ],
 }
 
+function createResolvedQuery<T>(data: T, error: { message: string; code?: string } | null = null) {
+  const chain = {
+    data,
+    error,
+    select: jest.fn(() => chain),
+    eq: jest.fn(() => chain),
+    gte: jest.fn(() => chain),
+    lte: jest.fn(() => chain),
+    in: jest.fn(() => chain),
+    maybeSingle: jest.fn(() => Promise.resolve({ data, error })),
+  }
+
+  return chain
+}
+
+function mockPreviewServiceQueries(args?: {
+  venue?: Record<string, unknown> | null
+  configRow?: Record<string, unknown> | null
+  templateRows?: unknown[]
+  bookingRows?: unknown[]
+  recurringRows?: unknown[]
+  externalBlocks?: unknown[]
+}) {
+  const tables = {
+    venues: createResolvedQuery(args?.venue ?? { id: 'venue-1' }),
+    venue_admin_configs: createResolvedQuery(args?.configRow ?? null),
+    slot_templates: createResolvedQuery(args?.templateRows ?? []),
+    bookings: createResolvedQuery(args?.bookingRows ?? []),
+    recurring_bookings: createResolvedQuery(args?.recurringRows ?? []),
+    external_availability_blocks: createResolvedQuery(args?.externalBlocks ?? []),
+  }
+
+  mockCreateAdminClient.mockReturnValue({
+    from: jest.fn((table: keyof typeof tables) => {
+      const query = tables[table]
+      if (!query) {
+        throw new Error(`Unexpected table queried in test: ${table}`)
+      }
+      return query
+    }),
+  })
+}
+
 describe('adminAvailabilityPreviewService', () => {
+  beforeEach(() => {
+    jest.clearAllMocks()
+    mockGetAvailableSlots.mockResolvedValue([])
+  })
+
   it('builds private-booking preview windows from operating hours', () => {
     const days = buildDraftAvailabilityPreviewDays({
       dateRange: ['2026-03-10'],
@@ -222,5 +281,100 @@ describe('adminAvailabilityPreviewService', () => {
         ]
       )
     ).toBe(1)
+  })
+
+  it('ignores saved non-rendered fields when computing preview draft state', async () => {
+    mockGetAvailableSlots.mockResolvedValue([
+      {
+        date: '2026-03-10',
+        start_time: '09:00:00',
+        end_time: '12:00:00',
+        venue_id: 'venue-1',
+        action_type: 'instant_book',
+      },
+    ])
+    mockPreviewServiceQueries({
+      venue: { id: 'venue-1', instant_booking: false },
+      configRow: {
+        venue_id: 'venue-1',
+        drop_in_enabled: false,
+        drop_in_price: 25,
+        min_advance_booking_days: 0,
+        min_advance_lead_time_hours: 0,
+        operating_hours: baseRequest.operating_hours,
+        blackout_dates: [],
+        holiday_dates: [],
+      },
+    })
+
+    const service = new AdminAvailabilityPreviewService()
+    const result = await service.getVenueAvailabilityPreview({
+      venueId: 'venue-1',
+      request: baseRequest,
+      now: new Date('2026-03-10T08:00:00-08:00'),
+    })
+
+    expect(result.changed_day_count).toBe(0)
+    expect(result.has_unpublished_changes).toBe(false)
+  })
+
+  it('does not enter draft mode when preview-affecting fields change outside the next 7 days', async () => {
+    mockPreviewServiceQueries({
+      venue: { id: 'venue-1' },
+      configRow: {
+        venue_id: 'venue-1',
+        drop_in_enabled: false,
+        drop_in_price: null,
+        min_advance_booking_days: 0,
+        min_advance_lead_time_hours: 0,
+        operating_hours: [],
+        blackout_dates: [],
+        holiday_dates: [],
+      },
+    })
+
+    const service = new AdminAvailabilityPreviewService()
+    const result = await service.getVenueAvailabilityPreview({
+      venueId: 'venue-1',
+      request: {
+        ...baseRequest,
+        operating_hours: [],
+        blackout_dates: ['2026-04-01'],
+      },
+      now: new Date('2026-03-10T08:00:00-08:00'),
+    })
+
+    expect(result.changed_day_count).toBe(0)
+    expect(result.has_unpublished_changes).toBe(false)
+  })
+
+  it('enters draft mode when the rendered next-7-days preview changes', async () => {
+    mockPreviewServiceQueries({
+      venue: { id: 'venue-1' },
+      configRow: {
+        venue_id: 'venue-1',
+        drop_in_enabled: false,
+        drop_in_price: null,
+        min_advance_booking_days: 0,
+        min_advance_lead_time_hours: 0,
+        operating_hours: [],
+        blackout_dates: [],
+        holiday_dates: [],
+      },
+    })
+
+    const service = new AdminAvailabilityPreviewService()
+    const result = await service.getVenueAvailabilityPreview({
+      venueId: 'venue-1',
+      request: {
+        ...baseRequest,
+        operating_hours: [],
+        blackout_dates: ['2026-03-10'],
+      },
+      now: new Date('2026-03-10T08:00:00-08:00'),
+    })
+
+    expect(result.changed_day_count).toBe(1)
+    expect(result.has_unpublished_changes).toBe(true)
   })
 })

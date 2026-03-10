@@ -176,9 +176,7 @@ export interface AdminVenueAvailabilityPreviewDay {
 export interface AdminVenueAvailabilityPreviewRequest {
   operating_hours: OperatingHourWindow[]
   drop_in_enabled: boolean
-  drop_in_price: number | null
   drop_in_templates: DropInTemplateWindow[]
-  instant_booking: boolean
   min_advance_booking_days: number
   min_advance_lead_time_hours: number
   blackout_dates: string[]
