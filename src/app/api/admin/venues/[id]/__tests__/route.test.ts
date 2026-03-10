@@ -40,6 +40,9 @@ function createContext(id: string): RouteContext {
 
 function createAdminClientMock(args?: {
   calendarIntegrationRow?: Record<string, unknown> | null
+  regularSyncRow?: Record<string, unknown> | null
+  dropInSyncRow?: Record<string, unknown> | null
+  publishStateRow?: Record<string, unknown> | null
 }) {
   const venue = {
     id: 'venue-1',
@@ -81,11 +84,15 @@ function createAdminClientMock(args?: {
   const templatesDelete = jest.fn(() => ({ eq: templateDeleteVenueEq }))
   const templatesInsert = jest.fn().mockResolvedValue({ error: null })
 
-  const regularSyncMaybeSingle = jest.fn().mockResolvedValue({ data: null, error: null })
+  const regularSyncMaybeSingle = jest
+    .fn()
+    .mockResolvedValue({ data: args?.regularSyncRow ?? null, error: null })
   const regularSyncEq = jest.fn(() => ({ maybeSingle: regularSyncMaybeSingle }))
   const regularSyncSelect = jest.fn(() => ({ eq: regularSyncEq }))
 
-  const dropInSyncMaybeSingle = jest.fn().mockResolvedValue({ data: null, error: null })
+  const dropInSyncMaybeSingle = jest
+    .fn()
+    .mockResolvedValue({ data: args?.dropInSyncRow ?? null, error: null })
   const dropInSyncEq = jest.fn(() => ({ maybeSingle: dropInSyncMaybeSingle }))
   const dropInSyncSelect = jest.fn(() => ({ eq: dropInSyncEq }))
 
@@ -95,7 +102,9 @@ function createAdminClientMock(args?: {
   const calendarIntegrationEq = jest.fn(() => ({ maybeSingle: calendarIntegrationMaybeSingle }))
   const calendarIntegrationSelect = jest.fn(() => ({ eq: calendarIntegrationEq }))
 
-  const publishStateMaybeSingle = jest.fn().mockResolvedValue({ data: null, error: null })
+  const publishStateMaybeSingle = jest
+    .fn()
+    .mockResolvedValue({ data: args?.publishStateRow ?? null, error: null })
   const publishStateEq = jest.fn(() => ({ maybeSingle: publishStateMaybeSingle }))
   const publishStateSelect = jest.fn(() => ({ eq: publishStateEq }))
   const publishStateUpsert = jest.fn().mockResolvedValue({ error: null })
@@ -474,6 +483,37 @@ describe('PATCH /api/admin/venues/[id]', () => {
     expect(json.success).toBe(true)
     expect(json.message).toContain('needs attention')
     expect(json.data.availability_publish.status).toBe('needs_attention')
+  })
+
+  it('returns availability is live when long-horizon backfill remains pending after near-term publish', async () => {
+    const { client } = createAdminClientMock({
+      regularSyncRow: {
+        venue_id: 'venue-1',
+        reason: 'regular_templates_updated',
+        run_after: '2026-03-09T12:00:00.000Z',
+        last_error: null,
+        updated_at: '2026-03-09T12:00:00.000Z',
+      },
+    })
+    mockCreateAdminClient.mockReturnValue(client)
+    mockValidateRequest.mockResolvedValue({
+      min_advance_booking_days: 2,
+    })
+
+    const response = await PATCH(
+      new Request('http://localhost/api/admin/venues/venue-1', {
+        method: 'PATCH',
+        headers: { 'content-type': 'application/json' },
+        body: JSON.stringify({ min_advance_booking_days: 2 }),
+      }),
+      createContext('venue-1')
+    )
+    const json = await response.json()
+
+    expect(response.status).toBe(200)
+    expect(json.success).toBe(true)
+    expect(json.message).toBe('Availability is live.')
+    expect(json.data.availability_publish.status).toBe('updating_future_availability')
   })
 
   it('derives regular templates from operating_hours updates', async () => {

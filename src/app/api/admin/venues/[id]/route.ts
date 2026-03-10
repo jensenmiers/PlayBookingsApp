@@ -259,11 +259,7 @@ function buildResponseMessage(args: {
     return 'Changes saved. Renter availability needs attention.'
   }
 
-  if (args.availabilityPublish.status === 'updating_future_availability') {
-    return 'Renter availability is up to date. Future availability is still being prepared in the background.'
-  }
-
-  return 'Renter availability is up to date.'
+  return 'Availability is live.'
 }
 
 export async function GET(_request: NextRequest, context: RouteContext): Promise<Response> {

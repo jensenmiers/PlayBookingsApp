@@ -459,37 +459,11 @@ function isAvailabilityAffectingPatch(patch: Record<string, unknown>): boolean {
   return AVAILABILITY_AFFECTING_PATCH_FIELDS.some((field) => patch[field] !== undefined)
 }
 
-function formatAvailabilityPublishStatusLabel(item: AdminVenueConfigItem | null): string {
-  const status = item?.availability_publish?.status || 'ready_for_renters'
-  if (status === 'needs_attention') {
-    return 'Needs attention'
+function getPersistentAvailabilityError(item: AdminVenueConfigItem | null): string | null {
+  if (item?.availability_publish?.status !== 'needs_attention') {
+    return null
   }
-  if (status === 'updating_future_availability') {
-    return 'Updating future availability'
-  }
-  return 'Ready for renters'
-}
-
-function getAvailabilityPublishStatusClassName(item: AdminVenueConfigItem | null): string {
-  const status = item?.availability_publish?.status || 'ready_for_renters'
-  if (status === 'needs_attention') {
-    return 'text-red-300'
-  }
-  if (status === 'updating_future_availability') {
-    return 'text-amber-300'
-  }
-  return 'text-secondary-50/60'
-}
-
-function getAvailabilityPublishHelperText(item: AdminVenueConfigItem | null): string | null {
-  const status = item?.availability_publish?.status || 'ready_for_renters'
-  if (status === 'updating_future_availability') {
-    return 'Future availability is still being prepared in the background.'
-  }
-  if (status === 'needs_attention') {
-    return item?.availability_publish?.last_error || 'Renter availability may not fully reflect the latest saved changes.'
-  }
-  return null
+  return item.availability_publish.last_error || 'Renter availability may not fully reflect the latest saved changes.'
 }
 
 function getBookingStartMs(booking: AdminVenueBookingFeedItem): number {
@@ -2020,10 +1994,8 @@ export function SuperAdminVenueConfigPage() {
             ) : (
               <span className="text-secondary-50/60">All changes saved</span>
             )}
-            {selectedItem && (
-              <span className={cn(getAvailabilityPublishStatusClassName(selectedItem))}>
-                {formatAvailabilityPublishStatusLabel(selectedItem)}
-              </span>
+            {selectedItem && getPersistentAvailabilityError(selectedItem) && (
+              <span className="text-red-300">{getPersistentAvailabilityError(selectedItem)}</span>
             )}
             {isSaving && <span className="text-primary-400">{saveInFlightLabel}</span>}
             {saveMessage && <span className="text-primary-400">{saveMessage}</span>}

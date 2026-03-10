@@ -514,9 +514,10 @@ describe('SuperAdminVenueConfigPage', () => {
     expect(screen.getByText(/new bookings will start as pending approval/i)).toBeInTheDocument()
   })
 
-  it('shows renter-facing availability status labels', async () => {
+  it('shows only persistent error status labels for renter-facing availability', async () => {
     const data = buildMockAdminVenuesData()
     data[0].availability_publish.status = 'needs_attention'
+    data[0].availability_publish.last_error = 'Renter availability needs attention.'
     data[1].availability_publish.status = 'updating_future_availability'
 
     mockUseAdminVenues.mockReturnValue({
@@ -528,7 +529,9 @@ describe('SuperAdminVenueConfigPage', () => {
 
     render(<SuperAdminVenueConfigPage />)
 
-    await screen.findByText('Needs attention')
+    await screen.findByText('Renter availability needs attention.')
+    expect(screen.queryByText('Updating future availability')).not.toBeInTheDocument()
+    expect(screen.queryByText('Ready for renters')).not.toBeInTheDocument()
   })
 
   it('shows updating renter availability while an availability-affecting save is in flight', async () => {
@@ -546,10 +549,24 @@ describe('SuperAdminVenueConfigPage', () => {
 
     expect(await screen.findByText('Updating renter availability...')).toBeInTheDocument()
 
-    resolvePatch?.({ item: buildMockAdminVenuesData()[0], message: 'Renter availability is up to date.' })
+    resolvePatch?.({ item: buildMockAdminVenuesData()[0], message: 'Availability is live.' })
     await waitFor(() => {
       expect(mockPatchAdminVenueConfig).toHaveBeenCalled()
     })
+  })
+
+  it('shows the availability live success message after an availability-affecting save', async () => {
+    mockPatchAdminVenueConfig.mockResolvedValue({
+      item: buildMockAdminVenuesData()[0],
+      message: 'Availability is live.',
+    })
+
+    render(<SuperAdminVenueConfigPage />)
+
+    fireEvent.click(await screen.findByRole('button', { name: 'Required' }))
+    fireEvent.click(screen.getByRole('button', { name: /save all changes/i }))
+
+    expect(await screen.findByText('Availability is live.')).toBeInTheDocument()
   })
 
   it('uses the api success message after a partial-success save', async () => {
