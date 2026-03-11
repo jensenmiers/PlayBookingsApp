@@ -730,51 +730,23 @@ function AvailabilityPreviewPanel({
   loading: boolean
   error: string | null
 }) {
-  const activeDays = preview
-    ? (preview.has_unpublished_changes ? preview.draft_preview : preview.live_preview)
-    : []
+  const liveDays = preview?.live_preview ?? []
 
   return (
     <section className="rounded-2xl border border-secondary-50/10 bg-secondary-900 shadow-soft">
       <div className="border-b border-secondary-50/10 px-4 py-4">
-        <div className="flex items-center justify-between gap-3">
-          <div>
-            <h3 className="text-lg font-semibold text-secondary-50">Next 7 Days</h3>
-            <p className="mt-1 text-xs text-secondary-50/60">What renters will actually see over the next week.</p>
-          </div>
-          <div className="flex flex-wrap items-center justify-end gap-2">
-            {preview?.has_unpublished_changes ? (
-              <>
-                <span className="rounded-full border border-primary-400/40 bg-primary-400/10 px-3 py-1 text-[11px] font-semibold uppercase tracking-[0.16em] text-primary-300">
-                  Draft
-                </span>
-                <span className="rounded-full border border-secondary-50/15 bg-secondary-800 px-3 py-1 text-[11px] font-semibold uppercase tracking-[0.16em] text-secondary-50/75">
-                  Live
-                </span>
-              </>
-            ) : (
-              <span className="rounded-full border border-secondary-50/15 bg-secondary-800 px-3 py-1 text-[11px] font-semibold uppercase tracking-[0.16em] text-secondary-50/75">
-                Live
-              </span>
-            )}
-          </div>
-        </div>
-        {preview?.has_unpublished_changes ? (
-          <p className="mt-3 text-xs font-medium text-primary-300">
-            Unpublished changes affect {preview.changed_day_count} of 7 days
-          </p>
-        ) : null}
+        <h3 className="text-lg font-semibold text-secondary-50">Next 7 Days</h3>
+        <p className="mt-1 text-xs text-secondary-50/60">What renters will actually see over the next week.</p>
       </div>
 
       <div className="space-y-3 px-4 py-4">
         {error ? <p className="text-xs text-red-300">{error}</p> : null}
         {loading && !preview ? (
-          <p className="text-sm text-secondary-50/60">Loading renter preview...</p>
+          <p className="text-sm text-secondary-50/60">Loading preview...</p>
         ) : null}
 
-        {activeDays.map((day, index) => {
-          const liveDay = preview?.live_preview[index] || null
-          const dayChanged = Boolean(preview?.has_unpublished_changes) && JSON.stringify(day) !== JSON.stringify(liveDay)
+        {liveDays.map((day) => {
+          const visibleChips = day.reason_chips.filter((r) => r !== 'closed')
 
           return (
             <article
@@ -782,15 +754,10 @@ function AvailabilityPreviewPanel({
               className="space-y-3 rounded-2xl border border-secondary-50/10 bg-secondary-950/50 p-4"
             >
               <div className="flex items-start justify-between gap-3">
-                <div>
-                  <h4 className="text-sm font-semibold text-secondary-50">{formatPreviewDateLabel(day.date)}</h4>
-                  {dayChanged ? (
-                    <p className="mt-1 text-xs text-secondary-50/55">Live now shown below for comparison.</p>
-                  ) : null}
-                </div>
-                {day.reason_chips.length > 0 ? (
+                <h4 className="text-sm font-semibold text-secondary-50">{formatPreviewDateLabel(day.date)}</h4>
+                {visibleChips.length > 0 ? (
                   <div className="flex max-w-[12rem] flex-wrap justify-end gap-2">
-                    {day.reason_chips.map((reason) => (
+                    {visibleChips.map((reason) => (
                       <span
                         key={`${day.date}-${reason}`}
                         className="rounded-full border border-secondary-50/15 bg-secondary-800 px-2.5 py-1 text-[11px] font-medium text-secondary-50/80"
@@ -802,25 +769,11 @@ function AvailabilityPreviewPanel({
                 ) : null}
               </div>
 
-              <PreviewWindowList title="Private booking" windows={day.private_booking} />
+              <PreviewWindowList title="Bookable hours" windows={day.private_booking} />
               <PreviewWindowList title="Drop-in" windows={day.drop_in} />
 
               {day.private_booking.length === 0 && day.drop_in.length === 0 ? (
-                <p className="text-sm text-secondary-50/60">No renter availability</p>
-              ) : null}
-
-              {dayChanged && liveDay ? (
-                <div className="rounded-xl border border-secondary-50/10 bg-secondary-900/70 px-3 py-3">
-                  <p className="text-[11px] font-semibold uppercase tracking-[0.16em] text-secondary-50/45">Live now</p>
-                  {liveDay.private_booking.length === 0 && liveDay.drop_in.length === 0 ? (
-                    <p className="mt-2 text-sm text-secondary-50/60">No renter availability</p>
-                  ) : (
-                    <div className="mt-2 space-y-2">
-                      <PreviewWindowList title="Private booking" windows={liveDay.private_booking} />
-                      <PreviewWindowList title="Drop-in" windows={liveDay.drop_in} />
-                    </div>
-                  )}
-                </div>
+                <p className="text-sm text-secondary-50/60">No availability</p>
               ) : null}
             </article>
           )
@@ -1633,18 +1586,6 @@ export function SuperAdminVenueConfigPage() {
                   <SectionGroup
                   title="Define/Set Availability"
                   description="Configure when this venue is available for bookings."
-                  footerAction={
-                    <Button
-                      type="button"
-                      onClick={() => {
-                        void handleSaveChanges()
-                      }}
-                      disabled={!hasUnsavedChanges || isSaving}
-                    >
-                      Publish Availability
-                    </Button>
-                  }
-                  footerHelper="This publishes availability changes to renters."
                 >
                   <ConfigRow
                     title="Base Availability"
@@ -2337,7 +2278,7 @@ export function SuperAdminVenueConfigPage() {
               }}
               disabled={!hasUnsavedChanges || isSaving}
             >
-              Save All Changes
+              Save & Publish All Changes
             </Button>
           </div>
         </div>

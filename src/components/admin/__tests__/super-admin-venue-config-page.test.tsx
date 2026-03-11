@@ -51,7 +51,7 @@ const buildMockAvailabilityPreview = (overrides?: Partial<{
       date: '2099-01-01',
       private_booking: [{ start_time: '09:00:00', end_time: '12:00:00' }],
       drop_in: [{ start_time: '18:00:00', end_time: '20:00:00' }],
-      reason_chips: ['google_blocked'],
+      reason_chips: ['google_blocked', 'fully_booked'],
     },
   ],
   draft_preview: [
@@ -365,7 +365,6 @@ describe('SuperAdminVenueConfigPage', () => {
     await flushPreviewTimers()
 
     expect((await screen.findAllByText('Next 7 Days')).length).toBeGreaterThan(0)
-    expect(screen.getAllByText('Unpublished changes affect 1 of 7 days').length).toBeGreaterThan(0)
   })
 
   it('refetches the preview when switching venues', async () => {
@@ -447,14 +446,14 @@ describe('SuperAdminVenueConfigPage', () => {
 
     await flushPreviewTimers()
 
-    expect((await screen.findAllByText('Private booking')).length).toBeGreaterThan(0)
+    expect((await screen.findAllByText('Bookable hours')).length).toBeGreaterThan(0)
     expect(screen.getAllByText('Drop-in').length).toBeGreaterThan(0)
     expect(screen.getAllByText('9:00 AM - 12:00 PM').length).toBeGreaterThan(0)
     expect(screen.getAllByText('Google blocked').length).toBeGreaterThan(0)
     expect(screen.getAllByText('Fully booked').length).toBeGreaterThan(0)
   })
 
-  it('stays in live mode when the preview payload reports no visible changes', async () => {
+  it('renders preview without draft/live badges', async () => {
     mockGetAdminVenueAvailabilityPreview.mockResolvedValue(
       buildMockAvailabilityPreview({
         changed_day_count: 0,
@@ -466,7 +465,7 @@ describe('SuperAdminVenueConfigPage', () => {
 
     await flushPreviewTimers()
 
-    expect((await screen.findAllByText('Live')).length).toBeGreaterThan(0)
+    expect((await screen.findAllByText('Next 7 Days')).length).toBeGreaterThan(0)
     expect(screen.queryByText('Draft')).not.toBeInTheDocument()
     expect(screen.queryByText(/unpublished changes affect/i)).not.toBeInTheDocument()
   })
@@ -525,7 +524,7 @@ describe('SuperAdminVenueConfigPage', () => {
 
     expect(mockPatchAdminVenueConfig).not.toHaveBeenCalled()
 
-    fireEvent.click(screen.getByRole('button', { name: /save all changes/i }))
+    fireEvent.click(screen.getByRole('button', { name: /save & publish all changes/i }))
 
     await waitFor(() => {
       expect(mockPatchAdminVenueConfig).toHaveBeenCalledWith(
@@ -639,7 +638,7 @@ describe('SuperAdminVenueConfigPage', () => {
     render(<SuperAdminVenueConfigPage />)
 
     fireEvent.click(await screen.findByRole('button', { name: 'Required' }))
-    fireEvent.click(screen.getByRole('button', { name: /save all changes/i }))
+    fireEvent.click(screen.getByRole('button', { name: /save & publish all changes/i }))
 
     await waitFor(() => {
       expect(mockPatchAdminVenueConfig).toHaveBeenCalledWith(
@@ -699,7 +698,7 @@ describe('SuperAdminVenueConfigPage', () => {
     render(<SuperAdminVenueConfigPage />)
 
     fireEvent.click(await screen.findByRole('button', { name: 'Required' }))
-    fireEvent.click(screen.getByRole('button', { name: /save all changes/i }))
+    fireEvent.click(screen.getByRole('button', { name: /save & publish all changes/i }))
 
     expect(await screen.findByText('Updating renter availability...')).toBeInTheDocument()
 
@@ -718,7 +717,7 @@ describe('SuperAdminVenueConfigPage', () => {
     render(<SuperAdminVenueConfigPage />)
 
     fireEvent.click(await screen.findByRole('button', { name: 'Required' }))
-    fireEvent.click(screen.getByRole('button', { name: /save all changes/i }))
+    fireEvent.click(screen.getByRole('button', { name: /save & publish all changes/i }))
 
     expect(await screen.findByText('Availability is live.')).toBeInTheDocument()
   })
@@ -732,7 +731,7 @@ describe('SuperAdminVenueConfigPage', () => {
     render(<SuperAdminVenueConfigPage />)
 
     fireEvent.click(await screen.findByRole('button', { name: 'Required' }))
-    fireEvent.click(screen.getByRole('button', { name: /save all changes/i }))
+    fireEvent.click(screen.getByRole('button', { name: /save & publish all changes/i }))
 
     expect(
       await screen.findByText('Changes saved. Renter availability needs attention.')
@@ -749,7 +748,7 @@ describe('SuperAdminVenueConfigPage', () => {
     fireEvent.click(dropInCheckbox)
 
     fireEvent.click(await screen.findByRole('button', { name: /add drop-in window/i }))
-    fireEvent.click(screen.getByRole('button', { name: /save all changes/i }))
+    fireEvent.click(screen.getByRole('button', { name: /save & publish all changes/i }))
 
     await waitFor(() => {
       expect(mockPatchAdminVenueConfig).toHaveBeenCalledWith(
@@ -810,7 +809,7 @@ describe('SuperAdminVenueConfigPage', () => {
     const endTimeSelect = screen.getByLabelText('Drop-in end time row 1')
     fireEvent.change(endTimeSelect, { target: { value: '19:00' } })
 
-    fireEvent.click(screen.getByRole('button', { name: /save all changes/i }))
+    fireEvent.click(screen.getByRole('button', { name: /save & publish all changes/i }))
 
     await waitFor(() => {
       expect(mockPatchAdminVenueConfig).toHaveBeenCalledWith(
@@ -850,7 +849,7 @@ describe('SuperAdminVenueConfigPage', () => {
     const minAdvanceDaysInput = await screen.findByLabelText(/minimum advance booking days/i)
     fireEvent.change(minAdvanceDaysInput, { target: { value: '2' } })
 
-    fireEvent.click(screen.getByRole('button', { name: /save all changes/i }))
+    fireEvent.click(screen.getByRole('button', { name: /save & publish all changes/i }))
 
     await waitFor(() => {
       expect(mockPatchAdminVenueConfig).toHaveBeenCalledWith(
@@ -872,7 +871,7 @@ describe('SuperAdminVenueConfigPage', () => {
     const weekdayEnd = screen.getByLabelText('Weekdays end time')
     fireEvent.change(weekdayEnd, { target: { value: '17:00' } })
 
-    fireEvent.click(screen.getByRole('button', { name: /save all changes/i }))
+    fireEvent.click(screen.getByRole('button', { name: /save & publish all changes/i }))
 
     await waitFor(() => {
       expect(mockPatchAdminVenueConfig).toHaveBeenCalledWith(
