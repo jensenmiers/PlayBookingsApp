@@ -841,6 +841,19 @@ describe('SuperAdminVenueConfigPage', () => {
     expect(row).toHaveClass('grid-cols-[minmax(9.5rem,1.15fr)_minmax(7.5rem,8.5rem)_minmax(7.5rem,8.5rem)_auto]')
   })
 
+  it('uses the widened configuration layout classes for the availability editor', async () => {
+    render(<SuperAdminVenueConfigPage />)
+
+    const configurationLayout = await screen.findByTestId('super-admin-configuration-layout')
+    expect(configurationLayout).toHaveClass('xl:grid-cols-[minmax(0,1fr)_20rem]')
+
+    const availabilitySection = screen.getByTestId('availability-section-group')
+    expect(availabilitySection).toBeInTheDocument()
+
+    const availabilityBaseRow = screen.getByTestId('availability-base-config-row')
+    expect(availabilityBaseRow).toHaveClass('md:grid-cols-[minmax(13rem,0.85fr)_minmax(0,1.15fr)]')
+  })
+
   it('saves minimum advance booking days from policy controls', async () => {
     mockPatchAdminVenueConfig.mockResolvedValue({})
 

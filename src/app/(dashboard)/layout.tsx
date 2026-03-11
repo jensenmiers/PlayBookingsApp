@@ -90,8 +90,8 @@ export default function DashboardLayout({
         <Navigation />
         <div className="flex">
           <SidebarNavigation user={sidebarUser} onSignOut={handleSignOut} />
-          <main className="flex-1 overflow-y-auto bg-background px-6 py-10 lg:px-10">
-            <div className="mx-auto max-w-6xl space-y-10">{children}</div>
+          <main className="flex-1 overflow-y-auto bg-background px-xl py-3xl lg:px-3xl">
+            <div className="mx-auto max-w-7xl space-y-3xl">{children}</div>
           </main>
         </div>
       </div>
@@ -102,8 +102,8 @@ export default function DashboardLayout({
   return (
     <div className="min-h-screen bg-background">
       <Navigation />
-      <main className="mx-auto max-w-6xl px-6 py-10 lg:px-10">
-        <div className="space-y-10">{children}</div>
+      <main className="mx-auto max-w-7xl px-xl py-3xl lg:px-3xl">
+        <div className="space-y-3xl">{children}</div>
       </main>
     </div>
   )

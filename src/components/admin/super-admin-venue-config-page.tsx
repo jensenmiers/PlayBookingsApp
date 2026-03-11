@@ -843,13 +843,18 @@ function ConfigRow({
   title,
   description,
   children,
+  testId,
 }: {
   title: string
   description: string
   children: ReactNode
+  testId?: string
 }) {
   return (
-    <div className="grid gap-3 border-b border-secondary-50/10 py-4 md:grid-cols-[1.25fr_1fr] md:items-start md:gap-6">
+    <div
+      data-testid={testId}
+      className="grid gap-m border-b border-secondary-50/10 py-m md:grid-cols-[minmax(13rem,0.85fr)_minmax(0,1.15fr)] md:items-start md:gap-l"
+    >
       <div className="space-y-1">
         <h3 className="text-sm font-semibold text-secondary-50">{title}</h3>
         <p className="text-xs text-secondary-50/60">{description}</p>
@@ -935,24 +940,29 @@ function SectionGroup({
   children,
   footerAction,
   footerHelper,
+  testId,
 }: {
   title: string
   description?: string
   children: ReactNode
   footerAction?: ReactNode
   footerHelper?: string
+  testId?: string
 }) {
   return (
-    <section className="rounded-2xl border border-secondary-50/10 bg-secondary-900 shadow-soft">
-      <div className="border-b border-secondary-50/10 px-4 py-4 md:px-6">
+    <section
+      data-testid={testId}
+      className="rounded-2xl border border-secondary-50/10 bg-secondary-900 shadow-soft"
+    >
+      <div className="border-b border-secondary-50/10 px-m py-m md:px-l">
         <h2 className="text-lg font-semibold text-secondary-50">{title}</h2>
         {description ? (
           <p className="mt-1 text-xs text-secondary-50/60">{description}</p>
         ) : null}
       </div>
-      <div className="px-4 md:px-6">{children}</div>
+      <div className="px-m md:px-l">{children}</div>
       {footerAction ? (
-        <div className="border-t border-secondary-50/10 px-4 py-4 md:px-6">
+        <div className="border-t border-secondary-50/10 px-m py-m md:px-l">
           {footerHelper ? (
             <p className="mb-3 text-xs text-secondary-50/60">{footerHelper}</p>
           ) : null}
@@ -977,7 +987,7 @@ function CollapsibleRow({
   const [isExpanded, setIsExpanded] = useState(defaultExpanded)
 
   return (
-    <div className="border-b border-secondary-50/10 py-4">
+    <div className="border-b border-secondary-50/10 py-m">
       <button
         type="button"
         className="flex w-full items-center justify-between gap-3 text-left"
@@ -999,7 +1009,7 @@ function CollapsibleRow({
         </span>
       </button>
       {isExpanded ? (
-        <div className="mt-4 grid gap-3 md:grid-cols-[1.25fr_1fr] md:items-start md:gap-6">
+        <div className="mt-m grid gap-m md:grid-cols-[minmax(13rem,0.85fr)_minmax(0,1.15fr)] md:items-start md:gap-l">
           <div />
           <div className="space-y-2">{children}</div>
         </div>
@@ -1581,140 +1591,147 @@ export function SuperAdminVenueConfigPage() {
             </div>
 
             {activeTab === 'configuration' && (
-              <div className="grid gap-6 xl:grid-cols-[minmax(0,1fr)_22rem] xl:items-start">
-                <div className="space-y-6">
+              <div
+                data-testid="super-admin-configuration-layout"
+                className="grid gap-l xl:grid-cols-[minmax(0,1fr)_20rem] xl:items-start"
+              >
+                <div className="space-y-l">
                   <SectionGroup
-                  title="Define/Set Availability"
-                  description="Configure when this venue is available for bookings."
-                >
-                  <ConfigRow
-                    title="Base Availability"
-                    description="Set the hours your venue is open. Renters can only book within these windows."
+                    testId="availability-section-group"
+                    title="Define/Set Availability"
+                    description="Configure when this venue is available for bookings."
                   >
-                    <BaseAvailabilityCards
-                      operatingHours={draft.operating_hours}
-                      onChange={(next) =>
-                        updateDraft((previous) => ({ ...previous, operating_hours: next }))
-                      }
-                    />
-                  </ConfigRow>
+                    <ConfigRow
+                      testId="availability-base-config-row"
+                      title="Base Availability"
+                      description="Set the hours your venue is open. Renters can only book within these windows."
+                    >
+                      <BaseAvailabilityCards
+                        operatingHours={draft.operating_hours}
+                        onChange={(next) =>
+                          updateDraft((previous) => ({ ...previous, operating_hours: next }))
+                        }
+                      />
+                    </ConfigRow>
 
-                  <ConfigRow
-                    title="Google Calendar"
-                    description="Connect Google Calendar to block busy times from availability."
-                  >
-                    <div className="space-y-2">
-                      <div className="rounded-md border border-secondary-50/10 bg-secondary-800 px-3 py-2 text-xs text-secondary-50/70">
-                        <p>
-                          Status:{' '}
-                          <span className="font-medium text-secondary-50">
-                            {selectedItem.calendar_integration?.status || 'disconnected'}
-                          </span>
-                        </p>
-                        <p>
-                          Selected calendar:{' '}
-                          <span className="font-medium text-secondary-50">
-                            {selectedItem.calendar_integration?.google_calendar_name
-                              || selectedItem.calendar_integration?.google_calendar_id
-                              || 'None'}
-                          </span>
-                        </p>
-                        <p>
-                          Last sync:{' '}
-                          <span className="font-medium text-secondary-50">
-                            {selectedItem.calendar_integration?.last_synced_at
-                              ? new Date(selectedItem.calendar_integration.last_synced_at).toLocaleString()
-                              : 'Never'}
-                          </span>
-                        </p>
-                      </div>
-
-                      {calendarError ? <p className="text-xs text-red-300">{calendarError}</p> : null}
-                      {calendarMessage ? <p className="text-xs text-primary-400">{calendarMessage}</p> : null}
-
-                      <div className="flex flex-wrap gap-2">
-                        <Button
-                          type="button"
-                          variant="outline"
-                          disabled={calendarActionLoading}
-                          onClick={() => {
-                            void handleConnectCalendar()
-                          }}
-                        >
-                          {calendarActionLoading ? 'Working...' : 'Connect Google Calendar'}
-                        </Button>
-                        <Button
-                          type="button"
-                          variant="outline"
-                          disabled={calendarActionLoading || calendarStatusLoading}
-                          onClick={() => {
-                            void handleRefreshCalendars()
-                          }}
-                        >
-                          {calendarStatusLoading ? 'Refreshing...' : 'Refresh Calendars'}
-                        </Button>
-                      </div>
-
+                    <ConfigRow
+                      title="Google Calendar"
+                      description="Connect Google Calendar to block busy times from availability."
+                    >
                       <div className="space-y-2">
-                        <label htmlFor="selected-calendar-id" className="text-xs font-medium text-secondary-50/70">
-                          Selected Google calendar
-                        </label>
-                        <select
-                          id="selected-calendar-id"
-                          aria-label="Selected Google calendar"
-                          className="h-11 w-full rounded-md border border-secondary-50/15 bg-secondary-800 px-3 py-2 text-sm text-secondary-50"
-                          value={selectedCalendarId}
-                          onChange={(event) => {
-                            setSelectedCalendarId(event.target.value)
-                          }}
-                        >
-                          <option value="">Select calendar</option>
-                          {calendarOptions.map((calendar) => (
-                            <option key={calendar.id} value={calendar.id}>
-                              {calendar.summary}{calendar.primary ? ' (Primary)' : ''}
-                            </option>
-                          ))}
-                        </select>
-                      </div>
+                        <div className="rounded-md border border-secondary-50/10 bg-secondary-800 px-3 py-2 text-xs text-secondary-50/70">
+                          <p>
+                            Status:{' '}
+                            <span className="font-medium text-secondary-50">
+                              {selectedItem.calendar_integration?.status || 'disconnected'}
+                            </span>
+                          </p>
+                          <p>
+                            Selected calendar:{' '}
+                            <span className="font-medium text-secondary-50">
+                              {selectedItem.calendar_integration?.google_calendar_name
+                                || selectedItem.calendar_integration?.google_calendar_id
+                                || 'None'}
+                            </span>
+                          </p>
+                          <p>
+                            Last sync:{' '}
+                            <span className="font-medium text-secondary-50">
+                              {selectedItem.calendar_integration?.last_synced_at
+                                ? new Date(selectedItem.calendar_integration.last_synced_at).toLocaleString()
+                                : 'Never'}
+                            </span>
+                          </p>
+                        </div>
 
-                      <div className="flex flex-wrap gap-2">
-                        <Button
-                          type="button"
-                          variant="outline"
-                          disabled={calendarActionLoading || !selectedCalendarId}
-                          onClick={() => {
-                            void handleSelectCalendar()
-                          }}
-                        >
-                          Save Calendar Selection
-                        </Button>
-                        <Button
-                          type="button"
-                          variant="outline"
-                          disabled={calendarActionLoading}
-                          onClick={() => {
-                            void handleSyncCalendarNow()
-                          }}
-                        >
-                          Sync Now
-                        </Button>
-                        <Button
-                          type="button"
-                          variant="outline"
-                          disabled={calendarActionLoading}
-                          onClick={() => {
-                            void handleDisconnectCalendar()
-                          }}
-                        >
-                          Disconnect Calendar
-                        </Button>
-                      </div>
+                        {calendarError ? <p className="text-xs text-red-300">{calendarError}</p> : null}
+                        {calendarMessage ? <p className="text-xs text-primary-400">{calendarMessage}</p> : null}
 
-                      {selectedItem.calendar_integration?.last_error ? (
-                        <p className="text-xs text-red-300">Last sync error: {selectedItem.calendar_integration.last_error}</p>
-                      ) : null}
-                    </div>
-                  </ConfigRow>
+                        <div className="flex flex-wrap gap-2">
+                          <Button
+                            type="button"
+                            variant="outline"
+                            disabled={calendarActionLoading}
+                            onClick={() => {
+                              void handleConnectCalendar()
+                            }}
+                          >
+                            {calendarActionLoading ? 'Working...' : 'Connect Google Calendar'}
+                          </Button>
+                          <Button
+                            type="button"
+                            variant="outline"
+                            disabled={calendarActionLoading || calendarStatusLoading}
+                            onClick={() => {
+                              void handleRefreshCalendars()
+                            }}
+                          >
+                            {calendarStatusLoading ? 'Refreshing...' : 'Refresh Calendars'}
+                          </Button>
+                        </div>
+
+                        <div className="space-y-2">
+                          <label htmlFor="selected-calendar-id" className="text-xs font-medium text-secondary-50/70">
+                            Selected Google calendar
+                          </label>
+                          <select
+                            id="selected-calendar-id"
+                            aria-label="Selected Google calendar"
+                            className="h-11 w-full rounded-md border border-secondary-50/15 bg-secondary-800 px-3 py-2 text-sm text-secondary-50"
+                            value={selectedCalendarId}
+                            onChange={(event) => {
+                              setSelectedCalendarId(event.target.value)
+                            }}
+                          >
+                            <option value="">Select calendar</option>
+                            {calendarOptions.map((calendar) => (
+                              <option key={calendar.id} value={calendar.id}>
+                                {calendar.summary}{calendar.primary ? ' (Primary)' : ''}
+                              </option>
+                            ))}
+                          </select>
+                        </div>
+
+                        <div className="flex flex-wrap gap-2">
+                          <Button
+                            type="button"
+                            variant="outline"
+                            disabled={calendarActionLoading || !selectedCalendarId}
+                            onClick={() => {
+                              void handleSelectCalendar()
+                            }}
+                          >
+                            Save Calendar Selection
+                          </Button>
+                          <Button
+                            type="button"
+                            variant="outline"
+                            disabled={calendarActionLoading}
+                            onClick={() => {
+                              void handleSyncCalendarNow()
+                            }}
+                          >
+                            Sync Now
+                          </Button>
+                          <Button
+                            type="button"
+                            variant="outline"
+                            disabled={calendarActionLoading}
+                            onClick={() => {
+                              void handleDisconnectCalendar()
+                            }}
+                          >
+                            Disconnect Calendar
+                          </Button>
+                        </div>
+
+                        {selectedItem.calendar_integration?.last_error ? (
+                          <p className="text-xs text-red-300">
+                            Last sync error: {selectedItem.calendar_integration.last_error}
+                          </p>
+                        ) : null}
+                      </div>
+                    </ConfigRow>
 
                   <ConfigRow
                     title="Drop-In Open Gym"
@@ -2109,7 +2126,7 @@ export function SuperAdminVenueConfigPage() {
                 </SectionGroup>
                 </div>
 
-                <div className="hidden xl:block xl:sticky xl:top-6">
+                <div className="hidden xl:block xl:sticky xl:top-l">
                   <AvailabilityPreviewPanel
                     preview={availabilityPreview}
                     loading={availabilityPreviewLoading}
