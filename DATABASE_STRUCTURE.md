@@ -5,7 +5,7 @@ It is intentionally not a column-by-column reference.
 
 ## Known Gaps
 
-- Last verified: 2026-03-10 (America/Los_Angeles)
+- Last verified: 2026-03-11 (America/Los_Angeles)
 - Verification sources:
   - Live table existence checks with service-role Supabase queries
   - SQL migrations in `supabase/migrations`
@@ -16,7 +16,7 @@ It is intentionally not a column-by-column reference.
 ## Automated Snapshot (Generated)
 
 <!-- AUTO-SNAPSHOT:DB:START -->
-- Generated at: 2026-03-10 (America/Los_Angeles)
+- Generated at: 2026-03-11 (America/Los_Angeles)
 - Latest migration in repo: `20260309000400_rewrite_availability_backfill_worker_as_sql.sql` (40 total)
 - Distinct tables referenced in app code via `.from()`: 20
 - App table sample: `audit_logs`, `auth_oauth_states`, `availability`, `bookings`, `drop_in_template_sync_queue`, `external_availability_blocks`, `payments`, `recurring_bookings`, `regular_template_sync_queue`, `slot_instances`, `slot_interactions`, `slot_modal_content` (+8 more)
