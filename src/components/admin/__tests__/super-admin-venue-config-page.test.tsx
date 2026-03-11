@@ -403,7 +403,10 @@ describe('SuperAdminVenueConfigPage', () => {
 
     expect(mockGetAdminVenueAvailabilityPreview).toHaveBeenCalledTimes(1)
 
-    fireEvent.click(screen.getByRole('button', { name: 'Add Operating Window' }))
+    const weekdayStart = screen.getByLabelText('Weekdays start time')
+    fireEvent.change(weekdayStart, { target: { value: '09:00' } })
+    const weekdayEnd = screen.getByLabelText('Weekdays end time')
+    fireEvent.change(weekdayEnd, { target: { value: '17:00' } })
     await flushPreviewTimers()
 
     await waitFor(() => {
@@ -859,25 +862,29 @@ describe('SuperAdminVenueConfigPage', () => {
     })
   })
 
-  it('saves operating hours when operating windows are added', async () => {
+  it('saves operating hours when base availability cards are filled', async () => {
     mockPatchAdminVenueConfig.mockResolvedValue({})
 
     render(<SuperAdminVenueConfigPage />)
 
-    fireEvent.click(await screen.findByRole('button', { name: /add operating window/i }))
+    const weekdayStart = await screen.findByLabelText('Weekdays start time')
+    fireEvent.change(weekdayStart, { target: { value: '09:00' } })
+    const weekdayEnd = screen.getByLabelText('Weekdays end time')
+    fireEvent.change(weekdayEnd, { target: { value: '17:00' } })
+
     fireEvent.click(screen.getByRole('button', { name: /save all changes/i }))
 
     await waitFor(() => {
       expect(mockPatchAdminVenueConfig).toHaveBeenCalledWith(
         'venue-1',
         expect.objectContaining({
-          operating_hours: [
-            expect.objectContaining({
-              day_of_week: 1,
-              start_time: '12:00:00',
-              end_time: '13:00:00',
-            }),
-          ],
+          operating_hours: expect.arrayContaining([
+            expect.objectContaining({ day_of_week: 1, start_time: '09:00:00', end_time: '17:00:00' }),
+            expect.objectContaining({ day_of_week: 2, start_time: '09:00:00', end_time: '17:00:00' }),
+            expect.objectContaining({ day_of_week: 3, start_time: '09:00:00', end_time: '17:00:00' }),
+            expect.objectContaining({ day_of_week: 4, start_time: '09:00:00', end_time: '17:00:00' }),
+            expect.objectContaining({ day_of_week: 5, start_time: '09:00:00', end_time: '17:00:00' }),
+          ]),
         })
       )
     })

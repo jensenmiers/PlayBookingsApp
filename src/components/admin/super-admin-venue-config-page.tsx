@@ -317,6 +317,46 @@ function normalizeDraftTemplates(value: DropInTemplateDraftWindow[]): DropInTemp
   })
 }
 
+const WEEKDAY_DAYS = [1, 2, 3, 4, 5]
+const WEEKEND_DAYS = [0, 6]
+
+type BaseAvailabilityGroup = {
+  start_time: string
+  end_time: string
+}
+
+function groupOperatingHoursForUI(
+  hours: DropInTemplateDraftWindow[]
+): { weekdays: BaseAvailabilityGroup; weekends: BaseAvailabilityGroup } {
+  const weekdayEntries = hours.filter((h) => WEEKDAY_DAYS.includes(h.day_of_week))
+  const weekendEntries = hours.filter((h) => WEEKEND_DAYS.includes(h.day_of_week))
+
+  const pickFirst = (entries: DropInTemplateDraftWindow[]): BaseAvailabilityGroup =>
+    entries.length > 0
+      ? { start_time: entries[0].start_time, end_time: entries[0].end_time }
+      : { start_time: '', end_time: '' }
+
+  return { weekdays: pickFirst(weekdayEntries), weekends: pickFirst(weekendEntries) }
+}
+
+function expandGroupsToOperatingHours(
+  weekdays: BaseAvailabilityGroup,
+  weekends: BaseAvailabilityGroup
+): DropInTemplateDraftWindow[] {
+  const result: DropInTemplateDraftWindow[] = []
+  if (weekdays.start_time && weekdays.end_time) {
+    for (const day of WEEKDAY_DAYS) {
+      result.push({ day_of_week: day, start_time: weekdays.start_time, end_time: weekdays.end_time })
+    }
+  }
+  if (weekends.start_time && weekends.end_time) {
+    for (const day of WEEKEND_DAYS) {
+      result.push({ day_of_week: day, start_time: weekends.start_time, end_time: weekends.end_time })
+    }
+  }
+  return result
+}
+
 function buildAvailabilityPreviewFingerprint(draft: VenueConfigDraft): string {
   return JSON.stringify({
     operating_hours: draft.operating_hours,
@@ -862,6 +902,76 @@ function ConfigRow({
         <p className="text-xs text-secondary-50/60">{description}</p>
       </div>
       <div className="space-y-2">{children}</div>
+    </div>
+  )
+}
+
+function getTimePillOptionsWithPlaceholder(currentValue: string): TimePillOption[] {
+  const base = getTimePillOptions(currentValue)
+  return [{ value: '', label: '—' }, ...base]
+}
+
+function BaseAvailabilityCards({
+  operatingHours,
+  onChange,
+}: {
+  operatingHours: DropInTemplateDraftWindow[]
+  onChange: (next: DropInTemplateDraftWindow[]) => void
+}) {
+  const initialGrouped = groupOperatingHoursForUI(operatingHours)
+  const [local, setLocal] = useState({
+    weekdays: initialGrouped.weekdays,
+    weekends: initialGrouped.weekends,
+  })
+
+  const prevHoursRef = JSON.stringify(operatingHours)
+  useEffect(() => {
+    const grouped = groupOperatingHoursForUI(operatingHours)
+    setLocal({ weekdays: grouped.weekdays, weekends: grouped.weekends })
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [prevHoursRef])
+
+  const updateGroup = (
+    group: 'weekdays' | 'weekends',
+    field: 'start_time' | 'end_time',
+    value: string
+  ) => {
+    const next = { ...local, [group]: { ...local[group], [field]: value } }
+    setLocal(next)
+    onChange(expandGroupsToOperatingHours(next.weekdays, next.weekends))
+  }
+
+  return (
+    <div className="space-y-3">
+      {([
+        { key: 'weekdays' as const, label: 'Weekdays', sublabel: 'Mon – Fri' },
+        { key: 'weekends' as const, label: 'Weekends', sublabel: 'Sat – Sun' },
+      ]).map(({ key, label, sublabel }) => (
+        <div
+          key={key}
+          className="rounded-xl border border-secondary-50/10 bg-secondary-800/60 px-4 py-3"
+        >
+          <p className="mb-2 text-xs font-semibold text-secondary-50">
+            {label}{' '}
+            <span className="font-normal text-secondary-50/50">({sublabel})</span>
+          </p>
+          <div className="flex items-center gap-2">
+            <TimePillSelect
+              ariaLabel={`${label} start time`}
+              value={local[key].start_time}
+              options={getTimePillOptionsWithPlaceholder(local[key].start_time)}
+              onChange={(v) => updateGroup(key, 'start_time', v)}
+            />
+            <span className="text-xs text-secondary-50/40">–</span>
+            <TimePillSelect
+              ariaLabel={`${label} end time`}
+              value={local[key].end_time}
+              options={getTimePillOptionsWithPlaceholder(local[key].end_time)}
+              onChange={(v) => updateGroup(key, 'end_time', v)}
+            />
+          </div>
+        </div>
+      ))}
     </div>
   )
 }
@@ -1537,92 +1647,15 @@ export function SuperAdminVenueConfigPage() {
                   footerHelper="This publishes availability changes to renters."
                 >
                   <ConfigRow
-                    title="Base Operating Hours"
-                    description="These hours define the first layer and outer bounds of renter availability."
+                    title="Base Availability"
+                    description="Set the hours your venue is open. Renters can only book within these windows."
                   >
-                    <div className="space-y-2">
-                      {draft.operating_hours.map((window, index) => (
-                        <div
-                          key={`op-${window.day_of_week}-${window.start_time}-${window.end_time}-${index}`}
-                          className="grid grid-cols-[minmax(9.5rem,1.15fr)_minmax(7.5rem,8.5rem)_minmax(7.5rem,8.5rem)_auto] items-center gap-3"
-                        >
-                          <select
-                            aria-label={`Operating hours day row ${index + 1}`}
-                            className="h-11 w-full appearance-none rounded-full border border-secondary-50/15 bg-secondary-800 px-5 py-2 text-sm font-medium text-secondary-50 shadow-xs outline-none transition-[border-color,box-shadow] hover:border-secondary-50/30 focus-visible:border-primary-400 focus-visible:ring-[3px] focus-visible:ring-primary-400/30"
-                            value={window.day_of_week}
-                            onChange={(event) => {
-                              updateDraft((previous) => {
-                                const next = [...previous.operating_hours]
-                                next[index] = { ...next[index], day_of_week: Number(event.target.value) }
-                                return { ...previous, operating_hours: next }
-                              })
-                            }}
-                          >
-                            {DAY_OPTIONS.map((option) => (
-                              <option key={option.value} value={option.value}>
-                                {option.label}
-                              </option>
-                            ))}
-                          </select>
-
-                          <TimePillSelect
-                            ariaLabel={`Operating hours start time row ${index + 1}`}
-                            value={window.start_time}
-                            options={getTimePillOptions(window.start_time)}
-                            onChange={(value) => {
-                              updateDraft((previous) => {
-                                const next = [...previous.operating_hours]
-                                next[index] = { ...next[index], start_time: value }
-                                return { ...previous, operating_hours: next }
-                              })
-                            }}
-                          />
-
-                          <TimePillSelect
-                            ariaLabel={`Operating hours end time row ${index + 1}`}
-                            value={window.end_time}
-                            options={getTimePillOptions(window.end_time)}
-                            onChange={(value) => {
-                              updateDraft((previous) => {
-                                const next = [...previous.operating_hours]
-                                next[index] = { ...next[index], end_time: value }
-                                return { ...previous, operating_hours: next }
-                              })
-                            }}
-                          />
-                          <Button
-                            type="button"
-                            variant="ghost"
-                            className="h-11 rounded-xl px-3 text-secondary-50/80 hover:text-secondary-50"
-                            onClick={() => {
-                              updateDraft((previous) => ({
-                                ...previous,
-                                operating_hours: previous.operating_hours.filter(
-                                  (_, rowIndex) => rowIndex !== index
-                                ),
-                              }))
-                            }}
-                          >
-                            Remove
-                          </Button>
-                        </div>
-                      ))}
-                    </div>
-                    <Button
-                      type="button"
-                      variant="outline"
-                      onClick={() => {
-                        updateDraft((previous) => ({
-                          ...previous,
-                          operating_hours: [
-                            ...previous.operating_hours,
-                            { day_of_week: 1, start_time: '12:00', end_time: '13:00' },
-                          ],
-                        }))
-                      }}
-                    >
-                      Add Operating Window
-                    </Button>
+                    <BaseAvailabilityCards
+                      operatingHours={draft.operating_hours}
+                      onChange={(next) =>
+                        updateDraft((previous) => ({ ...previous, operating_hours: next }))
+                      }
+                    />
                   </ConfigRow>
 
                   <ConfigRow
