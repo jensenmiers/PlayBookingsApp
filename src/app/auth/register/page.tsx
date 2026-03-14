@@ -2,31 +2,143 @@
 
 import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
-import { Suspense, useState } from 'react'
+import { Input } from '@/components/ui/input'
+import { Label } from '@/components/ui/label'
+import { Suspense, useMemo, useState } from 'react'
 import Link from 'next/link'
 import { useSearchParams } from 'next/navigation'
 import { PublicSiteFooter } from '@/components/layout/public-site-footer'
-import { buildAuthInitiationPath } from '@/lib/auth/oauthFlow'
+import { buildAuthInitiationPath, buildEmailConfirmationPath } from '@/lib/auth/oauthFlow'
 import { navigateToUrl } from '@/lib/auth/clientNavigation'
+import { createClient } from '@/lib/supabase/client'
+import { registerSchema } from '@/lib/validations/auth'
+
+type SignupState = 'form' | 'verification'
 
 function RegisterContent() {
   const [loading, setLoading] = useState(false)
+  const [emailLoading, setEmailLoading] = useState(false)
+  const [resending, setResending] = useState(false)
+  const [signupState, setSignupState] = useState<SignupState>('form')
+  const [firstName, setFirstName] = useState('')
+  const [lastName, setLastName] = useState('')
+  const [email, setEmail] = useState('')
+  const [password, setPassword] = useState('')
+  const [confirmPassword, setConfirmPassword] = useState('')
+  const [errorMessage, setErrorMessage] = useState<string | null>(null)
+  const [infoMessage, setInfoMessage] = useState<string | null>(null)
   const searchParams = useSearchParams()
   const isHostSignup = searchParams.get('intent') === 'host'
+  const returnTo = searchParams.get('returnTo')
+  const intent = searchParams.get('intent')
+
+  const confirmationPath = useMemo(
+    () => buildEmailConfirmationPath({
+      next: returnTo,
+      intent,
+      phonePrompt: true,
+    }),
+    [intent, returnTo]
+  )
 
   const handleGoogleSignup = async () => {
     try {
       setLoading(true)
+      setErrorMessage(null)
+      setInfoMessage(null)
 
       navigateToUrl(buildAuthInitiationPath({
         flowType: 'redirect',
-        returnTo: searchParams.get('returnTo'),
-        intent: searchParams.get('intent'),
+        returnTo,
+        intent,
       }))
     } catch (error) {
       console.error('Unexpected error:', error)
       alert('An unexpected error occurred')
       setLoading(false)
+    }
+  }
+
+  const handleEmailSignup = async (event: React.FormEvent<HTMLFormElement>) => {
+    event.preventDefault()
+    setErrorMessage(null)
+    setInfoMessage(null)
+
+    const parsed = registerSchema.safeParse({
+      email,
+      password,
+      confirmPassword,
+      firstName,
+      lastName,
+    })
+
+    if (!parsed.success) {
+      setErrorMessage(parsed.error.issues[0]?.message ?? 'Enter your account details to continue.')
+      return
+    }
+
+    try {
+      setEmailLoading(true)
+      const supabase = createClient()
+      const { data, error } = await supabase.auth.signUp({
+        email: parsed.data.email,
+        password: parsed.data.password,
+        options: {
+          data: {
+            first_name: parsed.data.firstName,
+            last_name: parsed.data.lastName,
+            full_name: `${parsed.data.firstName} ${parsed.data.lastName}`.trim(),
+          },
+          emailRedirectTo: `${window.location.origin}${confirmationPath}`,
+        },
+      })
+
+      const hasNoIdentities = Array.isArray(data.user?.identities) && data.user?.identities.length === 0
+      if (error || hasNoIdentities) {
+        setErrorMessage(
+          'An account with this email already exists. Continue with Google if that is how you signed up, or sign in with your password.'
+        )
+        return
+      }
+
+      setSignupState('verification')
+      setInfoMessage('Check your email to verify your account and finish setting up Play Bookings.')
+    } catch (error) {
+      const message = error instanceof Error ? error.message : 'Unable to create your account right now.'
+      setErrorMessage(message)
+    } finally {
+      setEmailLoading(false)
+    }
+  }
+
+  const handleResendVerification = async () => {
+    if (!email) {
+      setErrorMessage('Enter your email address first so we know where to resend the verification link.')
+      return
+    }
+
+    try {
+      setResending(true)
+      const supabase = createClient()
+      const { error } = await supabase.auth.resend({
+        type: 'signup',
+        email,
+        options: {
+          emailRedirectTo: `${window.location.origin}${confirmationPath}`,
+        },
+      })
+
+      if (error) {
+        setErrorMessage(error.message)
+        return
+      }
+
+      setInfoMessage('Verification email resent. Check your inbox for the updated link.')
+    } catch (error) {
+      const message = error instanceof Error ? error.message : 'Unable to resend the verification email.'
+      setErrorMessage(message)
+    } finally {
+      setResending(false)
     }
   }
 
@@ -52,6 +164,17 @@ function RegisterContent() {
           )}
         </CardHeader>
         <CardContent className="space-y-6">
+          {errorMessage && (
+            <div className="rounded-lg border border-destructive/40 bg-destructive/10 p-l text-sm text-secondary-50">
+              {errorMessage}
+            </div>
+          )}
+          {infoMessage && (
+            <div className="rounded-lg border border-primary-400/30 bg-primary-400/10 p-l text-sm text-secondary-50">
+              {infoMessage}
+            </div>
+          )}
+
           <Button
             onClick={handleGoogleSignup}
             disabled={loading}
@@ -76,10 +199,107 @@ function RegisterContent() {
             )}
           </Button>
 
+          <div className="flex items-center gap-s text-xs uppercase tracking-[0.24em] text-secondary-50/35">
+            <div className="h-px flex-1 bg-secondary-50/10" />
+            <span>or</span>
+            <div className="h-px flex-1 bg-secondary-50/10" />
+          </div>
+
+          {signupState === 'form' ? (
+            <form className="space-y-4" onSubmit={handleEmailSignup}>
+              <div className="grid gap-l sm:grid-cols-2">
+                <div className="space-y-2">
+                  <Label htmlFor="register-first-name">First name</Label>
+                  <Input
+                    id="register-first-name"
+                    autoComplete="given-name"
+                    value={firstName}
+                    onChange={(event) => setFirstName(event.target.value)}
+                  />
+                </div>
+
+                <div className="space-y-2">
+                  <Label htmlFor="register-last-name">Last name</Label>
+                  <Input
+                    id="register-last-name"
+                    autoComplete="family-name"
+                    value={lastName}
+                    onChange={(event) => setLastName(event.target.value)}
+                  />
+                </div>
+              </div>
+
+              <div className="space-y-2">
+                <Label htmlFor="register-email">Email address</Label>
+                <Input
+                  id="register-email"
+                  type="email"
+                  autoComplete="email"
+                  value={email}
+                  onChange={(event) => setEmail(event.target.value)}
+                />
+              </div>
+
+              <div className="space-y-2">
+                <Label htmlFor="register-password">Password</Label>
+                <Input
+                  id="register-password"
+                  type="password"
+                  autoComplete="new-password"
+                  value={password}
+                  onChange={(event) => setPassword(event.target.value)}
+                />
+              </div>
+
+              <div className="space-y-2">
+                <Label htmlFor="register-confirm-password">Confirm password</Label>
+                <Input
+                  id="register-confirm-password"
+                  type="password"
+                  autoComplete="new-password"
+                  value={confirmPassword}
+                  onChange={(event) => setConfirmPassword(event.target.value)}
+                />
+              </div>
+
+              <Button
+                type="submit"
+                disabled={emailLoading}
+                variant="outline"
+                size="lg"
+                className="w-full rounded-xl py-m text-base"
+              >
+                {emailLoading
+                  ? (isHostSignup ? 'Creating host account...' : 'Creating account...')
+                  : 'Create account with email'}
+              </Button>
+            </form>
+          ) : (
+            <div className="space-y-4 rounded-2xl border border-secondary-50/10 bg-secondary-900/60 p-xl text-center">
+              <div className="space-y-2">
+                <h2 className="text-xl font-semibold text-secondary-50">Check your email</h2>
+                <p className="text-sm text-secondary-50/65">
+                  We sent a verification link to {email}. Once you confirm, we&apos;ll bring you back to finish
+                  your setup.
+                </p>
+              </div>
+
+              <Button
+                type="button"
+                variant="outline"
+                className="w-full rounded-xl"
+                onClick={handleResendVerification}
+                disabled={resending}
+              >
+                {resending ? 'Resending...' : 'Resend verification email'}
+              </Button>
+            </div>
+          )}
+
           <div className="space-y-2 text-center text-sm text-secondary-50/60">
             <p>
-              Google Sign-In only. Calendar access is requested separately only if a venue admin later chooses
-              to connect Google Calendar.
+              Choose Google or email. Calendar access is requested separately only if a venue admin later
+              chooses to connect Google Calendar.
             </p>
             <p>
               By continuing, you agree to our{' '}

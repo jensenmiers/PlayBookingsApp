@@ -2,29 +2,130 @@
 
 import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
-import { Suspense, useState } from 'react'
+import { Input } from '@/components/ui/input'
+import { Label } from '@/components/ui/label'
+import { Suspense, useMemo, useState } from 'react'
 import Link from 'next/link'
 import { useSearchParams } from 'next/navigation'
 import { PublicSiteFooter } from '@/components/layout/public-site-footer'
-import { buildAuthInitiationPath } from '@/lib/auth/oauthFlow'
+import { buildAuthInitiationPath, buildEmailConfirmationPath, buildFinalizePath } from '@/lib/auth/oauthFlow'
 import { navigateToUrl } from '@/lib/auth/clientNavigation'
+import { createClient } from '@/lib/supabase/client'
+import { loginSchema } from '@/lib/validations/auth'
+
+function getErrorMessage(message: string) {
+  const lowered = message.toLowerCase()
+
+  if (lowered.includes('email not confirmed')) {
+    return 'Verify your email before signing in. We can resend the verification email.'
+  }
+
+  return message
+}
 
 function LoginContent() {
   const [loading, setLoading] = useState(false)
+  const [emailLoading, setEmailLoading] = useState(false)
+  const [resending, setResending] = useState(false)
+  const [email, setEmail] = useState('')
+  const [password, setPassword] = useState('')
+  const [errorMessage, setErrorMessage] = useState<string | null>(null)
+  const [infoMessage, setInfoMessage] = useState<string | null>(null)
+  const [showResendVerification, setShowResendVerification] = useState(false)
   const searchParams = useSearchParams()
+  const returnTo = searchParams.get('returnTo')
+  const intent = searchParams.get('intent')
+
+  const confirmationPath = useMemo(
+    () => buildEmailConfirmationPath({
+      next: returnTo,
+      intent,
+      phonePrompt: true,
+    }),
+    [intent, returnTo]
+  )
 
   const handleGoogleLogin = async () => {
     try {
       setLoading(true)
+      setErrorMessage(null)
+      setInfoMessage(null)
 
       navigateToUrl(buildAuthInitiationPath({
         flowType: 'redirect',
-        returnTo: searchParams.get('returnTo'),
+        returnTo,
+        intent,
       }))
     } catch (error) {
       console.error('Unexpected error:', error)
       alert('An unexpected error occurred')
       setLoading(false)
+    }
+  }
+
+  const handleEmailLogin = async (event: React.FormEvent<HTMLFormElement>) => {
+    event.preventDefault()
+    setErrorMessage(null)
+    setInfoMessage(null)
+    setShowResendVerification(false)
+
+    const parsed = loginSchema.safeParse({ email, password })
+    if (!parsed.success) {
+      setErrorMessage(parsed.error.issues[0]?.message ?? 'Enter a valid email and password.')
+      return
+    }
+
+    try {
+      setEmailLoading(true)
+      const supabase = createClient()
+      const { error } = await supabase.auth.signInWithPassword({
+        email: parsed.data.email,
+        password: parsed.data.password,
+      })
+
+      if (error) {
+        setErrorMessage(getErrorMessage(error.message))
+        setShowResendVerification(error.message.toLowerCase().includes('email not confirmed'))
+        return
+      }
+
+      navigateToUrl(buildFinalizePath({ returnTo, intent }))
+    } catch (error) {
+      const message = error instanceof Error ? error.message : 'Unable to sign in with email right now.'
+      setErrorMessage(message)
+    } finally {
+      setEmailLoading(false)
+    }
+  }
+
+  const handleResendVerification = async () => {
+    if (!email) {
+      setErrorMessage('Enter your email address first so we know where to resend the verification link.')
+      return
+    }
+
+    try {
+      setResending(true)
+      const supabase = createClient()
+      const { error } = await supabase.auth.resend({
+        type: 'signup',
+        email,
+        options: {
+          emailRedirectTo: `${window.location.origin}${confirmationPath}`,
+        },
+      })
+
+      if (error) {
+        setErrorMessage(error.message)
+        return
+      }
+
+      setInfoMessage('Verification email resent. Check your inbox for the new link.')
+    } catch (error) {
+      const message = error instanceof Error ? error.message : 'Unable to resend the verification email.'
+      setErrorMessage(message)
+    } finally {
+      setResending(false)
     }
   }
 
@@ -38,6 +139,17 @@ function LoginContent() {
           </CardDescription>
         </CardHeader>
         <CardContent className="space-y-6">
+          {errorMessage && (
+            <div className="rounded-lg border border-destructive/40 bg-destructive/10 p-l text-sm text-secondary-50">
+              {errorMessage}
+            </div>
+          )}
+          {infoMessage && (
+            <div className="rounded-lg border border-primary-400/30 bg-primary-400/10 p-l text-sm text-secondary-50">
+              {infoMessage}
+            </div>
+          )}
+
           <Button
             onClick={handleGoogleLogin}
             disabled={loading}
@@ -62,10 +174,62 @@ function LoginContent() {
             )}
           </Button>
 
+          <div className="flex items-center gap-s text-xs uppercase tracking-[0.24em] text-secondary-50/35">
+            <div className="h-px flex-1 bg-secondary-50/10" />
+            <span>or</span>
+            <div className="h-px flex-1 bg-secondary-50/10" />
+          </div>
+
+          <form className="space-y-4" onSubmit={handleEmailLogin}>
+            <div className="space-y-2">
+              <Label htmlFor="login-email">Email address</Label>
+              <Input
+                id="login-email"
+                type="email"
+                autoComplete="email"
+                value={email}
+                onChange={(event) => setEmail(event.target.value)}
+              />
+            </div>
+
+            <div className="space-y-2">
+              <Label htmlFor="login-password">Password</Label>
+              <Input
+                id="login-password"
+                type="password"
+                autoComplete="current-password"
+                value={password}
+                onChange={(event) => setPassword(event.target.value)}
+              />
+            </div>
+
+            <Button
+              type="submit"
+              disabled={emailLoading}
+              variant="outline"
+              size="lg"
+              className="w-full rounded-xl py-m text-base"
+            >
+              {emailLoading ? 'Signing in...' : 'Sign in with email'}
+            </Button>
+
+            {showResendVerification && (
+              <Button
+                type="button"
+                variant="ghost"
+                className="w-full rounded-xl"
+                onClick={handleResendVerification}
+                disabled={resending}
+              >
+                {resending ? 'Resending...' : 'Resend verification email'}
+              </Button>
+            )}
+          </form>
+
           <div className="space-y-2 text-center text-sm text-secondary-50/60">
             <p>
-              Google Sign-In only. Calendar access is requested separately only if a venue admin later chooses
-              to connect Google Calendar.
+              Choose Google or email. Calendar access is requested separately only if a venue admin later
+              chooses to connect Google Calendar.
             </p>
             <p>
               By continuing, you agree to our{' '}
@@ -78,7 +242,10 @@ function LoginContent() {
 
           <div className="text-center text-sm text-secondary-50/60">
             Don&apos;t have an account?{' '}
-            <Link href="/auth/register" className="font-semibold text-secondary-50/70 hover:text-primary-400">
+            <Link
+              href={intent === 'host' ? `/auth/register?intent=host${returnTo ? `&returnTo=${encodeURIComponent(returnTo)}` : ''}` : `/auth/register${returnTo ? `?returnTo=${encodeURIComponent(returnTo)}` : ''}`}
+              className="font-semibold text-secondary-50/70 hover:text-primary-400"
+            >
               Sign up here
             </Link>
           </div>

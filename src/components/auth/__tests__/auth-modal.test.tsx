@@ -82,10 +82,20 @@ describe('AuthModal', () => {
   it('shows Google Sign-In disclosure copy and privacy link', () => {
     render(<AuthModal />)
 
-    expect(
-      screen.getByText(/google sign-in only\. calendar access is requested separately/i)
-    ).toBeInTheDocument()
+    expect(screen.getByText(/choose google or email/i)).toBeInTheDocument()
     expect(screen.getByRole('link', { name: /privacy policy/i })).toHaveAttribute('href', '/privacy')
+  })
+
+  it('includes an email auth link that preserves host intent and returnTo', () => {
+    useAuthModalReturn.returnTo = '/book'
+    useAuthModalReturn.intent = 'host'
+
+    render(<AuthModal />)
+
+    expect(screen.getByRole('link', { name: /continue with email/i })).toHaveAttribute(
+      'href',
+      '/auth/register?returnTo=%2Fbook&intent=host'
+    )
   })
 
   it('includes returnTo and intent=host in popup URL when set', () => {

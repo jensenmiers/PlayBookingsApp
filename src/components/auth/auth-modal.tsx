@@ -12,7 +12,7 @@ import {
 import { Button } from '@/components/ui/button'
 import { useAuthModal } from '@/contexts/AuthModalContext'
 import { createClient } from '@/lib/supabase/client'
-import { buildAuthInitiationPath } from '@/lib/auth/oauthFlow'
+import { buildAuthInitiationPath, buildEmailEntryPath } from '@/lib/auth/oauthFlow'
 import { navigateToUrl } from '@/lib/auth/clientNavigation'
 
 export function AuthModal() {
@@ -245,10 +245,21 @@ export function AuthModal() {
             </p>
           )}
 
+          <Button
+            asChild
+            variant="outline"
+            size="lg"
+            className="w-full rounded-xl py-m text-base"
+          >
+            <Link href={buildEmailEntryPath({ returnTo, intent })}>
+              Continue with Email
+            </Link>
+          </Button>
+
           <div className="space-y-2 text-center text-xs text-secondary-50/55">
             <p>
-              Google Sign-In only. Calendar access is requested separately only if a venue admin later chooses
-              to connect Google Calendar.
+              Choose Google or email. Calendar access is requested separately only if a venue admin later
+              chooses to connect Google Calendar.
             </p>
             <p>
               By continuing, you agree to our{' '}

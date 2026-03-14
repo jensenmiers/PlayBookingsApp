@@ -5,7 +5,7 @@ It is intentionally concise and avoids per-component class inventories.
 
 ## Known Gaps
 
-- Last verified: 2026-03-13 (America/Los_Angeles)
+- Last verified: 2026-03-14 (America/Los_Angeles)
 - Verification sources:
   - `src/app/globals.css`
   - `src/app/layout.tsx`
@@ -17,7 +17,7 @@ It is intentionally concise and avoids per-component class inventories.
 ## Automated Snapshot (Generated)
 
 <!-- AUTO-SNAPSHOT:CSS:START -->
-- Generated at: 2026-03-13 (America/Los_Angeles)
+- Generated at: 2026-03-14 (America/Los_Angeles)
 - CSS files in `src`: 1 (`src/app/globals.css`)
 - UI primitive files in `src/components/ui`: 16
 - Files using `cva()`: 2
