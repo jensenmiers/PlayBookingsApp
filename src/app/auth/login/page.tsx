@@ -251,7 +251,7 @@ function LoginContent() {
           </div>
 
           <div className="text-center">
-            <Link href="/marketing" className="text-sm font-medium text-secondary-50/50 hover:text-secondary-50/70">
+            <Link href="/" className="text-sm font-medium text-secondary-50/50 hover:text-secondary-50/70">
               Back to Home
             </Link>
           </div>

@@ -51,6 +51,12 @@ describe('LoginPage', () => {
     expect(screen.getAllByRole('link', { name: /privacy policy/i })[0]).toHaveAttribute('href', '/privacy')
   })
 
+  it('routes the back to home link to the homepage', () => {
+    render(<LoginPage />)
+
+    expect(screen.getByRole('link', { name: /back to home/i })).toHaveAttribute('href', '/')
+  })
+
   it('signs in with password and routes through auth finalization', async () => {
     mockGet.mockImplementation((key: string) => {
       if (key === 'returnTo') return '/book/venue-1'
