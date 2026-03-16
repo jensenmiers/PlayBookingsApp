@@ -1,12 +1,14 @@
 'use client'
 
-import React, { useState, useMemo } from 'react'
+import React, { useState, useMemo, useCallback } from 'react'
 import { Button } from '@/components/ui/button'
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome'
 import { faLocationDot, faSpinner } from '@fortawesome/free-solid-svg-icons'
 import { useVenues, useVenueAvailabilityRange, ComputedAvailabilitySlot } from '@/hooks/useVenues'
 import { CreateBookingForm } from '@/components/forms/create-booking-form'
 import { format, addDays, isSameDay } from 'date-fns'
+import { type CreateBookingFormResumeState } from '@/lib/auth/authResume'
+import { useCreateBookingFormAuthResume } from '@/lib/auth/useAuthResume'
 
 // Define time slots (2-hour blocks)
 const timeSlots = [
@@ -34,6 +36,7 @@ export function CalendarView() {
   const [showBookingForm, setShowBookingForm] = useState(false)
   const [selectedDate, setSelectedDate] = useState<Date | null>(null)
   const [selectedTimeSlot, setSelectedTimeSlot] = useState<typeof timeSlots[0] | null>(null)
+  const [resumedBookingForm, setResumedBookingForm] = useState<CreateBookingFormResumeState | null>(null)
 
   const { data: venues, loading: venuesLoading } = useVenues()
   
@@ -83,6 +86,17 @@ export function CalendarView() {
       setSelectedVenueId(venues[0].id)
     }
   }, [venues, selectedVenueId])
+
+  const handleResumeBookingForm = useCallback((resumeState: CreateBookingFormResumeState) => {
+    setSelectedVenueId(resumeState.venueId)
+    setResumedBookingForm(resumeState)
+    setShowBookingForm(true)
+  }, [])
+
+  useCreateBookingFormAuthResume({
+    canResume: () => true,
+    onResume: handleResumeBookingForm,
+  })
 
   return (
     <div className="min-h-screen bg-background">
@@ -194,16 +208,28 @@ export function CalendarView() {
       </section>
 
       {/* Booking Form Dialog */}
-      {showBookingForm && selectedVenueId && selectedDate && selectedTimeSlot && (
+      {showBookingForm && selectedVenueId && ((selectedDate && selectedTimeSlot) || resumedBookingForm) && (
         <CreateBookingForm
           venueId={selectedVenueId}
-          initialDate={selectedDate}
+          initialDate={resumedBookingForm ? new Date(resumedBookingForm.date.replace(/-/g, '/')) : selectedDate!}
+          initialStartTime={resumedBookingForm?.startTime ?? selectedTimeSlot?.start}
+          initialEndTime={resumedBookingForm?.endTime ?? selectedTimeSlot?.end}
+          initialRecurringType={resumedBookingForm?.recurringType}
+          initialNotes={resumedBookingForm?.notes}
           open={showBookingForm}
-          onOpenChange={setShowBookingForm}
+          onOpenChange={(open) => {
+            setShowBookingForm(open)
+            if (!open) {
+              setSelectedDate(null)
+              setSelectedTimeSlot(null)
+              setResumedBookingForm(null)
+            }
+          }}
           onSuccess={() => {
             setShowBookingForm(false)
             setSelectedDate(null)
             setSelectedTimeSlot(null)
+            setResumedBookingForm(null)
           }}
         />
       )}

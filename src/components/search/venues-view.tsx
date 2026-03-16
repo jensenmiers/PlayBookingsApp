@@ -1,6 +1,6 @@
 'use client'
 
-import { useState } from 'react'
+import { useCallback, useState } from 'react'
 import Link from 'next/link'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
@@ -21,16 +21,31 @@ import { ErrorMessage } from '@/components/ui/error-message'
 import { getBookingModeDisplay } from '@/lib/booking-mode'
 import { slugify } from '@/lib/utils'
 import Image from 'next/image'
+import { type CreateBookingFormResumeState } from '@/lib/auth/authResume'
+import { useCreateBookingFormAuthResume } from '@/lib/auth/useAuthResume'
 
 export function VenuesView() {
   const [selectedVenueId, setSelectedVenueId] = useState<string | null>(null)
   const [showBookingForm, setShowBookingForm] = useState(false)
+  const [resumedBookingForm, setResumedBookingForm] = useState<CreateBookingFormResumeState | null>(null)
   const { data: venues, loading: venuesLoading, error, refetch } = useVenues()
 
   const handleBookNow = (venueId: string) => {
     setSelectedVenueId(venueId)
+    setResumedBookingForm(null)
     setShowBookingForm(true)
   }
+
+  const handleResumeBookingForm = useCallback((resumeState: CreateBookingFormResumeState) => {
+    setSelectedVenueId(resumeState.venueId)
+    setResumedBookingForm(resumeState)
+    setShowBookingForm(true)
+  }, [])
+
+  useCreateBookingFormAuthResume({
+    canResume: () => true,
+    onResume: handleResumeBookingForm,
+  })
 
   const nearbyVenues = venues || []
 
@@ -225,11 +240,23 @@ export function VenuesView() {
       {showBookingForm && selectedVenueId && (
         <CreateBookingForm
           venueId={selectedVenueId}
+          initialDate={resumedBookingForm ? new Date(resumedBookingForm.date.replace(/-/g, '/')) : undefined}
+          initialStartTime={resumedBookingForm?.startTime}
+          initialEndTime={resumedBookingForm?.endTime}
+          initialRecurringType={resumedBookingForm?.recurringType}
+          initialNotes={resumedBookingForm?.notes}
           open={showBookingForm}
-          onOpenChange={setShowBookingForm}
+          onOpenChange={(open) => {
+            setShowBookingForm(open)
+            if (!open) {
+              setSelectedVenueId(null)
+              setResumedBookingForm(null)
+            }
+          }}
           onSuccess={() => {
             setShowBookingForm(false)
             setSelectedVenueId(null)
+            setResumedBookingForm(null)
           }}
         />
       )}

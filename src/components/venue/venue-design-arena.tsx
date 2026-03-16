@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useMemo } from 'react'
+import { useState, useMemo, useCallback } from 'react'
 import { useRouter } from 'next/navigation'
 import Image from 'next/image'
 import { format } from 'date-fns'
@@ -17,6 +17,7 @@ import { GoogleMapsLink } from './shared'
 import { useVenueAvailabilityRange, ComputedAvailabilitySlot } from '@/hooks/useVenues'
 import { formatTime } from '@/utils/dateHelpers'
 import { getBookingModeDisplay } from '@/lib/booking-mode'
+import { useSlotBookingAuthResume } from '@/lib/auth/useAuthResume'
 import type { Venue } from '@/types'
 
 interface VenueDesignArenaProps {
@@ -47,6 +48,18 @@ export function VenueDesignArena({ venue }: VenueDesignArenaProps) {
 
   const nextSlot = bookableSlots[0]
   const primaryPhoto = venue.photos?.[0]
+
+  const handleResumeSlotBooking = useCallback((slot: ComputedAvailabilitySlot) => {
+    setSelectedSlot(slot)
+    setShowBooking(true)
+  }, [])
+
+  useSlotBookingAuthResume({
+    venueId: venue.id,
+    slots: bookableSlots,
+    loading,
+    onResume: handleResumeSlotBooking,
+  })
 
   const formatShortTime = (timeStr: string) => {
     const [hours] = timeStr.split(':').map(Number)

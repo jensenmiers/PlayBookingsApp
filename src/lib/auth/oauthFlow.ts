@@ -1,53 +1,33 @@
-export type AuthFlowType = 'popup' | 'redirect'
 export type AuthIntent = 'host' | null
 
 export const DEFAULT_REDIRECT_RETURN_TO = '/search'
-export const DEFAULT_POPUP_RETURN_TO = '/'
 
 export function sanitizeAuthIntent(intent: string | null | undefined): AuthIntent {
   return intent === 'host' ? 'host' : null
 }
 
-export function sanitizeReturnTo(
-  returnTo: string | null | undefined,
-  flowType: AuthFlowType
-): string {
-  const defaultPath = flowType === 'redirect'
-    ? DEFAULT_REDIRECT_RETURN_TO
-    : DEFAULT_POPUP_RETURN_TO
-
+export function sanitizeReturnTo(returnTo: string | null | undefined): string {
   if (!returnTo) {
-    return defaultPath
+    return DEFAULT_REDIRECT_RETURN_TO
   }
 
   if (returnTo.startsWith('/') && !returnTo.startsWith('//')) {
     return returnTo
   }
 
-  return defaultPath
+  return DEFAULT_REDIRECT_RETURN_TO
 }
 
-export function getAuthCallbackPath(args: {
-  flowType: AuthFlowType
-  stateNonce: string
-}): string {
-  if (args.flowType === 'popup') {
-    return `/auth/popup-callback/${args.stateNonce}`
-  }
-
-  return `/auth/callback/${args.stateNonce}`
+export function getAuthCallbackPath(stateNonce: string): string {
+  return `/auth/callback/${stateNonce}`
 }
 
 export function buildAuthInitiationPath(args: {
-  flowType: AuthFlowType
   returnTo?: string | null
   intent?: string | null
 }): string {
-  const basePath = args.flowType === 'popup'
-    ? '/api/auth/popup-oauth'
-    : '/api/auth/redirect-oauth'
-
   const params = new URLSearchParams()
+
   if (args.returnTo) {
     params.set('returnTo', args.returnTo)
   }
@@ -58,7 +38,7 @@ export function buildAuthInitiationPath(args: {
   }
 
   const query = params.toString()
-  return query ? `${basePath}?${query}` : basePath
+  return query ? `/api/auth/redirect-oauth?${query}` : '/api/auth/redirect-oauth'
 }
 
 export function buildEmailEntryPath(args: {
@@ -108,7 +88,7 @@ export function buildEmailConfirmationPath(args?: {
   const params = new URLSearchParams()
 
   if (args?.next) {
-    params.set('next', sanitizeReturnTo(args.next, 'redirect'))
+    params.set('next', sanitizeReturnTo(args.next))
   }
 
   const intent = sanitizeAuthIntent(args?.intent)

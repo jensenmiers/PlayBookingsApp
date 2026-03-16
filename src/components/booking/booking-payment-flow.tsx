@@ -30,7 +30,7 @@ import { useAuthModal } from '@/contexts/AuthModalContext'
 import { useToast } from '@/components/ui/use-toast'
 import { formatTime } from '@/utils/dateHelpers'
 import { BOOKING_APPROVAL_COPY } from '@/lib/booking-mode'
-import type { Venue, BookingWithPaymentInfo } from '@/types'
+import type { Venue, BookingWithPaymentInfo, SlotActionType, SlotModalContent } from '@/types'
 
 const stripePromise = loadStripe(process.env.NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY!)
 
@@ -39,6 +39,9 @@ export interface BookingPaymentFlowProps {
   date: string // YYYY-MM-DD format
   startTime: string // HH:MM:SS format
   endTime: string // HH:MM:SS format
+  slotActionType?: SlotActionType
+  slotInstanceId?: string | null
+  slotModalContent?: SlotModalContent | null
   open: boolean
   onOpenChange: (open: boolean) => void
   onSuccess: (bookingId: string) => void
@@ -390,6 +393,9 @@ export function BookingPaymentFlow({
   date,
   startTime,
   endTime,
+  slotActionType = venue.instant_booking ? 'instant_book' : 'request_private',
+  slotInstanceId = null,
+  slotModalContent = null,
   open,
   onOpenChange,
   onSuccess,
@@ -436,7 +442,19 @@ export function BookingPaymentFlow({
   // Handle booking creation and payment intent setup
   const handleConfirmDetails = useCallback(async () => {
     if (!user) {
-      openAuthModal({ contextMessage: 'Sign in to complete your booking' })
+      openAuthModal({
+        contextMessage: 'Sign in to complete your booking',
+        resumeState: {
+          type: 'slot-booking',
+          venueId: venue.id,
+          date,
+          startTime,
+          endTime,
+          slotActionType,
+          slotInstanceId,
+          slotModalContent,
+        },
+      })
       return
     }
 
@@ -473,7 +491,7 @@ export function BookingPaymentFlow({
     }
   }, [
     user, openAuthModal, createBooking, venue.id, date, startTime, endTime,
-    requiresImmediatePayment, createIntent, createSetupIntent
+    requiresImmediatePayment, createIntent, createSetupIntent, slotActionType, slotInstanceId, slotModalContent
   ])
 
   const handlePaymentSuccess = useCallback(() => {

@@ -1,14 +1,20 @@
 'use client'
 
 import { createContext, useContext, useState, useCallback, useEffect, type ReactNode } from 'react'
-import { usePathname } from 'next/navigation'
 import { useCurrentUser } from '@/hooks/useCurrentUser'
+import {
+  clearAuthResumeState,
+  getCurrentRelativeUrl,
+  peekAuthResumeStateForReturnTo,
+  type AuthResumeState,
+} from '@/lib/auth/authResume'
 
 export type AuthIntent = 'renter' | 'host'
 
 export interface OpenAuthModalOptions {
   intent?: AuthIntent
   returnTo?: string
+  resumeState?: AuthResumeState
   contextMessage?: string
 }
 
@@ -16,6 +22,7 @@ interface AuthModalState {
   isOpen: boolean
   intent: AuthIntent
   returnTo: string | null
+  resumeState: AuthResumeState | null
   contextMessage?: string
 }
 
@@ -39,13 +46,13 @@ interface AuthModalProviderProps {
 }
 
 export function AuthModalProvider({ children }: AuthModalProviderProps) {
-  const pathname = usePathname()
   const { user } = useCurrentUser()
   
   const [state, setState] = useState<AuthModalState>({
     isOpen: false,
     intent: 'renter',
     returnTo: null,
+    resumeState: null,
     contextMessage: undefined,
   })
 
@@ -56,14 +63,24 @@ export function AuthModalProvider({ children }: AuthModalProviderProps) {
     }
   }, [user, state.isOpen])
 
+  useEffect(() => {
+    const currentReturnTo = getCurrentRelativeUrl()
+    const storedResumeState = peekAuthResumeStateForReturnTo(currentReturnTo)
+    if (!storedResumeState && typeof window !== 'undefined' && window.sessionStorage.getItem('play-bookings-auth-resume')) {
+      clearAuthResumeState()
+    }
+  })
+
   const openAuthModal = useCallback((options?: OpenAuthModalOptions) => {
+    const currentReturnTo = options?.returnTo ?? getCurrentRelativeUrl()
     setState({
       isOpen: true,
       intent: options?.intent ?? 'renter',
-      returnTo: options?.returnTo ?? pathname,
+      returnTo: currentReturnTo,
+      resumeState: options?.resumeState ?? null,
       contextMessage: options?.contextMessage,
     })
-  }, [pathname])
+  }, [])
 
   const closeAuthModal = useCallback(() => {
     setState(prev => ({ ...prev, isOpen: false }))

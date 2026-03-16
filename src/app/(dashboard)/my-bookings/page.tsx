@@ -1,6 +1,6 @@
 'use client'
 
-import { useState } from 'react'
+import { useCallback, useState } from 'react'
 import { useSearchParams } from 'next/navigation'
 import { BookingList } from '@/components/bookings/booking-list'
 import { CreateBookingForm } from '@/components/forms/create-booking-form'
@@ -9,9 +9,12 @@ import { Tabs, TabsList, TabsTrigger, TabsContent } from '@/components/ui/tabs'
 import { useCurrentUser } from '@/hooks/useCurrentUser'
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome'
 import { faPlus, faSpinner } from '@fortawesome/free-solid-svg-icons'
+import { type CreateBookingFormResumeState } from '@/lib/auth/authResume'
+import { useCreateBookingFormAuthResume } from '@/lib/auth/useAuthResume'
 
 export default function BookingsPage() {
   const [showCreateForm, setShowCreateForm] = useState(false)
+  const [resumedBookingForm, setResumedBookingForm] = useState<CreateBookingFormResumeState | null>(null)
   const { user, loading: userLoading } = useCurrentUser()
   const searchParams = useSearchParams()
   
@@ -21,6 +24,16 @@ export default function BookingsPage() {
 
   // Determine if user can see host tab
   const showHostTab = user?.is_venue_owner
+
+  const handleResumeBookingForm = useCallback((resumeState: CreateBookingFormResumeState) => {
+    setResumedBookingForm(resumeState)
+    setShowCreateForm(true)
+  }, [])
+
+  useCreateBookingFormAuthResume({
+    canResume: () => true,
+    onResume: handleResumeBookingForm,
+  })
 
   return (
     <div className="space-y-10">
@@ -64,10 +77,22 @@ export default function BookingsPage() {
 
       {showCreateForm && (
         <CreateBookingForm
+          venueId={resumedBookingForm?.venueId}
+          initialDate={resumedBookingForm ? new Date(resumedBookingForm.date.replace(/-/g, '/')) : undefined}
+          initialStartTime={resumedBookingForm?.startTime}
+          initialEndTime={resumedBookingForm?.endTime}
+          initialRecurringType={resumedBookingForm?.recurringType}
+          initialNotes={resumedBookingForm?.notes}
           open={showCreateForm}
-          onOpenChange={setShowCreateForm}
+          onOpenChange={(open) => {
+            setShowCreateForm(open)
+            if (!open) {
+              setResumedBookingForm(null)
+            }
+          }}
           onSuccess={() => {
             setShowCreateForm(false)
+            setResumedBookingForm(null)
           }}
         />
       )}

@@ -63,6 +63,8 @@ interface CreateBookingFormProps {
   initialDate?: Date
   initialStartTime?: string
   initialEndTime?: string
+  initialRecurringType?: CreateBookingInput['recurring_type']
+  initialNotes?: string
   onSuccess?: (bookingId: string) => void
   onCancel?: () => void
   open?: boolean
@@ -74,6 +76,8 @@ export function CreateBookingForm({
   initialDate,
   initialStartTime,
   initialEndTime,
+  initialRecurringType = 'none',
+  initialNotes = '',
   onSuccess,
   onCancel,
   open = true,
@@ -119,8 +123,8 @@ export function CreateBookingForm({
       date: format(defaultDate, 'yyyy-MM-dd'),
       start_time: formatTimeForForm(initialStartTime) || '09:00:00',
       end_time: formatTimeForForm(initialEndTime) || '10:00:00',
-      recurring_type: 'none',
-      notes: '',
+      recurring_type: initialRecurringType,
+      notes: initialNotes,
     },
   })
 
@@ -174,9 +178,11 @@ export function CreateBookingForm({
       if (initialEndTime) {
         form.setValue('end_time', formatTimeForForm(initialEndTime))
       }
+      form.setValue('recurring_type', initialRecurringType)
+      form.setValue('notes', initialNotes)
       setConflictChecked(false)
     }
-  }, [open, initialVenueId, initialDate, initialStartTime, initialEndTime, form])
+  }, [open, initialVenueId, initialDate, initialStartTime, initialEndTime, initialRecurringType, initialNotes, form])
 
   const onSubmit = async (data: CreateBookingInput) => {
     // Check conflicts one more time before submission
@@ -229,7 +235,19 @@ export function CreateBookingForm({
         errorMessage.includes('unauthorized') ||
         errorMessage.includes('sign in')
       ) {
-        openAuthModal({ contextMessage: 'Sign in to complete your booking' })
+        const currentValues = form.getValues()
+        openAuthModal({
+          contextMessage: 'Sign in to complete your booking',
+          resumeState: {
+            type: 'create-booking-form',
+            venueId: currentValues.venue_id,
+            date: currentValues.date,
+            startTime: currentValues.start_time,
+            endTime: currentValues.end_time,
+            recurringType: currentValues.recurring_type,
+            notes: currentValues.notes || '',
+          },
+        })
       } else {
         form.setError('root', {
           message: result.error,

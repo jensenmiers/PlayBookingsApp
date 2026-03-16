@@ -1,6 +1,6 @@
 'use client'
 
-import { useState } from 'react'
+import { useCallback, useState } from 'react'
 import { format } from 'date-fns'
 
 /**
@@ -16,6 +16,7 @@ import { useVenueAvailabilityRange, ComputedAvailabilitySlot } from '@/hooks/use
 import { formatTime } from '@/utils/dateHelpers'
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome'
 import { faClock, faCalendarDays, faSpinner } from '@fortawesome/free-solid-svg-icons'
+import { useSlotBookingAuthResume } from '@/lib/auth/useAuthResume'
 import type { Venue } from '@/types'
 
 interface AvailabilitySlotsListProps {
@@ -58,6 +59,23 @@ export function AvailabilitySlotsList({ venue }: AvailabilitySlotsListProps) {
       })
     })
   }
+
+  const handleResumeSlotBooking = useCallback((slot: ComputedAvailabilitySlot) => {
+    setSelectedSlot({
+      date: slot.date,
+      start_time: slot.start_time,
+      end_time: slot.end_time,
+      slot,
+    })
+    setShowBookingForm(true)
+  }, [])
+
+  useSlotBookingAuthResume({
+    venueId: venue.id,
+    slots: availability || [],
+    loading,
+    onResume: handleResumeSlotBooking,
+  })
 
   const sortedDates = Object.keys(groupedSlots).sort()
 

@@ -172,6 +172,9 @@ export function SlotBookingConfirmation({
       date={date}
       startTime={startTime}
       endTime={endTime}
+      slotActionType={slotActionType}
+      slotInstanceId={slotInstanceId}
+      slotModalContent={slotModalContent}
       open={open}
       onOpenChange={onOpenChange}
       onSuccess={handleSuccess}

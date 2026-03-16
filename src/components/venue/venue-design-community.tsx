@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useMemo } from 'react'
+import { useState, useMemo, useCallback } from 'react'
 import { useRouter } from 'next/navigation'
 import Image from 'next/image'
 import { format } from 'date-fns'
@@ -20,6 +20,7 @@ import { GoogleMapsLink } from './shared'
 import { useVenueAvailabilityRange, ComputedAvailabilitySlot } from '@/hooks/useVenues'
 import { formatTime } from '@/utils/dateHelpers'
 import { getBookingModeDisplay } from '@/lib/booking-mode'
+import { useSlotBookingAuthResume } from '@/lib/auth/useAuthResume'
 import type { Venue } from '@/types'
 
 interface VenueDesignCommunityProps {
@@ -57,6 +58,18 @@ export function VenueDesignCommunity({ venue }: VenueDesignCommunityProps) {
   )
 
   const primaryPhoto = venue.photos?.[0]
+
+  const handleResumeSlotBooking = useCallback((slot: ComputedAvailabilitySlot) => {
+    setSelectedSlot(slot)
+    setShowBooking(true)
+  }, [])
+
+  useSlotBookingAuthResume({
+    venueId: venue.id,
+    slots: bookableSlots,
+    loading,
+    onResume: handleResumeSlotBooking,
+  })
 
   const getDateLabel = (dateStr: string) => {
     const todayStr = format(new Date(), 'yyyy-MM-dd')

@@ -215,6 +215,16 @@ describe('SlotBookingConfirmation', () => {
 
     expect(mockOpenAuthModal).toHaveBeenCalledWith({
       contextMessage: 'Sign in to complete your booking',
+      resumeState: {
+        type: 'slot-booking',
+        venueId: 'venue-123',
+        date: '2026-02-10',
+        startTime: '19:00:00',
+        endTime: '20:00:00',
+        slotActionType: 'instant_book',
+        slotInstanceId: null,
+        slotModalContent: null,
+      },
     })
     expect(mockMutate).not.toHaveBeenCalled()
   })

@@ -3,7 +3,6 @@ import { createAdminClient } from '@/lib/supabase/admin'
 import {
   sanitizeAuthIntent,
   sanitizeReturnTo,
-  type AuthFlowType,
   type AuthIntent,
 } from '@/lib/auth/oauthFlow'
 
@@ -19,7 +18,6 @@ interface AuthOAuthStateRow {
 }
 
 export async function createAuthOAuthState(args: {
-  flowType: AuthFlowType
   returnTo: string | null
   intent: string | null
 }): Promise<string> {
@@ -31,8 +29,8 @@ export async function createAuthOAuthState(args: {
     .from('auth_oauth_states')
     .insert({
       state_nonce: stateNonce,
-      flow_type: args.flowType,
-      return_to: sanitizeReturnTo(args.returnTo, args.flowType),
+      flow_type: 'redirect',
+      return_to: sanitizeReturnTo(args.returnTo),
       intent: sanitizeAuthIntent(args.intent),
       expires_at: expiresAt,
     })
@@ -61,9 +59,7 @@ async function getAuthOAuthState(stateNonce: string): Promise<AuthOAuthStateRow 
 
 export async function resolveAuthOAuthState(args: {
   stateNonce: string
-  expectedFlowType: AuthFlowType
 }): Promise<{
-  flowType: AuthFlowType
   returnTo: string
   intent: AuthIntent
 } | null> {
@@ -72,10 +68,7 @@ export async function resolveAuthOAuthState(args: {
     return null
   }
 
-  const flowType = stateRecord.flow_type === 'popup' || stateRecord.flow_type === 'redirect'
-    ? stateRecord.flow_type
-    : null
-  if (!flowType || flowType !== args.expectedFlowType) {
+  if (stateRecord.flow_type !== 'redirect') {
     return null
   }
 
@@ -85,8 +78,7 @@ export async function resolveAuthOAuthState(args: {
   }
 
   return {
-    flowType,
-    returnTo: sanitizeReturnTo(stateRecord.return_to, flowType),
+    returnTo: sanitizeReturnTo(stateRecord.return_to),
     intent: sanitizeAuthIntent(stateRecord.intent),
   }
 }

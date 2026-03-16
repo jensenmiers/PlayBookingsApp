@@ -1,6 +1,6 @@
 'use client'
 
-import { useState } from 'react'
+import { useCallback, useMemo, useState } from 'react'
 import { useRouter } from 'next/navigation'
 import { format } from 'date-fns'
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome'
@@ -11,6 +11,7 @@ import { GoogleMapsLink } from './shared'
 import { useVenueAvailabilityRange } from '@/hooks/useVenues'
 import { formatTime } from '@/utils/dateHelpers'
 import { getBookingModeDisplay } from '@/lib/booking-mode'
+import { useSlotBookingAuthResume } from '@/lib/auth/useAuthResume'
 import type { Venue } from '@/types'
 
 interface VenueDesignScoreboardProps {
@@ -33,10 +34,31 @@ export function VenueDesignScoreboard({ venue }: VenueDesignScoreboardProps) {
     dateTo
   )
 
-  const bookableSlots = availability || []
+  const bookableSlots = useMemo(() => availability || [], [availability])
 
   const selectedSlot = bookableSlots[selectedSlotIndex]
   const nextAvailable = bookableSlots[0]
+
+  const handleResumeSlotBooking = useCallback((slot: typeof bookableSlots[number]) => {
+    const resumedSlotIndex = bookableSlots.findIndex((candidate) =>
+      candidate.slot_instance_id === slot.slot_instance_id
+      && candidate.date === slot.date
+      && candidate.start_time === slot.start_time
+    )
+
+    if (resumedSlotIndex >= 0) {
+      setSelectedSlotIndex(resumedSlotIndex)
+    }
+
+    setShowBooking(true)
+  }, [bookableSlots])
+
+  useSlotBookingAuthResume({
+    venueId: venue.id,
+    slots: bookableSlots,
+    loading,
+    onResume: handleResumeSlotBooking,
+  })
 
   const formatDigitalTime = (timeStr: string) => {
     const [hours, minutes] = timeStr.split(':').map(Number)

@@ -5,7 +5,9 @@ import { Button } from '@/components/ui/button'
 import type { AvailabilityWithVenue } from '@/types'
 import { calculateDuration } from '@/utils/dateHelpers'
 import { CreateBookingForm } from '@/components/forms/create-booking-form'
-import { useState } from 'react'
+import { useCallback, useState } from 'react'
+import { type CreateBookingFormResumeState } from '@/lib/auth/authResume'
+import { useCreateBookingFormAuthResume } from '@/lib/auth/useAuthResume'
 
 interface AvailabilityCardProps {
   availability: AvailabilityWithVenue
@@ -30,12 +32,28 @@ function formatDuration(startTime: string, endTime: string): string {
   return `${durationMinutes} min`
 }
 
+function parseLocalDate(dateStr: string): Date {
+  const [year, month, day] = dateStr.split('-').map(Number)
+  return new Date(year, month - 1, day)
+}
+
 export function AvailabilityCard({ availability }: AvailabilityCardProps) {
   const [showBookingForm, setShowBookingForm] = useState(false)
+  const [resumedBookingForm, setResumedBookingForm] = useState<CreateBookingFormResumeState | null>(null)
 
   const startTimeDisplay = formatTimeForDisplay(availability.start_time)
   const durationDisplay = formatDuration(availability.start_time, availability.end_time)
   const venue = availability.venue
+
+  const handleResumeBookingForm = useCallback((resumeState: CreateBookingFormResumeState) => {
+    setResumedBookingForm(resumeState)
+    setShowBookingForm(true)
+  }, [])
+
+  useCreateBookingFormAuthResume({
+    canResume: (resumeState) => resumeState.venueId === venue.id,
+    onResume: handleResumeBookingForm,
+  })
 
   return (
     <>
@@ -74,18 +92,25 @@ export function AvailabilityCard({ availability }: AvailabilityCardProps) {
       {/* Booking Form Dialog */}
       {showBookingForm && (
         <CreateBookingForm
-          venueId={venue.id}
-          initialDate={new Date(availability.date)}
+          venueId={resumedBookingForm?.venueId ?? venue.id}
+          initialDate={resumedBookingForm ? parseLocalDate(resumedBookingForm.date) : parseLocalDate(availability.date)}
+          initialStartTime={resumedBookingForm?.startTime}
+          initialEndTime={resumedBookingForm?.endTime}
+          initialRecurringType={resumedBookingForm?.recurringType}
+          initialNotes={resumedBookingForm?.notes}
           open={showBookingForm}
-          onOpenChange={setShowBookingForm}
+          onOpenChange={(open) => {
+            setShowBookingForm(open)
+            if (!open) {
+              setResumedBookingForm(null)
+            }
+          }}
           onSuccess={() => {
             setShowBookingForm(false)
+            setResumedBookingForm(null)
           }}
         />
       )}
     </>
   )
 }
-
-
-

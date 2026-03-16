@@ -10,14 +10,10 @@ export async function GET(request: NextRequest) {
   const origin = request.nextUrl.origin
 
   const stateNonce = await createAuthOAuthState({
-    flowType: 'redirect',
     returnTo,
     intent,
   })
-  const callbackUrl = `${origin}${getAuthCallbackPath({
-    flowType: 'redirect',
-    stateNonce,
-  })}`
+  const callbackUrl = `${origin}${getAuthCallbackPath(stateNonce)}`
 
   const supabase = await createClient()
   const { data, error } = await supabase.auth.signInWithOAuth({

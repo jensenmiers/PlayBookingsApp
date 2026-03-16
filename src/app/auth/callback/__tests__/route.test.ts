@@ -60,18 +60,6 @@ describe('GET /auth/callback compatibility shim', () => {
     consoleErrorSpy.mockRestore()
   })
 
-  it('preserves legacy popup=true success path for stale popup clients', async () => {
-    mockExchangeCodeForSession.mockResolvedValue({
-      data: { session: { user: {} } },
-      error: null,
-    })
-
-    const response = await GET(createRequest(`${origin}/auth/callback?code=abc&popup=true`))
-
-    expect(response.status).toBe(302)
-    expect(response.headers.get('Location')).toBe(`${origin}/auth/popup-success?returnTo=%2Fsearch`)
-  })
-
   it('preserves legacy non-popup redirect path for stale full-window clients', async () => {
     mockExchangeCodeForSession.mockResolvedValue({
       data: {
@@ -96,12 +84,12 @@ describe('GET /auth/callback compatibility shim', () => {
     expect(mockUpsert).toHaveBeenCalled()
   })
 
-  it('still sends legacy popup errors to popup-success when popup=true', async () => {
-    const response = await GET(createRequest(`${origin}/auth/callback?popup=true`))
+  it('redirects missing-code errors to login', async () => {
+    const response = await GET(createRequest(`${origin}/auth/callback`))
 
     expect(response.status).toBe(302)
     expect(response.headers.get('Location')).toBe(
-      `${origin}/auth/popup-success?error=No+code+provided`
+      `${origin}/auth/login?error=No+code+provided`
     )
   })
 })

@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useMemo } from 'react'
+import { useState, useMemo, useCallback } from 'react'
 import { useRouter } from 'next/navigation'
 import Image from 'next/image'
 import { format } from 'date-fns'
@@ -13,6 +13,7 @@ import { GoogleMapsLink } from './shared'
 import { useVenueAvailabilityRange, ComputedAvailabilitySlot } from '@/hooks/useVenues'
 import { formatTime } from '@/utils/dateHelpers'
 import { getBookingModeDisplay } from '@/lib/booking-mode'
+import { useSlotBookingAuthResume } from '@/lib/auth/useAuthResume'
 import type { Venue } from '@/types'
 
 interface VenueDesignEditorialProps {
@@ -216,6 +217,18 @@ export function VenueDesignEditorial({ venue }: VenueDesignEditorialProps) {
     setSelectedSlot(slot)
     setShowBooking(true)
   }
+
+  const handleResumeSlotBooking = useCallback((slot: ComputedAvailabilitySlot) => {
+    setSelectedSlot(slot)
+    setShowBooking(true)
+  }, [])
+
+  useSlotBookingAuthResume({
+    venueId: venue.id,
+    slots: bookableSlots,
+    loading,
+    onResume: handleResumeSlotBooking,
+  })
 
   return (
     <div className="min-h-screen bg-secondary-900">

@@ -48,7 +48,6 @@ function RegisterContent() {
       setInfoMessage(null)
 
       navigateToUrl(buildAuthInitiationPath({
-        flowType: 'redirect',
         returnTo,
         intent,
       }))

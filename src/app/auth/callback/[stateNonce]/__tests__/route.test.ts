@@ -116,7 +116,7 @@ describe('GET /auth/callback/[stateNonce]', () => {
     expect(mockMarkAuthOAuthStateUsed).toHaveBeenCalledWith('state-123')
   })
 
-  it('redirects existing host to my-bookings', async () => {
+  it('redirects existing host to stored returnTo', async () => {
     mockExchangeCodeForSession.mockResolvedValue({
       data: {
         session: {
@@ -133,13 +133,18 @@ describe('GET /auth/callback/[stateNonce]', () => {
       data: { id: 'user-1', is_venue_owner: true },
       error: null,
     })
+    mockResolveAuthOAuthState.mockResolvedValue({
+      flowType: 'redirect',
+      returnTo: '/venue/memorial-park',
+      intent: null,
+    })
 
     const response = await GET(
       createRequest(`${origin}/auth/callback/state-123?code=abc`),
       createContext('state-123')
     )
 
-    expect(response.headers.get('Location')).toBe(`${origin}/my-bookings`)
+    expect(response.headers.get('Location')).toBe(`${origin}/venue/memorial-park`)
   })
 
   it('redirects to login when code is missing', async () => {

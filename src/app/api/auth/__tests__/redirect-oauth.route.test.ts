@@ -77,7 +77,6 @@ describe('GET /api/auth/redirect-oauth', () => {
     await GET(request)
 
     expect(mockCreateAuthOAuthState).toHaveBeenCalledWith({
-      flowType: 'redirect',
       returnTo: '/dashboard',
       intent: 'host',
     })
@@ -100,7 +99,6 @@ describe('GET /api/auth/redirect-oauth', () => {
     await GET(request)
 
     expect(mockCreateAuthOAuthState).toHaveBeenCalledWith({
-      flowType: 'redirect',
       returnTo: null,
       intent: null,
     })

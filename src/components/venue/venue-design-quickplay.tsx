@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useRef, useEffect, useMemo } from 'react'
+import { useState, useRef, useEffect, useMemo, useCallback } from 'react'
 import { useRouter } from 'next/navigation'
 import Image from 'next/image'
 import { format, addDays } from 'date-fns'
@@ -11,6 +11,7 @@ import { SlotBookingConfirmation } from '@/components/booking/slot-booking-confi
 import { GoogleMapsLink, BookingTypeBadgeInline } from './shared'
 import { useVenueAvailabilityRange, ComputedAvailabilitySlot } from '@/hooks/useVenues'
 import { formatTime } from '@/utils/dateHelpers'
+import { useSlotBookingAuthResume } from '@/lib/auth/useAuthResume'
 import type { Venue } from '@/types'
 
 interface VenueDesignQuickplayProps {
@@ -54,6 +55,23 @@ export function VenueDesignQuickplay({ venue }: VenueDesignQuickplayProps) {
       setSelectedSlot(selectedDaySlots[0])
     }
   }, [selectedDaySlots, selectedSlot])
+
+  const handleResumeSlotBooking = useCallback((slot: ComputedAvailabilitySlot) => {
+    const resumedDayIndex = days.findIndex((day) => day.date === slot.date)
+    if (resumedDayIndex >= 0) {
+      setSelectedDay(resumedDayIndex)
+    }
+
+    setSelectedSlot(slot)
+    setShowBooking(true)
+  }, [days])
+
+  useSlotBookingAuthResume({
+    venueId: venue.id,
+    slots: availability || [],
+    loading,
+    onResume: handleResumeSlotBooking,
+  })
 
   const primaryPhoto = venue.photos?.[0]
   const hourlyRate = venue.hourly_rate

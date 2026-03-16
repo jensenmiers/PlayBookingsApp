@@ -26,7 +26,6 @@ export async function GET(request: NextRequest, context: RouteContext) {
 
   const resolvedState = await resolveAuthOAuthState({
     stateNonce,
-    expectedFlowType: 'redirect',
   })
   if (!resolvedState) {
     return redirectToLoginWithError(origin, 'Invalid or expired authentication state')
@@ -53,8 +52,7 @@ export async function GET(request: NextRequest, context: RouteContext) {
       return NextResponse.redirect(`${origin}/auth/upgrade-to-host`)
     }
 
-    const redirectPath = finalization.finalIsHost ? '/my-bookings' : resolvedState.returnTo
-    return NextResponse.redirect(`${origin}${redirectPath}`)
+    return NextResponse.redirect(`${origin}${resolvedState.returnTo}`)
   }
 
   await markAuthOAuthStateUsed(stateNonce)
