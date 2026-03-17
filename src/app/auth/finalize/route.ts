@@ -5,7 +5,7 @@ import { sanitizeReturnTo } from '@/lib/auth/oauthFlow'
 
 export async function GET(request: NextRequest) {
   const origin = request.nextUrl.origin
-  const returnTo = sanitizeReturnTo(request.nextUrl.searchParams.get('returnTo'), 'redirect')
+  const returnTo = sanitizeReturnTo(request.nextUrl.searchParams.get('returnTo'))
   const intent = request.nextUrl.searchParams.get('intent')
   const supabase = await createClient()
   const {

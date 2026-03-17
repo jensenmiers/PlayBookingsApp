@@ -177,7 +177,7 @@ export function VenueDesignEditorial({ venue }: VenueDesignEditorialProps) {
 
   const pickerSlots = useMemo(() => {
     if (!offRangeDateStr && !pickerDateStr) return []
-    if (isPickerDateInPillRange) {
+    if (isPickerDateInPillRange && pickerDateStr) {
       return slotsByDate.get(pickerDateStr) || []
     }
     if (!pickerAvailability) return []

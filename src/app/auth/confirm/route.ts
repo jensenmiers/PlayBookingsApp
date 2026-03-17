@@ -18,7 +18,7 @@ export async function GET(request: NextRequest) {
   const type = searchParams.get('type')
   const intent = searchParams.get('intent')
   const phonePrompt = searchParams.get('phonePrompt') === '1'
-  const returnTo = sanitizeReturnTo(searchParams.get('next'), 'redirect')
+  const returnTo = sanitizeReturnTo(searchParams.get('next'))
   const origin = request.nextUrl.origin
 
   if (!tokenHash || !isEmailOtpType(type)) {

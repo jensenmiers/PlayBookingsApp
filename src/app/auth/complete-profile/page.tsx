@@ -14,7 +14,7 @@ import { sanitizeReturnTo } from '@/lib/auth/oauthFlow'
 
 function CompleteProfileContent() {
   const searchParams = useSearchParams()
-  const nextPath = sanitizeReturnTo(searchParams.get('next'), 'redirect')
+  const nextPath = sanitizeReturnTo(searchParams.get('next'))
   const { user, loading } = useCurrentUser()
   const [phone, setPhone] = useState('')
   const [saving, setSaving] = useState(false)

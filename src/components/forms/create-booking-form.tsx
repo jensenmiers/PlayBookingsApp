@@ -244,7 +244,7 @@ export function CreateBookingForm({
             date: currentValues.date,
             startTime: currentValues.start_time,
             endTime: currentValues.end_time,
-            recurringType: currentValues.recurring_type,
+            recurringType: currentValues.recurring_type ?? 'none',
             notes: currentValues.notes || '',
           },
         })
