@@ -13,6 +13,7 @@ import { GoogleMapsLink } from './shared'
 import { useVenueAvailabilityRange, ComputedAvailabilitySlot } from '@/hooks/useVenues'
 import { formatTime } from '@/utils/dateHelpers'
 import { getBookingModeDisplay } from '@/lib/booking-mode'
+import { getCurrentRelativeUrl, peekAuthResumeStateForReturnTo } from '@/lib/auth/authResume'
 import { useSlotBookingAuthResume } from '@/lib/auth/useAuthResume'
 import type { Venue } from '@/types'
 
@@ -119,6 +120,22 @@ export function VenueDesignEditorial({ venue }: VenueDesignEditorialProps) {
     () => Array.from({ length: DAY_PILLS_COUNT }, (_, i) => addDaysToDateString(todayStr, i)),
     [todayStr]
   )
+  const [resumeDateOverride, setResumeDateOverride] = useState<string | null>(() => {
+    if (typeof window === 'undefined') {
+      return null
+    }
+
+    const pendingResumeState = peekAuthResumeStateForReturnTo(getCurrentRelativeUrl())
+    if (
+      pendingResumeState?.type !== 'slot-booking'
+      || pendingResumeState.venueId !== venue.id
+      || datePills.includes(pendingResumeState.date)
+    ) {
+      return null
+    }
+
+    return pendingResumeState.date
+  })
   const dateFrom = datePills[0]
   const dateTo = datePills[datePills.length - 1]
 
@@ -131,11 +148,14 @@ export function VenueDesignEditorial({ venue }: VenueDesignEditorialProps) {
   // Calendar-picked date: fetch availability if outside pill range
   const pickerDateStr = pickerDate ? format(pickerDate, 'yyyy-MM-dd') : null
   const isPickerDateInPillRange = pickerDateStr ? datePills.includes(pickerDateStr) : false
+  const offRangeDateStr = pickerDateStr && !isPickerDateInPillRange
+    ? pickerDateStr
+    : resumeDateOverride
 
   const { data: pickerAvailability, loading: pickerLoading } = useVenueAvailabilityRange(
-    !isPickerDateInPillRange && pickerDateStr ? venue.id : null,
-    pickerDateStr,
-    pickerDateStr
+    offRangeDateStr ? venue.id : null,
+    offRangeDateStr,
+    offRangeDateStr
   )
 
   const bookableSlots = useMemo(() => {
@@ -156,13 +176,23 @@ export function VenueDesignEditorial({ venue }: VenueDesignEditorialProps) {
   }, [datePills, bookableSlots])
 
   const pickerSlots = useMemo(() => {
-    if (!pickerDateStr) return []
+    if (!offRangeDateStr && !pickerDateStr) return []
     if (isPickerDateInPillRange) {
       return slotsByDate.get(pickerDateStr) || []
     }
     if (!pickerAvailability) return []
     return pickerAvailability
-  }, [pickerDateStr, isPickerDateInPillRange, slotsByDate, pickerAvailability])
+  }, [offRangeDateStr, pickerDateStr, isPickerDateInPillRange, slotsByDate, pickerAvailability])
+
+  const resumeSlots = useMemo(() => {
+    if (!resumeDateOverride || !pickerAvailability) {
+      return bookableSlots
+    }
+
+    return [...bookableSlots, ...pickerAvailability]
+  }, [bookableSlots, pickerAvailability, resumeDateOverride])
+
+  const resumeLoading = loading || Boolean(resumeDateOverride && pickerLoading)
 
   const nextSlot = bookableSlots[0]
   const primaryPhoto = venue.photos?.[0]
@@ -219,14 +249,15 @@ export function VenueDesignEditorial({ venue }: VenueDesignEditorialProps) {
   }
 
   const handleResumeSlotBooking = useCallback((slot: ComputedAvailabilitySlot) => {
+    setResumeDateOverride(null)
     setSelectedSlot(slot)
     setShowBooking(true)
   }, [])
 
   useSlotBookingAuthResume({
     venueId: venue.id,
-    slots: bookableSlots,
-    loading,
+    slots: resumeSlots,
+    loading: resumeLoading,
     onResume: handleResumeSlotBooking,
   })
 

@@ -1,5 +1,6 @@
 import { parseUnifiedDiff, filterFindingsToChangedLines } from '../design-system/changed-lines'
 import { parseExceptionDirectives, isRuleDisabled } from '../design-system/exceptions'
+import { buildLintInput } from '../design-system/lint-input'
 import { checkSpacingTokenRule } from '../design-system/rules/spacing-token'
 import { checkColorTokenRule } from '../design-system/rules/color-token'
 import { checkFormWrapperRule } from '../design-system/rules/form-wrapper'
@@ -194,6 +195,38 @@ describe('changed-lines filtering', () => {
 
     expect(changedLines.get('src/components/search/filter.tsx')).toEqual(new Set([1, 2]))
     expect(changedLines.get('src/components/book/slots.tsx')).toEqual(new Set([21]))
+  })
+})
+
+describe('design-system lint input', () => {
+  it('limits staged diffs to scoped source files', () => {
+    const { scopedFiles, diffFiles } = buildLintInput('staged', [
+      '.playwright-cli/page-2026-03-17T03-18-56-936Z.yml',
+      'output/playwright/editorial-auth-resume-demo/editorial-auth-resume.webm',
+      'output/playwright/editorial-auth-resume-demo/runner/node_modules/playwright/index.js',
+      'src/components/venue/__tests__/venue-design-editorial.resume.test.tsx',
+      'src/components/venue/venue-design-editorial.tsx',
+      'src/components/auth/auth-modal.tsx',
+    ])
+
+    expect(scopedFiles).toEqual([
+      'src/components/venue/venue-design-editorial.tsx',
+      'src/components/auth/auth-modal.tsx',
+    ])
+    expect(diffFiles).toEqual(scopedFiles)
+  })
+
+  it('skips diff collection in all mode', () => {
+    const { scopedFiles, diffFiles } = buildLintInput('all', [
+      'src/components/venue/venue-design-editorial.tsx',
+      'src/components/auth/auth-modal.tsx',
+    ])
+
+    expect(scopedFiles).toEqual([
+      'src/components/venue/venue-design-editorial.tsx',
+      'src/components/auth/auth-modal.tsx',
+    ])
+    expect(diffFiles).toEqual([])
   })
 })
 

@@ -3,6 +3,7 @@
 import fs from 'node:fs'
 import { parseUnifiedDiff, filterFindingsToChangedLines } from './design-system/changed-lines'
 import { parseExceptionDirectives, isRuleDisabled } from './design-system/exceptions'
+import { buildLintInput } from './design-system/lint-input'
 import {
   listTrackedFiles,
   listStagedFiles,
@@ -14,7 +15,7 @@ import { formatFindings } from './design-system/reporter'
 import { checkColorTokenRule } from './design-system/rules/color-token'
 import { checkFormWrapperRule } from './design-system/rules/form-wrapper'
 import { checkSpacingTokenRule } from './design-system/rules/spacing-token'
-import { filterScopedFiles, normalizePath } from './design-system/scope'
+import { normalizePath } from './design-system/scope'
 import type { Finding, Mode, RuleName } from './design-system/types'
 
 function parseMode(argv: string[]): Mode {
@@ -54,26 +55,29 @@ function applyExceptionDirectives(source: string, file: string, findings: Findin
   return [...directives.findings, ...filteredRuleFindings]
 }
 
-function runAllMode(): { files: string[]; diffText: string } {
+function runAllMode(): { scopedFiles: string[]; diffText: string } {
+  const { scopedFiles } = buildLintInput('all', listTrackedFiles())
+
   return {
-    files: listTrackedFiles(),
+    scopedFiles,
     diffText: '',
   }
 }
 
-function runStagedMode(): { files: string[]; diffText: string } {
-  const files = listStagedFiles()
-  const diffText = getStagedDiff(files)
-  return { files, diffText }
+function runStagedMode(): { scopedFiles: string[]; diffText: string } {
+  const { scopedFiles, diffFiles } = buildLintInput('staged', listStagedFiles())
+  const diffText = getStagedDiff(diffFiles)
+  return { scopedFiles, diffText }
 }
 
-function runUnpushedMode(): { files: string[]; diffText: string } {
+function runUnpushedMode(): { scopedFiles: string[]; diffText: string } {
   const { files, baseRef } = listUnpushedFiles()
-  const diffText = getUnpushedDiff(baseRef, files)
-  return { files, diffText }
+  const { scopedFiles, diffFiles } = buildLintInput('unpushed', files)
+  const diffText = getUnpushedDiff(baseRef, diffFiles)
+  return { scopedFiles, diffText }
 }
 
-function collectModeFiles(mode: Mode): { files: string[]; diffText: string } {
+function collectModeFiles(mode: Mode): { scopedFiles: string[]; diffText: string } {
   if (mode === 'all') {
     return runAllMode()
   }
@@ -87,8 +91,7 @@ function collectModeFiles(mode: Mode): { files: string[]; diffText: string } {
 
 function main(): number {
   const mode = parseMode(process.argv.slice(2))
-  const { files: modeFiles, diffText } = collectModeFiles(mode)
-  const scopedFiles = filterScopedFiles(modeFiles)
+  const { scopedFiles, diffText } = collectModeFiles(mode)
 
   if (scopedFiles.length === 0) {
     console.log(`Design-system lint (${mode}): no scoped files to check.`)

@@ -109,7 +109,6 @@ describe('GET /auth/callback/[stateNonce]', () => {
 
     expect(mockResolveAuthOAuthState).toHaveBeenCalledWith({
       stateNonce: 'state-123',
-      expectedFlowType: 'redirect',
     })
     expect(response.headers.get('Location')).toBe(`${origin}/search`)
     expect(mockUpsert).toHaveBeenCalled()

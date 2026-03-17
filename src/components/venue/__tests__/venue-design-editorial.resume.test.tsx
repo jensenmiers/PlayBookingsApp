@@ -119,4 +119,74 @@ describe('VenueDesignEditorial auth resume', () => {
       expect(screen.getByTestId('slot-booking-dialog')).toHaveTextContent('2026-02-23:12:00:00')
     })
   })
+
+  it('reopens a stored slot booking selected from the out-of-range date picker', async () => {
+    window.sessionStorage.setItem(
+      'play-bookings-auth-resume',
+      JSON.stringify({
+        returnTo: '/venue/memorial-park',
+        resumeState: {
+          type: 'slot-booking',
+          venueId: 'venue-1',
+          date: '2026-02-28',
+          startTime: '18:00:00',
+          endTime: '19:00:00',
+          slotActionType: 'request_private',
+          slotInstanceId: 'slot-456',
+          slotModalContent: null,
+        },
+      })
+    )
+
+    mockUseVenueAvailabilityRange.mockImplementation((_venueId, dateFrom, dateTo) => {
+      if (dateFrom === '2026-02-21' && dateTo === '2026-02-27') {
+        return {
+          data: [
+            {
+              date: '2026-02-23',
+              start_time: '12:00:00',
+              end_time: '13:00:00',
+              venue_id: 'venue-1',
+              action_type: 'request_private',
+              slot_instance_id: 'slot-123',
+              modal_content: null,
+            },
+          ],
+          loading: false,
+          error: null,
+        }
+      }
+
+      if (dateFrom === '2026-02-28' && dateTo === '2026-02-28') {
+        return {
+          data: [
+            {
+              date: '2026-02-28',
+              start_time: '18:00:00',
+              end_time: '19:00:00',
+              venue_id: 'venue-1',
+              action_type: 'request_private',
+              slot_instance_id: 'slot-456',
+              modal_content: null,
+            },
+          ],
+          loading: false,
+          error: null,
+        }
+      }
+
+      return {
+        data: [],
+        loading: false,
+        error: null,
+      }
+    })
+
+    render(<VenueDesignEditorial venue={venue} />)
+
+    await waitFor(() => {
+      expect(screen.getByTestId('slot-booking-dialog')).toHaveTextContent('2026-02-28:18:00:00')
+    })
+    expect(window.sessionStorage.getItem('play-bookings-auth-resume')).toBeNull()
+  })
 })
