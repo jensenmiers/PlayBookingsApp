@@ -1,10 +1,14 @@
 import type { Metadata } from "next";
 import { DM_Sans, DM_Serif_Display } from "next/font/google";
 import { Geist_Mono } from "next/font/google";
+import { config } from "@fortawesome/fontawesome-svg-core";
+import "@fortawesome/fontawesome-svg-core/styles.css";
 import { Analytics } from "@vercel/analytics/next";
 import { Providers } from "@/components/providers/providers";
 import { AgentationProvider } from "@/components/providers/agentation-provider";
 import "./globals.css";
+
+config.autoAddCss = false;
 
 const dmSans = DM_Sans({
   variable: "--font-dm-sans",

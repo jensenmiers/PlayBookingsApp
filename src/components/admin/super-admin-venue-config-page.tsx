@@ -818,7 +818,7 @@ function TimePillSelect({
       <select
         aria-label={ariaLabel}
         value={value}
-        className="h-11 w-full appearance-none rounded-full border border-secondary-50/15 bg-secondary-800 px-8 py-2 text-center text-sm font-medium leading-none tabular-nums text-secondary-50 shadow-xs outline-none transition-[border-color,box-shadow] hover:border-secondary-50/30 focus-visible:border-primary-400 focus-visible:ring-[3px] focus-visible:ring-primary-400/30"
+        className="h-11 w-full appearance-none rounded-full border border-secondary-50/15 bg-secondary-800 pl-4 pr-7 py-2 text-center text-sm font-medium leading-none tabular-nums text-secondary-50 shadow-xs outline-none transition-[border-color,box-shadow] hover:border-secondary-50/30 focus-visible:border-primary-400 focus-visible:ring-[3px] focus-visible:ring-primary-400/30"
         onChange={(event) => {
           onChange(event.target.value)
         }}
@@ -1764,69 +1764,80 @@ export function SuperAdminVenueConfigPage() {
                     {draft.drop_in_enabled && (
                       <>
                         <p className="text-xs font-medium text-secondary-50/70 pt-2">Drop-In Weekly Schedule</p>
-                        <div className="space-y-2">
+                        <div className="space-y-3">
                           {draft.drop_in_templates.map((window, index) => (
                             <div
                               key={`di-${window.day_of_week}-${window.start_time}-${window.end_time}-${index}`}
-                              className="grid grid-cols-[minmax(9.5rem,1.15fr)_minmax(7.5rem,8.5rem)_minmax(7.5rem,8.5rem)_auto] items-center gap-3"
+                              className="rounded-xl border border-secondary-50/10 bg-secondary-800/60 px-4 py-3"
                             >
-                              <select
-                                aria-label={`Drop-in day row ${index + 1}`}
-                                className="h-11 w-full appearance-none rounded-full border border-secondary-50/15 bg-secondary-800 px-5 py-2 text-sm font-medium text-secondary-50 shadow-xs outline-none transition-[border-color,box-shadow] hover:border-secondary-50/30 focus-visible:border-primary-400 focus-visible:ring-[3px] focus-visible:ring-primary-400/30"
-                                value={window.day_of_week}
-                                onChange={(event) => {
-                                  updateDraft((previous) => {
-                                    const next = [...previous.drop_in_templates]
-                                    next[index] = { ...next[index], day_of_week: Number(event.target.value) }
-                                    return { ...previous, drop_in_templates: next }
-                                  })
-                                }}
-                              >
-                                {DAY_OPTIONS.map((option) => (
-                                  <option key={option.value} value={option.value}>
-                                    {option.label}
-                                  </option>
-                                ))}
-                              </select>
-
-                              <TimePillSelect
-                                ariaLabel={`Drop-in start time row ${index + 1}`}
-                                value={window.start_time}
-                                options={getTimePillOptions(window.start_time)}
-                                onChange={(value) => {
-                                  updateDraft((previous) => {
-                                    const next = [...previous.drop_in_templates]
-                                    next[index] = { ...next[index], start_time: value }
-                                    return { ...previous, drop_in_templates: next }
-                                  })
-                                }}
-                              />
-
-                              <TimePillSelect
-                                ariaLabel={`Drop-in end time row ${index + 1}`}
-                                value={window.end_time}
-                                options={getTimePillOptions(window.end_time)}
-                                onChange={(value) => {
-                                  updateDraft((previous) => {
-                                    const next = [...previous.drop_in_templates]
-                                    next[index] = { ...next[index], end_time: value }
-                                    return { ...previous, drop_in_templates: next }
-                                  })
-                                }}
-                              />
-                              <Button
-                                type="button"
-                                variant="ghost"
-                                className="h-11 rounded-xl px-3 text-secondary-50/80 hover:text-secondary-50"
-                                onClick={() => {
-                                  updateDraft((previous) => ({
-                                    ...previous,
-                                    drop_in_templates: previous.drop_in_templates.filter((_, rowIndex) => rowIndex !== index),
-                                  }))
-                                }}
-                              >
-                                Remove
-                              </Button>
+                              <div className="mb-2 flex items-center justify-between">
+                                <div className="relative">
+                                  <select
+                                    aria-label={`Drop-in day row ${index + 1}`}
+                                    className="appearance-none bg-transparent pr-4 text-xs font-semibold text-secondary-50 outline-none cursor-pointer"
+                                    value={window.day_of_week}
+                                    onChange={(event) => {
+                                      updateDraft((previous) => {
+                                        const next = [...previous.drop_in_templates]
+                                        next[index] = { ...next[index], day_of_week: Number(event.target.value) }
+                                        return { ...previous, drop_in_templates: next }
+                                      })
+                                    }}
+                                  >
+                                    {DAY_OPTIONS.map((option) => (
+                                      <option key={option.value} value={option.value}>
+                                        {option.label}
+                                      </option>
+                                    ))}
+                                  </select>
+                                  <span
+                                    aria-hidden="true"
+                                    className="pointer-events-none absolute right-0 top-1/2 -translate-y-1/2 text-[0.5rem] text-secondary-50/50"
+                                  >
+                                    ▼
+                                  </span>
+                                </div>
+                                <button
+                                  type="button"
+                                  aria-label={`Remove drop-in row ${index + 1}`}
+                                  className="text-secondary-50/40 hover:text-secondary-50/80 transition-colors text-sm leading-none"
+                                  onClick={() => {
+                                    updateDraft((previous) => ({
+                                      ...previous,
+                                      drop_in_templates: previous.drop_in_templates.filter((_, rowIndex) => rowIndex !== index),
+                                    }))
+                                  }}
+                                >
+                                  ✕
+                                </button>
+                              </div>
+                              <div className="flex items-center gap-2">
+                                <TimePillSelect
+                                  ariaLabel={`Drop-in start time row ${index + 1}`}
+                                  value={window.start_time}
+                                  options={getTimePillOptions(window.start_time)}
+                                  onChange={(value) => {
+                                    updateDraft((previous) => {
+                                      const next = [...previous.drop_in_templates]
+                                      next[index] = { ...next[index], start_time: value }
+                                      return { ...previous, drop_in_templates: next }
+                                    })
+                                  }}
+                                />
+                                <span className="text-xs text-secondary-50/40">–</span>
+                                <TimePillSelect
+                                  ariaLabel={`Drop-in end time row ${index + 1}`}
+                                  value={window.end_time}
+                                  options={getTimePillOptions(window.end_time)}
+                                  onChange={(value) => {
+                                    updateDraft((previous) => {
+                                      const next = [...previous.drop_in_templates]
+                                      next[index] = { ...next[index], end_time: value }
+                                      return { ...previous, drop_in_templates: next }
+                                    })
+                                  }}
+                                />
+                              </div>
                             </div>
                           ))}
                         </div>
