@@ -79,4 +79,44 @@ describe('GET /auth/confirm', () => {
       `${origin}/auth/complete-profile?next=%2Fsearch`
     )
   })
+
+  it('verifies magic links and redirects to the requested next path', async () => {
+    mockVerifyOtp.mockResolvedValue({
+      data: {
+        session: {
+          user: {
+            id: 'user-2',
+            email: 'magic@example.com',
+            user_metadata: {},
+          },
+        },
+      },
+      error: null,
+    })
+
+    const response = await GET(
+      createRequest(
+        `${origin}/auth/confirm?token_hash=magic-hash&type=magiclink&next=%2Fvenues`
+      )
+    )
+
+    expect(mockVerifyOtp).toHaveBeenCalledWith({
+      token_hash: 'magic-hash',
+      type: 'magiclink',
+    })
+    expect(response.status).toBe(302)
+    expect(response.headers.get('Location')).toBe(`${origin}/venues`)
+  })
+
+  it('redirects malformed email links to login with the invalid-link error', async () => {
+    const response = await GET(
+      createRequest(`${origin}/auth/confirm?type=magiclink&next=%2Fvenues`)
+    )
+
+    expect(mockVerifyOtp).not.toHaveBeenCalled()
+    expect(response.status).toBe(302)
+    expect(response.headers.get('Location')).toBe(
+      `${origin}/auth/login?error=Invalid%20or%20expired%20email%20confirmation%20link.`
+    )
+  })
 })

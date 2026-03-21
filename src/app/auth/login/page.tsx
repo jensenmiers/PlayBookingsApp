@@ -27,6 +27,7 @@ function getErrorMessage(message: string) {
 function LoginContent() {
   const [loading, setLoading] = useState(false)
   const [emailLoading, setEmailLoading] = useState(false)
+  const [magicLinkLoading, setMagicLinkLoading] = useState(false)
   const [resending, setResending] = useState(false)
   const [email, setEmail] = useState('')
   const [password, setPassword] = useState('')
@@ -129,6 +130,45 @@ function LoginContent() {
     }
   }
 
+  const handleMagicLink = async () => {
+    setErrorMessage(null)
+    setInfoMessage(null)
+    setShowResendVerification(false)
+
+    const trimmedEmail = email.trim()
+    if (!trimmedEmail) {
+      setErrorMessage('Enter your email address first so we know where to send the magic link.')
+      return
+    }
+
+    try {
+      setMagicLinkLoading(true)
+      const supabase = createClient()
+      const { error } = await supabase.auth.signInWithOtp({
+        email: trimmedEmail,
+        options: {
+          shouldCreateUser: false,
+          emailRedirectTo: `${window.location.origin}${buildEmailConfirmationPath({
+            next: returnTo,
+            intent,
+          })}`,
+        },
+      })
+
+      if (error) {
+        setErrorMessage(error.message)
+        return
+      }
+
+      setInfoMessage('If that email is registered, check your inbox for a sign-in link.')
+    } catch (error) {
+      const message = error instanceof Error ? error.message : 'Unable to send the magic link right now.'
+      setErrorMessage(message)
+    } finally {
+      setMagicLinkLoading(false)
+    }
+  }
+
   return (
     <div className="flex flex-1 items-center justify-center bg-background p-l">
       <Card className="w-full max-w-md border-secondary-50/10 bg-secondary-800 p-2xl shadow-soft">
@@ -211,6 +251,16 @@ function LoginContent() {
               className="w-full rounded-xl py-m text-base"
             >
               {emailLoading ? 'Signing in...' : 'Sign in with email'}
+            </Button>
+
+            <Button
+              type="button"
+              variant="ghost"
+              className="w-full rounded-xl"
+              onClick={handleMagicLink}
+              disabled={magicLinkLoading}
+            >
+              {magicLinkLoading ? 'Sending magic link...' : 'Forgot password? Send magic link.'}
             </Button>
 
             {showResendVerification && (

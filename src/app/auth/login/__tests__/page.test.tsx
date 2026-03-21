@@ -3,6 +3,7 @@ import LoginPage from '../page'
 
 const mockGet = jest.fn()
 const mockSignInWithPassword = jest.fn()
+const mockSignInWithOtp = jest.fn()
 const mockResend = jest.fn()
 const mockNavigateToUrl = jest.fn()
 
@@ -19,6 +20,7 @@ jest.mock('@/lib/supabase/client', () => ({
   createClient: () => ({
     auth: {
       signInWithPassword: mockSignInWithPassword,
+      signInWithOtp: mockSignInWithOtp,
       resend: mockResend,
     },
   }),
@@ -33,6 +35,7 @@ describe('LoginPage', () => {
     jest.clearAllMocks()
     mockGet.mockReturnValue(null)
     mockSignInWithPassword.mockResolvedValue({ data: {}, error: null })
+    mockSignInWithOtp.mockResolvedValue({ data: {}, error: null })
     mockResend.mockResolvedValue({ data: {}, error: null })
   })
 
@@ -42,6 +45,7 @@ describe('LoginPage', () => {
     expect(screen.getByLabelText(/email address/i)).toBeInTheDocument()
     expect(screen.getByLabelText(/^password$/i)).toBeInTheDocument()
     expect(screen.getByRole('button', { name: /sign in with email/i })).toBeInTheDocument()
+    expect(screen.getByRole('button', { name: /forgot password\? send magic link\./i })).toBeInTheDocument()
     expect(screen.getByRole('button', { name: /continue with google/i })).toBeInTheDocument()
   })
 
@@ -116,6 +120,65 @@ describe('LoginPage', () => {
           emailRedirectTo: 'http://localhost/auth/confirm?phonePrompt=1',
         },
       })
+    })
+  })
+
+  it('requires an email address before sending a magic link', async () => {
+    render(<LoginPage />)
+
+    fireEvent.click(screen.getByRole('button', { name: /forgot password\? send magic link\./i }))
+
+    expect(
+      screen.getByText(/enter your email address first so we know where to send the magic link/i)
+    ).toBeInTheDocument()
+    expect(mockSignInWithOtp).not.toHaveBeenCalled()
+  })
+
+  it('sends a magic link with the current returnTo and intent preserved', async () => {
+    mockGet.mockImplementation((key: string) => {
+      if (key === 'returnTo') return '/book/venue-1'
+      if (key === 'intent') return 'host'
+      return null
+    })
+
+    render(<LoginPage />)
+
+    fireEvent.change(screen.getByLabelText(/email address/i), {
+      target: { value: 'jane@example.com' },
+    })
+    fireEvent.click(screen.getByRole('button', { name: /forgot password\? send magic link\./i }))
+
+    await waitFor(() => {
+      expect(mockSignInWithOtp).toHaveBeenCalledWith({
+        email: 'jane@example.com',
+        options: {
+          shouldCreateUser: false,
+          emailRedirectTo:
+            'http://localhost/auth/confirm?next=%2Fbook%2Fvenue-1&intent=host',
+        },
+      })
+    })
+
+    expect(
+      screen.getByText(/if that email is registered, check your inbox for a sign-in link/i)
+    ).toBeInTheDocument()
+  })
+
+  it('shows magic-link errors in the existing error area', async () => {
+    mockSignInWithOtp.mockResolvedValue({
+      data: {},
+      error: { message: 'Unable to send email right now.' },
+    })
+
+    render(<LoginPage />)
+
+    fireEvent.change(screen.getByLabelText(/email address/i), {
+      target: { value: 'jane@example.com' },
+    })
+    fireEvent.click(screen.getByRole('button', { name: /forgot password\? send magic link\./i }))
+
+    await waitFor(() => {
+      expect(screen.getByText(/unable to send email right now\./i)).toBeInTheDocument()
     })
   })
 })
