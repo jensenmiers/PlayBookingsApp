@@ -103,6 +103,19 @@ describe('Navigation', () => {
     )
   })
 
+  it('opens mixed account auth from the guest navbar entry', () => {
+    render(<Navigation />)
+
+    fireEvent.click(screen.getByRole('button', { name: 'Log in / Sign up' }))
+    fireEvent.click(screen.getAllByRole('button', { name: 'Log in / Sign up' })[1])
+
+    expect(mockOpenAuthModal).toHaveBeenCalledWith(
+      expect.objectContaining({
+        entryMode: 'mixed',
+      })
+    )
+  })
+
   it('does not expose removed /calendar route for venue owners', () => {
     mockUseCurrentUser.mockReturnValue({
       user: {

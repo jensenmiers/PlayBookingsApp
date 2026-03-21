@@ -10,13 +10,14 @@ import {
   DialogDescription,
 } from '@/components/ui/dialog'
 import { Button } from '@/components/ui/button'
+import { AuthLegalFooter } from '@/components/auth/auth-legal-footer'
 import { useAuthModal } from '@/contexts/AuthModalContext'
-import { buildAuthInitiationPath, buildEmailEntryPath } from '@/lib/auth/oauthFlow'
+import { buildAuthInitiationPath, buildLoginPath, buildRegisterPath } from '@/lib/auth/oauthFlow'
 import { navigateToUrl } from '@/lib/auth/clientNavigation'
 import { persistAuthResumeState } from '@/lib/auth/authResume'
 
 export function AuthModal() {
-  const { isOpen, intent, returnTo, resumeState, contextMessage, closeAuthModal } = useAuthModal()
+  const { isOpen, intent, entryMode, returnTo, resumeState, contextMessage, closeAuthModal } = useAuthModal()
   const [loading, setLoading] = useState(false)
 
   // Reset state when modal closes
@@ -46,23 +47,30 @@ export function AuthModal() {
     }
   }
 
+  const isHostEntry = intent === 'host'
+  const isMixedEntry = entryMode === 'mixed' && !isHostEntry
+
   // Dynamic content based on intent
   const title = contextMessage 
     ? 'Sign In Required'
-    : intent === 'host' 
+    : isHostEntry
       ? 'Become a Host' 
-      : 'Welcome to Play Bookings!'
+      : isMixedEntry
+        ? 'Log in or sign up'
+        : 'Welcome Back'
 
   const description = contextMessage 
-    ?? (intent === 'host'
+    ?? (isHostEntry
       ? 'Create your host account to list your courts and start earning revenue'
-      : 'Sign in to book courts and manage your reservations')
+      : isMixedEntry
+        ? 'Access your Play Bookings account or create a new one to book courts and manage your reservations'
+        : 'Sign in to book courts and manage your reservations')
 
   return (
     <Dialog open={isOpen} onOpenChange={(open) => !open && closeAuthModal()}>
       <DialogContent className="sm:max-w-md">
         <DialogHeader className="space-y-3 text-center">
-          {intent === 'host' && !contextMessage && (
+          {isHostEntry && !contextMessage && (
             <div className="mx-auto mb-s inline-flex items-center gap-s rounded-full bg-primary-400/15 px-l py-s text-sm font-semibold text-primary-400">
               <svg className="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 10V3L4 14h7v7l9-11h-7z" />
@@ -109,30 +117,43 @@ export function AuthModal() {
             </p>
           )}
 
-          <Button
-            asChild
-            variant="outline"
-            size="lg"
-            className="w-full rounded-xl py-m text-base"
-          >
-            <Link href={buildEmailEntryPath({ returnTo, intent })}>
-              Continue with Email
-            </Link>
-          </Button>
-
-          <div className="space-y-2 text-center text-xs text-secondary-50/55">
-            <p>
-              Choose Google or email. Calendar access is requested separately only if a venue admin later
-              chooses to connect Google Calendar.
-            </p>
-            <p>
-              By continuing, you agree to our{' '}
-              <Link href="/privacy" className="font-semibold text-secondary-50/70 hover:text-primary-400">
-                Privacy Policy
+          {isMixedEntry ? (
+            <div className="grid gap-m sm:grid-cols-2">
+              <Button
+                asChild
+                variant="outline"
+                size="lg"
+                className="w-full rounded-xl py-m text-base"
+              >
+                <Link href={buildRegisterPath({ returnTo, intent })}>
+                  Create account with Email
+                </Link>
+              </Button>
+              <Button
+                asChild
+                variant="outline"
+                size="lg"
+                className="w-full rounded-xl py-m text-base"
+              >
+                <Link href={buildLoginPath({ returnTo, intent })}>
+                  Log in with Email
+                </Link>
+              </Button>
+            </div>
+          ) : (
+            <Button
+              asChild
+              variant="outline"
+              size="lg"
+              className="w-full rounded-xl py-m text-base"
+            >
+              <Link href={isHostEntry ? buildRegisterPath({ returnTo, intent }) : buildLoginPath({ returnTo, intent })}>
+                {isHostEntry ? 'Continue with Email' : 'Log in with Email'}
               </Link>
-              .
-            </p>
-          </div>
+            </Button>
+          )}
+
+          <AuthLegalFooter className="space-y-2 text-center text-xs text-secondary-50/55" />
         </div>
       </DialogContent>
     </Dialog>

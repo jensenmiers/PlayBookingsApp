@@ -1,6 +1,7 @@
 'use client'
 
 import { Button } from '@/components/ui/button'
+import { AuthLegalFooter } from '@/components/auth/auth-legal-footer'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
@@ -295,19 +296,7 @@ function RegisterContent() {
             </div>
           )}
 
-          <div className="space-y-2 text-center text-sm text-secondary-50/60">
-            <p>
-              Choose Google or email. Calendar access is requested separately only if a venue admin later
-              chooses to connect Google Calendar.
-            </p>
-            <p>
-              By continuing, you agree to our{' '}
-              <Link href="/privacy" className="font-semibold text-secondary-50/70 hover:text-primary-400">
-                Privacy Policy
-              </Link>
-              .
-            </p>
-          </div>
+          <AuthLegalFooter />
 
           <div className="text-center">
             <Link href="/" className="text-sm font-medium text-secondary-50/50 hover:text-secondary-50/70">

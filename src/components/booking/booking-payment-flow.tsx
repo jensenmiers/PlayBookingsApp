@@ -443,6 +443,7 @@ export function BookingPaymentFlow({
   const handleConfirmDetails = useCallback(async () => {
     if (!user) {
       openAuthModal({
+        entryMode: 'login',
         contextMessage: 'Sign in to complete your booking',
         resumeState: {
           type: 'slot-booking',

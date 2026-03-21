@@ -8,7 +8,7 @@ const EFFECTIVE_DATE = 'March 6, 2026'
 export const metadata: Metadata = {
   title: 'Privacy Policy',
   description:
-    'Learn how Play Bookings collects, uses, and protects personal information, including Google user data from Google Sign-In and Google Calendar.',
+    'Learn how Play Bookings collects, uses, and protects personal information, including Google user data used for Google Sign-In and related account access.',
   alternates: {
     canonical: '/privacy',
   },
@@ -40,10 +40,10 @@ const sections = [
           handled inside the product.
         </p>
         <p>
-          In short: we use Google Sign-In to authenticate users, and venue admins can optionally connect a
-          Google Calendar so Play Bookings can read selected calendar timing and busy information, combine that
-          data with venue operating hours, and generate bookable availability windows. We do not sell Google
-          user data, and we do not use Google user data for advertising or unrelated product features.
+          Google Sign-In helps users access their accounts. Venue admins can also optionally connect Google
+          Calendar for a venue so Play Bookings can read selected calendar timing and busy information needed to
+          support availability generation during configured operating hours. We do not sell Google user data,
+          and we do not use Google user data for advertising or unrelated product features.
         </p>
       </>
     ),
@@ -56,7 +56,7 @@ const sections = [
         <ul className="list-disc space-y-2 pl-5 text-secondary-50/72">
           <li>Account information such as your name, email address, and profile image.</li>
           <li>Booking, venue, payment, and messaging data needed to operate the marketplace.</li>
-          <li>Calendar integration data for hosts who connect Google Calendar.</li>
+          <li>Optional host calendar connection data for venue owners who enable Google Calendar.</li>
           <li>Operational and security data such as audit logs, sync status, and error information.</li>
         </ul>
       </>
@@ -84,8 +84,9 @@ const sections = [
     content: (
       <>
         <p>
-          Venue admins may choose to connect a Google Calendar to a venue. This access is read-only and is
-          requested only when an admin explicitly chooses to connect Google Calendar for that venue.
+          This optional integration only applies to venue admins who choose to connect Google Calendar for a
+          venue. This access is read-only and is requested only when an admin explicitly chooses to enable it
+          for that venue.
         </p>
         <p>When a venue admin connects Google Calendar, Play Bookings may:</p>
         <ul className="list-disc space-y-2 pl-5 text-secondary-50/72">
@@ -190,18 +191,13 @@ export default function PrivacyPage() {
           <div className="rounded-3xl border border-secondary-50/10 bg-secondary-800/80 p-8 shadow-glass sm:p-10">
             <p className="mb-4 text-sm font-medium uppercase tracking-[0.25em] text-accent-400">Legal</p>
             <h1 className="font-serif text-4xl text-secondary-50 sm:text-5xl">Privacy Policy</h1>
+            <p className="mt-3 text-xs font-medium uppercase tracking-[0.2em] text-secondary-50/45">
+              Effective date: {EFFECTIVE_DATE}
+            </p>
             <p className="mt-4 max-w-2xl text-base text-secondary-50/70 sm:text-lg">
               This page explains how Play Bookings uses personal information and, specifically, how the
-              application handles Google user data for sign-in and host calendar syncing.
+              application handles Google user data for Google Sign-In and optional host calendar syncing.
             </p>
-
-            <div className="mt-8 rounded-2xl border border-primary-400/20 bg-primary-400/10 p-5 text-sm text-secondary-50/80">
-              <p className="font-medium text-secondary-50">Effective date: {EFFECTIVE_DATE}</p>
-              <p className="mt-2">
-                In short: Google Sign-In helps you access your account, and optional Google Calendar connections
-                use read-only calendar data plus venue operating hours to generate accurate bookable availability.
-              </p>
-            </div>
 
             <div className="mt-10 space-y-10">
               {sections.map((section) => (

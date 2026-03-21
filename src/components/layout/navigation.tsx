@@ -252,7 +252,7 @@ export function Navigation() {
                       d="M4 6h16M4 12h16M4 18h16"
                     />
                   </svg>
-                  <span className="text-base font-medium text-secondary-50/80">Sign Up</span>
+                  <span className="text-base font-medium text-secondary-50/80">Log in / Sign up</span>
                 </button>
 
                 {guestDropdownOpen && (
@@ -261,11 +261,13 @@ export function Navigation() {
                       <button
                         onClick={() => {
                           setGuestDropdownOpen(false)
-                          openAuthModal()
+                          openAuthModal({
+                            entryMode: 'mixed',
+                          })
                         }}
                         className="block w-full rounded-lg bg-primary-400 px-4 py-2.5 text-center text-sm font-semibold text-secondary-900 transition-colors hover:bg-primary-500"
                       >
-                        Log in or Sign up
+                        Log in / Sign up
                       </button>
                     </div>
                     <div className="border-t border-secondary-50/10 py-2">
@@ -377,11 +379,13 @@ export function Navigation() {
                 <button
                   onClick={() => {
                     setMobileMenuOpen(false)
-                    openAuthModal()
+                    openAuthModal({
+                      entryMode: 'mixed',
+                    })
                   }}
                   className="block w-full rounded-lg bg-primary-400 px-4 py-3 text-center text-base font-semibold text-secondary-900 transition-colors hover:bg-primary-500"
                 >
-                  Log in or Sign up
+                  Log in / Sign up
                 </button>
                 <Link
                   href="/search"

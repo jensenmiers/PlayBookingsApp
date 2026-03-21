@@ -10,9 +10,11 @@ import {
 } from '@/lib/auth/authResume'
 
 export type AuthIntent = 'renter' | 'host'
+export type AuthEntryMode = 'mixed' | 'login'
 
 export interface OpenAuthModalOptions {
   intent?: AuthIntent
+  entryMode?: AuthEntryMode
   returnTo?: string
   resumeState?: AuthResumeState
   contextMessage?: string
@@ -21,6 +23,7 @@ export interface OpenAuthModalOptions {
 interface AuthModalState {
   isOpen: boolean
   intent: AuthIntent
+  entryMode: AuthEntryMode
   returnTo: string | null
   resumeState: AuthResumeState | null
   contextMessage?: string
@@ -51,6 +54,7 @@ export function AuthModalProvider({ children }: AuthModalProviderProps) {
   const [state, setState] = useState<AuthModalState>({
     isOpen: false,
     intent: 'renter',
+    entryMode: 'login',
     returnTo: null,
     resumeState: null,
     contextMessage: undefined,
@@ -76,6 +80,7 @@ export function AuthModalProvider({ children }: AuthModalProviderProps) {
     setState({
       isOpen: true,
       intent: options?.intent ?? 'renter',
+      entryMode: options?.entryMode ?? 'login',
       returnTo: currentReturnTo,
       resumeState: options?.resumeState ?? null,
       contextMessage: options?.contextMessage,

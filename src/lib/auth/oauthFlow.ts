@@ -41,12 +41,30 @@ export function buildAuthInitiationPath(args: {
   return query ? `/api/auth/redirect-oauth?${query}` : '/api/auth/redirect-oauth'
 }
 
-export function buildEmailEntryPath(args: {
+export function buildLoginPath(args: {
+  returnTo?: string | null
+  intent?: string | null
+}): string {
+  const params = new URLSearchParams()
+
+  if (args.returnTo) {
+    params.set('returnTo', args.returnTo)
+  }
+
+  const intent = sanitizeAuthIntent(args.intent)
+  if (intent) {
+    params.set('intent', intent)
+  }
+
+  const query = params.toString()
+  return query ? `/auth/login?${query}` : '/auth/login'
+}
+
+export function buildRegisterPath(args: {
   returnTo?: string | null
   intent?: string | null
 }): string {
   const intent = sanitizeAuthIntent(args.intent)
-  const basePath = intent === 'host' ? '/auth/register' : '/auth/login'
   const params = new URLSearchParams()
 
   if (args.returnTo) {
@@ -58,7 +76,7 @@ export function buildEmailEntryPath(args: {
   }
 
   const query = params.toString()
-  return query ? `${basePath}?${query}` : basePath
+  return query ? `/auth/register?${query}` : '/auth/register'
 }
 
 export function buildFinalizePath(args: {

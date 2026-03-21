@@ -12,6 +12,7 @@ const mockNavigateToUrl = jest.fn()
 let useAuthModalReturn: {
   isOpen: boolean
   intent: 'host' | undefined
+  entryMode: 'mixed' | 'login'
   returnTo: string | undefined
   resumeState:
     | {
@@ -29,6 +30,7 @@ let useAuthModalReturn: {
 } = {
   isOpen: true,
   intent: undefined,
+  entryMode: 'login',
   returnTo: undefined,
   resumeState: undefined,
   contextMessage: null,
@@ -59,6 +61,7 @@ beforeEach(() => {
   useAuthModalReturn = {
     isOpen: true,
     intent: undefined,
+    entryMode: 'login',
     returnTo: undefined,
     resumeState: undefined,
     contextMessage: null,
@@ -81,14 +84,14 @@ describe('AuthModal', () => {
     expect(mockNavigateToUrl).toHaveBeenCalledWith('/api/auth/redirect-oauth')
   })
 
-  it('shows Google Sign-In disclosure copy and privacy link', () => {
+  it('shows the privacy link without the calendar disclosure copy', () => {
     render(<AuthModal />)
 
-    expect(screen.getByText(/choose google or email/i)).toBeInTheDocument()
+    expect(screen.queryByText(/choose google or email/i)).not.toBeInTheDocument()
     expect(screen.getByRole('link', { name: /privacy policy/i })).toHaveAttribute('href', '/privacy')
   })
 
-  it('includes an email auth link that preserves host intent and returnTo', () => {
+  it('preserves host intent and returnTo on the host email auth link', () => {
     useAuthModalReturn.returnTo = '/book'
     useAuthModalReturn.intent = 'host'
 
@@ -97,6 +100,34 @@ describe('AuthModal', () => {
     expect(screen.getByRole('link', { name: /continue with email/i })).toHaveAttribute(
       'href',
       '/auth/register?returnTo=%2Fbook&intent=host'
+    )
+  })
+
+  it('renders a login email link in login mode for renter auth prompts', () => {
+    useAuthModalReturn.returnTo = '/book'
+
+    render(<AuthModal />)
+
+    expect(screen.getByRole('link', { name: /log in with email/i })).toHaveAttribute(
+      'href',
+      '/auth/login?returnTo=%2Fbook'
+    )
+  })
+
+  it('renders mixed account entry with separate create-account and login email links', () => {
+    useAuthModalReturn.entryMode = 'mixed'
+    useAuthModalReturn.returnTo = '/search'
+
+    render(<AuthModal />)
+
+    expect(screen.getByRole('heading', { name: /log in or sign up/i })).toBeInTheDocument()
+    expect(screen.getByRole('link', { name: /create account with email/i })).toHaveAttribute(
+      'href',
+      '/auth/register?returnTo=%2Fsearch'
+    )
+    expect(screen.getByRole('link', { name: /log in with email/i })).toHaveAttribute(
+      'href',
+      '/auth/login?returnTo=%2Fsearch'
     )
   })
 

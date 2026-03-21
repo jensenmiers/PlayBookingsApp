@@ -237,6 +237,7 @@ export function CreateBookingForm({
       ) {
         const currentValues = form.getValues()
         openAuthModal({
+          entryMode: 'login',
           contextMessage: 'Sign in to complete your booking',
           resumeState: {
             type: 'create-booking-form',
