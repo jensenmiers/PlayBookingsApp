@@ -47,6 +47,10 @@ export function AuthModal() {
     }
   }
 
+  const handleEmailNavigation = () => {
+    closeAuthModal()
+  }
+
   const isHostEntry = intent === 'host'
   const isMixedEntry = entryMode === 'mixed' && !isHostEntry
 
@@ -56,14 +60,14 @@ export function AuthModal() {
     : isHostEntry
       ? 'Become a Host' 
       : isMixedEntry
-        ? 'Log in or sign up'
+        ? 'Welcome to Play Bookings 🏀'
         : 'Welcome Back'
 
   const description = contextMessage 
     ?? (isHostEntry
       ? 'Create your host account to list your courts and start earning revenue'
       : isMixedEntry
-        ? 'Access your Play Bookings account or create a new one to book courts and manage your reservations'
+        ? 'Book courts, manage reservations, save your favorite gyms.'
         : 'Sign in to book courts and manage your reservations')
 
   return (
@@ -125,8 +129,8 @@ export function AuthModal() {
                 size="lg"
                 className="w-full rounded-xl py-m text-base"
               >
-                <Link href={buildRegisterPath({ returnTo, intent })}>
-                  Create account with Email
+                <Link href={buildLoginPath({ returnTo, intent })} onClick={handleEmailNavigation}>
+                  Log in with Email
                 </Link>
               </Button>
               <Button
@@ -135,8 +139,8 @@ export function AuthModal() {
                 size="lg"
                 className="w-full rounded-xl py-m text-base"
               >
-                <Link href={buildLoginPath({ returnTo, intent })}>
-                  Log in with Email
+                <Link href={buildRegisterPath({ returnTo, intent })} onClick={handleEmailNavigation}>
+                  Create account
                 </Link>
               </Button>
             </div>
@@ -147,7 +151,10 @@ export function AuthModal() {
               size="lg"
               className="w-full rounded-xl py-m text-base"
             >
-              <Link href={isHostEntry ? buildRegisterPath({ returnTo, intent }) : buildLoginPath({ returnTo, intent })}>
+              <Link
+                href={isHostEntry ? buildRegisterPath({ returnTo, intent }) : buildLoginPath({ returnTo, intent })}
+                onClick={handleEmailNavigation}
+              >
                 {isHostEntry ? 'Continue with Email' : 'Log in with Email'}
               </Link>
             </Button>

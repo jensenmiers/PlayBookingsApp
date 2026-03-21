@@ -252,7 +252,7 @@ export function Navigation() {
                       d="M4 6h16M4 12h16M4 18h16"
                     />
                   </svg>
-                  <span className="text-base font-medium text-secondary-50/80">Log in / Sign up</span>
+                  <span className="text-base font-medium text-secondary-50/80">Join / Sign in</span>
                 </button>
 
                 {guestDropdownOpen && (
@@ -267,7 +267,7 @@ export function Navigation() {
                         }}
                         className="block w-full rounded-lg bg-primary-400 px-4 py-2.5 text-center text-sm font-semibold text-secondary-900 transition-colors hover:bg-primary-500"
                       >
-                        Log in / Sign up
+                        Join / Sign in
                       </button>
                     </div>
                     <div className="border-t border-secondary-50/10 py-2">
@@ -385,7 +385,7 @@ export function Navigation() {
                   }}
                   className="block w-full rounded-lg bg-primary-400 px-4 py-3 text-center text-base font-semibold text-secondary-900 transition-colors hover:bg-primary-500"
                 >
-                  Log in / Sign up
+                  Join / Sign in
                 </button>
                 <Link
                   href="/search"

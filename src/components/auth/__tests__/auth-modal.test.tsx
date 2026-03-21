@@ -120,15 +120,46 @@ describe('AuthModal', () => {
 
     render(<AuthModal />)
 
-    expect(screen.getByRole('heading', { name: /log in or sign up/i })).toBeInTheDocument()
-    expect(screen.getByRole('link', { name: /create account with email/i })).toHaveAttribute(
-      'href',
-      '/auth/register?returnTo=%2Fsearch'
-    )
-    expect(screen.getByRole('link', { name: /log in with email/i })).toHaveAttribute(
+    expect(screen.getByRole('heading', { name: /welcome to play bookings 🏀/i })).toBeInTheDocument()
+    expect(
+      screen.getByText(/book courts, manage reservations, save your favorite gyms\./i)
+    ).toBeInTheDocument()
+    expect(screen.queryByRole('link', { name: /create account with email/i })).not.toBeInTheDocument()
+    expect(screen.getByRole('link', { name: /^log in with email$/i })).toHaveAttribute(
       'href',
       '/auth/login?returnTo=%2Fsearch'
     )
+    expect(screen.getByRole('link', { name: /^create account$/i })).toHaveAttribute(
+      'href',
+      '/auth/register?returnTo=%2Fsearch'
+    )
+
+    const emailLinks = screen
+      .getAllByRole('link')
+      .filter((link) => /email|create account/i.test(link.textContent ?? ''))
+      .map((link) => link.textContent)
+
+    expect(emailLinks).toEqual(['Log in with Email', 'Create account'])
+  })
+
+  it('closes the auth modal before navigating from mixed-entry email links', () => {
+    useAuthModalReturn.entryMode = 'mixed'
+
+    render(<AuthModal />)
+
+    fireEvent.click(screen.getByRole('link', { name: /^log in with email$/i }))
+    expect(mockCloseAuthModal).toHaveBeenCalledTimes(1)
+
+    fireEvent.click(screen.getByRole('link', { name: /^create account$/i }))
+    expect(mockCloseAuthModal).toHaveBeenCalledTimes(2)
+  })
+
+  it('closes the auth modal before navigating from the single email link', () => {
+    render(<AuthModal />)
+
+    fireEvent.click(screen.getByRole('link', { name: /log in with email/i }))
+
+    expect(mockCloseAuthModal).toHaveBeenCalledTimes(1)
   })
 
   it('includes returnTo and intent=host in redirect URL when set', () => {

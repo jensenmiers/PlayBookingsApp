@@ -34,12 +34,17 @@ describe('RegisterPage', () => {
   it('renders email/password registration fields alongside Google sign-in', () => {
     render(<RegisterPage />)
 
-    expect(screen.getByLabelText(/first name/i)).toBeInTheDocument()
-    expect(screen.getByLabelText(/last name/i)).toBeInTheDocument()
+    expect(screen.getByLabelText(/^name$/i)).toBeInTheDocument()
+    expect(screen.queryByLabelText(/first name/i)).not.toBeInTheDocument()
+    expect(screen.queryByLabelText(/last name/i)).not.toBeInTheDocument()
     expect(screen.getByLabelText(/email address/i)).toBeInTheDocument()
     expect(screen.getByLabelText(/^password$/i)).toBeInTheDocument()
-    expect(screen.getByLabelText(/confirm password/i)).toBeInTheDocument()
-    expect(screen.getByRole('button', { name: /create account with email/i })).toBeInTheDocument()
+    expect(screen.queryByLabelText(/confirm password/i)).not.toBeInTheDocument()
+    expect(screen.getByPlaceholderText(/your name/i)).toBeInTheDocument()
+    expect(screen.getByPlaceholderText(/you@example\.com/i)).toBeInTheDocument()
+    expect(screen.getByPlaceholderText(/min\. 8 characters/i)).toBeInTheDocument()
+    expect(screen.getByText(/or continue with email/i)).toBeInTheDocument()
+    expect(screen.getByRole('button', { name: /^create account$/i })).toBeInTheDocument()
     expect(screen.getByRole('button', { name: /continue with google/i })).toBeInTheDocument()
   })
 
@@ -58,11 +63,8 @@ describe('RegisterPage', () => {
 
     render(<RegisterPage />)
 
-    fireEvent.change(screen.getByLabelText(/first name/i), {
-      target: { value: 'Jane' },
-    })
-    fireEvent.change(screen.getByLabelText(/last name/i), {
-      target: { value: 'Doe' },
+    fireEvent.change(screen.getByLabelText(/^name$/i), {
+      target: { value: 'Jane Doe' },
     })
     fireEvent.change(screen.getByLabelText(/email address/i), {
       target: { value: 'jane@example.com' },
@@ -70,10 +72,7 @@ describe('RegisterPage', () => {
     fireEvent.change(screen.getByLabelText(/^password$/i), {
       target: { value: 'password123' },
     })
-    fireEvent.change(screen.getByLabelText(/confirm password/i), {
-      target: { value: 'password123' },
-    })
-    fireEvent.click(screen.getByRole('button', { name: /create account with email/i }))
+    fireEvent.click(screen.getByRole('button', { name: /^create account$/i }))
 
     await waitFor(() => {
       expect(mockSignUp).toHaveBeenCalledWith({
@@ -98,11 +97,8 @@ describe('RegisterPage', () => {
   it('resends the verification email from the post-signup state', async () => {
     render(<RegisterPage />)
 
-    fireEvent.change(screen.getByLabelText(/first name/i), {
-      target: { value: 'Jane' },
-    })
-    fireEvent.change(screen.getByLabelText(/last name/i), {
-      target: { value: 'Doe' },
+    fireEvent.change(screen.getByLabelText(/^name$/i), {
+      target: { value: 'Jane Doe' },
     })
     fireEvent.change(screen.getByLabelText(/email address/i), {
       target: { value: 'jane@example.com' },
@@ -110,10 +106,7 @@ describe('RegisterPage', () => {
     fireEvent.change(screen.getByLabelText(/^password$/i), {
       target: { value: 'password123' },
     })
-    fireEvent.change(screen.getByLabelText(/confirm password/i), {
-      target: { value: 'password123' },
-    })
-    fireEvent.click(screen.getByRole('button', { name: /create account with email/i }))
+    fireEvent.click(screen.getByRole('button', { name: /^create account$/i }))
 
     await waitFor(() => {
       expect(screen.getByRole('button', { name: /resend verification email/i })).toBeInTheDocument()

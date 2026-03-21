@@ -106,8 +106,8 @@ describe('Navigation', () => {
   it('opens mixed account auth from the guest navbar entry', () => {
     render(<Navigation />)
 
-    fireEvent.click(screen.getByRole('button', { name: 'Log in / Sign up' }))
-    fireEvent.click(screen.getAllByRole('button', { name: 'Log in / Sign up' })[1])
+    fireEvent.click(screen.getByRole('button', { name: 'Join / Sign in' }))
+    fireEvent.click(screen.getAllByRole('button', { name: 'Join / Sign in' })[1])
 
     expect(mockOpenAuthModal).toHaveBeenCalledWith(
       expect.objectContaining({

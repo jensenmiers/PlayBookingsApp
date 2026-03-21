@@ -21,11 +21,9 @@ function RegisterContent() {
   const [emailLoading, setEmailLoading] = useState(false)
   const [resending, setResending] = useState(false)
   const [signupState, setSignupState] = useState<SignupState>('form')
-  const [firstName, setFirstName] = useState('')
-  const [lastName, setLastName] = useState('')
+  const [name, setName] = useState('')
   const [email, setEmail] = useState('')
   const [password, setPassword] = useState('')
-  const [confirmPassword, setConfirmPassword] = useState('')
   const [errorMessage, setErrorMessage] = useState<string | null>(null)
   const [infoMessage, setInfoMessage] = useState<string | null>(null)
   const searchParams = useSearchParams()
@@ -65,11 +63,9 @@ function RegisterContent() {
     setInfoMessage(null)
 
     const parsed = registerSchema.safeParse({
+      name,
       email,
       password,
-      confirmPassword,
-      firstName,
-      lastName,
     })
 
     if (!parsed.success) {
@@ -79,15 +75,18 @@ function RegisterContent() {
 
     try {
       setEmailLoading(true)
+      const fullName = parsed.data.name.trim()
+      const [firstName = '', ...lastNameParts] = fullName.split(/\s+/)
+      const lastName = lastNameParts.join(' ')
       const supabase = createClient()
       const { data, error } = await supabase.auth.signUp({
         email: parsed.data.email,
         password: parsed.data.password,
         options: {
           data: {
-            first_name: parsed.data.firstName,
-            last_name: parsed.data.lastName,
-            full_name: `${parsed.data.firstName} ${parsed.data.lastName}`.trim(),
+            first_name: firstName,
+            last_name: lastName,
+            full_name: fullName,
           },
           emailRedirectTo: `${window.location.origin}${confirmationPath}`,
         },
@@ -201,32 +200,21 @@ function RegisterContent() {
 
           <div className="flex items-center gap-s text-xs uppercase tracking-[0.24em] text-secondary-50/35">
             <div className="h-px flex-1 bg-secondary-50/10" />
-            <span>or</span>
+            <span>or continue with email</span>
             <div className="h-px flex-1 bg-secondary-50/10" />
           </div>
 
           {signupState === 'form' ? (
             <form className="space-y-4" onSubmit={handleEmailSignup}>
-              <div className="grid gap-l sm:grid-cols-2">
-                <div className="space-y-2">
-                  <Label htmlFor="register-first-name">First name</Label>
-                  <Input
-                    id="register-first-name"
-                    autoComplete="given-name"
-                    value={firstName}
-                    onChange={(event) => setFirstName(event.target.value)}
-                  />
-                </div>
-
-                <div className="space-y-2">
-                  <Label htmlFor="register-last-name">Last name</Label>
-                  <Input
-                    id="register-last-name"
-                    autoComplete="family-name"
-                    value={lastName}
-                    onChange={(event) => setLastName(event.target.value)}
-                  />
-                </div>
+              <div className="space-y-2">
+                <Label htmlFor="register-name">Name</Label>
+                <Input
+                  id="register-name"
+                  autoComplete="name"
+                  placeholder="Your name"
+                  value={name}
+                  onChange={(event) => setName(event.target.value)}
+                />
               </div>
 
               <div className="space-y-2">
@@ -235,6 +223,7 @@ function RegisterContent() {
                   id="register-email"
                   type="email"
                   autoComplete="email"
+                  placeholder="you@example.com"
                   value={email}
                   onChange={(event) => setEmail(event.target.value)}
                 />
@@ -246,19 +235,9 @@ function RegisterContent() {
                   id="register-password"
                   type="password"
                   autoComplete="new-password"
+                  placeholder="Min. 8 characters"
                   value={password}
                   onChange={(event) => setPassword(event.target.value)}
-                />
-              </div>
-
-              <div className="space-y-2">
-                <Label htmlFor="register-confirm-password">Confirm password</Label>
-                <Input
-                  id="register-confirm-password"
-                  type="password"
-                  autoComplete="new-password"
-                  value={confirmPassword}
-                  onChange={(event) => setConfirmPassword(event.target.value)}
                 />
               </div>
 
@@ -271,7 +250,7 @@ function RegisterContent() {
               >
                 {emailLoading
                   ? (isHostSignup ? 'Creating host account...' : 'Creating account...')
-                  : 'Create account with email'}
+                  : 'Create Account'}
               </Button>
             </form>
           ) : (
