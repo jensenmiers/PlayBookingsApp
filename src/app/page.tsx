@@ -122,7 +122,7 @@ function CourtCardsScroll({ courts, mounted }: { courts: FeaturedCourt[]; mounte
   )
 }
 
-function SidebarCourtCard({
+function VerticalCompactCourtCard({
   court,
   index,
   mounted,
@@ -144,46 +144,47 @@ function SidebarCourtCard({
       onMouseLeave={() => setIsHovered(false)}
     >
       <div
-        className={`relative flex overflow-hidden rounded-xl bg-secondary-800/80 border border-secondary-50/10 transition-all duration-500 ${
-          isHovered ? 'border-primary-400/40 shadow-lg shadow-primary-400/5' : ''
+        className={`relative flex flex-col overflow-hidden rounded-2xl bg-secondary-800/80 border border-secondary-50/10 transition-all duration-500 h-full ${
+          isHovered ? 'border-primary-400/40 shadow-xl shadow-primary-400/5' : ''
         }`}
       >
-        <div className="relative w-28 xl:w-32 flex-shrink-0 overflow-hidden">
-          <div className="absolute inset-0">
-            {court.image ? (
-              <div
-                className={`w-full h-full bg-cover bg-center transition-transform duration-700 ${
-                  isHovered ? 'scale-110' : 'scale-100'
-                }`}
-                style={{ backgroundImage: `url('${court.image}')` }}
-              />
-            ) : (
-              <div className="w-full h-full bg-gradient-to-br from-secondary-700 to-secondary-900 flex items-center justify-center">
-                <span className="text-secondary-50/40 text-[10px] uppercase tracking-wide">No photo</span>
-              </div>
-            )}
+        <div className="relative flex-1 min-h-0 overflow-hidden">
+          {court.image ? (
+            <div
+              className={`w-full h-full bg-cover bg-center transition-transform duration-700 ${
+                isHovered ? 'scale-110' : 'scale-100'
+              }`}
+              style={{ backgroundImage: `url('${court.image}')` }}
+            />
+          ) : (
+            <div className="w-full h-full bg-gradient-to-br from-secondary-700 to-secondary-900 flex items-center justify-center">
+              <span className="text-secondary-50/40 text-sm uppercase tracking-wide">No photo</span>
+            </div>
+          )}
+          <div className="absolute inset-x-0 bottom-0 h-16 bg-gradient-to-t from-secondary-800/90 to-transparent" />
+
+          <div className="absolute bottom-2.5 left-3.5 flex items-center gap-2">
+            <span className="w-1.5 h-1.5 bg-primary-400 rounded-full animate-pulse" />
+            <span className="text-[11px] font-medium text-primary-400 uppercase tracking-wider">
+              Available {court.nextAvailable}
+            </span>
           </div>
         </div>
 
-        <div className="flex-1 min-w-0 p-3 flex flex-col justify-center">
-          <h3 className="font-serif text-base text-secondary-50 leading-tight truncate">
-            {court.name}
-          </h3>
-          <p className="text-xs text-secondary-50/50 mt-0.5 truncate">
-            {court.type}
-          </p>
-          <div className="flex items-center justify-between mt-1.5">
-            <div className="flex items-center gap-1.5">
-              <span className="w-1.5 h-1.5 bg-primary-400 rounded-full animate-pulse" />
-              <span className="text-[11px] font-medium text-primary-400 uppercase tracking-wider">
-                {court.nextAvailable}
-              </span>
-            </div>
-            <span className="text-sm font-medium text-secondary-50">
+        <div className="px-4 py-3 bg-secondary-800/80">
+          <div className="flex items-baseline justify-between gap-2">
+            <h3 className="font-serif text-lg text-secondary-50 leading-tight truncate">
+              {court.name}
+            </h3>
+            <span className="text-base font-medium text-secondary-50 whitespace-nowrap">
               ${court.hourlyRate}
               <span className="text-xs text-secondary-50/40">/hr</span>
             </span>
           </div>
+
+          <p className="text-xs text-secondary-50/50 mt-0.5">
+            {court.type}
+          </p>
         </div>
 
         <div
@@ -226,13 +227,13 @@ export default function Home() {
           <div className="absolute inset-0 bg-gradient-to-r from-secondary-900/90 via-transparent to-transparent" />
         </div>
 
-        <div className="relative flex-1 flex min-h-0 flex-col justify-end px-6 pb-16 sm:px-10 sm:pb-24 pt-32 lg:w-[60%] lg:flex-none lg:pb-20">
+        <div className="relative flex-1 flex min-h-0 flex-col justify-end px-6 pb-16 sm:px-10 sm:pb-24 pt-32 lg:w-[55%] lg:flex-none lg:pb-20">
           <div className={`transform transition-all duration-1000 ${mounted ? 'translate-y-0 opacity-100' : 'translate-y-12 opacity-0'}`}>
             <p className="text-accent-400 text-sm sm:text-base font-medium tracking-[0.3em] uppercase mb-4 sm:mb-6">
               Community Courts, Unlocked
             </p>
             
-            <h1 className="font-serif text-5xl sm:text-7xl md:text-8xl lg:text-[6rem] xl:text-[7rem] leading-[0.9] tracking-tight mb-8 sm:mb-12">
+            <h1 className="font-serif text-5xl sm:text-7xl md:text-8xl lg:text-[5.5rem] xl:text-[6rem] leading-[0.9] tracking-tight mb-8 sm:mb-12">
               <span className="block">Find a court.</span>
               <span className="block text-primary-400">Book it.</span>
               <span className="block italic font-light">Go play.</span>
@@ -258,11 +259,10 @@ export default function Home() {
           </div>
         </div>
 
-        {/* Desktop sidebar — featured court cards */}
-        <div className="relative hidden lg:flex lg:w-[40%] lg:flex-col lg:justify-center lg:gap-3 lg:px-6 lg:py-8 xl:px-10">
+        <div className="relative hidden lg:flex lg:w-[45%] lg:flex-col lg:px-8 lg:py-6 xl:px-12">
           <div className="absolute inset-0 bg-secondary-900/60 backdrop-blur-sm" />
 
-          <div className="relative z-10 flex flex-col gap-3">
+          <div className="relative z-10 flex flex-col flex-1 min-h-0 gap-3 pt-8">
             <div className="flex items-center justify-between mb-1">
               <span className="text-accent-400 text-xs tracking-[0.3em] uppercase">
                 Available Now
@@ -283,16 +283,18 @@ export default function Home() {
                 {[0, 1, 2].map((i) => (
                   <div
                     key={i}
-                    className="h-20 rounded-xl bg-secondary-800/50 border border-secondary-50/10 animate-pulse"
+                    className="flex-1 rounded-2xl bg-secondary-800/50 border border-secondary-50/10 animate-pulse"
                   />
                 ))}
               </>
             ) : featuredCourts.length > 0 ? (
               featuredCourts.map((court, i) => (
-                <SidebarCourtCard key={court.id} court={court} index={i} mounted={mounted} />
+                <div key={court.id} className="flex-1 min-h-0">
+                  <VerticalCompactCourtCard court={court} index={i} mounted={mounted} />
+                </div>
               ))
             ) : (
-              <div className="rounded-xl border border-secondary-50/10 bg-secondary-800/30 p-4 text-secondary-50/50 text-sm">
+              <div className="rounded-2xl border border-secondary-50/10 bg-secondary-800/30 p-6 text-secondary-50/50 text-sm">
                 No upcoming availability yet.
               </div>
             )}
