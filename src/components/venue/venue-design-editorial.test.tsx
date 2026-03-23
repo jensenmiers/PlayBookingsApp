@@ -53,6 +53,133 @@ const createMockVenue = (overrides: Partial<Venue> = {}): Venue => ({
   ...overrides,
 })
 
+describe('VenueDesignEditorial photo carousel and lightbox', () => {
+  beforeEach(() => {
+    jest.clearAllMocks()
+    jest.useFakeTimers()
+    jest.setSystemTime(new Date('2026-02-21T20:00:00.000Z'))
+    mockUseVenueAvailabilityRange.mockReturnValue({
+      data: [],
+      loading: false,
+      error: null,
+    })
+  })
+
+  afterEach(() => {
+    jest.useRealTimers()
+  })
+
+  it('renders gradient fallback when venue has no photos', () => {
+    render(<VenueDesignEditorial venue={createMockVenue({ photos: [] })} />)
+
+    const fallback = document.querySelector('.bg-gradient-to-br')
+    expect(fallback).toBeInTheDocument()
+    expect(screen.queryByRole('img')).not.toBeInTheDocument()
+    expect(document.querySelector('[data-testid="carousel-dots"]')).not.toBeInTheDocument()
+  })
+
+  it('renders single photo as hero with no dots or scroll', () => {
+    render(
+      <VenueDesignEditorial
+        venue={createMockVenue({ photos: ['https://example.com/hero.jpg'] })}
+      />
+    )
+
+    expect(screen.getByRole('img', { name: 'Memorial Park' })).toBeInTheDocument()
+    expect(document.querySelector('[data-testid="carousel-dots"]')).not.toBeInTheDocument()
+  })
+
+  it('renders all photos in a scrollable carousel with dot indicators', () => {
+    const photos = [
+      'https://example.com/1.jpg',
+      'https://example.com/2.jpg',
+      'https://example.com/3.jpg',
+    ]
+    render(<VenueDesignEditorial venue={createMockVenue({ photos })} />)
+
+    const images = screen.getAllByRole('img', { name: /Memorial Park/ })
+    expect(images.length).toBe(3)
+
+    const dots = document.querySelector('[data-testid="carousel-dots"]')
+    expect(dots).toBeInTheDocument()
+    expect(dots?.children).toHaveLength(3)
+  })
+
+  it('has first dot active by default', () => {
+    const photos = [
+      'https://example.com/1.jpg',
+      'https://example.com/2.jpg',
+    ]
+    render(<VenueDesignEditorial venue={createMockVenue({ photos })} />)
+
+    const dots = document.querySelector('[data-testid="carousel-dots"]')
+    expect(dots?.children[0]).toHaveAttribute('data-active', 'true')
+    expect(dots?.children[1]).toHaveAttribute('data-active', 'false')
+  })
+
+  it('opens lightbox at tapped photo index', () => {
+    const photos = [
+      'https://example.com/1.jpg',
+      'https://example.com/2.jpg',
+      'https://example.com/3.jpg',
+    ]
+    render(<VenueDesignEditorial venue={createMockVenue({ photos })} />)
+
+    const images = screen.getAllByRole('img', { name: /Memorial Park/ })
+    fireEvent.click(images[1])
+
+    expect(screen.getByText('2 / 3')).toBeInTheDocument()
+  })
+
+  it('closes lightbox when close button is clicked', () => {
+    const photos = [
+      'https://example.com/1.jpg',
+      'https://example.com/2.jpg',
+    ]
+    render(<VenueDesignEditorial venue={createMockVenue({ photos })} />)
+
+    const images = screen.getAllByRole('img', { name: /Memorial Park/ })
+    fireEvent.click(images[0])
+    expect(screen.getByText('1 / 2')).toBeInTheDocument()
+
+    const closeButton = screen.getByRole('button', { name: /close/i })
+    fireEvent.click(closeButton)
+    expect(screen.queryByText('1 / 2')).not.toBeInTheDocument()
+  })
+
+  it('navigates between photos in lightbox', () => {
+    const photos = [
+      'https://example.com/1.jpg',
+      'https://example.com/2.jpg',
+      'https://example.com/3.jpg',
+    ]
+    render(<VenueDesignEditorial venue={createMockVenue({ photos })} />)
+
+    const images = screen.getAllByRole('img', { name: /Memorial Park/ })
+    fireEvent.click(images[0])
+    expect(screen.getByText('1 / 3')).toBeInTheDocument()
+
+    const nextButton = screen.getByRole('button', { name: /next/i })
+    fireEvent.click(nextButton)
+    expect(screen.getByText('2 / 3')).toBeInTheDocument()
+
+    const prevButton = screen.getByRole('button', { name: /previous/i })
+    fireEvent.click(prevButton)
+    expect(screen.getByText('1 / 3')).toBeInTheDocument()
+  })
+
+  it('does not render the old static gallery grid', () => {
+    const photos = [
+      'https://example.com/1.jpg',
+      'https://example.com/2.jpg',
+      'https://example.com/3.jpg',
+    ]
+    render(<VenueDesignEditorial venue={createMockVenue({ photos })} />)
+
+    expect(screen.queryByRole('heading', { name: 'Gallery' })).not.toBeInTheDocument()
+  })
+})
+
 describe('VenueDesignEditorial coming-up pills', () => {
   beforeEach(() => {
     jest.clearAllMocks()

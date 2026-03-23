@@ -3,6 +3,8 @@
 import { useState, useMemo, useCallback } from 'react'
 import { useRouter } from 'next/navigation'
 import Image from 'next/image'
+import { PhotoCarousel } from './photo-carousel'
+import { PhotoLightbox } from './photo-lightbox'
 import { format } from 'date-fns'
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome'
 import { faArrowLeft, faShield, faCalendarDays } from '@fortawesome/free-solid-svg-icons'
@@ -196,6 +198,7 @@ export function VenueDesignEditorial({ venue }: VenueDesignEditorialProps) {
 
   const nextSlot = bookableSlots[0]
   const primaryPhoto = venue.photos?.[0]
+  const [lightboxIndex, setLightboxIndex] = useState<number | null>(null)
 
   const getDateDisplay = (dateStr: string) => {
     if (dateStr === todayStr) return 'Today'
@@ -265,21 +268,15 @@ export function VenueDesignEditorial({ venue }: VenueDesignEditorialProps) {
     <div className="min-h-screen bg-secondary-900">
       {/* Hero Section */}
       <div className="relative h-[55vh] min-h-[400px]">
-        {/* Background Image */}
-        {primaryPhoto ? (
-          <Image
-            src={primaryPhoto}
-            alt={venue.name}
-            fill
-            className="object-cover"
-            priority
-          />
-        ) : (
-          <div className="absolute inset-0 bg-gradient-to-br from-secondary-800 to-secondary-900" />
-        )}
+        {/* Background Image / Carousel */}
+        <PhotoCarousel
+          photos={venue.photos || []}
+          venueName={venue.name}
+          onPhotoTap={(index) => setLightboxIndex(index)}
+        />
 
         {/* Gradient Overlay */}
-        <div className="absolute inset-0 bg-gradient-to-t from-secondary-900 via-secondary-900/60 to-transparent" />
+        <div className="absolute inset-0 bg-gradient-to-t from-secondary-900 via-secondary-900/60 to-transparent pointer-events-none" />
 
         {/* Back Button */}
         <button
@@ -290,7 +287,7 @@ export function VenueDesignEditorial({ venue }: VenueDesignEditorialProps) {
         </button>
 
         {/* Editorial Typography - extra bottom padding to clear Reserve card */}
-        <div className="absolute bottom-0 left-0 right-0 p-xl pb-5xl z-10">
+        <div className="absolute bottom-0 left-0 right-0 p-xl pb-5xl z-10 pointer-events-none">
           <div className="max-w-2xl mx-auto">
             <h1 className="font-serif text-4xl sm:text-5xl text-secondary-50 leading-tight mb-s">
               {venue.name}
@@ -544,26 +541,15 @@ export function VenueDesignEditorial({ venue }: VenueDesignEditorialProps) {
             </section>
           )}
 
-          {/* Photo Gallery */}
-          {venue.photos && venue.photos.length > 1 && (
-            <section>
-              <h2 className="font-serif text-xl text-secondary-50 mb-m">Gallery</h2>
-              <div className="grid grid-cols-2 gap-s">
-                {venue.photos.slice(1, 5).map((photo, i) => (
-                  <div
-                    key={i}
-                    className="relative aspect-[4/3] rounded-xl overflow-hidden"
-                  >
-                    <Image
-                      src={photo}
-                      alt={`${venue.name} photo ${i + 2}`}
-                      fill
-                      className="object-cover"
-                    />
-                  </div>
-                ))}
-              </div>
-            </section>
+          {/* Lightbox */}
+          {lightboxIndex !== null && venue.photos && venue.photos.length > 1 && (
+            <PhotoLightbox
+              photos={venue.photos}
+              venueName={venue.name}
+              currentIndex={lightboxIndex}
+              onIndexChange={setLightboxIndex}
+              onClose={() => setLightboxIndex(null)}
+            />
           )}
 
           <section>
