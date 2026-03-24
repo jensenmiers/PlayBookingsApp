@@ -108,7 +108,8 @@ describe('VenueDesignEditorial photo carousel and lightbox', () => {
 
     fireEvent.click(screen.getByRole('img', { name: 'Memorial Park' }))
 
-    expect(screen.getByText('1 / 1')).toBeInTheDocument()
+    expect(screen.getByRole('dialog', { name: 'Memorial Park photo viewer' })).toBeInTheDocument()
+    expect(screen.queryByText('1 / 1')).not.toBeInTheDocument()
   })
 
   it('renders all photos in a scrollable carousel with dot indicators', () => {

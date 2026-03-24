@@ -1,6 +1,6 @@
 'use client'
 
-import { useCallback, useEffect } from 'react'
+import { useCallback, useEffect, useRef, type MouseEvent, type PointerEvent, type TouchEvent } from 'react'
 import Image from 'next/image'
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome'
 import { faXmark, faChevronLeft, faChevronRight } from '@fortawesome/free-solid-svg-icons'
@@ -21,6 +21,9 @@ export function PhotoLightbox({
   onIndexChange,
   onClose,
 }: PhotoLightboxProps) {
+  const gestureStartX = useRef<number | null>(null)
+  const hasMultiplePhotos = photos.length > 1
+
   const goNext = useCallback(() => {
     if (currentIndex < photos.length - 1) {
       onIndexChange(currentIndex + 1)
@@ -42,11 +45,53 @@ export function PhotoLightbox({
     return () => window.removeEventListener('keydown', handleKeyDown)
   }, [goNext, goPrev])
 
+  const completeGesture = (endX: number | null) => {
+    const startX = gestureStartX.current
+    gestureStartX.current = null
+
+    if (startX === null || endX === null) {
+      return
+    }
+
+    const deltaX = startX - endX
+    const swipeThreshold = 48
+
+    if (deltaX > swipeThreshold) {
+      goNext()
+    } else if (deltaX < -swipeThreshold) {
+      goPrev()
+    }
+  }
+
+  const handleTouchStart = (event: TouchEvent<HTMLDivElement>) => {
+    gestureStartX.current = event.touches[0]?.clientX ?? null
+  }
+
+  const handleTouchEnd = (event: TouchEvent<HTMLDivElement>) => {
+    completeGesture(event.changedTouches[0]?.clientX ?? null)
+  }
+
+  const handlePointerDown = (event: PointerEvent<HTMLDivElement>) => {
+    gestureStartX.current = event.clientX
+  }
+
+  const handlePointerUp = (event: PointerEvent<HTMLDivElement>) => {
+    completeGesture(event.clientX)
+  }
+
+  const handleMouseDown = (event: MouseEvent<HTMLDivElement>) => {
+    gestureStartX.current = event.clientX
+  }
+
+  const handleMouseUp = (event: MouseEvent<HTMLDivElement>) => {
+    completeGesture(event.clientX)
+  }
+
   return (
     <Dialog modal open onOpenChange={(open) => !open && onClose()}>
       <DialogContent
         showCloseButton={false}
-        className="fixed inset-0 top-0 left-0 h-screen w-screen max-h-none max-w-none translate-x-0 translate-y-0 rounded-none border-none bg-secondary-900/95 p-0 sm:max-w-none overflow-x-hidden overflow-y-hidden"
+        className="fixed inset-0 top-0 left-0 h-screen w-screen max-h-none max-w-none translate-x-0 translate-y-0 gap-0 rounded-none border-none bg-secondary-950/96 p-0 sm:max-w-none overflow-x-hidden overflow-y-hidden"
       >
         <DialogTitle className="sr-only">{venueName} photo viewer</DialogTitle>
         <DialogDescription className="sr-only">
@@ -54,7 +99,8 @@ export function PhotoLightbox({
         </DialogDescription>
 
         <div
-          className="relative mx-auto flex h-full w-full flex-col items-center justify-center gap-m"
+          data-testid="photo-lightbox-shell"
+          className="relative mx-auto grid h-full w-full grid-rows-[auto_minmax(0,1fr)_auto] items-stretch"
           style={{
             paddingTop: 'max(1rem, env(safe-area-inset-top))',
             paddingRight: 'max(1rem, env(safe-area-inset-right))',
@@ -62,48 +108,66 @@ export function PhotoLightbox({
             paddingLeft: 'max(1rem, env(safe-area-inset-left))',
           }}
         >
-          <DialogClose asChild>
-            <button
-              aria-label="Close"
-              className="absolute top-0 right-0 z-10 flex h-10 w-10 items-center justify-center rounded-full bg-secondary-50/10 text-secondary-50 transition-colors hover:bg-secondary-50/20"
-            >
-              <FontAwesomeIcon icon={faXmark} />
-            </button>
-          </DialogClose>
-
-          <div className="relative w-full max-w-5xl flex-1 min-h-0">
-            {/* Previous button */}
-            {currentIndex > 0 && (
+          <div className="flex min-h-12 w-full items-start justify-end">
+            <DialogClose asChild>
               <button
-                onClick={goPrev}
-                aria-label="Previous"
-                className="absolute left-0 top-1/2 z-10 flex h-10 w-10 -translate-y-1/2 items-center justify-center rounded-full bg-secondary-50/10 text-secondary-50 transition-colors hover:bg-secondary-50/20"
+                aria-label="Close"
+                className="z-10 flex h-11 w-11 items-center justify-center rounded-full bg-secondary-50/10 text-secondary-50 transition-colors hover:bg-secondary-50/20"
               >
-                <FontAwesomeIcon icon={faChevronLeft} />
+                <FontAwesomeIcon icon={faXmark} />
               </button>
-            )}
-
-            {/* Next button */}
-            {currentIndex < photos.length - 1 && (
-              <button
-                onClick={goNext}
-                aria-label="Next"
-                className="absolute right-0 top-1/2 z-10 flex h-10 w-10 -translate-y-1/2 items-center justify-center rounded-full bg-secondary-50/10 text-secondary-50 transition-colors hover:bg-secondary-50/20"
-              >
-                <FontAwesomeIcon icon={faChevronRight} />
-              </button>
-            )}
-
-            <Image
-              src={photos[currentIndex]}
-              alt={`${venueName} photo ${currentIndex + 1}`}
-              fill
-              className="object-contain"
-            />
+            </DialogClose>
           </div>
 
-          <div className="text-sm text-secondary-50/70">
-            {currentIndex + 1} / {photos.length}
+          <div className="flex min-h-0 items-center justify-center pb-m sm:pb-l">
+            <div
+              data-testid="photo-lightbox-stage"
+              className="relative h-[min(52dvh,24rem)] w-full max-w-5xl sm:h-[min(68vh,44rem)]"
+              onMouseDown={handleMouseDown}
+              onMouseUp={handleMouseUp}
+              onPointerDown={handlePointerDown}
+              onPointerUp={handlePointerUp}
+              onTouchStart={handleTouchStart}
+              onTouchEnd={handleTouchEnd}
+            >
+              <Image
+                src={photos[currentIndex]}
+                alt={`${venueName} photo ${currentIndex + 1}`}
+                fill
+                className="object-contain"
+              />
+            </div>
+          </div>
+
+          <div
+            data-testid="photo-lightbox-footer"
+            className="flex min-h-12 w-full items-center justify-center"
+          >
+            {hasMultiplePhotos && (
+              <div className="flex items-center gap-l text-secondary-50/80">
+                <button
+                  onClick={goPrev}
+                  aria-label="Previous"
+                  disabled={currentIndex === 0}
+                  className="flex h-10 w-10 items-center justify-center rounded-full bg-secondary-50/10 text-secondary-50 transition-colors hover:bg-secondary-50/20 disabled:cursor-default disabled:opacity-35"
+                >
+                  <FontAwesomeIcon icon={faChevronLeft} />
+                </button>
+
+                <div className="min-w-14 text-center text-sm text-secondary-50/70">
+                  {currentIndex + 1} / {photos.length}
+                </div>
+
+                <button
+                  onClick={goNext}
+                  aria-label="Next"
+                  disabled={currentIndex === photos.length - 1}
+                  className="flex h-10 w-10 items-center justify-center rounded-full bg-secondary-50/10 text-secondary-50 transition-colors hover:bg-secondary-50/20 disabled:cursor-default disabled:opacity-35"
+                >
+                  <FontAwesomeIcon icon={faChevronRight} />
+                </button>
+              </div>
+            )}
           </div>
         </div>
       </DialogContent>
