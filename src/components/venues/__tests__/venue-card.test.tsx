@@ -1,4 +1,4 @@
-import { render, screen } from '@testing-library/react'
+import { fireEvent, render, screen } from '@testing-library/react'
 import { VenueCard } from '../venue-card'
 import type { Venue } from '@/types'
 
@@ -18,8 +18,22 @@ jest.mock('next/link', () => ({
   ),
 }))
 
-jest.mock('@/components/venue/photo-carousel', () => ({
-  PhotoCarousel: () => <div data-testid="photo-carousel" />,
+jest.mock('next/image', () => ({
+  __esModule: true,
+  default: (
+    props: React.ImgHTMLAttributes<HTMLImageElement> & {
+      fill?: boolean
+      priority?: boolean
+      sizes?: string
+    }
+  ) => {
+    const { alt, onClick } = props
+
+    return (
+      // eslint-disable-next-line @next/next/no-img-element
+      <img alt={alt} onClick={onClick} />
+    )
+  },
 }))
 
 function createVenue(overrides: Partial<Venue> = {}): Venue {
@@ -105,6 +119,25 @@ describe('VenueCard', () => {
   it('renders PhotoCarousel component', () => {
     render(<VenueCard venue={createVenue({ photos: ['/photo1.jpg'] })} />)
 
-    expect(screen.getByTestId('photo-carousel')).toBeInTheDocument()
+    expect(screen.getByRole('img', { name: 'Test Court' })).toBeInTheDocument()
+  })
+
+  it('allows photo clicks to bubble to the wrapping venue link', () => {
+    render(
+      <VenueCard
+        venue={createVenue({
+          photos: ['/photo1.jpg', '/photo2.jpg'],
+        })}
+      />
+    )
+
+    const link = screen.getByRole('link')
+    const linkClickHandler = jest.fn()
+    link.addEventListener('click', linkClickHandler)
+
+    const photo = screen.getAllByTestId('carousel-photo')[0]
+    fireEvent.click(photo)
+
+    expect(linkClickHandler).toHaveBeenCalledTimes(1)
   })
 })

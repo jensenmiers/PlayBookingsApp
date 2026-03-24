@@ -7,15 +7,13 @@ interface PhotoCarouselProps {
   photos: string[]
   venueName: string
   onPhotoTap?: (index: number) => void
-  /** When true, prevent click events from bubbling to parent Link elements */
-  preventNavigation?: boolean
   /** Control priority loading of the first image (default: false) */
   priority?: boolean
   /** Responsive sizes attribute for images */
   sizes?: string
 }
 
-export function PhotoCarousel({ photos, venueName, onPhotoTap, preventNavigation, priority: priorityProp = false, sizes }: PhotoCarouselProps) {
+export function PhotoCarousel({ photos, venueName, onPhotoTap, priority: priorityProp = false, sizes }: PhotoCarouselProps) {
   const scrollRef = useRef<HTMLDivElement>(null)
   const [activeIndex, setActiveIndex] = useState(0)
 
@@ -48,13 +46,7 @@ export function PhotoCarousel({ photos, venueName, onPhotoTap, preventNavigation
         className="object-cover"
         priority={priorityProp}
         sizes={sizes}
-        onClick={(e) => {
-          if (preventNavigation) {
-            e.preventDefault()
-            e.stopPropagation()
-          }
-          onPhotoTap?.(0)
-        }}
+        onClick={() => onPhotoTap?.(0)}
       />
     )
   }
@@ -71,13 +63,7 @@ export function PhotoCarousel({ photos, venueName, onPhotoTap, preventNavigation
             key={photo}
             data-testid="carousel-photo"
             className="relative flex-shrink-0 w-full h-full snap-start"
-            onClick={(e) => {
-              if (preventNavigation) {
-                e.preventDefault()
-                e.stopPropagation()
-              }
-              onPhotoTap?.(i)
-            }}
+            onClick={() => onPhotoTap?.(i)}
           >
             <Image
               src={photo}

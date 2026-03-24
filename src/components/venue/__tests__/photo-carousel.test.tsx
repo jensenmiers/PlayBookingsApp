@@ -3,12 +3,26 @@ import { PhotoCarousel } from '../photo-carousel'
 
 jest.mock('next/image', () => ({
   __esModule: true,
-  default: (props: Record<string, unknown>) => (
-    <img
-      alt={props.alt as string}
-      data-priority={String(props.priority ?? false)}
-      data-sizes={props.sizes as string | undefined}
-    />
+  default: ({
+    alt,
+    onClick,
+    priority,
+    sizes,
+  }: {
+    alt: string
+    onClick?: React.MouseEventHandler<HTMLImageElement>
+    priority?: boolean
+    sizes?: string
+  }) => (
+    <>
+      {/* eslint-disable-next-line @next/next/no-img-element */}
+      <img
+        alt={alt}
+        data-priority={String(priority ?? false)}
+        data-sizes={sizes}
+        onClick={onClick}
+      />
+    </>
   ),
 }))
 
@@ -69,40 +83,38 @@ describe('PhotoCarousel', () => {
     })
   })
 
-  describe('preventNavigation prop', () => {
-    it('calls stopPropagation and preventDefault on click when preventNavigation is true', () => {
+  describe('onPhotoTap prop', () => {
+    it('calls onPhotoTap when a single photo is clicked', () => {
+      const onPhotoTap = jest.fn()
+
+      render(
+        <PhotoCarousel
+          photos={['/single.jpg']}
+          venueName="Test Venue"
+          onPhotoTap={onPhotoTap}
+        />
+      )
+
+      fireEvent.click(screen.getByRole('img'))
+
+      expect(onPhotoTap).toHaveBeenCalledWith(0)
+    })
+
+    it('calls onPhotoTap with the clicked photo index for multi-photo carousels', () => {
+      const onPhotoTap = jest.fn()
+
       render(
         <PhotoCarousel
           photos={photos}
           venueName="Test Venue"
-          preventNavigation
+          onPhotoTap={onPhotoTap}
         />
       )
 
-      const images = screen.getAllByRole('img')
-      const photoDiv = images[0].closest('[data-testid="carousel-photo"]')!
-      const event = new MouseEvent('click', { bubbles: true })
-      Object.defineProperty(event, 'stopPropagation', {
-        value: jest.fn(),
-      })
-      Object.defineProperty(event, 'preventDefault', {
-        value: jest.fn(),
-      })
+      const photoSurfaces = screen.getAllByTestId('carousel-photo')
+      fireEvent.click(photoSurfaces[1])
 
-      photoDiv.dispatchEvent(event)
-
-      expect(event.stopPropagation).toHaveBeenCalled()
-      expect(event.preventDefault).toHaveBeenCalled()
-    })
-
-    it('does not interfere with clicks when preventNavigation is false', () => {
-      render(<PhotoCarousel photos={photos} venueName="Test Venue" />)
-
-      const images = screen.getAllByRole('img')
-      const photoDiv = images[0].closest('[data-testid="carousel-photo"]')!
-
-      // Should not throw when clicking without preventNavigation
-      expect(() => fireEvent.click(photoDiv)).not.toThrow()
+      expect(onPhotoTap).toHaveBeenCalledWith(1)
     })
   })
 })
