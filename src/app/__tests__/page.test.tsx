@@ -132,4 +132,19 @@ describe('HomePage', () => {
     expect(container.querySelector('.lg\\:w-\\[45\\%\\]')).toBeTruthy()
     expect(screen.getByRole('link', { name: /privacy policy/i })).toHaveAttribute('href', '/privacy')
   })
+
+  it('keeps desktop featured cards on a non-collapsing height chain so their background photos can render', () => {
+    const { container } = render(<HomePage />)
+
+    const desktopRail = container.querySelector('.lg\\:w-\\[45\\%\\]')
+    expect(desktopRail).toBeTruthy()
+
+    const desktopFeaturedLink = desktopRail?.querySelector('a[href="/venue/main-street-court"]')
+    expect(desktopFeaturedLink).toBeTruthy()
+    expect(desktopFeaturedLink?.className).toContain('h-full')
+
+    const desktopMediaRegion = desktopFeaturedLink?.querySelector('.min-h-\\[140px\\]')
+    expect(desktopMediaRegion).toBeTruthy()
+    expect(desktopMediaRegion?.className).toContain('flex-1')
+  })
 })

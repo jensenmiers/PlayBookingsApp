@@ -13,7 +13,17 @@ jest.mock('next/navigation', () => ({
 
 jest.mock('next/image', () => ({
   __esModule: true,
-  default: ({ alt = '' }: { alt?: string }) => <div role="img" aria-label={alt} />,
+  default: (props: {
+    alt?: string
+    fill?: boolean
+    priority?: boolean
+  } & Record<string, unknown>) => {
+    const { alt = '', ...rest } = props
+    delete rest.fill
+    delete rest.priority
+
+    return <div role="img" aria-label={alt} {...rest} />
+  },
 }))
 
 jest.mock('@/hooks/useVenues', () => ({
@@ -87,6 +97,18 @@ describe('VenueDesignEditorial photo carousel and lightbox', () => {
 
     expect(screen.getByRole('img', { name: 'Memorial Park' })).toBeInTheDocument()
     expect(document.querySelector('[data-testid="carousel-dots"]')).not.toBeInTheDocument()
+  })
+
+  it('opens the lightbox for single-photo venues', () => {
+    render(
+      <VenueDesignEditorial
+        venue={createMockVenue({ photos: ['https://example.com/hero.jpg'] })}
+      />
+    )
+
+    fireEvent.click(screen.getByRole('img', { name: 'Memorial Park' }))
+
+    expect(screen.getByText('1 / 1')).toBeInTheDocument()
   })
 
   it('renders all photos in a scrollable carousel with dot indicators', () => {
@@ -166,6 +188,32 @@ describe('VenueDesignEditorial photo carousel and lightbox', () => {
     const prevButton = screen.getByRole('button', { name: /previous/i })
     fireEvent.click(prevButton)
     expect(screen.getByText('1 / 3')).toBeInTheDocument()
+  })
+
+  it('does not emit Radix accessibility warnings when the lightbox opens', () => {
+    const errorSpy = jest.spyOn(console, 'error').mockImplementation(() => {})
+    const warnSpy = jest.spyOn(console, 'warn').mockImplementation(() => {})
+
+    render(
+      <VenueDesignEditorial
+        venue={createMockVenue({ photos: ['https://example.com/1.jpg', 'https://example.com/2.jpg'] })}
+      />
+    )
+
+    fireEvent.click(screen.getAllByRole('img', { name: /Memorial Park/ })[0])
+
+    const errorMessages = errorSpy.mock.calls.map(([message]) => String(message))
+    const warnMessages = warnSpy.mock.calls.map(([message]) => String(message))
+
+    expect(errorMessages).not.toEqual(
+      expect.arrayContaining([expect.stringContaining('DialogTitle')])
+    )
+    expect(warnMessages).not.toEqual(
+      expect.arrayContaining([expect.stringContaining('Missing `Description`')])
+    )
+
+    errorSpy.mockRestore()
+    warnSpy.mockRestore()
   })
 
   it('does not render the old static gallery grid', () => {

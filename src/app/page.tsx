@@ -136,7 +136,7 @@ function VerticalCompactCourtCard({
   return (
     <Link
       href={court.href}
-      className={`group relative block transform transition-all duration-700 ${
+      className={`group relative block h-full transform transition-all duration-700 ${
         mounted ? 'translate-x-0 opacity-100' : 'translate-x-8 opacity-0'
       }`}
       style={{ transitionDelay: `${600 + index * 200}ms` }}
@@ -148,7 +148,7 @@ function VerticalCompactCourtCard({
           isHovered ? 'border-primary-400/40 shadow-xl shadow-primary-400/5' : ''
         }`}
       >
-        <div className="relative flex-1 min-h-0 overflow-hidden">
+        <div className="relative flex-1 min-h-[140px] overflow-hidden">
           {court.image ? (
             <div
               className={`w-full h-full bg-cover bg-center transition-transform duration-700 ${

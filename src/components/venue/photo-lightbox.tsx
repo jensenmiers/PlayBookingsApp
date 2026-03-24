@@ -4,7 +4,7 @@ import { useCallback, useEffect } from 'react'
 import Image from 'next/image'
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome'
 import { faXmark, faChevronLeft, faChevronRight } from '@fortawesome/free-solid-svg-icons'
-import { Dialog, DialogContent } from '@/components/ui/dialog'
+import { Dialog, DialogContent, DialogDescription, DialogTitle } from '@/components/ui/dialog'
 
 interface PhotoLightboxProps {
   photos: string[]
@@ -48,6 +48,11 @@ export function PhotoLightbox({
         showCloseButton={false}
         className="fixed inset-0 max-w-none w-screen h-screen translate-x-0 translate-y-0 top-0 left-0 rounded-none border-none bg-secondary-900/95 p-0 flex items-center justify-center"
       >
+        <DialogTitle className="sr-only">{venueName} photo viewer</DialogTitle>
+        <DialogDescription className="sr-only">
+          Viewing photo {currentIndex + 1} of {photos.length}
+        </DialogDescription>
+
         {/* Close button */}
         <button
           onClick={onClose}

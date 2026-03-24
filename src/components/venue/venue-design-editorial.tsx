@@ -2,7 +2,6 @@
 
 import { useState, useMemo, useCallback } from 'react'
 import { useRouter } from 'next/navigation'
-import Image from 'next/image'
 import { PhotoCarousel } from './photo-carousel'
 import { PhotoLightbox } from './photo-lightbox'
 import { format } from 'date-fns'
@@ -197,7 +196,6 @@ export function VenueDesignEditorial({ venue }: VenueDesignEditorialProps) {
   const resumeLoading = loading || Boolean(resumeDateOverride && pickerLoading)
 
   const nextSlot = bookableSlots[0]
-  const primaryPhoto = venue.photos?.[0]
   const [lightboxIndex, setLightboxIndex] = useState<number | null>(null)
 
   const getDateDisplay = (dateStr: string) => {
@@ -542,7 +540,7 @@ export function VenueDesignEditorial({ venue }: VenueDesignEditorialProps) {
           )}
 
           {/* Lightbox */}
-          {lightboxIndex !== null && venue.photos && venue.photos.length > 1 && (
+          {lightboxIndex !== null && venue.photos && venue.photos.length > 0 && (
             <PhotoLightbox
               photos={venue.photos}
               venueName={venue.name}
