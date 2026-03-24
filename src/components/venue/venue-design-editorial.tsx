@@ -271,6 +271,7 @@ export function VenueDesignEditorial({ venue }: VenueDesignEditorialProps) {
           photos={venue.photos || []}
           venueName={venue.name}
           onPhotoTap={(index) => setLightboxIndex(index)}
+          priority
         />
 
         {/* Gradient Overlay */}

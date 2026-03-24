@@ -18,9 +18,8 @@ jest.mock('next/link', () => ({
   ),
 }))
 
-jest.mock('next/image', () => ({
-  __esModule: true,
-  default: ({ alt }: { alt: string }) => <div aria-label={alt} />,
+jest.mock('@/components/venue/photo-carousel', () => ({
+  PhotoCarousel: () => <div data-testid="photo-carousel" />,
 }))
 
 function createVenue(overrides: Partial<Venue> = {}): Venue {
@@ -48,6 +47,30 @@ function createVenue(overrides: Partial<Venue> = {}): Venue {
 }
 
 describe('VenueCard', () => {
+  it('renders as a link to the venue detail page', () => {
+    render(<VenueCard venue={createVenue({ name: 'Downtown Gym' })} />)
+
+    const link = screen.getByRole('link')
+    expect(link).toHaveAttribute('href', '/venue/downtown-gym')
+  })
+
+  it('displays venue name, location, and hourly rate', () => {
+    render(
+      <VenueCard
+        venue={createVenue({
+          name: 'Test Court',
+          city: 'Los Angeles',
+          state: 'CA',
+          hourly_rate: 75,
+        })}
+      />
+    )
+
+    expect(screen.getByText('Test Court')).toBeInTheDocument()
+    expect(screen.getByText('Los Angeles, CA')).toBeInTheDocument()
+    expect(screen.getByText('$75/hr')).toBeInTheDocument()
+  })
+
   it('shows Instant chip for instant-booking venues', () => {
     render(<VenueCard venue={createVenue({ instant_booking: true })} />)
 
@@ -62,15 +85,26 @@ describe('VenueCard', () => {
     expect(screen.queryByText('Instant')).not.toBeInTheDocument()
   })
 
-  it('shows Insurance chip when venue requires insurance', () => {
-    render(<VenueCard venue={createVenue({ insurance_required: true })} />)
+  it('shows next available badge when provided', () => {
+    render(
+      <VenueCard
+        venue={createVenue()}
+        nextAvailable={{ displayText: 'Today 3:00 PM' }}
+      />
+    )
 
-    expect(screen.getByText('Insurance')).toBeInTheDocument()
+    expect(screen.getByText(/Today 3:00 PM/)).toBeInTheDocument()
   })
 
-  it('does not show Insurance chip when venue does not require insurance', () => {
-    render(<VenueCard venue={createVenue({ insurance_required: false })} />)
+  it('does not show next available badge when not provided', () => {
+    render(<VenueCard venue={createVenue()} />)
 
-    expect(screen.queryByText('Insurance')).not.toBeInTheDocument()
+    expect(screen.queryByText(/Next:/)).not.toBeInTheDocument()
+  })
+
+  it('renders PhotoCarousel component', () => {
+    render(<VenueCard venue={createVenue({ photos: ['/photo1.jpg'] })} />)
+
+    expect(screen.getByTestId('photo-carousel')).toBeInTheDocument()
   })
 })

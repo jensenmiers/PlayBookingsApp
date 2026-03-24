@@ -7,9 +7,15 @@ interface PhotoCarouselProps {
   photos: string[]
   venueName: string
   onPhotoTap?: (index: number) => void
+  /** When true, prevent click events from bubbling to parent Link elements */
+  preventNavigation?: boolean
+  /** Control priority loading of the first image (default: false) */
+  priority?: boolean
+  /** Responsive sizes attribute for images */
+  sizes?: string
 }
 
-export function PhotoCarousel({ photos, venueName, onPhotoTap }: PhotoCarouselProps) {
+export function PhotoCarousel({ photos, venueName, onPhotoTap, preventNavigation, priority: priorityProp = false, sizes }: PhotoCarouselProps) {
   const scrollRef = useRef<HTMLDivElement>(null)
   const [activeIndex, setActiveIndex] = useState(0)
 
@@ -40,8 +46,15 @@ export function PhotoCarousel({ photos, venueName, onPhotoTap }: PhotoCarouselPr
         alt={venueName}
         fill
         className="object-cover"
-        priority
-        onClick={() => onPhotoTap?.(0)}
+        priority={priorityProp}
+        sizes={sizes}
+        onClick={(e) => {
+          if (preventNavigation) {
+            e.preventDefault()
+            e.stopPropagation()
+          }
+          onPhotoTap?.(0)
+        }}
       />
     )
   }
@@ -56,15 +69,23 @@ export function PhotoCarousel({ photos, venueName, onPhotoTap }: PhotoCarouselPr
         {photos.map((photo, i) => (
           <div
             key={photo}
+            data-testid="carousel-photo"
             className="relative flex-shrink-0 w-full h-full snap-start"
-            onClick={() => onPhotoTap?.(i)}
+            onClick={(e) => {
+              if (preventNavigation) {
+                e.preventDefault()
+                e.stopPropagation()
+              }
+              onPhotoTap?.(i)
+            }}
           >
             <Image
               src={photo}
               alt={`${venueName} photo ${i + 1}`}
               fill
               className="object-cover"
-              priority={i === 0}
+              priority={priorityProp && i === 0}
+              sizes={sizes}
             />
           </div>
         ))}

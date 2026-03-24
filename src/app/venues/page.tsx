@@ -5,7 +5,7 @@ import { useSearchParams, useRouter } from 'next/navigation'
 import { Navigation } from '@/components/layout/navigation'
 import { PublicSiteFooter } from '@/components/layout/public-site-footer'
 import { VenueCard } from '@/components/venues/venue-card'
-import { VenueCardSkeleton } from '@/components/search/venue-card-skeleton'
+import { VenueCardGridSkeleton } from '@/components/venues/venue-card-grid-skeleton'
 import { Input } from '@/components/ui/input'
 import { Button } from '@/components/ui/button'
 import { ErrorMessage } from '@/components/ui/error-message'
@@ -84,7 +84,7 @@ function VenuesContent() {
       try {
         const params = new URLSearchParams()
         params.set('page', currentPage.toString())
-        params.set('limit', '10')
+        params.set('limit', '12')
         if (searchQuery.trim()) {
           params.set('search', searchQuery.trim())
         }
@@ -240,10 +240,10 @@ function VenuesContent() {
 
         {/* Loading State */}
         {loading && (
-          <div className="space-y-4">
-            <VenueCardSkeleton />
-            <VenueCardSkeleton />
-            <VenueCardSkeleton />
+          <div className="grid grid-cols-1 gap-l md:grid-cols-2 lg:grid-cols-3">
+            {Array.from({ length: 6 }).map((_, i) => (
+              <VenueCardGridSkeleton key={i} />
+            ))}
           </div>
         )}
 
@@ -255,7 +255,7 @@ function VenuesContent() {
               onClick={() => {
                 const params = new URLSearchParams()
                 params.set('page', currentPage.toString())
-                params.set('limit', '10')
+                params.set('limit', '12')
                 if (searchQuery.trim()) {
                   params.set('search', searchQuery.trim())
                 }
@@ -270,7 +270,7 @@ function VenuesContent() {
 
         {/* Venues List */}
         {!loading && !error && venues.length > 0 && (
-          <div className="space-y-4 mb-xl">
+          <div className="grid grid-cols-1 gap-l md:grid-cols-2 lg:grid-cols-3 mb-xl">
             {venues.map((venue) => (
               <VenueCard 
                 key={venue.id} 
@@ -333,10 +333,10 @@ function LoadingFallback() {
           <h1 className="text-3xl font-bold font-serif text-secondary-50 mb-s">All Venues</h1>
           <p className="text-secondary-50/60">Discover basketball courts available for booking</p>
         </div>
-        <div className="space-y-4">
-          <VenueCardSkeleton />
-          <VenueCardSkeleton />
-          <VenueCardSkeleton />
+        <div className="grid grid-cols-1 gap-l md:grid-cols-2 lg:grid-cols-3">
+          {Array.from({ length: 6 }).map((_, i) => (
+            <VenueCardGridSkeleton key={i} />
+          ))}
         </div>
       </div>
     </div>
