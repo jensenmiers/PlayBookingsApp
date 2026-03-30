@@ -8,6 +8,11 @@ import { createClient } from '@/lib/supabase/server'
 import { handleApiError } from '@/utils/errorHandling'
 import type { PaginatedResponse } from '@/types/api'
 import type { Venue } from '@/types'
+import {
+  isMissingVenueMediaQueryError,
+  normalizeVenueCollectionWithMedia,
+  VENUE_SELECT_WITH_MEDIA,
+} from '@/lib/venueMedia'
 
 export async function GET(request: NextRequest) {
   try {
@@ -17,22 +22,40 @@ export async function GET(request: NextRequest) {
     const limit = Math.max(1, Math.min(100, parseInt(searchParams.get('limit') || '10', 10)))
     const search = searchParams.get('search')?.trim() || null
 
-    let query = supabase
-      .from('venues')
-      .select('*', { count: 'exact' })
-      .eq('is_active', true)
+    const applySearch = (query: any) => {
+      let nextQuery = query
 
-    if (search) {
-      query = query.or(
-        `name.ilike.%${search}%,city.ilike.%${search}%,address.ilike.%${search}%`
-      )
+      if (search) {
+        nextQuery = nextQuery.or(
+          `name.ilike.%${search}%,city.ilike.%${search}%,address.ilike.%${search}%`
+        )
+      }
+
+      return nextQuery
     }
 
     const from = (page - 1) * limit
     const to = from + limit - 1
-    const { data, error, count } = await query
+
+    let { data, error, count } = await applySearch(
+      supabase
+        .from('venues')
+        .select(VENUE_SELECT_WITH_MEDIA, { count: 'exact' })
+        .eq('is_active', true)
+    )
       .order('created_at', { ascending: false })
       .range(from, to)
+
+    if (error && isMissingVenueMediaQueryError(error)) {
+      ;({ data, error, count } = await applySearch(
+        supabase
+          .from('venues')
+          .select('*', { count: 'exact' })
+          .eq('is_active', true)
+      )
+        .order('created_at', { ascending: false })
+        .range(from, to))
+    }
 
     if (error) {
       throw error
@@ -43,7 +66,7 @@ export async function GET(request: NextRequest) {
 
     const response: PaginatedResponse<Venue> = {
       success: true,
-      data: data || [],
+      data: normalizeVenueCollectionWithMedia(data),
       pagination: {
         page,
         limit,
@@ -57,4 +80,3 @@ export async function GET(request: NextRequest) {
     return handleApiError(error)
   }
 }
-

@@ -7,6 +7,11 @@ import {
   deriveVenueAvailabilityPublishState,
   listVenueAvailabilityPublishStates,
 } from '@/services/venueAvailabilityPublishService'
+import {
+  isMissingVenueMediaQueryError,
+  normalizeVenueCollectionWithMedia,
+  VENUE_SELECT_WITH_MEDIA,
+} from '@/lib/venueMedia'
 import type { ApiResponse } from '@/types/api'
 import type { DropInTemplateWindow, Venue, VenueAdminConfig } from '@/types'
 
@@ -119,7 +124,7 @@ export async function GET(): Promise<Response> {
     const adminClient = createAdminClient()
 
     const [
-      { data: venues, error: venuesError },
+      venuesResult,
       { data: configRows, error: configsError },
       { data: templateRows, error: templatesError },
       { data: regularSyncRows, error: regularSyncError },
@@ -129,7 +134,7 @@ export async function GET(): Promise<Response> {
     ] = await Promise.all([
       adminClient
         .from('venues')
-        .select('*')
+        .select(VENUE_SELECT_WITH_MEDIA)
         .order('name', { ascending: true }),
       adminClient
         .from('venue_admin_configs')
@@ -150,6 +155,15 @@ export async function GET(): Promise<Response> {
         .select('venue_id, provider, google_calendar_id, google_calendar_name, google_account_email, status, sync_enabled, sync_interval_minutes, last_synced_at, next_sync_at, last_error, updated_at'),
       listVenueAvailabilityPublishStates(),
     ])
+
+    let { data: venues, error: venuesError } = venuesResult
+
+    if (venuesError && isMissingVenueMediaQueryError(venuesError)) {
+      ;({ data: venues, error: venuesError } = await adminClient
+        .from('venues')
+        .select('*')
+        .order('name', { ascending: true }))
+    }
 
     if (venuesError) {
       throw new Error(`Failed to fetch venues: ${venuesError.message}`)
@@ -229,7 +243,7 @@ export async function GET(): Promise<Response> {
       publishStateByVenueId.set(row.venue_id, row)
     }
 
-    const items: AdminVenueConfigListItem[] = ((venues || []) as Venue[]).map((venue) => {
+    const items: AdminVenueConfigListItem[] = normalizeVenueCollectionWithMedia((venues || []) as Venue[]).map((venue) => {
       const config = normalizeVenueAdminConfig(venue.id, configByVenueId.get(venue.id) || null)
       const completeness = calculateVenueConfigCompleteness(venue, config)
       const dropInTemplates = normalizeTemplateWindows(dropInTemplatesByVenueId.get(venue.id) || [])

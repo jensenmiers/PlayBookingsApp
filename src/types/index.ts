@@ -55,9 +55,32 @@ export interface Venue {
   instant_booking: boolean
   insurance_required: boolean
   max_advance_booking_days: number
+  media?: VenueMedia[]
   photos: string[]
   amenities: string[]
   is_active: boolean
+  created_at: string
+  updated_at: string
+}
+
+export interface VenueMedia {
+  id: string
+  venue_id: string
+  media_type: 'image'
+  storage_provider: 'supabase'
+  bucket_name: string | null
+  object_path: string | null
+  public_url: string
+  alt_text: string | null
+  caption: string | null
+  sort_order: number
+  is_primary: boolean
+  mime_type: string | null
+  file_size_bytes: number | null
+  width_px: number | null
+  height_px: number | null
+  migrated_from_legacy_photos: boolean
+  created_by: string | null
   created_at: string
   updated_at: string
 }
@@ -252,6 +275,7 @@ export interface BookingWithVenue extends Booking {
     name: string
     instant_booking: boolean
     insurance_required: boolean
+    media?: VenueMedia[]
     photos: string[]
   }
 }

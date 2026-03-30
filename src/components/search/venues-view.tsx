@@ -23,6 +23,7 @@ import { slugify } from '@/lib/utils'
 import Image from 'next/image'
 import { type CreateBookingFormResumeState } from '@/lib/auth/authResume'
 import { useCreateBookingFormAuthResume } from '@/lib/auth/useAuthResume'
+import { deriveVenuePhotos } from '@/lib/venueMedia'
 
 export function VenuesView() {
   const [selectedVenueId, setSelectedVenueId] = useState<string | null>(null)
@@ -123,6 +124,7 @@ export function VenuesView() {
             nearbyVenues.map((venue) => {
               const venueSlug = slugify(venue.name)
               const bookingMode = getBookingModeDisplay(venue.instant_booking, 'compact')
+              const photos = deriveVenuePhotos(venue)
               return (
                 <div key={venue.id} className="bg-secondary-800 rounded-2xl shadow-soft overflow-hidden">
                   <div className="flex">
@@ -130,9 +132,9 @@ export function VenuesView() {
                       href={`/venue/${venueSlug}`}
                       className="w-1/3 h-[120px] relative block cursor-pointer hover:opacity-90 transition-opacity"
                     >
-                      {venue.photos && venue.photos.length > 0 ? (
+                      {photos.length > 0 ? (
                         <Image
-                          src={venue.photos[0]}
+                          src={photos[0]}
                           alt={`${venue.name} basketball court`}
                           fill
                           className="object-cover"

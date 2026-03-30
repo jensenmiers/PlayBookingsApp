@@ -162,4 +162,91 @@ describe('VenuePage', () => {
     expect((result as { type: unknown }).type).toBe(mockVenueDesignEditorial)
     expect(result).toBeDefined()
   })
+
+  it('normalizes venue media into ordered photos before rendering the venue page', async () => {
+    mockEq.mockResolvedValue({
+      data: [
+        {
+          id: '123',
+          name: 'Test Basketball Court',
+          description: 'Description',
+          address: '123 Main St',
+          city: 'LA',
+          state: 'CA',
+          zip_code: '90001',
+          owner_id: 'owner-1',
+          hourly_rate: 50,
+          instant_booking: true,
+          insurance_required: false,
+          max_advance_booking_days: 30,
+          photos: ['https://legacy.example.com/stale.webp'],
+          venue_media: [
+            {
+              id: 'media-2',
+              venue_id: '123',
+              media_type: 'image',
+              storage_provider: 'supabase',
+              bucket_name: 'venue-photos',
+              object_path: 'test/detail.webp',
+              public_url: 'https://example.com/detail.webp',
+              alt_text: null,
+              caption: null,
+              sort_order: 1,
+              is_primary: false,
+              mime_type: 'image/webp',
+              file_size_bytes: null,
+              width_px: null,
+              height_px: null,
+              migrated_from_legacy_photos: true,
+              created_by: null,
+              created_at: '2024-01-01',
+              updated_at: '2024-01-01',
+            },
+            {
+              id: 'media-1',
+              venue_id: '123',
+              media_type: 'image',
+              storage_provider: 'supabase',
+              bucket_name: 'venue-photos',
+              object_path: 'test/hero.webp',
+              public_url: 'https://example.com/hero.webp',
+              alt_text: null,
+              caption: null,
+              sort_order: 0,
+              is_primary: true,
+              mime_type: 'image/webp',
+              file_size_bytes: null,
+              width_px: null,
+              height_px: null,
+              migrated_from_legacy_photos: true,
+              created_by: null,
+              created_at: '2024-01-01',
+              updated_at: '2024-01-01',
+            },
+          ],
+          amenities: [],
+          is_active: true,
+          created_at: '2024-01-01',
+          updated_at: '2024-01-01',
+        },
+      ],
+      error: null,
+    })
+
+    const result = await VenuePage({
+      params: Promise.resolve({ name: 'test-basketball-court' }),
+    })
+
+    expect((result as { props: { venue: { media: Array<{ public_url: string }>; photos: string[] } } }).props.venue).toEqual(
+      expect.objectContaining({
+        media: expect.arrayContaining([
+          expect.objectContaining({ public_url: 'https://example.com/hero.webp' }),
+        ]),
+        photos: [
+          'https://example.com/hero.webp',
+          'https://example.com/detail.webp',
+        ],
+      })
+    )
+  })
 })

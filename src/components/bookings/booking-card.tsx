@@ -10,6 +10,7 @@ import { formatTime } from '@/utils/dateHelpers'
 import { getTicketState } from './ticket/ticket-utils'
 import { cn } from '@/lib/utils'
 import type { BookingWithVenue } from '@/types'
+import { deriveVenuePhotos } from '@/lib/venueMedia'
 
 interface BookingCardProps {
   booking: BookingWithVenue
@@ -48,7 +49,7 @@ const statusDotColor: Record<string, string> = {
 export function BookingCard({ booking, onPayClick }: BookingCardProps) {
   const ticketState = getTicketState(booking, null)
   const venueName = booking.venue?.name || 'Unknown Venue'
-  const primaryPhoto = booking.venue?.photos?.[0]
+  const primaryPhoto = booking.venue ? deriveVenuePhotos(booking.venue)[0] : undefined
   const relativeDate = getRelativeDate(booking.date)
   const startTime = formatTime(booking.start_time)
   const endTime = formatTime(booking.end_time)

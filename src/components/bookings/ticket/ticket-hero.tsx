@@ -4,6 +4,7 @@ import Image from 'next/image'
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome'
 import { faArrowLeft } from '@fortawesome/free-solid-svg-icons'
 import type { Venue } from '@/types'
+import { deriveVenuePhotos } from '@/lib/venueMedia'
 
 interface TicketHeroProps {
   venue: Venue | null
@@ -11,7 +12,7 @@ interface TicketHeroProps {
 }
 
 export function TicketHero({ venue, onBack }: TicketHeroProps) {
-  const primaryPhoto = venue?.photos?.[0]
+  const primaryPhoto = venue ? deriveVenuePhotos(venue)[0] : undefined
 
   return (
     <div className="relative h-[40vh] sm:h-[45vh] md:h-[50vh] min-h-[280px] -mx-xl lg:-mx-3xl">

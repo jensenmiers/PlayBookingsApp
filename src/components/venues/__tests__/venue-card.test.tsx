@@ -1,6 +1,6 @@
 import { fireEvent, render, screen } from '@testing-library/react'
 import { VenueCard } from '../venue-card'
-import type { Venue } from '@/types'
+import type { Venue, VenueMedia } from '@/types'
 
 jest.mock('next/link', () => ({
   __esModule: true,
@@ -54,6 +54,31 @@ function createVenue(overrides: Partial<Venue> = {}): Venue {
     photos: [],
     amenities: [],
     is_active: true,
+    created_at: '2026-02-01T00:00:00Z',
+    updated_at: '2026-02-01T00:00:00Z',
+    ...overrides,
+  }
+}
+
+function createMedia(overrides: Partial<VenueMedia> = {}): VenueMedia {
+  return {
+    id: 'media-1',
+    venue_id: 'venue-1',
+    media_type: 'image',
+    storage_provider: 'supabase',
+    bucket_name: 'venue-photos',
+    object_path: 'test-court/hero.webp',
+    public_url: 'https://example.com/hero.webp',
+    alt_text: null,
+    caption: null,
+    sort_order: 0,
+    is_primary: true,
+    mime_type: 'image/webp',
+    file_size_bytes: null,
+    width_px: null,
+    height_px: null,
+    migrated_from_legacy_photos: true,
+    created_by: null,
     created_at: '2026-02-01T00:00:00Z',
     updated_at: '2026-02-01T00:00:00Z',
     ...overrides,
@@ -120,6 +145,32 @@ describe('VenueCard', () => {
     render(<VenueCard venue={createVenue({ photos: ['/photo1.jpg'] })} />)
 
     expect(screen.getByRole('img', { name: 'Test Court' })).toBeInTheDocument()
+  })
+
+  it('prefers ordered venue media over stale legacy photos', () => {
+    render(
+      <VenueCard
+        venue={createVenue({
+          photos: ['/legacy-photo.jpg'],
+          media: [
+            createMedia({
+              id: 'media-2',
+              sort_order: 1,
+              is_primary: false,
+              public_url: '/detail-photo.jpg',
+            }),
+            createMedia({
+              id: 'media-1',
+              sort_order: 0,
+              is_primary: true,
+              public_url: '/hero-photo.jpg',
+            }),
+          ],
+        })}
+      />
+    )
+
+    expect(screen.getByRole('img', { name: 'Test Court photo 1' })).toBeInTheDocument()
   })
 
   it('allows photo clicks to bubble to the wrapping venue link', () => {

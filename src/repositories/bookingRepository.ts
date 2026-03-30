@@ -4,6 +4,11 @@
 
 import { createClient } from '@/lib/supabase/server'
 import type { Booking, RecurringBooking, BookingStatus, BookingWithVenue } from '@/types'
+import {
+  isMissingVenueMediaQueryError,
+  normalizeVenueWithMedia,
+  VENUE_MEDIA_SELECT_COLUMNS,
+} from '@/lib/venueMedia'
 
 export class BookingRepository {
   /**
@@ -119,7 +124,8 @@ export class BookingRepository {
           name,
           instant_booking,
           insurance_required,
-          photos
+          photos,
+          venue_media(${VENUE_MEDIA_SELECT_COLUMNS})
         )
       `)
       .eq('renter_id', renterId)
@@ -138,13 +144,48 @@ export class BookingRepository {
       query = query.lte('date', filters.date_to)
     }
 
-    const { data, error } = await query
+    let { data, error } = await query
+
+    if (error && isMissingVenueMediaQueryError(error)) {
+      let fallbackQuery = supabase
+        .from('bookings')
+        .select(`
+          *,
+          venue:venues!bookings_venue_id_fkey (
+            id,
+            name,
+            instant_booking,
+            insurance_required,
+            photos
+          )
+        `)
+        .eq('renter_id', renterId)
+        .order('date', { ascending: false })
+        .order('start_time', { ascending: false })
+
+      if (filters?.status) {
+        fallbackQuery = fallbackQuery.eq('status', filters.status)
+      }
+
+      if (filters?.date_from) {
+        fallbackQuery = fallbackQuery.gte('date', filters.date_from)
+      }
+
+      if (filters?.date_to) {
+        fallbackQuery = fallbackQuery.lte('date', filters.date_to)
+      }
+
+      ;({ data, error } = await fallbackQuery)
+    }
 
     if (error) {
       throw new Error(`Failed to fetch bookings with venue: ${error.message}`)
     }
 
-    return (data || []) as BookingWithVenue[]
+    return ((data || []) as BookingWithVenue[]).map((booking) => ({
+      ...booking,
+      venue: normalizeVenueWithMedia(booking.venue),
+    }))
   }
 
   /**
@@ -358,6 +399,4 @@ export class BookingRepository {
     return (data || []) as RecurringBooking[]
   }
 }
-
-
 

@@ -7,6 +7,7 @@ import type { Venue } from '@/types'
 import { slugify } from '@/lib/utils'
 import { getBookingModeDisplay } from '@/lib/booking-mode'
 import { PhotoCarousel } from '@/components/venue/photo-carousel'
+import { deriveVenuePhotos } from '@/lib/venueMedia'
 
 interface NextAvailableInfo {
   displayText: string  // "Today 3:00 PM" or "Tomorrow 9:00 AM"
@@ -22,6 +23,7 @@ interface VenueCardProps {
 export function VenueCard({ venue, nextAvailable }: VenueCardProps) {
   const venueSlug = slugify(venue.name)
   const bookingMode = getBookingModeDisplay(venue.instant_booking, 'compact')
+  const photos = deriveVenuePhotos(venue)
 
   return (
     <Link
@@ -32,7 +34,7 @@ export function VenueCard({ venue, nextAvailable }: VenueCardProps) {
       <div className="relative aspect-[4/3] overflow-hidden">
         <div className="absolute inset-0 group-hover:scale-105 transition-transform duration-300">
           <PhotoCarousel
-            photos={venue.photos || []}
+            photos={photos}
             venueName={venue.name}
             sizes="(max-width: 768px) 100vw, (max-width: 1024px) 50vw, 33vw"
           />

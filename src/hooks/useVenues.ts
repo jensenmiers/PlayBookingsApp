@@ -20,6 +20,12 @@ import { getNextTopOfHour, timeStringToDate } from '@/utils/dateHelpers'
 import { slugify } from '@/lib/utils'
 import { format } from 'date-fns'
 import { isSlotAllowedByVenueConfig, normalizeVenueAdminConfig } from '@/lib/venueAdminConfig'
+import {
+  isMissingVenueMediaQueryError,
+  normalizeVenueCollectionWithMedia,
+  normalizeVenueWithMedia,
+  VENUE_SELECT_WITH_MEDIA,
+} from '@/lib/venueMedia'
 
 /**
  * Hook state interface
@@ -65,35 +71,47 @@ export function useVenues(filters?: VenueSearchFilters) {
 
     try {
       const supabase = createClient()
-      let query = supabase.from('venues').select('*').eq('is_active', true)
+      const applyVenueFilters = (query: any) => {
+        let nextQuery = query
 
-      if (filters?.city) {
-        query = query.eq('city', filters.city)
-      }
-      if (filters?.state) {
-        query = query.eq('state', filters.state)
-      }
-      if (filters?.min_price !== undefined) {
-        query = query.gte('hourly_rate', filters.min_price)
-      }
-      if (filters?.max_price !== undefined) {
-        query = query.lte('hourly_rate', filters.max_price)
-      }
-      if (filters?.insurance_required !== undefined) {
-        query = query.eq('insurance_required', filters.insurance_required)
-      }
-      if (filters?.instant_booking !== undefined) {
-        query = query.eq('instant_booking', filters.instant_booking)
+        if (filters?.city) {
+          nextQuery = nextQuery.eq('city', filters.city)
+        }
+        if (filters?.state) {
+          nextQuery = nextQuery.eq('state', filters.state)
+        }
+        if (filters?.min_price !== undefined) {
+          nextQuery = nextQuery.gte('hourly_rate', filters.min_price)
+        }
+        if (filters?.max_price !== undefined) {
+          nextQuery = nextQuery.lte('hourly_rate', filters.max_price)
+        }
+        if (filters?.insurance_required !== undefined) {
+          nextQuery = nextQuery.eq('insurance_required', filters.insurance_required)
+        }
+        if (filters?.instant_booking !== undefined) {
+          nextQuery = nextQuery.eq('instant_booking', filters.instant_booking)
+        }
+
+        return nextQuery
       }
 
-      const { data, error } = await query.order('created_at', { ascending: false })
+      let { data, error } = await applyVenueFilters(
+        supabase.from('venues').select(VENUE_SELECT_WITH_MEDIA).eq('is_active', true)
+      ).order('created_at', { ascending: false })
+
+      if (error && isMissingVenueMediaQueryError(error)) {
+        ;({ data, error } = await applyVenueFilters(
+          supabase.from('venues').select('*').eq('is_active', true)
+        ).order('created_at', { ascending: false }))
+      }
 
       if (error) {
         console.error('Venue fetch error:', error)
         throw error
       }
 
-      setState({ data: data || [], loading: false, error: null })
+      setState({ data: normalizeVenueCollectionWithMedia(data), loading: false, error: null })
     } catch (error) {
       console.error('Venue fetch error:', error)
       const message = error instanceof Error ? error.message : 'Failed to fetch venues'
@@ -131,14 +149,22 @@ export function useVenue(id: string | null) {
       setState((prev) => ({ ...prev, loading: true, error: null }))
       try {
         const supabase = createClient()
-        const { data, error } = await supabase
+        let { data, error } = await supabase
           .from('venues')
-          .select('*')
+          .select(VENUE_SELECT_WITH_MEDIA)
           .eq('id', id)
           .single()
 
+        if (error && isMissingVenueMediaQueryError(error)) {
+          ;({ data, error } = await supabase
+            .from('venues')
+            .select('*')
+            .eq('id', id)
+            .single())
+        }
+
         if (error) throw error
-        setState({ data, loading: false, error: null })
+        setState({ data: normalizeVenueWithMedia(data), loading: false, error: null })
       } catch (error) {
         console.error('Venue fetch error:', error)
         const message = error instanceof Error ? error.message : 'Failed to fetch venue'
@@ -173,15 +199,22 @@ export function useVenueBySlug(slug: string | null) {
       setState((prev) => ({ ...prev, loading: true, error: null }))
       try {
         const supabase = createClient()
-        const { data: venues, error } = await supabase
+        let { data: venues, error } = await supabase
           .from('venues')
-          .select('*')
+          .select(VENUE_SELECT_WITH_MEDIA)
           .eq('is_active', true)
+
+        if (error && isMissingVenueMediaQueryError(error)) {
+          ;({ data: venues, error } = await supabase
+            .from('venues')
+            .select('*')
+            .eq('is_active', true))
+        }
 
         if (error) throw error
 
         // Find venue by matching slugified name
-        const venue = venues?.find((v) => slugify(v.name) === slug) || null
+        const venue = normalizeVenueCollectionWithMedia(venues).find((v) => slugify(v.name) === slug) || null
 
         if (!venue) {
           setState({ data: null, loading: false, error: 'Venue not found' })

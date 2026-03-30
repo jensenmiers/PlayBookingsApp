@@ -1,6 +1,7 @@
 import { slugify } from '@/lib/utils'
 import type { MapVenue } from '@/hooks/useVenuesWithNextAvailable'
 import type { Venue } from '@/types'
+import { deriveVenuePhotos } from '@/lib/venueMedia'
 
 export interface FeaturedCourt {
   id: string
@@ -73,7 +74,7 @@ export function buildFeaturedCourts(
         type: venue.venue_type || 'Sports Facility',
         hourlyRate: venue.hourly_rate,
         nextAvailable: formatFeaturedAvailability(nextSlot.date, nextSlot.startTime),
-        image: Array.isArray(venue.photos) && venue.photos.length > 0 ? venue.photos[0] : null,
+        image: deriveVenuePhotos(venue)[0] || null,
         href: `/venue/${slugify(venue.name)}`,
         sortTime: getSortTimestamp(nextSlot.date, nextSlot.startTime),
       }
@@ -81,5 +82,13 @@ export function buildFeaturedCourts(
     .filter((court): court is FeaturedCourt & { sortTime: number } => court !== null)
     .sort((a, b) => a.sortTime - b.sortTime)
     .slice(0, limit)
-    .map(({ sortTime: _sortTime, ...court }) => court)
+    .map((court) => ({
+      id: court.id,
+      name: court.name,
+      type: court.type,
+      hourlyRate: court.hourlyRate,
+      nextAvailable: court.nextAvailable,
+      image: court.image,
+      href: court.href,
+    }))
 }

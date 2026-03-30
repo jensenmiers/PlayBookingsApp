@@ -8,6 +8,7 @@
 import { createClient } from '@supabase/supabase-js'
 import * as dotenv from 'dotenv'
 import { resolve } from 'path'
+import { replaceVenueImages } from '../src/lib/venueMediaWrite'
 
 dotenv.config({ path: resolve(process.cwd(), '.env.local') })
 dotenv.config({ path: resolve(process.cwd(), '.env') })
@@ -67,20 +68,13 @@ async function main() {
 
     const photoUrl = getPhotoUrl(slug)
     
-    const { error: updateError } = await supabase
-      .from('venues')
-      .update({ 
-        photos: [photoUrl],
-        updated_at: new Date().toISOString()
-      })
-      .eq('id', venue.id)
-
-    if (updateError) {
-      console.log(`❌ ${venue.name}: ${updateError.message}`)
-    } else {
+    try {
+      await replaceVenueImages(supabase, { venueId: venue.id, photoUrls: [photoUrl] })
       console.log(`✅ ${venue.name}`)
       console.log(`   ${photoUrl}`)
       updated++
+    } catch (error) {
+      console.log(`❌ ${venue.name}: ${error instanceof Error ? error.message : 'Unknown error'}`)
     }
   }
 

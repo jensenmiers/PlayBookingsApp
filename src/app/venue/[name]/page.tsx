@@ -2,6 +2,11 @@ import { createClient } from '@/lib/supabase/server'
 import { VenueDesignEditorial } from '@/components/venue/venue-design-editorial'
 import { notFound } from 'next/navigation'
 import type { Metadata } from 'next'
+import {
+  isMissingVenueMediaQueryError,
+  normalizeVenueCollectionWithMedia,
+  VENUE_SELECT_WITH_MEDIA,
+} from '@/lib/venueMedia'
 
 function slugify(name: string): string {
   return name.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/(^-|-$)/g, '')
@@ -29,12 +34,19 @@ export default async function VenuePage({ params }: PageProps) {
   const { name: slug } = await params
   const supabase = await createClient()
 
-  const { data: venues } = await supabase
+  let { data: venues, error } = await supabase
     .from('venues')
-    .select('*')
+    .select(VENUE_SELECT_WITH_MEDIA)
     .eq('is_active', true)
 
-  const venue = venues?.find((v) => slugify(v.name) === slug)
+  if (error && isMissingVenueMediaQueryError(error)) {
+    ;({ data: venues, error } = await supabase
+      .from('venues')
+      .select('*')
+      .eq('is_active', true))
+  }
+
+  const venue = normalizeVenueCollectionWithMedia(venues).find((v) => slugify(v.name) === slug)
 
   if (!venue) {
     notFound()

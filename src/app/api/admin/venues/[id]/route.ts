@@ -14,6 +14,11 @@ import {
   recordVenueAvailabilityPublishFailure,
   recordVenueAvailabilityPublishSuccess,
 } from '@/services/venueAvailabilityPublishService'
+import {
+  isMissingVenueMediaQueryError,
+  normalizeVenueWithMedia,
+  VENUE_SELECT_WITH_MEDIA,
+} from '@/lib/venueMedia'
 import type { ApiResponse } from '@/types/api'
 import type { DropInTemplateWindow, Venue, VenueAdminConfig } from '@/types'
 
@@ -275,7 +280,7 @@ export async function GET(_request: NextRequest, context: RouteContext): Promise
     const adminClient = createAdminClient()
 
     const [
-      { data: venue, error: venueError },
+      venueResult,
       { data: configRow, error: configError },
       { data: templateRows, error: templateError },
       { data: regularSyncRow, error: regularSyncError },
@@ -283,7 +288,7 @@ export async function GET(_request: NextRequest, context: RouteContext): Promise
       { data: calendarIntegrationRow, error: calendarIntegrationError },
       publishStateRow,
     ] = await Promise.all([
-      adminClient.from('venues').select('*').eq('id', id).single(),
+      adminClient.from('venues').select(VENUE_SELECT_WITH_MEDIA).eq('id', id).single(),
       adminClient.from('venue_admin_configs').select('*').eq('venue_id', id).maybeSingle(),
       adminClient
         .from('slot_templates')
@@ -308,6 +313,16 @@ export async function GET(_request: NextRequest, context: RouteContext): Promise
         .maybeSingle(),
       getVenueAvailabilityPublishState(id),
     ])
+
+    let { data: venue, error: venueError } = venueResult
+
+    if (venueError && isMissingVenueMediaQueryError(venueError)) {
+      ;({ data: venue, error: venueError } = await adminClient
+        .from('venues')
+        .select('*')
+        .eq('id', id)
+        .single())
+    }
 
     if (venueError || !venue) {
       throw notFound('Venue not found')
@@ -357,7 +372,8 @@ export async function GET(_request: NextRequest, context: RouteContext): Promise
       dropInSlotSync,
       calendarIntegration,
     })
-    const completeness = calculateVenueConfigCompleteness(venue as Venue, config)
+    const normalizedVenue = normalizeVenueWithMedia(venue)
+    const completeness = calculateVenueConfigCompleteness(normalizedVenue as Venue, config)
     const response: ApiResponse<{
       venue: Venue
       config: VenueAdminConfig
@@ -371,7 +387,7 @@ export async function GET(_request: NextRequest, context: RouteContext): Promise
     }> = {
       success: true,
       data: {
-        venue: venue as Venue,
+        venue: normalizedVenue as Venue,
         config,
         drop_in_templates: dropInTemplates,
         regular_booking_templates: regularTemplates,
