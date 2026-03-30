@@ -1,9 +1,10 @@
 #!/usr/bin/env tsx
 
 import { createClient } from '@supabase/supabase-js'
+import { execFileSync } from 'child_process'
 import * as dotenv from 'dotenv'
-import { existsSync, readdirSync, readFileSync, writeFileSync } from 'fs'
-import { join, resolve, relative } from 'path'
+import { existsSync, mkdirSync, readdirSync, readFileSync, writeFileSync } from 'fs'
+import { dirname, join, resolve, relative } from 'path'
 import {
   CSS_SNAPSHOT_END,
   CSS_SNAPSHOT_START,
@@ -12,8 +13,12 @@ import {
   PACIFIC_TIME_ZONE,
   extractSupabaseTables,
   formatDateInTimeZone,
+  hasSubstantiveDocChanges,
+  parseRefreshState,
   parseFontVariables,
+  serializeRefreshState,
   replaceBetweenMarkers,
+  summarizeDocChanges,
   updateLastVerifiedLine,
 } from '../src/lib/docs/architectureDocRefresh'
 
@@ -24,6 +29,39 @@ const MIGRATIONS_DIR = join(PROJECT_ROOT, 'supabase', 'migrations')
 const LAYOUT_PATH = join(PROJECT_ROOT, 'src', 'app', 'layout.tsx')
 const GLOBALS_CSS_PATH = join(PROJECT_ROOT, 'src', 'app', 'globals.css')
 const SOURCE_SCAN_DIRS = ['src', 'scripts']
+const LAST_DOC_REFRESH_GIT_PATHS = ['DATABASE_STRUCTURE.md', 'CSS_ARCHITECTURE.md']
+const DEFAULT_STATE_PATH = join(PROJECT_ROOT, '.codex', 'architecture-doc-refresh-state.json')
+const DATABASE_RELEVANT_PATHS = [
+  'README.md',
+  'DATABASE_STRUCTURE.md',
+  'supabase/migrations',
+  'src/services',
+  'src/app/api',
+  'src/types',
+  'scripts/refresh-architecture-docs.ts',
+  'src/lib/docs/architectureDocRefresh.ts',
+]
+const CSS_RELEVANT_PATHS = [
+  'README.md',
+  'CSS_ARCHITECTURE.md',
+  'src/app/globals.css',
+  'src/app/layout.tsx',
+  'src/components/ui',
+  'components.json',
+  'postcss.config.mjs',
+  'scripts/refresh-architecture-docs.ts',
+  'src/lib/docs/architectureDocRefresh.ts',
+]
+
+type RefreshResult = {
+  changed: boolean
+  changes: string[]
+}
+
+type RefreshState = {
+  lastRunAt: string
+  lastSuccessfulRunAt: string
+}
 
 const EXPECTED_ARCHITECTURE_TABLES = [
   'users',
@@ -71,6 +109,23 @@ function readUtf8(path: string): string {
   return readFileSync(path, 'utf8')
 }
 
+function getStatePath(): string {
+  return process.env.ARCHITECTURE_DOCS_STATE_PATH || DEFAULT_STATE_PATH
+}
+
+function readRefreshState(statePath: string): RefreshState | null {
+  if (!existsSync(statePath)) {
+    return null
+  }
+
+  return parseRefreshState(readUtf8(statePath))
+}
+
+function writeRefreshState(statePath: string, state: RefreshState) {
+  mkdirSync(dirname(statePath), { recursive: true })
+  writeFileSync(statePath, serializeRefreshState(state), 'utf8')
+}
+
 function buildDatabaseSnapshot(nowPacific: string): Promise<string> {
   const migrationFiles = existsSync(MIGRATIONS_DIR)
     ? readdirSync(MIGRATIONS_DIR).filter((name) => name.endsWith('.sql')).sort()
@@ -88,14 +143,12 @@ function buildDatabaseSnapshot(nowPacific: string): Promise<string> {
 
   return getLiveTableSummary(EXPECTED_ARCHITECTURE_TABLES).then((liveSummary) => {
     const latestMigration = migrationFiles.length > 0 ? migrationFiles[migrationFiles.length - 1] : 'none found'
-    const tablePreview = appTables.slice(0, 12).map((table) => `\`${table}\``).join(', ')
-    const extraCount = appTables.length > 12 ? ` (+${appTables.length - 12} more)` : ''
 
     return [
       `- Generated at: ${nowPacific} (${PACIFIC_TIME_ZONE})`,
       `- Latest migration in repo: \`${latestMigration}\` (${migrationFiles.length} total)`,
       `- Distinct tables referenced in app code via \`.from()\`: ${appTables.length}`,
-      `- App table sample: ${tablePreview || 'none'}${extraCount}`,
+      `- App tables referenced in app code: ${appTables.map((table) => `\`${table}\``).join(', ') || 'none'}`,
       `- Live key-table check: ${liveSummary}`,
     ].join('\n')
   })
@@ -144,7 +197,10 @@ function buildCssSnapshot(nowPacific: string): string {
 
   const uiComponentFiles = collectFiles(join(PROJECT_ROOT, 'src', 'components', 'ui'), ['.tsx'])
   const sourceFiles = collectFiles(join(PROJECT_ROOT, 'src'), ['.ts', '.tsx'])
-  const cvaFiles = sourceFiles.filter((file) => readUtf8(file).includes('cva('))
+  const cvaFiles = sourceFiles
+    .filter((file) => readUtf8(file).includes('cva('))
+    .map((file) => relative(PROJECT_ROOT, file))
+    .sort()
   const fontVariables = existsSync(LAYOUT_PATH) ? parseFontVariables(readUtf8(LAYOUT_PATH)) : []
   const globals = existsSync(GLOBALS_CSS_PATH) ? readUtf8(GLOBALS_CSS_PATH) : ''
   const hasMapPopupOverrides = globals.includes('.map-popup')
@@ -154,31 +210,118 @@ function buildCssSnapshot(nowPacific: string): string {
     `- Generated at: ${nowPacific} (${PACIFIC_TIME_ZONE})`,
     `- CSS files in \`src\`: ${cssFiles.length} (${cssFiles.map((file) => `\`${file}\``).join(', ') || 'none'})`,
     `- UI primitive files in \`src/components/ui\`: ${uiComponentFiles.length}`,
-    `- Files using \`cva()\`: ${cvaFiles.length}`,
+    `- Files using \`cva()\`: ${cvaFiles.length} (${cvaFiles.map((file) => `\`${file}\``).join(', ') || 'none'})`,
     `- Font variables from layout: ${fontVariables.map((font) => `\`${font}\``).join(', ') || 'none found'}`,
     `- Globals include dark variant: ${hasDarkVariant ? 'yes' : 'no'}`,
     `- Globals include Mapbox popup overrides: ${hasMapPopupOverrides ? 'yes' : 'no'}`,
   ].join('\n')
 }
 
-function refreshDoc(path: string, snapshotStart: string, snapshotEnd: string, snapshot: string, nowPacific: string) {
+function formatSnapshotChanges(changes: ReturnType<typeof summarizeDocChanges>): string[] {
+  if (changes.length === 0) {
+    return ['no substantive snapshot changes detected']
+  }
+
+  return changes.map((change) => `${change.label}: ${change.previous} -> ${change.next}`)
+}
+
+function readGitChangedFilesSinceLastDocRefresh(paths: string[]): string[] {
+  try {
+    const baselineRef = execFileSync('git', ['rev-list', '-1', 'HEAD', '--', ...LAST_DOC_REFRESH_GIT_PATHS], {
+      cwd: PROJECT_ROOT,
+      encoding: 'utf8',
+    }).trim()
+
+    if (!baselineRef) {
+      return []
+    }
+
+    return execFileSync('git', ['diff', '--name-only', baselineRef, '--', ...paths], {
+      cwd: PROJECT_ROOT,
+      encoding: 'utf8',
+    })
+      .split('\n')
+      .map((file) => file.trim())
+      .filter(Boolean)
+      .sort()
+  } catch {
+    return []
+  }
+}
+
+function formatRelevantFileChanges(label: string, files: string[]): string[] {
+  if (files.length === 0) {
+    return [`${label}: none since last committed doc refresh`]
+  }
+
+  return [`${label}: ${files.map((file) => `\`${file}\``).join(', ')}`]
+}
+
+function refreshDoc(path: string, snapshotStart: string, snapshotEnd: string, snapshot: string, nowPacific: string): RefreshResult {
   const original = readUtf8(path)
-  const withDate = updateLastVerifiedLine(original, nowPacific)
-  const withSnapshot = replaceBetweenMarkers(withDate, snapshotStart, snapshotEnd, snapshot)
-  writeFileSync(path, withSnapshot, 'utf8')
+  const nextContent = replaceBetweenMarkers(updateLastVerifiedLine(original, nowPacific), snapshotStart, snapshotEnd, snapshot)
+  const changes = formatSnapshotChanges(summarizeDocChanges(original, nextContent, snapshotStart, snapshotEnd))
+  const changed = hasSubstantiveDocChanges(original, nextContent, snapshotStart, snapshotEnd)
+
+  if (changed) {
+    writeFileSync(path, nextContent, 'utf8')
+  }
+
+  return { changed, changes }
 }
 
 async function main() {
+  const runStartedAt = new Date().toISOString()
   const nowPacific = formatDateInTimeZone(new Date(), PACIFIC_TIME_ZONE)
+  const statePath = getStatePath()
+  const previousState = readRefreshState(statePath)
   const databaseSnapshot = await buildDatabaseSnapshot(nowPacific)
   const cssSnapshot = buildCssSnapshot(nowPacific)
+  const databaseRelevantFiles = readGitChangedFilesSinceLastDocRefresh(DATABASE_RELEVANT_PATHS)
+  const cssRelevantFiles = readGitChangedFilesSinceLastDocRefresh(CSS_RELEVANT_PATHS)
 
-  refreshDoc(DATABASE_DOC_PATH, DATABASE_SNAPSHOT_START, DATABASE_SNAPSHOT_END, databaseSnapshot, nowPacific)
-  refreshDoc(CSS_DOC_PATH, CSS_SNAPSHOT_START, CSS_SNAPSHOT_END, cssSnapshot, nowPacific)
+  const databaseResult = refreshDoc(
+    DATABASE_DOC_PATH,
+    DATABASE_SNAPSHOT_START,
+    DATABASE_SNAPSHOT_END,
+    databaseSnapshot,
+    nowPacific
+  )
+  const cssResult = refreshDoc(CSS_DOC_PATH, CSS_SNAPSHOT_START, CSS_SNAPSHOT_END, cssSnapshot, nowPacific)
 
-  console.log('Updated architecture docs:')
-  console.log(`- ${relative(PROJECT_ROOT, DATABASE_DOC_PATH)}`)
-  console.log(`- ${relative(PROJECT_ROOT, CSS_DOC_PATH)}`)
+  console.log('Architecture doc refresh summary:')
+  console.log(
+    `- Previous exact automation execution: ${previousState?.lastRunAt ?? 'none recorded'}`
+  )
+  console.log(`- Database doc updated: ${databaseResult.changed ? 'yes' : 'no (timestamp-only change skipped)'}`)
+  for (const line of databaseResult.changes) {
+    console.log(`  - ${line}`)
+  }
+  for (const line of formatRelevantFileChanges('Database-relevant git changes', databaseRelevantFiles)) {
+    console.log(`  - ${line}`)
+  }
+  console.log(`- CSS doc updated: ${cssResult.changed ? 'yes' : 'no (timestamp-only change skipped)'}`)
+  for (const line of cssResult.changes) {
+    console.log(`  - ${line}`)
+  }
+  for (const line of formatRelevantFileChanges('CSS-relevant git changes', cssRelevantFiles)) {
+    console.log(`  - ${line}`)
+  }
+
+  if (databaseResult.changed || cssResult.changed) {
+    console.log('Updated architecture docs:')
+    if (databaseResult.changed) {
+      console.log(`- ${relative(PROJECT_ROOT, DATABASE_DOC_PATH)}`)
+    }
+    if (cssResult.changed) {
+      console.log(`- ${relative(PROJECT_ROOT, CSS_DOC_PATH)}`)
+    }
+  }
+
+  writeRefreshState(statePath, {
+    lastRunAt: runStartedAt,
+    lastSuccessfulRunAt: runStartedAt,
+  })
 }
 
 main().catch((error) => {

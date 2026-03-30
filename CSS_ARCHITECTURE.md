@@ -5,7 +5,7 @@ It is intentionally concise and avoids per-component class inventories.
 
 ## Known Gaps
 
-- Last verified: 2026-03-29 (America/Los_Angeles)
+- Last verified: 2026-03-30 (America/Los_Angeles)
 - Verification sources:
   - `src/app/globals.css`
   - `src/app/layout.tsx`
@@ -17,10 +17,10 @@ It is intentionally concise and avoids per-component class inventories.
 ## Automated Snapshot (Generated)
 
 <!-- AUTO-SNAPSHOT:CSS:START -->
-- Generated at: 2026-03-29 (America/Los_Angeles)
+- Generated at: 2026-03-30 (America/Los_Angeles)
 - CSS files in `src`: 1 (`src/app/globals.css`)
 - UI primitive files in `src/components/ui`: 16
-- Files using `cva()`: 2
+- Files using `cva()`: 2 (`src/components/ui/button.tsx`, `src/components/ui/toast.tsx`)
 - Font variables from layout: `--font-dm-sans`, `--font-dm-serif`, `--font-geist-mono`
 - Globals include dark variant: yes
 - Globals include Mapbox popup overrides: yes
