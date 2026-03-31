@@ -6,6 +6,7 @@ import * as dotenv from 'dotenv'
 import { existsSync, mkdirSync, readdirSync, readFileSync, writeFileSync } from 'fs'
 import { dirname, join, resolve, relative } from 'path'
 import {
+  resolveArchitectureDocRefreshStatePath,
   CSS_SNAPSHOT_END,
   CSS_SNAPSHOT_START,
   DATABASE_SNAPSHOT_END,
@@ -30,7 +31,6 @@ const LAYOUT_PATH = join(PROJECT_ROOT, 'src', 'app', 'layout.tsx')
 const GLOBALS_CSS_PATH = join(PROJECT_ROOT, 'src', 'app', 'globals.css')
 const SOURCE_SCAN_DIRS = ['src', 'scripts']
 const LAST_DOC_REFRESH_GIT_PATHS = ['DATABASE_STRUCTURE.md', 'CSS_ARCHITECTURE.md']
-const DEFAULT_STATE_PATH = join(PROJECT_ROOT, '.codex', 'architecture-doc-refresh-state.json')
 const DATABASE_RELEVANT_PATHS = [
   'README.md',
   'DATABASE_STRUCTURE.md',
@@ -110,7 +110,7 @@ function readUtf8(path: string): string {
 }
 
 function getStatePath(): string {
-  return process.env.ARCHITECTURE_DOCS_STATE_PATH || DEFAULT_STATE_PATH
+  return resolveArchitectureDocRefreshStatePath(PROJECT_ROOT)
 }
 
 function readRefreshState(statePath: string): RefreshState | null {
@@ -318,10 +318,15 @@ async function main() {
     }
   }
 
-  writeRefreshState(statePath, {
-    lastRunAt: runStartedAt,
-    lastSuccessfulRunAt: runStartedAt,
-  })
+  try {
+    writeRefreshState(statePath, {
+      lastRunAt: runStartedAt,
+      lastSuccessfulRunAt: runStartedAt,
+    })
+  } catch (error) {
+    const message = error instanceof Error ? error.message : 'unknown error'
+    console.warn(`- Warning: could not persist refresh state at \`${statePath}\`: ${message}`)
+  }
 }
 
 main().catch((error) => {

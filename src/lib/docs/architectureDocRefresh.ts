@@ -1,8 +1,12 @@
+import { join } from 'path'
+
 export const DATABASE_SNAPSHOT_START = '<!-- AUTO-SNAPSHOT:DB:START -->'
 export const DATABASE_SNAPSHOT_END = '<!-- AUTO-SNAPSHOT:DB:END -->'
 export const CSS_SNAPSHOT_START = '<!-- AUTO-SNAPSHOT:CSS:START -->'
 export const CSS_SNAPSHOT_END = '<!-- AUTO-SNAPSHOT:CSS:END -->'
 export const PACIFIC_TIME_ZONE = 'America/Los_Angeles'
+export const ARCHITECTURE_DOC_REFRESH_AUTOMATION_ID = 'refresh-architecture-docs'
+export const DEFAULT_PROJECT_STATE_PATH_SEGMENTS = ['.codex', 'architecture-doc-refresh-state.json'] as const
 
 export type SnapshotChange = {
   label: string
@@ -174,4 +178,21 @@ export function parseRefreshState(content: string): RefreshState | null {
   } catch {
     return null
   }
+}
+
+export function resolveArchitectureDocRefreshStatePath(
+  projectRoot: string,
+  env: NodeJS.ProcessEnv = process.env
+): string {
+  const explicitPath = env.ARCHITECTURE_DOCS_STATE_PATH?.trim()
+  if (explicitPath) {
+    return explicitPath
+  }
+
+  const codexHome = env.CODEX_HOME?.trim()
+  if (codexHome) {
+    return join(codexHome, 'automations', ARCHITECTURE_DOC_REFRESH_AUTOMATION_ID, 'last-run.json')
+  }
+
+  return join(projectRoot, ...DEFAULT_PROJECT_STATE_PATH_SEGMENTS)
 }

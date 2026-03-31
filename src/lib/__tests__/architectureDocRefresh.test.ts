@@ -1,8 +1,10 @@
 import {
+  DEFAULT_PROJECT_STATE_PATH_SEGMENTS,
   extractBetweenMarkers,
   extractSupabaseTables,
   hasSubstantiveDocChanges,
   parseFontVariables,
+  resolveArchitectureDocRefreshStatePath,
   replaceBetweenMarkers,
   serializeRefreshState,
   parseRefreshState,
@@ -139,5 +141,28 @@ describe('architecture doc refresh helpers', () => {
   it('returns null for invalid refresh state payloads', () => {
     expect(parseRefreshState('not json')).toBeNull()
     expect(parseRefreshState('{"lastRunAt":123}')).toBeNull()
+  })
+
+  it('prefers explicit architecture state path override', () => {
+    const resolved = resolveArchitectureDocRefreshStatePath('/repo', {
+      ARCHITECTURE_DOCS_STATE_PATH: '/tmp/custom-state.json',
+      CODEX_HOME: '/Users/example/.codex',
+    })
+
+    expect(resolved).toBe('/tmp/custom-state.json')
+  })
+
+  it('uses CODEX_HOME automation state path when explicit override is absent', () => {
+    const resolved = resolveArchitectureDocRefreshStatePath('/repo', {
+      CODEX_HOME: '/Users/example/.codex',
+    })
+
+    expect(resolved).toBe('/Users/example/.codex/automations/refresh-architecture-docs/last-run.json')
+  })
+
+  it('falls back to project-local state path when no env override is provided', () => {
+    const resolved = resolveArchitectureDocRefreshStatePath('/repo', {})
+
+    expect(resolved).toBe(`/repo/${DEFAULT_PROJECT_STATE_PATH_SEGMENTS.join('/')}`)
   })
 })
