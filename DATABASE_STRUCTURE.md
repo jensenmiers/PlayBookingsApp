@@ -115,6 +115,7 @@ It is intentionally not a column-by-column reference.
 
 Update this document only when one of these changes:
 
+- A new column is added to a table or the table's schema changes.
 - A new table/domain is introduced or retired.
 - Source-of-truth ownership shifts between tables.
 - A policy model changes (for example, booking eligibility rules).
