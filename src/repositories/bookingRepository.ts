@@ -182,7 +182,9 @@ export class BookingRepository {
       throw new Error(`Failed to fetch bookings with venue: ${error.message}`)
     }
 
-    return ((data || []) as BookingWithVenue[]).map((booking) => ({
+    const bookingsWithVenue = (data || []) as unknown as BookingWithVenue[]
+
+    return bookingsWithVenue.map((booking) => ({
       ...booking,
       venue: normalizeVenueWithMedia(booking.venue),
     }))
@@ -399,4 +401,3 @@ export class BookingRepository {
     return (data || []) as RecurringBooking[]
   }
 }
-

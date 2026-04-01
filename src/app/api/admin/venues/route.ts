@@ -10,6 +10,7 @@ import {
 import {
   isMissingVenueMediaQueryError,
   normalizeVenueCollectionWithMedia,
+  type VenueWithOptionalMediaFields,
   VENUE_SELECT_WITH_MEDIA,
 } from '@/lib/venueMedia'
 import type { ApiResponse } from '@/types/api'
@@ -243,7 +244,8 @@ export async function GET(): Promise<Response> {
       publishStateByVenueId.set(row.venue_id, row)
     }
 
-    const items: AdminVenueConfigListItem[] = normalizeVenueCollectionWithMedia((venues || []) as Venue[]).map((venue) => {
+    const venueRows = (venues || []) as unknown as Array<Venue & VenueWithOptionalMediaFields>
+    const items: AdminVenueConfigListItem[] = normalizeVenueCollectionWithMedia(venueRows).map((venue) => {
       const config = normalizeVenueAdminConfig(venue.id, configByVenueId.get(venue.id) || null)
       const completeness = calculateVenueConfigCompleteness(venue, config)
       const dropInTemplates = normalizeTemplateWindows(dropInTemplatesByVenueId.get(venue.id) || [])

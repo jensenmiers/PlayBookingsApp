@@ -17,6 +17,7 @@ import {
 import {
   isMissingVenueMediaQueryError,
   normalizeVenueWithMedia,
+  type VenueWithOptionalMediaFields,
   VENUE_SELECT_WITH_MEDIA,
 } from '@/lib/venueMedia'
 import type { ApiResponse } from '@/types/api'
@@ -327,6 +328,8 @@ export async function GET(_request: NextRequest, context: RouteContext): Promise
     if (venueError || !venue) {
       throw notFound('Venue not found')
     }
+
+    const venueRecord = venue as unknown as Venue & VenueWithOptionalMediaFields
     if (configError) {
       throw new Error(`Failed to fetch venue config: ${configError.message}`)
     }
@@ -372,7 +375,7 @@ export async function GET(_request: NextRequest, context: RouteContext): Promise
       dropInSlotSync,
       calendarIntegration,
     })
-    const normalizedVenue = normalizeVenueWithMedia(venue)
+    const normalizedVenue = normalizeVenueWithMedia(venueRecord)
     const completeness = calculateVenueConfigCompleteness(normalizedVenue as Venue, config)
     const response: ApiResponse<{
       venue: Venue

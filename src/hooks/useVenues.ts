@@ -24,6 +24,7 @@ import {
   isMissingVenueMediaQueryError,
   normalizeVenueCollectionWithMedia,
   normalizeVenueWithMedia,
+  type VenueWithOptionalMediaFields,
   VENUE_SELECT_WITH_MEDIA,
 } from '@/lib/venueMedia'
 
@@ -111,7 +112,8 @@ export function useVenues(filters?: VenueSearchFilters) {
         throw error
       }
 
-      setState({ data: normalizeVenueCollectionWithMedia(data), loading: false, error: null })
+      const venueRows = data as unknown as Array<Venue & VenueWithOptionalMediaFields> | null
+      setState({ data: normalizeVenueCollectionWithMedia(venueRows), loading: false, error: null })
     } catch (error) {
       console.error('Venue fetch error:', error)
       const message = error instanceof Error ? error.message : 'Failed to fetch venues'
@@ -164,7 +166,8 @@ export function useVenue(id: string | null) {
         }
 
         if (error) throw error
-        setState({ data: normalizeVenueWithMedia(data), loading: false, error: null })
+        const venueRecord = data as unknown as Venue & VenueWithOptionalMediaFields
+        setState({ data: normalizeVenueWithMedia(venueRecord), loading: false, error: null })
       } catch (error) {
         console.error('Venue fetch error:', error)
         const message = error instanceof Error ? error.message : 'Failed to fetch venue'
@@ -214,7 +217,8 @@ export function useVenueBySlug(slug: string | null) {
         if (error) throw error
 
         // Find venue by matching slugified name
-        const venue = normalizeVenueCollectionWithMedia(venues).find((v) => slugify(v.name) === slug) || null
+        const venueRows = venues as unknown as Array<Venue & VenueWithOptionalMediaFields> | null
+        const venue = normalizeVenueCollectionWithMedia(venueRows).find((v) => slugify(v.name) === slug) || null
 
         if (!venue) {
           setState({ data: null, loading: false, error: 'Venue not found' })

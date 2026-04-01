@@ -2,9 +2,11 @@ import { createClient } from '@/lib/supabase/server'
 import { VenueDesignEditorial } from '@/components/venue/venue-design-editorial'
 import { notFound } from 'next/navigation'
 import type { Metadata } from 'next'
+import type { Venue } from '@/types'
 import {
   isMissingVenueMediaQueryError,
   normalizeVenueCollectionWithMedia,
+  type VenueWithOptionalMediaFields,
   VENUE_SELECT_WITH_MEDIA,
 } from '@/lib/venueMedia'
 
@@ -46,11 +48,15 @@ export default async function VenuePage({ params }: PageProps) {
       .eq('is_active', true))
   }
 
-  const venue = normalizeVenueCollectionWithMedia(venues).find((v) => slugify(v.name) === slug)
+  const venueRows = venues as unknown as Array<VenueWithOptionalMediaFields & {
+    id: string
+    name: string
+  }> | null
+  const venue = normalizeVenueCollectionWithMedia(venueRows).find((v) => slugify(v.name) === slug)
 
   if (!venue) {
     notFound()
   }
 
-  return <VenueDesignEditorial venue={venue} />
+  return <VenueDesignEditorial venue={venue as Venue} />
 }

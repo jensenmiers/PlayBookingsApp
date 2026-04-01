@@ -44,11 +44,13 @@ export function isMissingVenueMediaQueryError(error: {
     ))
 }
 
-type MediaBearingRecord = {
+export type VenueWithOptionalMediaFields = {
   photos?: string[] | null
   media?: VenueMedia[] | null
   venue_media?: VenueMedia[] | null
 }
+
+type MediaBearingRecord = VenueWithOptionalMediaFields
 
 function normalizeLegacyPhotos(photos: string[] | null | undefined): string[] {
   if (!Array.isArray(photos)) {
