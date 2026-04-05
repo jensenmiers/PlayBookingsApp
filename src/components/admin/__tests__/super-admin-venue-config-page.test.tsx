@@ -827,7 +827,7 @@ describe('SuperAdminVenueConfigPage', () => {
     })
   })
 
-  it('uses non-collapsing grid widths so day-of-week pills remain visible', async () => {
+  it('renders drop-in windows in compact cards so day labels remain visible', async () => {
     render(<SuperAdminVenueConfigPage />)
 
     // Enable drop-in first (schedule is only visible when enabled)
@@ -837,8 +837,11 @@ describe('SuperAdminVenueConfigPage', () => {
     fireEvent.click(await screen.findByRole('button', { name: /add drop-in window/i }))
 
     const daySelect = screen.getByLabelText('Drop-in day row 1')
-    const row = daySelect.closest('div')
-    expect(row).toHaveClass('grid-cols-[minmax(9.5rem,1.15fr)_minmax(7.5rem,8.5rem)_minmax(7.5rem,8.5rem)_auto]')
+    const rowCard = daySelect.closest('[class*="rounded-xl"]')
+    expect(rowCard).toHaveClass('rounded-xl', 'border', 'bg-secondary-800/60')
+
+    const timeControlsRow = screen.getByLabelText('Drop-in start time row 1').closest('div[class*="gap-2"]')
+    expect(timeControlsRow).toHaveClass('flex', 'items-center', 'gap-2')
   })
 
   it('uses the widened configuration layout classes for the availability editor', async () => {
@@ -852,6 +855,62 @@ describe('SuperAdminVenueConfigPage', () => {
 
     const availabilityBaseRow = screen.getByTestId('availability-base-config-row')
     expect(availabilityBaseRow).toHaveClass('md:grid-cols-[minmax(13rem,0.85fr)_minmax(0,1.15fr)]')
+  })
+
+  it('renders venue configuration sections as accessible tabs with keyboard navigation', async () => {
+    mockUseAdminVenueBookings.mockReturnValue({
+      loading: false,
+      error: null,
+      refetch: mockBookingsRefetch,
+      approveInsurance: mockApproveInsurance,
+      data: buildMockVenueBookings(),
+    } as any)
+
+    render(<SuperAdminVenueConfigPage />)
+
+    const tablist = await screen.findByRole('tablist', { name: /venue configuration sections/i })
+    expect(tablist).toBeInTheDocument()
+
+    const configurationTab = screen.getByRole('tab', { name: /configuration/i })
+    const bookingsTab = screen.getByRole('tab', { name: /bookings/i })
+
+    expect(configurationTab).toHaveAttribute('aria-selected', 'true')
+    expect(bookingsTab).toHaveAttribute('aria-selected', 'false')
+    expect(screen.getByTestId('super-admin-configuration-layout')).toBeInTheDocument()
+    expect(screen.queryByTestId('venue-bookings-timeline')).not.toBeInTheDocument()
+
+    fireEvent.mouseDown(bookingsTab, { button: 0, ctrlKey: false })
+
+    await waitFor(() => {
+      expect(bookingsTab).toHaveAttribute('aria-selected', 'true')
+    })
+    expect(configurationTab).toHaveAttribute('aria-selected', 'false')
+    expect(await screen.findByTestId('venue-bookings-timeline')).toBeInTheDocument()
+
+    act(() => {
+      bookingsTab.focus()
+    })
+    expect(bookingsTab).toHaveFocus()
+    act(() => {
+      fireEvent.keyDown(bookingsTab, { key: 'ArrowLeft' })
+    })
+
+    await waitFor(() => {
+      expect(configurationTab).toHaveAttribute('aria-selected', 'true')
+    })
+    expect(bookingsTab).toHaveAttribute('aria-selected', 'false')
+
+    act(() => {
+      configurationTab.focus()
+    })
+    expect(configurationTab).toHaveFocus()
+    act(() => {
+      fireEvent.keyDown(configurationTab, { key: 'ArrowRight' })
+    })
+
+    await waitFor(() => {
+      expect(bookingsTab).toHaveAttribute('aria-selected', 'true')
+    })
   })
 
   it('saves minimum advance booking days from policy controls', async () => {
@@ -914,8 +973,8 @@ describe('SuperAdminVenueConfigPage', () => {
     render(<SuperAdminVenueConfigPage />)
 
     // Switch to Bookings tab (timeline is now in a separate tab)
-    const bookingsTab = await screen.findByRole('button', { name: /bookings/i })
-    fireEvent.click(bookingsTab)
+    const bookingsTab = await screen.findByRole('tab', { name: /bookings/i })
+    fireEvent.mouseDown(bookingsTab, { button: 0, ctrlKey: false })
 
     await screen.findByRole('heading', { name: /Venue Bookings Timeline/i, level: 2 })
 
@@ -952,8 +1011,8 @@ describe('SuperAdminVenueConfigPage', () => {
     render(<SuperAdminVenueConfigPage />)
 
     // Switch to Bookings tab (timeline is now in a separate tab)
-    const bookingsTab = await screen.findByRole('button', { name: /bookings/i })
-    fireEvent.click(bookingsTab)
+    const bookingsTab = await screen.findByRole('tab', { name: /bookings/i })
+    fireEvent.mouseDown(bookingsTab, { button: 0, ctrlKey: false })
 
     const renterText = await screen.findByText('Pat Pay')
     expect(renterText.closest('a')).toBeNull()
@@ -972,8 +1031,8 @@ describe('SuperAdminVenueConfigPage', () => {
     render(<SuperAdminVenueConfigPage />)
 
     // Switch to Bookings tab (timeline is now in a separate tab)
-    const bookingsTab = await screen.findByRole('button', { name: /bookings/i })
-    fireEvent.click(bookingsTab)
+    const bookingsTab = await screen.findByRole('tab', { name: /bookings/i })
+    fireEvent.mouseDown(bookingsTab, { button: 0, ctrlKey: false })
 
     const approveButton = await screen.findByRole('button', { name: /approve insurance/i })
     fireEvent.click(approveButton)

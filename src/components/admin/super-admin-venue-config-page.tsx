@@ -4,6 +4,7 @@ import { useEffect, useMemo, useState } from 'react'
 import type { ReactNode } from 'react'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
+import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
 import {
   connectVenueCalendar,
   disconnectVenueCalendar,
@@ -50,6 +51,7 @@ const AMENITY_OPTIONS = [
 
 const LEAD_TIME_PRESET_HOURS = [0, 1, 2, 4, 12, 24]
 const PLATFORM_TIME_ZONE = 'America/Los_Angeles'
+type AdminSectionTab = 'configuration' | 'bookings'
 
 type DropInTemplateDraftWindow = {
   day_of_week: number
@@ -89,6 +91,10 @@ function formatTimeForInput(time: string | null | undefined): string {
     return `${parts[0]}:${parts[1]}`
   }
   return time
+}
+
+function isAdminSectionTab(value: string): value is AdminSectionTab {
+  return value === 'configuration' || value === 'bookings'
 }
 
 function parseCommaList(value: string): string[] {
@@ -1042,7 +1048,7 @@ export function SuperAdminVenueConfigPage() {
   const [calendarMessage, setCalendarMessage] = useState<string | null>(null)
   const [calendarOptions, setCalendarOptions] = useState<Array<{ id: string; summary: string; primary: boolean }>>([])
   const [selectedCalendarId, setSelectedCalendarId] = useState<string>('')
-  const [activeTab, setActiveTab] = useState<'configuration' | 'bookings'>('configuration')
+  const [activeTab, setActiveTab] = useState<AdminSectionTab>('configuration')
   const blackoutExpanded = false
   const [availabilityPreview, setAvailabilityPreview] = useState<AdminVenueAvailabilityPreviewResponse['data'] | null>(null)
   const [availabilityPreviewLoading, setAvailabilityPreviewLoading] = useState(false)
@@ -1548,7 +1554,15 @@ export function SuperAdminVenueConfigPage() {
         </aside>
 
         {selectedItem && draft && (
-          <div className="space-y-6">
+          <Tabs
+            value={activeTab}
+            onValueChange={(value) => {
+              if (isAdminSectionTab(value)) {
+                setActiveTab(value)
+              }
+            }}
+            className="gap-6"
+          >
             <div className="rounded-2xl border border-secondary-50/10 bg-secondary-900 shadow-soft">
               <div className="flex items-center justify-between border-b border-secondary-50/10 px-4 py-3 md:px-6">
                 <div>
@@ -1561,36 +1575,27 @@ export function SuperAdminVenueConfigPage() {
                       : 'All required configuration complete.'}
                   </p>
                 </div>
-                <div className="inline-flex rounded-full border border-secondary-50/15 bg-secondary-800 p-1">
-                  <button
-                    type="button"
-                    className={cn(
-                      'rounded-full px-4 py-1.5 text-xs font-medium transition-colors',
-                      activeTab === 'configuration'
-                        ? 'bg-primary-400 text-secondary-900'
-                        : 'text-secondary-50/70 hover:text-secondary-50'
-                    )}
-                    onClick={() => setActiveTab('configuration')}
+                <TabsList
+                  aria-label="Venue configuration sections"
+                  className="h-auto rounded-full border border-secondary-50/15 bg-secondary-800 p-1"
+                >
+                  <TabsTrigger
+                    value="configuration"
+                    className="rounded-full px-4 py-1.5 text-xs font-medium data-[state=active]:bg-primary-400 data-[state=active]:text-secondary-900 data-[state=inactive]:text-secondary-50/70 data-[state=inactive]:hover:text-secondary-50"
                   >
                     Configuration
-                  </button>
-                  <button
-                    type="button"
-                    className={cn(
-                      'rounded-full px-4 py-1.5 text-xs font-medium transition-colors',
-                      activeTab === 'bookings'
-                        ? 'bg-primary-400 text-secondary-900'
-                        : 'text-secondary-50/70 hover:text-secondary-50'
-                    )}
-                    onClick={() => setActiveTab('bookings')}
+                  </TabsTrigger>
+                  <TabsTrigger
+                    value="bookings"
+                    className="rounded-full px-4 py-1.5 text-xs font-medium data-[state=active]:bg-primary-400 data-[state=active]:text-secondary-900 data-[state=inactive]:text-secondary-50/70 data-[state=inactive]:hover:text-secondary-50"
                   >
                     Bookings
-                  </button>
-                </div>
+                  </TabsTrigger>
+                </TabsList>
               </div>
             </div>
 
-            {activeTab === 'configuration' && (
+            <TabsContent value="configuration" className="mt-0">
               <div
                 data-testid="super-admin-configuration-layout"
                 className="grid gap-l xl:grid-cols-[minmax(0,1fr)_20rem] xl:items-start"
@@ -2145,9 +2150,9 @@ export function SuperAdminVenueConfigPage() {
                   />
                 </div>
               </div>
-            )}
+            </TabsContent>
 
-            {activeTab === 'bookings' && (
+            <TabsContent value="bookings" className="mt-0">
               <SectionGroup title="Venue Bookings Timeline" description="Single chronological feed of all venue bookings.">
                 <div className="py-4">
                   {insuranceActionError ? (
@@ -2270,8 +2275,8 @@ export function SuperAdminVenueConfigPage() {
                   )}
                 </div>
               </SectionGroup>
-            )}
-          </div>
+            </TabsContent>
+          </Tabs>
         )}
       </div>
 
