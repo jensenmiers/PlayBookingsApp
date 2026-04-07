@@ -639,51 +639,58 @@ function resolveTimelineBadge(
   instantBooking: boolean,
   isPast: boolean
 ): { label: string; className: string } {
+  const destructiveBadgeClassName = 'border-destructive/30 bg-destructive/10 text-destructive'
+  const completedBadgeClassName = 'border-primary-400/20 bg-primary-400/10 text-primary-200'
+  const confirmedBadgeClassName = 'border-primary-400/30 bg-primary-400/15 text-primary-300'
+  const expiredBadgeClassName = 'border-secondary-50/20 bg-secondary-50/10 text-secondary-50/80'
+  const pendingInsuranceBadgeClassName = 'border-accent-300/50 bg-accent-400/15 text-accent-200'
+  const pendingBadgeClassName = 'border-accent-300/30 bg-accent-400/10 text-accent-300'
+
   if (booking.status === 'cancelled') {
     return {
       label: 'Cancelled',
-      className: 'border-red-200 bg-red-100 text-red-800',
+      className: destructiveBadgeClassName,
     }
   }
 
   if (booking.status === 'completed') {
     return {
       label: 'Completed',
-      className: 'border-blue-200 bg-blue-100 text-blue-800',
+      className: completedBadgeClassName,
     }
   }
 
   if (booking.status === 'confirmed') {
     return {
       label: 'Confirmed',
-      className: 'border-green-200 bg-green-100 text-green-800',
+      className: confirmedBadgeClassName,
     }
   }
 
   if (isPast) {
     return {
       label: 'Expired',
-      className: 'border-secondary-50/20 bg-secondary-50/10 text-secondary-50/80',
+      className: expiredBadgeClassName,
     }
   }
 
   if (booking.insurance_required && !booking.insurance_approved) {
     return {
       label: 'Pending Insurance',
-      className: 'border-accent-300/50 bg-accent-400/15 text-accent-200',
+      className: pendingInsuranceBadgeClassName,
     }
   }
 
   if (instantBooking) {
     return {
       label: 'Pending Payment',
-      className: 'border-yellow-200 bg-yellow-100 text-yellow-800',
+      className: pendingBadgeClassName,
     }
   }
 
   return {
     label: 'Pending Approval',
-    className: 'border-yellow-200 bg-yellow-100 text-yellow-800',
+    className: pendingBadgeClassName,
   }
 }
 
@@ -711,13 +718,13 @@ function PreviewWindowList({
   }
 
   return (
-    <div className="space-y-2">
+    <div className="space-y-s">
       <p className="text-[11px] font-semibold uppercase tracking-[0.16em] text-secondary-50/45">{title}</p>
-      <div className="space-y-1">
+      <div className="space-y-xs">
         {windows.map((window, index) => (
           <div
             key={`${title}-${window.start_time}-${window.end_time}-${index}`}
-            className="rounded-xl border border-secondary-50/10 bg-secondary-800/80 px-3 py-2 text-sm text-secondary-50"
+            className="rounded-xl border border-secondary-50/10 bg-secondary-800/80 px-m py-s text-sm text-secondary-50"
           >
             {formatPreviewWindowLabel(window.start_time, window.end_time)}
           </div>
@@ -740,13 +747,13 @@ function AvailabilityPreviewPanel({
 
   return (
     <section className="rounded-2xl border border-secondary-50/10 bg-secondary-900 shadow-soft">
-      <div className="border-b border-secondary-50/10 px-4 py-4">
+      <div className="border-b border-secondary-50/10 px-l py-l">
         <h3 className="text-lg font-semibold text-secondary-50">Next 7 Days</h3>
-        <p className="mt-1 text-xs text-secondary-50/60">What renters will actually see over the next week.</p>
+        <p className="mt-xs text-xs text-secondary-50/60">What renters will actually see over the next week.</p>
       </div>
 
-      <div className="space-y-3 px-4 py-4">
-        {error ? <p className="text-xs text-red-300">{error}</p> : null}
+      <div className="space-y-m px-l py-l">
+        {error ? <p className="text-xs text-destructive">{error}</p> : null}
         {loading && !preview ? (
           <p className="text-sm text-secondary-50/60">Loading preview...</p>
         ) : null}
@@ -757,16 +764,16 @@ function AvailabilityPreviewPanel({
           return (
             <article
               key={day.date}
-              className="space-y-3 rounded-2xl border border-secondary-50/10 bg-secondary-950/50 p-4"
+              className="space-y-m rounded-2xl border border-secondary-50/10 bg-secondary-950/50 p-l"
             >
-              <div className="flex items-start justify-between gap-3">
+              <div className="flex items-start justify-between gap-m">
                 <h4 className="text-sm font-semibold text-secondary-50">{formatPreviewDateLabel(day.date)}</h4>
                 {visibleChips.length > 0 ? (
-                  <div className="flex max-w-[12rem] flex-wrap justify-end gap-2">
+                  <div className="flex max-w-[12rem] flex-wrap justify-end gap-s">
                     {visibleChips.map((reason) => (
                       <span
                         key={`${day.date}-${reason}`}
-                        className="rounded-full border border-secondary-50/15 bg-secondary-800 px-2.5 py-1 text-[11px] font-medium text-secondary-50/80"
+                        className="rounded-full border border-secondary-50/15 bg-secondary-800 px-s py-xs text-[11px] font-medium text-secondary-50/80"
                       >
                         {formatPreviewReasonLabel(reason)}
                       </span>
@@ -824,7 +831,7 @@ function TimePillSelect({
       <select
         aria-label={ariaLabel}
         value={value}
-        className="h-11 w-full appearance-none rounded-full border border-secondary-50/15 bg-secondary-800 pl-4 pr-7 py-2 text-center text-sm font-medium leading-none tabular-nums text-secondary-50 shadow-xs outline-none transition-[border-color,box-shadow] hover:border-secondary-50/30 focus-visible:border-primary-400 focus-visible:ring-[3px] focus-visible:ring-primary-400/30"
+        className="h-11 w-full appearance-none rounded-full border border-secondary-50/15 bg-secondary-800 pl-l pr-xl py-s text-center text-sm font-medium leading-none tabular-nums text-secondary-50 shadow-xs outline-none transition-[border-color,box-shadow] hover:border-secondary-50/30 focus-visible:border-primary-400 focus-visible:ring-[3px] focus-visible:ring-primary-400/30"
         onChange={(event) => {
           onChange(event.target.value)
         }}
@@ -861,11 +868,11 @@ function ConfigRow({
       data-testid={testId}
       className="grid gap-m border-b border-secondary-50/10 py-m md:grid-cols-[minmax(13rem,0.85fr)_minmax(0,1.15fr)] md:items-start md:gap-l"
     >
-      <div className="space-y-1">
+      <div className="space-y-xs">
         <h3 className="text-sm font-semibold text-secondary-50">{title}</h3>
         <p className="text-xs text-secondary-50/60">{description}</p>
       </div>
-      <div className="space-y-2">{children}</div>
+      <div className="space-y-s">{children}</div>
     </div>
   )
 }
@@ -906,20 +913,20 @@ function BaseAvailabilityCards({
   }
 
   return (
-    <div className="space-y-3">
+    <div className="space-y-m">
       {([
         { key: 'weekdays' as const, label: 'Weekdays', sublabel: 'Mon – Fri' },
         { key: 'weekends' as const, label: 'Weekends', sublabel: 'Sat – Sun' },
       ]).map(({ key, label, sublabel }) => (
         <div
           key={key}
-          className="rounded-xl border border-secondary-50/10 bg-secondary-800/60 px-4 py-3"
+          className="rounded-xl border border-secondary-50/10 bg-secondary-800/60 px-l py-m"
         >
-          <p className="mb-2 text-xs font-semibold text-secondary-50">
+          <p className="mb-s text-xs font-semibold text-secondary-50">
             {label}{' '}
             <span className="font-normal text-secondary-50/50">({sublabel})</span>
           </p>
-          <div className="flex items-center gap-2">
+          <div className="flex items-center gap-s">
             <TimePillSelect
               ariaLabel={`${label} start time`}
               value={local[key].start_time}
@@ -963,14 +970,14 @@ function SectionGroup({
       <div className="border-b border-secondary-50/10 px-m py-m md:px-l">
         <h2 className="text-lg font-semibold text-secondary-50">{title}</h2>
         {description ? (
-          <p className="mt-1 text-xs text-secondary-50/60">{description}</p>
+          <p className="mt-xs text-xs text-secondary-50/60">{description}</p>
         ) : null}
       </div>
       <div className="px-m md:px-l">{children}</div>
       {footerAction ? (
         <div className="border-t border-secondary-50/10 px-m py-m md:px-l">
           {footerHelper ? (
-            <p className="mb-3 text-xs text-secondary-50/60">{footerHelper}</p>
+            <p className="mb-m text-xs text-secondary-50/60">{footerHelper}</p>
           ) : null}
           {footerAction}
         </div>
@@ -996,11 +1003,11 @@ function CollapsibleRow({
     <div className="border-b border-secondary-50/10 py-m">
       <button
         type="button"
-        className="flex w-full items-center justify-between gap-3 text-left"
+        className="flex w-full items-center justify-between gap-m text-left"
         onClick={() => setIsExpanded((prev) => !prev)}
         aria-expanded={isExpanded}
       >
-        <div className="space-y-1">
+        <div className="space-y-xs">
           <h3 className="text-sm font-semibold text-secondary-50">{title}</h3>
           <p className="text-xs text-secondary-50/60">{description}</p>
         </div>
@@ -1017,7 +1024,7 @@ function CollapsibleRow({
       {isExpanded ? (
         <div className="mt-m grid gap-m md:grid-cols-[minmax(13rem,0.85fr)_minmax(0,1.15fr)] md:items-start md:gap-l">
           <div />
-          <div className="space-y-2">{children}</div>
+          <div className="space-y-s">{children}</div>
         </div>
       ) : null}
     </div>
@@ -1491,26 +1498,26 @@ export function SuperAdminVenueConfigPage() {
   }
 
   if (loading) {
-    return (
-      <div className="space-y-4">
-        <h1 className="font-serif text-2xl font-bold text-secondary-50">Super Admin Venue Config</h1>
-        <p className="text-sm text-secondary-50/60">Loading venue configuration...</p>
-      </div>
+  return (
+    <div className="space-y-l">
+      <h1 className="font-serif text-2xl font-bold text-secondary-50">Super Admin Venue Config</h1>
+      <p className="text-sm text-secondary-50/60">Loading venue configuration...</p>
+    </div>
     )
   }
 
   if (error) {
     return (
-      <div className="space-y-3">
+      <div className="space-y-m">
         <h1 className="font-serif text-2xl font-bold text-secondary-50">Super Admin Venue Config</h1>
-        <p className="text-sm text-red-300">{error}</p>
+        <p className="text-sm text-destructive">{error}</p>
       </div>
     )
   }
 
   if (!data || data.length === 0) {
     return (
-      <div className="space-y-3">
+      <div className="space-y-m">
         <h1 className="font-serif text-2xl font-bold text-secondary-50">Super Admin Venue Config</h1>
         <p className="text-sm text-secondary-50/60">No venues found.</p>
       </div>
@@ -1518,24 +1525,24 @@ export function SuperAdminVenueConfigPage() {
   }
 
   return (
-    <div className="space-y-6 pb-24">
-      <header className="space-y-1">
+    <div className="space-y-xl pb-6xl">
+      <header className="space-y-xs">
         <h1 className="font-serif text-3xl font-bold text-secondary-50">Super Admin Venue Config</h1>
         <p className="max-w-3xl text-sm text-secondary-50/70">
           Configure venue availability, pricing, policies, and amenities.
         </p>
       </header>
 
-      <div className="grid gap-6 lg:grid-cols-[320px_1fr]">
-        <aside className="rounded-2xl border border-secondary-50/10 bg-secondary-900 p-4 shadow-soft">
-          <h2 className="mb-3 text-sm font-semibold text-secondary-50">Venues</h2>
-          <div className="space-y-2">
+      <div className="grid gap-xl lg:grid-cols-[320px_1fr]">
+        <aside className="rounded-2xl border border-secondary-50/10 bg-secondary-900 p-l shadow-soft">
+          <h2 className="mb-m text-sm font-semibold text-secondary-50">Venues</h2>
+          <div className="space-y-s">
             {data.map((item) => (
               <button
                 key={item.venue.id}
                 type="button"
                 className={cn(
-                  'w-full rounded-xl border px-3 py-3 text-left transition-colors',
+                  'w-full rounded-xl border px-m py-m text-left transition-colors',
                   selectedVenueId === item.venue.id
                     ? 'border-primary-400/60 bg-primary-400/10'
                     : 'border-secondary-50/10 bg-secondary-800 hover:bg-secondary-700'
@@ -1544,7 +1551,7 @@ export function SuperAdminVenueConfigPage() {
               >
                 <p className="text-sm font-semibold text-secondary-50">{item.venue.name}</p>
                 <p className="text-xs text-secondary-50/60">{item.venue.city}, {item.venue.state}</p>
-                <div className="mt-2 flex items-center justify-between gap-2">
+                <div className="mt-s flex items-center justify-between gap-s">
                   <span className="text-xs text-secondary-50/70">Completeness {item.completeness.score}%</span>
                   <span className="text-[10px] text-secondary-50/60">Last saved: {formatLastSavedAt(item)}</span>
                 </div>
@@ -1561,13 +1568,13 @@ export function SuperAdminVenueConfigPage() {
                 setActiveTab(value)
               }
             }}
-            className="gap-6"
+            className="gap-xl"
           >
             <div className="rounded-2xl border border-secondary-50/10 bg-secondary-900 shadow-soft">
-              <div className="flex items-center justify-between border-b border-secondary-50/10 px-4 py-3 md:px-6">
+              <div className="flex items-center justify-between border-b border-secondary-50/10 px-l py-m md:px-xl">
                 <div>
                   <h2 className="text-xl font-semibold text-secondary-50">{selectedItem.venue.name}</h2>
-                  <p className="mt-0.5 text-xs text-secondary-50/60">
+                  <p className="mt-xxs text-xs text-secondary-50/60">
                     Completeness {selectedItem.completeness.score}%.
                     {' '}
                     {selectedItem.completeness.missing_fields.length > 0
@@ -1577,17 +1584,17 @@ export function SuperAdminVenueConfigPage() {
                 </div>
                 <TabsList
                   aria-label="Venue configuration sections"
-                  className="h-auto rounded-full border border-secondary-50/15 bg-secondary-800 p-1"
+                  className="h-auto rounded-full border border-secondary-50/15 bg-secondary-800 p-xs"
                 >
                   <TabsTrigger
                     value="configuration"
-                    className="rounded-full px-4 py-1.5 text-xs font-medium data-[state=active]:bg-primary-400 data-[state=active]:text-secondary-900 data-[state=inactive]:text-secondary-50/70 data-[state=inactive]:hover:text-secondary-50"
+                    className="rounded-full px-l py-xs text-xs font-medium data-[state=active]:bg-primary-400 data-[state=active]:text-secondary-900 data-[state=inactive]:text-secondary-50/70 data-[state=inactive]:hover:text-secondary-50"
                   >
                     Configuration
                   </TabsTrigger>
                   <TabsTrigger
                     value="bookings"
-                    className="rounded-full px-4 py-1.5 text-xs font-medium data-[state=active]:bg-primary-400 data-[state=active]:text-secondary-900 data-[state=inactive]:text-secondary-50/70 data-[state=inactive]:hover:text-secondary-50"
+                    className="rounded-full px-l py-xs text-xs font-medium data-[state=active]:bg-primary-400 data-[state=active]:text-secondary-900 data-[state=inactive]:text-secondary-50/70 data-[state=inactive]:hover:text-secondary-50"
                   >
                     Bookings
                   </TabsTrigger>
@@ -1623,8 +1630,8 @@ export function SuperAdminVenueConfigPage() {
                       title="Google Calendar"
                       description="Connect Google Calendar to block busy times from availability."
                     >
-                      <div className="space-y-2">
-                        <div className="rounded-md border border-secondary-50/10 bg-secondary-800 px-3 py-2 text-xs text-secondary-50/70">
+                      <div className="space-y-s">
+                        <div className="rounded-md border border-secondary-50/10 bg-secondary-800 px-m py-s text-xs text-secondary-50/70">
                           <p>
                             Status:{' '}
                             <span className="font-medium text-secondary-50">
@@ -1649,10 +1656,10 @@ export function SuperAdminVenueConfigPage() {
                           </p>
                         </div>
 
-                        {calendarError ? <p className="text-xs text-red-300">{calendarError}</p> : null}
+                        {calendarError ? <p className="text-xs text-destructive">{calendarError}</p> : null}
                         {calendarMessage ? <p className="text-xs text-primary-400">{calendarMessage}</p> : null}
 
-                        <div className="flex flex-wrap gap-2">
+                        <div className="flex flex-wrap gap-s">
                           <Button
                             type="button"
                             variant="outline"
@@ -1675,14 +1682,14 @@ export function SuperAdminVenueConfigPage() {
                           </Button>
                         </div>
 
-                        <div className="space-y-2">
+                        <div className="space-y-s">
                           <label htmlFor="selected-calendar-id" className="text-xs font-medium text-secondary-50/70">
                             Selected Google calendar
                           </label>
                           <select
                             id="selected-calendar-id"
                             aria-label="Selected Google calendar"
-                            className="h-11 w-full rounded-md border border-secondary-50/15 bg-secondary-800 px-3 py-2 text-sm text-secondary-50"
+                            className="h-11 w-full rounded-md border border-secondary-50/15 bg-secondary-800 px-m py-s text-sm text-secondary-50"
                             value={selectedCalendarId}
                             onChange={(event) => {
                               setSelectedCalendarId(event.target.value)
@@ -1697,7 +1704,7 @@ export function SuperAdminVenueConfigPage() {
                           </select>
                         </div>
 
-                        <div className="flex flex-wrap gap-2">
+                        <div className="flex flex-wrap gap-s">
                           <Button
                             type="button"
                             variant="outline"
@@ -1731,7 +1738,7 @@ export function SuperAdminVenueConfigPage() {
                         </div>
 
                         {selectedItem.calendar_integration?.last_error ? (
-                          <p className="text-xs text-red-300">
+                          <p className="text-xs text-destructive">
                             Last sync error: {selectedItem.calendar_integration.last_error}
                           </p>
                         ) : null}
@@ -1742,7 +1749,7 @@ export function SuperAdminVenueConfigPage() {
                     title="Drop-In Open Gym"
                     description="Enable open gym sessions with drop-in pricing and weekly schedule."
                   >
-                    <label className="flex items-center gap-2 text-sm text-secondary-50/80">
+                    <label className="flex items-center gap-s text-sm text-secondary-50/80">
                       <input
                         type="checkbox"
                         checked={draft.drop_in_enabled}
@@ -1768,18 +1775,18 @@ export function SuperAdminVenueConfigPage() {
 
                     {draft.drop_in_enabled && (
                       <>
-                        <p className="text-xs font-medium text-secondary-50/70 pt-2">Drop-In Weekly Schedule</p>
-                        <div className="space-y-3">
+                        <p className="pt-s text-xs font-medium text-secondary-50/70">Drop-In Weekly Schedule</p>
+                        <div className="space-y-m">
                           {draft.drop_in_templates.map((window, index) => (
                             <div
                               key={`di-${window.day_of_week}-${window.start_time}-${window.end_time}-${index}`}
-                              className="rounded-xl border border-secondary-50/10 bg-secondary-800/60 px-4 py-3"
+                              className="rounded-xl border border-secondary-50/10 bg-secondary-800/60 px-l py-m"
                             >
-                              <div className="mb-2 flex items-center justify-between">
+                              <div className="mb-s flex items-center justify-between">
                                 <div className="relative">
                                   <select
                                     aria-label={`Drop-in day row ${index + 1}`}
-                                    className="appearance-none bg-transparent pr-4 text-xs font-semibold text-secondary-50 outline-none cursor-pointer"
+                                    className="appearance-none bg-transparent pr-l text-xs font-semibold text-secondary-50 outline-none cursor-pointer"
                                     value={window.day_of_week}
                                     onChange={(event) => {
                                       updateDraft((previous) => {
@@ -1816,7 +1823,7 @@ export function SuperAdminVenueConfigPage() {
                                   ✕
                                 </button>
                               </div>
-                              <div className="flex items-center gap-2">
+                              <div className="flex items-center gap-s">
                                 <TimePillSelect
                                   ariaLabel={`Drop-in start time row ${index + 1}`}
                                   value={window.start_time}
@@ -1896,7 +1903,7 @@ export function SuperAdminVenueConfigPage() {
                     title="Advance Booking Rules"
                     description="Control how far in advance bookings can be made."
                   >
-                    <div className="space-y-1">
+                    <div className="space-y-xs">
                       <label htmlFor="min-advance-booking-days" className="text-xs font-medium text-secondary-50/70">
                         Minimum advance booking days
                       </label>
@@ -1916,14 +1923,14 @@ export function SuperAdminVenueConfigPage() {
                       />
                     </div>
 
-                    <div className="space-y-1">
+                    <div className="space-y-xs">
                       <label htmlFor="min-advance-lead-time" className="text-xs font-medium text-secondary-50/70">
                         Minimum lead time
                       </label>
                       <select
                         id="min-advance-lead-time"
                         aria-label="Minimum advance lead time preset"
-                        className="h-11 w-full rounded-md border border-secondary-50/15 bg-secondary-800 px-3 py-2 text-sm text-secondary-50"
+                        className="h-11 w-full rounded-md border border-secondary-50/15 bg-secondary-800 px-m py-s text-sm text-secondary-50"
                         value={resolveLeadTimePreset(draft.min_advance_lead_time_hours)}
                         onChange={(event) => {
                           const { value } = event.target
@@ -1963,7 +1970,7 @@ export function SuperAdminVenueConfigPage() {
                       </p>
                     </div>
 
-                    <div className="rounded-md border border-secondary-50/10 bg-secondary-800 px-3 py-2 text-xs text-secondary-50/70">
+                      <div className="rounded-md border border-secondary-50/10 bg-secondary-800 px-m py-s text-xs text-secondary-50/70">
                       {(() => {
                         const minDays = parseNonNegativeInteger(draft.min_advance_booking_days)
                         const minLeadHours = parseNonNegativeInteger(draft.min_advance_lead_time_hours)
@@ -2003,14 +2010,14 @@ export function SuperAdminVenueConfigPage() {
                     title="Booking Mode"
                     description="Control instant booking and insurance requirements."
                   >
-                    <div className="space-y-3">
-                      <div className="space-y-1">
+                    <div className="space-y-m">
+                      <div className="space-y-xs">
                         <p className="text-xs font-medium text-secondary-50/70">Booking mode</p>
-                        <div className="inline-flex rounded-full border border-secondary-50/15 bg-secondary-800 p-1">
+                        <div className="inline-flex rounded-full border border-secondary-50/15 bg-secondary-800 p-xs">
                           <button
                             type="button"
                             className={cn(
-                              'rounded-full px-3 py-1.5 text-xs font-medium transition-colors',
+                              'rounded-full px-m py-xs text-xs font-medium transition-colors',
                               draft.instant_booking
                                 ? 'bg-primary-400 text-secondary-900'
                                 : 'text-secondary-50/70 hover:text-secondary-50'
@@ -2024,7 +2031,7 @@ export function SuperAdminVenueConfigPage() {
                           <button
                             type="button"
                             className={cn(
-                              'rounded-full px-3 py-1.5 text-xs font-medium transition-colors',
+                              'rounded-full px-m py-xs text-xs font-medium transition-colors',
                               !draft.instant_booking
                                 ? 'bg-primary-400 text-secondary-900'
                                 : 'text-secondary-50/70 hover:text-secondary-50'
@@ -2037,13 +2044,13 @@ export function SuperAdminVenueConfigPage() {
                           </button>
                         </div>
                       </div>
-                      <div className="space-y-1">
+                      <div className="space-y-xs">
                         <p className="text-xs font-medium text-secondary-50/70">Insurance</p>
-                        <div className="inline-flex rounded-full border border-secondary-50/15 bg-secondary-800 p-1">
+                        <div className="inline-flex rounded-full border border-secondary-50/15 bg-secondary-800 p-xs">
                           <button
                             type="button"
                             className={cn(
-                              'rounded-full px-3 py-1.5 text-xs font-medium transition-colors',
+                              'rounded-full px-m py-xs text-xs font-medium transition-colors',
                               draft.insurance_required
                                 ? 'bg-primary-400 text-secondary-900'
                                 : 'text-secondary-50/70 hover:text-secondary-50'
@@ -2057,7 +2064,7 @@ export function SuperAdminVenueConfigPage() {
                           <button
                             type="button"
                             className={cn(
-                              'rounded-full px-3 py-1.5 text-xs font-medium transition-colors',
+                              'rounded-full px-m py-xs text-xs font-medium transition-colors',
                               !draft.insurance_required
                                 ? 'bg-primary-400 text-secondary-900'
                                 : 'text-secondary-50/70 hover:text-secondary-50'
@@ -2081,7 +2088,7 @@ export function SuperAdminVenueConfigPage() {
                     description="Venue-specific policy guidance for renters."
                   >
                     <textarea
-                      className="min-h-16 w-full rounded-md border border-secondary-50/15 bg-secondary-800 px-3 py-2 text-sm text-secondary-50"
+                      className="min-h-5xl w-full rounded-md border border-secondary-50/15 bg-secondary-800 px-m py-s text-sm text-secondary-50"
                       value={draft.policy_cancel}
                       placeholder="Cancellation policy"
                       onChange={(event) => {
@@ -2089,7 +2096,7 @@ export function SuperAdminVenueConfigPage() {
                       }}
                     />
                     <textarea
-                      className="min-h-16 w-full rounded-md border border-secondary-50/15 bg-secondary-800 px-3 py-2 text-sm text-secondary-50"
+                      className="min-h-5xl w-full rounded-md border border-secondary-50/15 bg-secondary-800 px-m py-s text-sm text-secondary-50"
                       value={draft.policy_refund}
                       placeholder="Refund policy"
                       onChange={(event) => {
@@ -2097,7 +2104,7 @@ export function SuperAdminVenueConfigPage() {
                       }}
                     />
                     <textarea
-                      className="min-h-16 w-full rounded-md border border-secondary-50/15 bg-secondary-800 px-3 py-2 text-sm text-secondary-50"
+                      className="min-h-5xl w-full rounded-md border border-secondary-50/15 bg-secondary-800 px-m py-s text-sm text-secondary-50"
                       value={draft.policy_no_show}
                       placeholder="No-show policy"
                       onChange={(event) => {
@@ -2112,11 +2119,11 @@ export function SuperAdminVenueConfigPage() {
                     title="Amenities Checklist"
                     description="Shown on venue cards/details and used for completeness checks."
                   >
-                    <div className="grid grid-cols-1 gap-2 sm:grid-cols-2">
+                    <div className="grid grid-cols-1 gap-s sm:grid-cols-2">
                       {AMENITY_OPTIONS.map((amenity) => {
                         const checked = draft.amenities.includes(amenity)
                         return (
-                          <label key={amenity} className="flex items-center gap-2 text-sm text-secondary-50/80">
+                          <label key={amenity} className="flex items-center gap-s text-sm text-secondary-50/80">
                             <input
                               type="checkbox"
                               checked={checked}
@@ -2154,18 +2161,18 @@ export function SuperAdminVenueConfigPage() {
 
             <TabsContent value="bookings" className="mt-0">
               <SectionGroup title="Venue Bookings Timeline" description="Single chronological feed of all venue bookings.">
-                <div className="py-4">
+                <div className="py-l">
                   {insuranceActionError ? (
-                    <p className="text-xs text-red-300 mb-2">{insuranceActionError}</p>
+                    <p className="mb-s text-xs text-destructive">{insuranceActionError}</p>
                   ) : null}
                   {insuranceActionMessage ? (
-                    <p className="text-xs text-primary-400 mb-2">{insuranceActionMessage}</p>
+                    <p className="mb-s text-xs text-primary-400">{insuranceActionMessage}</p>
                   ) : null}
                   {venueBookingsLoading ? (
                     <p className="text-xs text-secondary-50/60">Loading bookings...</p>
                   ) : venueBookingsError ? (
-                    <div className="space-y-2 rounded-md border border-red-300/30 bg-red-400/10 px-3 py-2">
-                      <p className="text-xs text-red-200">{venueBookingsError}</p>
+                    <div className="space-y-s rounded-md border border-destructive/30 bg-destructive/10 px-m py-s">
+                      <p className="text-xs text-secondary-50">{venueBookingsError}</p>
                       <Button
                         type="button"
                         variant="outline"
@@ -2180,7 +2187,7 @@ export function SuperAdminVenueConfigPage() {
                   ) : !venueBookings || venueBookings.length === 0 ? (
                     <p className="text-xs text-secondary-50/60">No bookings for this venue yet.</p>
                   ) : (
-                    <div data-testid="venue-bookings-timeline" className="space-y-2">
+                    <div data-testid="venue-bookings-timeline" className="space-y-s">
                       {timelineBookings.upcoming.map((booking) => {
                         const badge = resolveTimelineBadge(booking, selectedItem.venue.instant_booking, false)
                         const canApproveInsurance =
@@ -2193,10 +2200,10 @@ export function SuperAdminVenueConfigPage() {
                             key={booking.id}
                             data-testid="venue-booking-row"
                             data-booking-id={booking.id}
-                            className="rounded-xl border border-secondary-50/10 bg-secondary-800 px-3 py-2"
+                            className="rounded-xl border border-secondary-50/10 bg-secondary-800 px-m py-s"
                           >
-                            <div className="flex items-start justify-between gap-3">
-                              <div className="space-y-0.5">
+                            <div className="flex items-start justify-between gap-m">
+                              <div className="space-y-xxs">
                                 <p className="text-sm font-medium text-secondary-50">{formatRenterLabel(booking.renter)}</p>
                                 <p className="text-xs text-secondary-50/70">{booking.renter?.email || 'No email on file'}</p>
                                 <p className="text-xs text-secondary-50/60">{formatBookingTimelineDate(booking)}</p>
@@ -2214,11 +2221,11 @@ export function SuperAdminVenueConfigPage() {
                                   </Button>
                                 ) : null}
                               </div>
-                              <div className="flex flex-col items-end gap-1">
+                              <div className="flex flex-col items-end gap-xs">
                                 <span className="text-xs font-semibold text-secondary-50">${booking.total_amount.toFixed(2)}</span>
                                 <span
                                   className={cn(
-                                    'inline-flex items-center rounded-full border px-2.5 py-0.5 text-[11px] font-medium',
+                                    'inline-flex items-center rounded-full border px-s py-xxs text-[11px] font-medium',
                                     badge.className
                                   )}
                                 >
@@ -2231,8 +2238,8 @@ export function SuperAdminVenueConfigPage() {
                       })}
 
                       {timelineBookings.past.length > 0 ? (
-                        <div className="pt-1">
-                          <div className="flex items-center gap-2">
+                        <div className="pt-xs">
+                          <div className="flex items-center gap-s">
                             <div className="h-px flex-1 bg-secondary-50/15" />
                             <p className="text-[11px] font-medium uppercase tracking-wide text-secondary-50/45">Past bookings</p>
                             <div className="h-px flex-1 bg-secondary-50/15" />
@@ -2248,19 +2255,19 @@ export function SuperAdminVenueConfigPage() {
                             key={booking.id}
                             data-testid="venue-booking-row"
                             data-booking-id={booking.id}
-                            className="rounded-xl border border-secondary-50/10 bg-secondary-800 px-3 py-2"
+                            className="rounded-xl border border-secondary-50/10 bg-secondary-800 px-m py-s"
                           >
-                            <div className="flex items-start justify-between gap-3">
-                              <div className="space-y-0.5">
+                            <div className="flex items-start justify-between gap-m">
+                              <div className="space-y-xxs">
                                 <p className="text-sm font-medium text-secondary-50">{formatRenterLabel(booking.renter)}</p>
                                 <p className="text-xs text-secondary-50/70">{booking.renter?.email || 'No email on file'}</p>
                                 <p className="text-xs text-secondary-50/60">{formatBookingTimelineDate(booking)}</p>
                               </div>
-                              <div className="flex flex-col items-end gap-1">
+                              <div className="flex flex-col items-end gap-xs">
                                 <span className="text-xs font-semibold text-secondary-50">${booking.total_amount.toFixed(2)}</span>
                                 <span
                                   className={cn(
-                                    'inline-flex items-center rounded-full border px-2.5 py-0.5 text-[11px] font-medium',
+                                    'inline-flex items-center rounded-full border px-s py-xxs text-[11px] font-medium',
                                     badge.className
                                   )}
                                 >
@@ -2281,21 +2288,21 @@ export function SuperAdminVenueConfigPage() {
       </div>
 
       <div className="fixed bottom-0 left-0 right-0 z-50 border-t border-secondary-50/10 bg-secondary-900/95 backdrop-blur-sm">
-        <div className="mx-auto flex max-w-7xl items-center justify-between gap-4 px-4 py-3 sm:px-6">
-          <div className="flex flex-wrap items-center gap-3 text-xs">
+        <div className="mx-auto flex max-w-7xl items-center justify-between gap-l px-l py-m sm:px-xl">
+          <div className="flex flex-wrap items-center gap-m text-xs">
             {hasUnsavedChanges ? (
-              <span className="text-amber-300">Unsaved changes</span>
+              <span className="text-accent-300">Unsaved changes</span>
             ) : (
               <span className="text-secondary-50/60">All changes saved</span>
             )}
             {selectedItem && getPersistentAvailabilityError(selectedItem) && (
-              <span className="text-red-300">{getPersistentAvailabilityError(selectedItem)}</span>
+              <span className="text-destructive">{getPersistentAvailabilityError(selectedItem)}</span>
             )}
             {isSaving && <span className="text-primary-400">{saveInFlightLabel}</span>}
             {saveMessage && <span className="text-primary-400">{saveMessage}</span>}
-            {saveError && <span className="text-red-300">{saveError}</span>}
+            {saveError && <span className="text-destructive">{saveError}</span>}
           </div>
-          <div className="flex items-center gap-2">
+          <div className="flex items-center gap-s">
             <Button
               type="button"
               variant="outline"

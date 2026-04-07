@@ -627,9 +627,9 @@ describe('SuperAdminVenueConfigPage', () => {
     const noShowPolicy = screen.getByPlaceholderText('No-show policy')
 
     expect(screen.queryByPlaceholderText('Operating hours notes')).not.toBeInTheDocument()
-    expect(cancellationPolicy).toHaveClass('min-h-16')
-    expect(refundPolicy).toHaveClass('min-h-16')
-    expect(noShowPolicy).toHaveClass('min-h-16')
+    expect(cancellationPolicy).toHaveClass('min-h-5xl')
+    expect(refundPolicy).toHaveClass('min-h-5xl')
+    expect(noShowPolicy).toHaveClass('min-h-5xl')
   })
 
   it('saves insurance toggle without legacy insurance fields', async () => {
@@ -840,8 +840,8 @@ describe('SuperAdminVenueConfigPage', () => {
     const rowCard = daySelect.closest('[class*="rounded-xl"]')
     expect(rowCard).toHaveClass('rounded-xl', 'border', 'bg-secondary-800/60')
 
-    const timeControlsRow = screen.getByLabelText('Drop-in start time row 1').closest('div[class*="gap-2"]')
-    expect(timeControlsRow).toHaveClass('flex', 'items-center', 'gap-2')
+    const timeControlsRow = screen.getByLabelText('Drop-in start time row 1').closest('div[class*="gap-s"]')
+    expect(timeControlsRow).toHaveClass('flex', 'items-center', 'gap-s')
   })
 
   it('uses the widened configuration layout classes for the availability editor', async () => {
