@@ -15,18 +15,30 @@ import { formatFindings } from './design-system/reporter'
 import { checkColorTokenRule } from './design-system/rules/color-token'
 import { checkFormWrapperRule } from './design-system/rules/form-wrapper'
 import { checkSpacingTokenRule } from './design-system/rules/spacing-token'
-import { normalizePath } from './design-system/scope'
+import { normalizePath, resolveScopeGroups } from './design-system/scope'
 import type { Finding, Mode, RuleName } from './design-system/types'
+import type { ScopeGroupName } from './design-system/scope'
 
-function parseMode(argv: string[]): Mode {
+interface CliOptions {
+  mode: Mode
+  scopeGroups: ScopeGroupName[]
+}
+
+function parseCliOptions(argv: string[]): CliOptions {
   const modeArg = argv.find((arg) => arg.startsWith('--mode='))
   const mode = modeArg?.split('=')[1] as Mode | undefined
+  const scopeGroupArg = argv.find((arg) => arg.startsWith('--scope-group='))?.split('=')[1]
 
-  if (mode === 'all' || mode === 'staged' || mode === 'unpushed') {
-    return mode
+  if (mode !== 'all' && mode !== 'staged' && mode !== 'unpushed') {
+    throw new Error(
+      'Usage: tsx scripts/lint-design-system.ts --mode=<all|staged|unpushed> [--scope-group=<group[,group...]>]'
+    )
   }
 
-  throw new Error('Usage: tsx scripts/lint-design-system.ts --mode=<all|staged|unpushed>')
+  return {
+    mode,
+    scopeGroups: resolveScopeGroups(scopeGroupArg),
+  }
 }
 
 function safeReadFile(relativePath: string): string | null {
@@ -55,8 +67,8 @@ function applyExceptionDirectives(source: string, file: string, findings: Findin
   return [...directives.findings, ...filteredRuleFindings]
 }
 
-function runAllMode(): { scopedFiles: string[]; diffText: string } {
-  const { scopedFiles } = buildLintInput('all', listTrackedFiles())
+function runAllMode(scopeGroups: ScopeGroupName[]): { scopedFiles: string[]; diffText: string } {
+  const { scopedFiles } = buildLintInput('all', listTrackedFiles(), { groups: scopeGroups })
 
   return {
     scopedFiles,
@@ -64,34 +76,36 @@ function runAllMode(): { scopedFiles: string[]; diffText: string } {
   }
 }
 
-function runStagedMode(): { scopedFiles: string[]; diffText: string } {
-  const { scopedFiles, diffFiles } = buildLintInput('staged', listStagedFiles())
+function runStagedMode(scopeGroups: ScopeGroupName[]): { scopedFiles: string[]; diffText: string } {
+  const { scopedFiles, diffFiles } = buildLintInput('staged', listStagedFiles(), {
+    groups: scopeGroups,
+  })
   const diffText = getStagedDiff(diffFiles)
   return { scopedFiles, diffText }
 }
 
-function runUnpushedMode(): { scopedFiles: string[]; diffText: string } {
+function runUnpushedMode(scopeGroups: ScopeGroupName[]): { scopedFiles: string[]; diffText: string } {
   const { files, baseRef } = listUnpushedFiles()
-  const { scopedFiles, diffFiles } = buildLintInput('unpushed', files)
+  const { scopedFiles, diffFiles } = buildLintInput('unpushed', files, { groups: scopeGroups })
   const diffText = getUnpushedDiff(baseRef, diffFiles)
   return { scopedFiles, diffText }
 }
 
-function collectModeFiles(mode: Mode): { scopedFiles: string[]; diffText: string } {
+function collectModeFiles(mode: Mode, scopeGroups: ScopeGroupName[]): { scopedFiles: string[]; diffText: string } {
   if (mode === 'all') {
-    return runAllMode()
+    return runAllMode(scopeGroups)
   }
 
   if (mode === 'staged') {
-    return runStagedMode()
+    return runStagedMode(scopeGroups)
   }
 
-  return runUnpushedMode()
+  return runUnpushedMode(scopeGroups)
 }
 
 function main(): number {
-  const mode = parseMode(process.argv.slice(2))
-  const { scopedFiles, diffText } = collectModeFiles(mode)
+  const { mode, scopeGroups } = parseCliOptions(process.argv.slice(2))
+  const { scopedFiles, diffText } = collectModeFiles(mode, scopeGroups)
 
   if (scopedFiles.length === 0) {
     console.log(`Design-system lint (${mode}): no scoped files to check.`)

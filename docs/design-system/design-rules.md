@@ -2,10 +2,18 @@
 
 These rules are contractually enforced for scoped UI files.
 
-## Scope (Phase 1)
+## Scope
 
-- `src/app/{search,book,booking,venue,venues}/**/*.{ts,tsx}`
-- `src/components/{search,book,booking,bookings,forms,venue,venues,maps}/**/*.{ts,tsx}`
+- Active marketplace scope:
+  - `src/app/{search,book,booking,venue,venues,auth}/**/*.{ts,tsx}`
+  - `src/app/(auth)/**/*.{ts,tsx}`
+  - `src/components/{search,book,booking,bookings,forms,venue,venues,maps,auth}/**/*.{ts,tsx}`
+- Active super-admin scope:
+  - `src/app/(dashboard)/super-admin/**/*.{ts,tsx}`
+  - `src/components/admin/**/*.{ts,tsx}`
+- Defined but not yet active:
+  - `src/app/(dashboard)/**/*.{ts,tsx}` outside `super-admin`
+  - `src/components/dashboard/**/*.{ts,tsx}`
 - Excluded: `**/*.test.*`, `**/__tests__/**`, generated/output artifacts.
 
 ## Required

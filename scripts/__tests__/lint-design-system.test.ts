@@ -4,7 +4,7 @@ import { buildLintInput } from '../design-system/lint-input'
 import { checkSpacingTokenRule } from '../design-system/rules/spacing-token'
 import { checkColorTokenRule } from '../design-system/rules/color-token'
 import { checkFormWrapperRule } from '../design-system/rules/form-wrapper'
-import { isInDesignSystemScope } from '../design-system/scope'
+import { isInDesignSystemScope, resolveScopeGroups } from '../design-system/scope'
 import type { Finding } from '../design-system/types'
 
 function applyRuleWithExceptions(
@@ -207,11 +207,13 @@ describe('design-system lint input', () => {
       'src/components/venue/__tests__/venue-design-editorial.resume.test.tsx',
       'src/components/venue/venue-design-editorial.tsx',
       'src/components/auth/auth-modal.tsx',
+      'src/components/admin/super-admin-venue-config-page.tsx',
     ])
 
     expect(scopedFiles).toEqual([
       'src/components/venue/venue-design-editorial.tsx',
       'src/components/auth/auth-modal.tsx',
+      'src/components/admin/super-admin-venue-config-page.tsx',
     ])
     expect(diffFiles).toEqual(scopedFiles)
   })
@@ -228,24 +230,61 @@ describe('design-system lint input', () => {
     ])
     expect(diffFiles).toEqual([])
   })
+
+  it('can limit lint input to a requested scope group', () => {
+    const { scopedFiles, diffFiles } = buildLintInput(
+      'all',
+      [
+        'src/components/venue/venue-design-editorial.tsx',
+        'src/components/admin/super-admin-venue-config-page.tsx',
+        'src/components/dashboard/sidebar-navigation.tsx',
+      ],
+      {
+        groups: ['super-admin'],
+      }
+    )
+
+    expect(scopedFiles).toEqual(['src/components/admin/super-admin-venue-config-page.tsx'])
+    expect(diffFiles).toEqual([])
+  })
 })
 
 describe('design-system scope', () => {
-  it('includes auth files in scope', () => {
+  it('includes marketplace and super-admin files in the default active scope', () => {
     expect(isInDesignSystemScope('src/app/(auth)/layout.tsx')).toBe(true)
     expect(isInDesignSystemScope('src/app/auth/login/page.tsx')).toBe(true)
     expect(isInDesignSystemScope('src/app/auth/callback/route.ts')).toBe(true)
     expect(isInDesignSystemScope('src/components/auth/auth-modal.tsx')).toBe(true)
+    expect(isInDesignSystemScope('src/app/(dashboard)/super-admin/page.tsx')).toBe(true)
+    expect(isInDesignSystemScope('src/components/admin/super-admin-venue-config-page.tsx')).toBe(true)
   })
 
-  it('keeps dashboard and admin files out of scope', () => {
+  it('keeps dashboard files out of the default active scope', () => {
     expect(isInDesignSystemScope('src/app/(dashboard)/layout.tsx')).toBe(false)
     expect(isInDesignSystemScope('src/components/dashboard/sidebar-navigation.tsx')).toBe(false)
-    expect(isInDesignSystemScope('src/components/admin/super-admin-venue-config-page.tsx')).toBe(false)
   })
 
   it('keeps active venue routes in scope', () => {
     expect(isInDesignSystemScope('src/app/venue/[name]/page.tsx')).toBe(true)
     expect(isInDesignSystemScope('src/app/venue/[name]/not-found.tsx')).toBe(true)
+  })
+
+  it('can include dashboard files for local audits only when explicitly requested', () => {
+    expect(
+      isInDesignSystemScope('src/components/dashboard/sidebar-navigation.tsx', {
+        groups: ['dashboard'],
+      })
+    ).toBe(true)
+    expect(
+      isInDesignSystemScope('src/components/admin/super-admin-venue-config-page.tsx', {
+        groups: ['dashboard'],
+      })
+    ).toBe(false)
+  })
+
+  it('fails clearly on unknown scope groups', () => {
+    expect(() => resolveScopeGroups('dashboard,unknown-scope')).toThrow(
+      'Unknown design-system scope group(s): unknown-scope. Valid groups: dashboard, marketplace, super-admin'
+    )
   })
 })
