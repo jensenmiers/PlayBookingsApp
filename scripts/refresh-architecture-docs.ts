@@ -6,17 +6,24 @@ import * as dotenv from 'dotenv'
 import { existsSync, mkdirSync, readdirSync, readFileSync, writeFileSync } from 'fs'
 import { dirname, join, resolve, relative } from 'path'
 import {
+  buildLiveTableSummaryResult,
+  classifyLiveTableError,
   resolveArchitectureDocRefreshStatePath,
   CSS_SNAPSHOT_END,
   CSS_SNAPSHOT_START,
   DATABASE_SNAPSHOT_END,
   DATABASE_SNAPSHOT_START,
+  extractBetweenMarkers,
+  LiveTableCheckResult,
+  LiveTableSummaryResult,
   PACIFIC_TIME_ZONE,
+  preserveSnapshotEntry,
   extractSupabaseTables,
   formatDateInTimeZone,
   hasSubstantiveDocChanges,
   parseRefreshState,
   parseFontVariables,
+  getRetryableLiveTableChecks,
   serializeRefreshState,
   replaceBetweenMarkers,
   summarizeDocChanges,
@@ -56,6 +63,7 @@ const CSS_RELEVANT_PATHS = [
 type RefreshResult = {
   changed: boolean
   changes: string[]
+  appliedSnapshot: string
 }
 
 type RefreshState = {
@@ -126,7 +134,11 @@ function writeRefreshState(statePath: string, state: RefreshState) {
   writeFileSync(statePath, serializeRefreshState(state), 'utf8')
 }
 
-function buildDatabaseSnapshot(nowPacific: string): Promise<string> {
+function sleep(ms: number): Promise<void> {
+  return new Promise((resolvePromise) => setTimeout(resolvePromise, ms))
+}
+
+async function buildDatabaseSnapshot(nowPacific: string): Promise<{ snapshot: string; liveTableSummary: LiveTableSummaryResult }> {
   const migrationFiles = existsSync(MIGRATIONS_DIR)
     ? readdirSync(MIGRATIONS_DIR).filter((name) => name.endsWith('.sql')).sort()
     : []
@@ -140,53 +152,92 @@ function buildDatabaseSnapshot(nowPacific: string): Promise<string> {
     }
   }
   const appTables = Array.from(tables).sort()
+  const liveTableSummary = await getLiveTableSummary(EXPECTED_ARCHITECTURE_TABLES)
+  const latestMigration = migrationFiles.length > 0 ? migrationFiles[migrationFiles.length - 1] : 'none found'
 
-  return getLiveTableSummary(EXPECTED_ARCHITECTURE_TABLES).then((liveSummary) => {
-    const latestMigration = migrationFiles.length > 0 ? migrationFiles[migrationFiles.length - 1] : 'none found'
-
-    return [
+  return {
+    snapshot: [
       `- Generated at: ${nowPacific} (${PACIFIC_TIME_ZONE})`,
       `- Latest migration in repo: \`${latestMigration}\` (${migrationFiles.length} total)`,
       `- Distinct tables referenced in app code via \`.from()\`: ${appTables.length}`,
       `- App tables referenced in app code: ${appTables.map((table) => `\`${table}\``).join(', ') || 'none'}`,
-      `- Live key-table check: ${liveSummary}`,
-    ].join('\n')
-  })
+      liveTableSummary.snapshotLine,
+    ].join('\n'),
+    liveTableSummary,
+  }
 }
 
-async function getLiveTableSummary(tables: string[]): Promise<string> {
+async function runLiveTableChecks(
+  supabaseUrl: string,
+  serviceRoleKey: string,
+  tables: string[]
+): Promise<LiveTableCheckResult[]> {
+  const supabase = createClient(supabaseUrl, serviceRoleKey, {
+    auth: {
+      autoRefreshToken: false,
+      persistSession: false,
+    },
+  })
+
+  return Promise.all(
+    tables.map(async (table) => {
+      const { error } = await supabase.from(table).select('*').limit(0)
+      if (!error) {
+        return { table, status: 'available' }
+      }
+
+      const classified = classifyLiveTableError(error)
+      return {
+        table,
+        ...classified,
+      }
+    })
+  )
+}
+
+async function getLiveTableSummary(tables: string[]): Promise<LiveTableSummaryResult> {
   dotenv.config({ path: resolve(PROJECT_ROOT, '.env.local') })
   dotenv.config({ path: resolve(PROJECT_ROOT, '.env') })
 
   const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL
   const serviceRoleKey = process.env.SUPABASE_SERVICE_ROLE_KEY
   if (!supabaseUrl || !serviceRoleKey) {
-    return 'skipped (missing NEXT_PUBLIC_SUPABASE_URL or SUPABASE_SERVICE_ROLE_KEY)'
+    return {
+      snapshotLine: '- Live key-table check: skipped (missing NEXT_PUBLIC_SUPABASE_URL or SUPABASE_SERVICE_ROLE_KEY)',
+      isVerifiable: false,
+      consoleLines: ['Live key-table check: skipped (missing NEXT_PUBLIC_SUPABASE_URL or SUPABASE_SERVICE_ROLE_KEY)'],
+    }
   }
 
   try {
-    const supabase = createClient(supabaseUrl, serviceRoleKey, {
-      auth: {
-        autoRefreshToken: false,
-        persistSession: false,
-      },
-    })
+    const initialChecks = await runLiveTableChecks(supabaseUrl, serviceRoleKey, tables)
+    const retryableTables = getRetryableLiveTableChecks(initialChecks)
 
-    const checks = await Promise.all(
-      tables.map(async (table) => {
-        const { error } = await supabase.from(table).select('*').limit(0)
-        return { table, exists: !error }
-      })
-    )
-
-    const missing = checks.filter((check) => !check.exists).map((check) => check.table)
-    if (missing.length === 0) {
-      return `${tables.length}/${tables.length} tables available`
+    let finalChecks = initialChecks
+    if (retryableTables.length > 0) {
+      await sleep(250)
+      const retriedChecks = await runLiveTableChecks(supabaseUrl, serviceRoleKey, retryableTables)
+      const retriedByTable = new Map(retriedChecks.map((check) => [check.table, check]))
+      finalChecks = initialChecks.map((check) => retriedByTable.get(check.table) ?? check)
     }
-    return `${tables.length - missing.length}/${tables.length} tables available; missing: ${missing.map((table) => `\`${table}\``).join(', ')}`
+
+    const summary = buildLiveTableSummaryResult(finalChecks)
+    return retryableTables.length > 0
+      ? {
+          ...summary,
+          consoleLines: [
+            ...summary.consoleLines,
+            `Retry attempted for verification failures: ${retryableTables.map((table) => `\`${table}\``).join(', ')}`,
+          ],
+        }
+      : summary
   } catch (error) {
     const message = error instanceof Error ? error.message : 'unknown error'
-    return `failed (${message})`
+    return {
+      snapshotLine: '- Live key-table check: verification failed',
+      isVerifiable: false,
+      consoleLines: [`Live key-table check: verification failed (${message})`],
+    }
   }
 }
 
@@ -267,7 +318,7 @@ function refreshDoc(path: string, snapshotStart: string, snapshotEnd: string, sn
     writeFileSync(path, nextContent, 'utf8')
   }
 
-  return { changed, changes }
+  return { changed, changes, appliedSnapshot: snapshot }
 }
 
 async function main() {
@@ -275,7 +326,12 @@ async function main() {
   const nowPacific = formatDateInTimeZone(new Date(), PACIFIC_TIME_ZONE)
   const statePath = getStatePath()
   const previousState = readRefreshState(statePath)
-  const databaseSnapshot = await buildDatabaseSnapshot(nowPacific)
+  const previousDatabaseDoc = readUtf8(DATABASE_DOC_PATH)
+  const previousDatabaseSnapshot = extractBetweenMarkers(previousDatabaseDoc, DATABASE_SNAPSHOT_START, DATABASE_SNAPSHOT_END)
+  const { snapshot: nextDatabaseSnapshot, liveTableSummary } = await buildDatabaseSnapshot(nowPacific)
+  const databaseSnapshot = liveTableSummary.isVerifiable
+    ? nextDatabaseSnapshot
+    : preserveSnapshotEntry(previousDatabaseSnapshot, nextDatabaseSnapshot, 'Live key-table check')
   const cssSnapshot = buildCssSnapshot(nowPacific)
   const databaseRelevantFiles = readGitChangedFilesSinceLastDocRefresh(DATABASE_RELEVANT_PATHS)
   const cssRelevantFiles = readGitChangedFilesSinceLastDocRefresh(CSS_RELEVANT_PATHS)
@@ -296,6 +352,17 @@ async function main() {
   console.log(`- Database doc updated: ${databaseResult.changed ? 'yes' : 'no (timestamp-only change skipped)'}`)
   for (const line of databaseResult.changes) {
     console.log(`  - ${line}`)
+  }
+  for (const line of liveTableSummary.consoleLines) {
+    console.log(`  - ${line}`)
+  }
+  if (!liveTableSummary.isVerifiable) {
+    const preservedLine = databaseResult.appliedSnapshot
+      .split('\n')
+      .find((line) => line.startsWith('- Live key-table check:'))
+    if (preservedLine) {
+      console.log(`  - Preserved snapshot line in DATABASE_STRUCTURE.md: ${preservedLine.replace(/^- /, '')}`)
+    }
   }
   for (const line of formatRelevantFileChanges('Database-relevant git changes', databaseRelevantFiles)) {
     console.log(`  - ${line}`)

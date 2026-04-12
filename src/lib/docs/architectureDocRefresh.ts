@@ -19,6 +19,20 @@ export type RefreshState = {
   lastSuccessfulRunAt: string
 }
 
+export type LiveTableStatus = 'available' | 'missing' | 'verification_failed'
+
+export type LiveTableCheckResult = {
+  table: string
+  status: LiveTableStatus
+  reason?: string
+}
+
+export type LiveTableSummaryResult = {
+  snapshotLine: string
+  isVerifiable: boolean
+  consoleLines: string[]
+}
+
 export function replaceBetweenMarkers(
   content: string,
   startMarker: string,
@@ -101,6 +115,116 @@ function parseSnapshotEntry(line: string): { label: string; value: string } | nu
     label: match[1].trim(),
     value: match[2].trim(),
   }
+}
+
+function escapeRegExp(value: string): string {
+  return value.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')
+}
+
+function updateSnapshotEntry(snapshot: string, label: string, value: string): string {
+  const pattern = new RegExp(`^- ${escapeRegExp(label)}: .*?$`, 'm')
+  return snapshot.replace(pattern, `- ${label}: ${value}`)
+}
+
+function isMissingTableError(code?: string, message?: string, details?: string, hint?: string): boolean {
+  const haystack = [code, message, details, hint]
+    .filter((value): value is string => Boolean(value))
+    .join(' ')
+    .toLowerCase()
+
+  return haystack.includes('pgrst205') || haystack.includes('42p01') || haystack.includes('does not exist')
+}
+
+function compactReason(reason?: string): string | undefined {
+  return reason?.trim() || undefined
+}
+
+type LiveTableErrorLike = {
+  code?: string
+  message?: string
+  details?: string
+  hint?: string
+}
+
+export function classifyLiveTableError(error: LiveTableErrorLike): Pick<LiveTableCheckResult, 'status' | 'reason'> {
+  const reason = compactReason(error.message) ?? compactReason(error.details) ?? compactReason(error.hint) ?? 'unknown error'
+
+  if (isMissingTableError(error.code, error.message, error.details, error.hint)) {
+    return {
+      status: 'missing',
+      reason,
+    }
+  }
+
+  return {
+    status: 'verification_failed',
+    reason,
+  }
+}
+
+export function getRetryableLiveTableChecks(checks: LiveTableCheckResult[]): string[] {
+  return checks.filter((check) => check.status === 'verification_failed').map((check) => check.table)
+}
+
+export function buildLiveTableSummaryResult(checks: LiveTableCheckResult[]): LiveTableSummaryResult {
+  const availableCount = checks.filter((check) => check.status === 'available').length
+  const missing = checks.filter((check) => check.status === 'missing')
+  const verificationFailures = checks.filter((check) => check.status === 'verification_failed')
+
+  if (verificationFailures.length > 0) {
+    const reasons = Array.from(
+      new Set(
+        verificationFailures
+          .map((check) => compactReason(check.reason))
+          .filter((value): value is string => Boolean(value))
+      )
+    )
+
+    return {
+      snapshotLine: '- Live key-table check: verification failed',
+      isVerifiable: false,
+      consoleLines: [
+        'Live key-table check: verification failed',
+        `Verification failures: ${verificationFailures.map((check) => `\`${check.table}\``).join(', ')}`,
+        `Failure reasons: ${reasons.join(' | ') || 'unknown error'}`,
+      ],
+    }
+  }
+
+  if (missing.length > 0) {
+    return {
+      snapshotLine: `- Live key-table check: ${availableCount}/${checks.length} tables available; missing: ${missing
+        .map((check) => `\`${check.table}\``)
+        .join(', ')}`,
+      isVerifiable: true,
+      consoleLines: [
+        `Live key-table check: ${availableCount}/${checks.length} tables available; missing: ${missing
+          .map((check) => `\`${check.table}\``)
+          .join(', ')}`,
+      ],
+    }
+  }
+
+  return {
+    snapshotLine: `- Live key-table check: ${checks.length}/${checks.length} tables available`,
+    isVerifiable: true,
+    consoleLines: [`Live key-table check: ${checks.length}/${checks.length} tables available`],
+  }
+}
+
+export function preserveSnapshotEntry(previousSnapshot: string, nextSnapshot: string, label: string): string {
+  const previousEntry = parseSnapshotEntry(
+    previousSnapshot
+      .split('\n')
+      .map((line) => line.trim())
+      .find((line) => line.startsWith(`- ${label}:`)) ?? ''
+  )
+
+  if (!previousEntry) {
+    return nextSnapshot
+  }
+
+  return updateSnapshotEntry(nextSnapshot, label, previousEntry.value)
 }
 
 export function summarizeSnapshotChanges(

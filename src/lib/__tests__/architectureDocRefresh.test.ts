@@ -1,9 +1,13 @@
 import {
   DEFAULT_PROJECT_STATE_PATH_SEGMENTS,
+  buildLiveTableSummaryResult,
+  classifyLiveTableError,
   extractBetweenMarkers,
   extractSupabaseTables,
   hasSubstantiveDocChanges,
+  getRetryableLiveTableChecks,
   parseFontVariables,
+  preserveSnapshotEntry,
   resolveArchitectureDocRefreshStatePath,
   replaceBetweenMarkers,
   serializeRefreshState,
@@ -98,6 +102,88 @@ describe('architecture doc refresh helpers', () => {
         next: '`new.sql` (41 total)',
       },
     ])
+  })
+
+  it('classifies missing-table errors separately from verification failures', () => {
+    expect(
+      classifyLiveTableError({
+        code: 'PGRST205',
+        message: "Could not find the table 'public.messages' in the schema cache",
+      })
+    ).toEqual({
+      status: 'missing',
+      reason: "Could not find the table 'public.messages' in the schema cache",
+    })
+
+    expect(
+      classifyLiveTableError({
+        code: 'PGRST000',
+        message: 'FetchError: request failed, reason: getaddrinfo ENOTFOUND',
+      })
+    ).toEqual({
+      status: 'verification_failed',
+      reason: 'FetchError: request failed, reason: getaddrinfo ENOTFOUND',
+    })
+  })
+
+  it('returns only verification failures for retry', () => {
+    expect(
+      getRetryableLiveTableChecks([
+        { table: 'users', status: 'available' },
+        { table: 'venues', status: 'missing', reason: 'table does not exist' },
+        { table: 'bookings', status: 'verification_failed', reason: 'network timeout' },
+      ])
+    ).toEqual(['bookings'])
+  })
+
+  it('formats missing tables as substantive snapshot changes', () => {
+    expect(
+      buildLiveTableSummaryResult([
+        { table: 'users', status: 'available' },
+        { table: 'venues', status: 'missing', reason: 'table does not exist' },
+      ])
+    ).toEqual({
+      snapshotLine: '- Live key-table check: 1/2 tables available; missing: `venues`',
+      isVerifiable: true,
+      consoleLines: ['Live key-table check: 1/2 tables available; missing: `venues`'],
+    })
+  })
+
+  it('formats transient verification failures without serializing them as missing', () => {
+    expect(
+      buildLiveTableSummaryResult([
+        { table: 'users', status: 'available' },
+        { table: 'venues', status: 'verification_failed', reason: 'network timeout' },
+        { table: 'bookings', status: 'verification_failed', reason: 'network timeout' },
+      ])
+    ).toEqual({
+      snapshotLine: '- Live key-table check: verification failed',
+      isVerifiable: false,
+      consoleLines: [
+        'Live key-table check: verification failed',
+        'Verification failures: `venues`, `bookings`',
+        'Failure reasons: network timeout',
+      ],
+    })
+  })
+
+  it('preserves the previous live key-table check line when verification fails', () => {
+    const previousSnapshot = [
+      '- Generated at: 2026-04-11 (America/Los_Angeles)',
+      '- Live key-table check: 19/19 tables available',
+    ].join('\n')
+
+    const nextSnapshot = [
+      '- Generated at: 2026-04-12 (America/Los_Angeles)',
+      '- Live key-table check: verification failed',
+    ].join('\n')
+
+    expect(
+      preserveSnapshotEntry(previousSnapshot, nextSnapshot, 'Live key-table check')
+    ).toEqual([
+      '- Generated at: 2026-04-12 (America/Los_Angeles)',
+      '- Live key-table check: 19/19 tables available',
+    ].join('\n'))
   })
 
   it('treats date-only document updates as non-substantive', () => {
