@@ -27,6 +27,7 @@
     "validate:no-runtime-availability": "tsx scripts/validate-no-runtime-availability.ts",
     "validate:next-available-parity": "tsx scripts/validate-next-available-parity.ts",
     "validate:venue-media-migration": "tsx scripts/validate-venue-media-migration.ts",
+    "venue-media:publish": "tsx scripts/publish-venue-gallery.ts",
     "seed:availability": "tsx scripts/seed-availability.ts",
     "seed:venues": "tsx scripts/seed-venues.ts",
     "update:venue-photo": "tsx scripts/update-venue-photo.ts"

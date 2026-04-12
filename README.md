@@ -107,7 +107,12 @@ src/
 - `npm run lint:design-system` - Run full design-system lint across scoped UI files
 - `npm run lint:design-system:staged` - Run design-system lint against staged scoped lines
 - `npm run lint:design-system:unpushed` - Run design-system lint against unpushed scoped lines
+- `npm run venue-media:publish -- --venue "Venue Name" --source "/path/to/folder"` - Preview or publish a curated 5-image venue gallery from a manifest folder
 - `npm run sync:google-calendars` - Process due venue Google Calendar sync jobs
+
+## 🧭 Operational Docs
+
+- `docs/operations/venue-image-upload-sop.md` - Current production SOP for curated venue image uploads
 
 Production background jobs:
 - Long-horizon availability backfill is processed by the Supabase database job `availability_backfill_worker_every_5_minutes`.
