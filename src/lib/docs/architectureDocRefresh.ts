@@ -33,6 +33,12 @@ export type LiveTableSummaryResult = {
   consoleLines: string[]
 }
 
+type ErrorLike = {
+  message?: unknown
+  code?: unknown
+  cause?: unknown
+}
+
 export function replaceBetweenMarkers(
   content: string,
   startMarker: string,
@@ -139,6 +145,88 @@ function compactReason(reason?: string): string | undefined {
   return reason?.trim() || undefined
 }
 
+function asErrorLike(value: unknown): ErrorLike | null {
+  if (!value || typeof value !== 'object') {
+    return null
+  }
+
+  return value as ErrorLike
+}
+
+function toStringValue(value: unknown): string | undefined {
+  if (typeof value !== 'string') {
+    return undefined
+  }
+
+  return compactReason(value)
+}
+
+function buildErrorSegment(value: unknown): string | null {
+  const errorLike = asErrorLike(value)
+  if (!errorLike) {
+    return toStringValue(value) ?? null
+  }
+
+  const message = toStringValue(errorLike.message)
+  const code = toStringValue(errorLike.code)
+  if (message && code) {
+    return `${message} (code: ${code})`
+  }
+
+  return message ?? (code ? `code: ${code}` : null)
+}
+
+export function formatErrorWithCauses(error: unknown, maxDepth = 6): string {
+  const segments: string[] = []
+  const seen = new Set<unknown>()
+  let cursor: unknown = error
+  let depth = 0
+
+  while (cursor && depth < maxDepth && !seen.has(cursor)) {
+    seen.add(cursor)
+
+    const segment = buildErrorSegment(cursor)
+    if (segment) {
+      segments.push(segment)
+    }
+
+    const errorLike = asErrorLike(cursor)
+    if (!errorLike) {
+      break
+    }
+
+    cursor = errorLike.cause
+    depth += 1
+  }
+
+  if (segments.length === 0) {
+    return 'unknown error'
+  }
+
+  return Array.from(new Set(segments)).join(' <- cause: ')
+}
+
+export function inferLiveTableVerificationHint(reason: string): string | null {
+  const lower = reason.toLowerCase()
+  const networkTokens = [
+    'fetch failed',
+    'enotfound',
+    'eai_again',
+    'econnreset',
+    'econnrefused',
+    'etimedout',
+    'network',
+    'tls',
+    'socket',
+  ]
+
+  if (networkTokens.some((token) => lower.includes(token))) {
+    return 'Likely connectivity issue between the automation runner and Supabase (network egress, DNS, or transient outage).'
+  }
+
+  return null
+}
+
 type LiveTableErrorLike = {
   code?: string
   message?: string
@@ -147,7 +235,12 @@ type LiveTableErrorLike = {
 }
 
 export function classifyLiveTableError(error: LiveTableErrorLike): Pick<LiveTableCheckResult, 'status' | 'reason'> {
-  const reason = compactReason(error.message) ?? compactReason(error.details) ?? compactReason(error.hint) ?? 'unknown error'
+  const reason =
+    compactReason(error.message) ??
+    compactReason(error.details) ??
+    compactReason(error.hint) ??
+    formatErrorWithCauses(error) ??
+    'unknown error'
 
   if (isMissingTableError(error.code, error.message, error.details, error.hint)) {
     return {
@@ -180,6 +273,8 @@ export function buildLiveTableSummaryResult(checks: LiveTableCheckResult[]): Liv
       )
     )
 
+    const hint = inferLiveTableVerificationHint(reasons.join(' | '))
+
     return {
       snapshotLine: '- Live key-table check: verification failed',
       isVerifiable: false,
@@ -187,6 +282,7 @@ export function buildLiveTableSummaryResult(checks: LiveTableCheckResult[]): Liv
         'Live key-table check: verification failed',
         `Verification failures: ${verificationFailures.map((check) => `\`${check.table}\``).join(', ')}`,
         `Failure reasons: ${reasons.join(' | ') || 'unknown error'}`,
+        ...(hint ? [`Hint: ${hint}`] : []),
       ],
     }
   }

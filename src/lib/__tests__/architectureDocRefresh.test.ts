@@ -4,8 +4,10 @@ import {
   classifyLiveTableError,
   extractBetweenMarkers,
   extractSupabaseTables,
+  formatErrorWithCauses,
   hasSubstantiveDocChanges,
   getRetryableLiveTableChecks,
+  inferLiveTableVerificationHint,
   parseFontVariables,
   preserveSnapshotEntry,
   resolveArchitectureDocRefreshStatePath,
@@ -126,6 +128,20 @@ describe('architecture doc refresh helpers', () => {
     })
   })
 
+  it('formats nested fetch errors with cause chain details', () => {
+    const error = new Error('fetch failed')
+    ;(error as Error & { cause?: unknown }).cause = { message: 'getaddrinfo ENOTFOUND', code: 'ENOTFOUND' }
+
+    expect(formatErrorWithCauses(error)).toBe('fetch failed <- cause: getaddrinfo ENOTFOUND (code: ENOTFOUND)')
+  })
+
+  it('detects likely connectivity hints for fetch failures', () => {
+    expect(inferLiveTableVerificationHint('TypeError: fetch failed (code: ENOTFOUND)')).toBe(
+      'Likely connectivity issue between the automation runner and Supabase (network egress, DNS, or transient outage).'
+    )
+    expect(inferLiveTableVerificationHint('table does not exist')).toBeNull()
+  })
+
   it('returns only verification failures for retry', () => {
     expect(
       getRetryableLiveTableChecks([
@@ -163,6 +179,7 @@ describe('architecture doc refresh helpers', () => {
         'Live key-table check: verification failed',
         'Verification failures: `venues`, `bookings`',
         'Failure reasons: network timeout',
+        'Hint: Likely connectivity issue between the automation runner and Supabase (network egress, DNS, or transient outage).',
       ],
     })
   })

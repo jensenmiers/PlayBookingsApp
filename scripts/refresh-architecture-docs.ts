@@ -8,6 +8,7 @@ import { dirname, join, resolve, relative } from 'path'
 import {
   buildLiveTableSummaryResult,
   classifyLiveTableError,
+  formatErrorWithCauses,
   resolveArchitectureDocRefreshStatePath,
   CSS_SNAPSHOT_END,
   CSS_SNAPSHOT_START,
@@ -181,15 +182,23 @@ async function runLiveTableChecks(
 
   return Promise.all(
     tables.map(async (table) => {
-      const { error } = await supabase.from(table).select('*').limit(0)
-      if (!error) {
-        return { table, status: 'available' }
-      }
+      try {
+        const { error } = await supabase.from(table).select('*').limit(0)
+        if (!error) {
+          return { table, status: 'available' }
+        }
 
-      const classified = classifyLiveTableError(error)
-      return {
-        table,
-        ...classified,
+        const classified = classifyLiveTableError(error)
+        return {
+          table,
+          ...classified,
+        }
+      } catch (error) {
+        return {
+          table,
+          status: 'verification_failed',
+          reason: formatErrorWithCauses(error),
+        }
       }
     })
   )
@@ -232,7 +241,7 @@ async function getLiveTableSummary(tables: string[]): Promise<LiveTableSummaryRe
         }
       : summary
   } catch (error) {
-    const message = error instanceof Error ? error.message : 'unknown error'
+    const message = formatErrorWithCauses(error)
     return {
       snapshotLine: '- Live key-table check: verification failed',
       isVerifiable: false,
