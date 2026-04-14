@@ -18,9 +18,9 @@ const serviceRoleKey = process.env.SUPABASE_SERVICE_ROLE_KEY || ''
 
 function printUsage() {
   console.log('Usage:')
-  console.log('  npm run venue-media:publish -- --venue "Venue Name" --source "/path/to/folder"')
-  console.log('  npm run venue-media:publish -- --venue "Venue Name" --source "/path/to/folder" --apply')
-  console.log('  npm run venue-media:publish -- --venue "Venue Name" --source "/path/to/folder" --apply --open-browser')
+  console.log('  npm run venue-media:publish -- --venue "Venue Name"')
+  console.log('  npm run venue-media:publish -- --venue "Venue Name" --apply')
+  console.log('  npm run venue-media:publish -- --venue "Venue Name" --apply --open-browser')
 }
 
 function extractStorageSlugFromMediaRow(row: { object_path?: string | null; public_url?: string | null } | null): string | null {
@@ -89,7 +89,7 @@ async function main() {
 
     const plan = await buildVenueGalleryPlan({
       venue,
-      sourceDir: cliArgs.sourceDir,
+      supabase: supabase as never,
       supabaseUrl,
     })
 
@@ -97,25 +97,18 @@ async function main() {
     console.log(`Venue ID: ${plan.venueId}`)
     console.log(`Storage slug: ${plan.venueSlug}`)
     console.log(`Route slug: ${plan.routeSlug}`)
-    console.log(`Source folder: ${plan.sourceDir}`)
     console.log(`Review URL: ${plan.reviewUrl}\n`)
 
     console.log('Publish plan:')
     for (const entry of plan.entries) {
-      console.log(`- ${entry.slot} -> ${entry.sourceFilename}`)
-      console.log(`  upload: ${entry.objectPath}`)
+      console.log(`- ${entry.filename}${entry.isHero ? ' (primary)' : ''}`)
+      console.log(`  object: ${entry.objectPath}`)
       console.log(`  url: ${entry.publicUrl}`)
-      console.log(`  size: ${entry.sizeBytes} bytes`)
-      if (entry.widthPx && entry.heightPx) {
-        console.log(`  dimensions: ${entry.widthPx}x${entry.heightPx}`)
-      }
-      entry.warnings.forEach((warning) => {
-        console.log(`  warning: ${warning}`)
-      })
     }
+    console.log(`Total image rows: ${plan.entries.length}`)
 
     if (!cliArgs.apply) {
-      console.log('\nPreview only. Re-run with --apply to upload and replace venue_media.')
+      console.log('\nPreview only. Re-run with --apply to replace venue_media from storage.')
       return
     }
 
@@ -131,7 +124,6 @@ async function main() {
     }
 
     console.log('\n✅ Gallery published successfully.')
-    console.log(`Uploaded objects: ${result.uploadedPaths.length}`)
     console.log(`Verified storage files: ${result.verification.storageObjects.join(', ')}`)
     console.log(`Verified venue_media rows: ${result.verification.rows.length}`)
     console.log(`Review URL: ${plan.reviewUrl}`)

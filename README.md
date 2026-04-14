@@ -107,7 +107,7 @@ src/
 - `npm run lint:design-system` - Run full design-system lint across scoped UI files
 - `npm run lint:design-system:staged` - Run design-system lint against staged scoped lines
 - `npm run lint:design-system:unpushed` - Run design-system lint against unpushed scoped lines
-- `npm run venue-media:publish -- --venue "Venue Name" --source "/path/to/folder"` - Preview or publish a curated 5-image venue gallery from a manifest folder
+- `npm run venue-media:publish -- --venue "Venue Name"` - Preview or publish a venue gallery by reading image files already uploaded to `venue-photos/<venue-slug>/`
 - `npm run sync:google-calendars` - Process due venue Google Calendar sync jobs
 
 ## 🧭 Operational Docs

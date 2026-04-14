@@ -1,10 +1,6 @@
-import fs from 'fs'
-import os from 'os'
-import path from 'path'
 import {
   buildVenueGalleryPlan,
   parsePublishVenueGalleryArgs,
-  parseVenueGalleryManifest,
   runVenueGalleryPublish,
 } from '@/lib/venueGalleryPublish'
 import { replaceVenueImages } from '@/lib/venueMediaWrite'
@@ -15,90 +11,8 @@ jest.mock('@/lib/venueMediaWrite', () => ({
 
 const mockedReplaceVenueImages = replaceVenueImages as jest.MockedFunction<typeof replaceVenueImages>
 
-function createFakeJpegBuffer(width: number, height: number): Buffer {
-  const buffer = Buffer.alloc(2 + 18 + 19 + 2)
-  let offset = 0
-
-  buffer[offset++] = 0xff
-  buffer[offset++] = 0xd8
-
-  buffer[offset++] = 0xff
-  buffer[offset++] = 0xe0
-  buffer.writeUInt16BE(16, offset)
-  offset += 2
-  buffer.write('JFIF\0', offset, 'ascii')
-  offset += 5
-  buffer[offset++] = 0x01
-  buffer[offset++] = 0x01
-  buffer[offset++] = 0x00
-  buffer.writeUInt16BE(1, offset)
-  offset += 2
-  buffer.writeUInt16BE(1, offset)
-  offset += 2
-  buffer[offset++] = 0x00
-  buffer[offset++] = 0x00
-
-  buffer[offset++] = 0xff
-  buffer[offset++] = 0xc0
-  buffer.writeUInt16BE(17, offset)
-  offset += 2
-  buffer[offset++] = 0x08
-  buffer.writeUInt16BE(height, offset)
-  offset += 2
-  buffer.writeUInt16BE(width, offset)
-  offset += 2
-  buffer[offset++] = 0x03
-  buffer[offset++] = 0x01
-  buffer[offset++] = 0x11
-  buffer[offset++] = 0x00
-  buffer[offset++] = 0x02
-  buffer[offset++] = 0x11
-  buffer[offset++] = 0x00
-  buffer[offset++] = 0x03
-  buffer[offset++] = 0x11
-  buffer[offset++] = 0x00
-
-  buffer[offset++] = 0xff
-  buffer[offset++] = 0xd9
-
-  return buffer
-}
-
-function createGalleryFolder(args?: {
-  manifest?: Record<string, string>
-  files?: Record<string, Buffer | string>
-}): string {
-  const dir = fs.mkdtempSync(path.join(os.tmpdir(), 'venue-gallery-'))
-
-  if (args?.manifest) {
-    fs.writeFileSync(
-      path.join(dir, 'venue-gallery.json'),
-      JSON.stringify(args.manifest, null, 2),
-      'utf8'
-    )
-  }
-
-  for (const [filename, content] of Object.entries(args?.files || {})) {
-    fs.writeFileSync(path.join(dir, filename), content)
-  }
-
-  return dir
-}
-
-const validManifest = {
-  hero: 'hero-source.jpg',
-  gallery_02: 'court-a.jpg',
-  gallery_03: 'court-b.jpeg',
-  gallery_04: 'court-c.jpg',
-  gallery_05: 'entrance.jpg',
-}
-
-const defaultFiles = {
-  'hero-source.jpg': createFakeJpegBuffer(2400, 1600),
-  'court-a.jpg': createFakeJpegBuffer(2200, 1400),
-  'court-b.jpeg': createFakeJpegBuffer(2100, 1400),
-  'court-c.jpg': createFakeJpegBuffer(2300, 1500),
-  'entrance.jpg': createFakeJpegBuffer(2000, 1333),
+function createStorageObject(name: string, id: string | null = 'object-id') {
+  return { name, id }
 }
 
 describe('venueGalleryPublish helpers', () => {
@@ -106,19 +20,16 @@ describe('venueGalleryPublish helpers', () => {
     jest.resetAllMocks()
   })
 
-  it('parses valid cli args', () => {
+  it('parses valid cli args without a source directory', () => {
     expect(
       parsePublishVenueGalleryArgs([
         '--venue',
         'First Presbyterian Church of Hollywood',
-        '--source',
-        './tmp/gallery',
         '--apply',
         '--open-browser',
       ])
     ).toEqual({
       venueName: 'First Presbyterian Church of Hollywood',
-      sourceDir: './tmp/gallery',
       apply: true,
       openBrowser: true,
     })
@@ -129,113 +40,20 @@ describe('venueGalleryPublish helpers', () => {
       parsePublishVenueGalleryArgs([
         '--venue',
         'First Presbyterian Church of Hollywood',
-        '--source',
-        './tmp/gallery',
         '--open-browser',
       ])
     ).toThrow('--open-browser requires --apply')
   })
 
-  it('rejects a manifest with missing required keys', () => {
-    expect(() =>
-      parseVenueGalleryManifest(JSON.stringify({ hero: 'hero.jpg' }))
-    ).toThrow('Missing required manifest keys')
-  })
-
-  it('fails when the manifest file is missing', async () => {
-    const dir = createGalleryFolder({ files: defaultFiles })
-
-    await expect(
-      buildVenueGalleryPlan({
-        venue: {
-          id: 'venue-1',
-          name: 'First Presbyterian Church of Hollywood',
-          slug: 'first-presbyterian-hollywood',
-        },
-        sourceDir: dir,
-        supabaseUrl: 'https://example.supabase.co',
-      })
-    ).rejects.toThrow('Missing manifest')
-  })
-
-  it('fails when a referenced file is missing', async () => {
-    const dir = createGalleryFolder({
-      manifest: validManifest,
-      files: {
-        'hero-source.jpg': defaultFiles['hero-source.jpg'],
-      },
-    })
-
-    await expect(
-      buildVenueGalleryPlan({
-        venue: {
-          id: 'venue-1',
-          name: 'First Presbyterian Church of Hollywood',
-          slug: 'first-presbyterian-hollywood',
-        },
-        sourceDir: dir,
-        supabaseUrl: 'https://example.supabase.co',
-      })
-    ).rejects.toThrow('Referenced file does not exist')
-  })
-
-  it('fails when the manifest references duplicate files', async () => {
-    const dir = createGalleryFolder({
-      manifest: {
-        ...validManifest,
-        gallery_02: 'hero-source.jpg',
-      },
-      files: defaultFiles,
-    })
-
-    await expect(
-      buildVenueGalleryPlan({
-        venue: {
-          id: 'venue-1',
-          name: 'First Presbyterian Church of Hollywood',
-          slug: 'first-presbyterian-hollywood',
-        },
-        sourceDir: dir,
-        supabaseUrl: 'https://example.supabase.co',
-      })
-    ).rejects.toThrow('Duplicate manifest file references')
-  })
-
-  it('fails when a referenced file is not a jpeg', async () => {
-    const dir = createGalleryFolder({
-      manifest: {
-        ...validManifest,
-        gallery_05: 'entrance.png',
-      },
-      files: {
-        ...defaultFiles,
-        'entrance.png': 'not-a-jpeg',
-      },
-    })
-
-    await expect(
-      buildVenueGalleryPlan({
-        venue: {
-          id: 'venue-1',
-          name: 'First Presbyterian Church of Hollywood',
-          slug: 'first-presbyterian-hollywood',
-        },
-        sourceDir: dir,
-        supabaseUrl: 'https://example.supabase.co',
-      })
-    ).rejects.toThrow('must be a JPEG')
-  })
-
-  it('maps local files to canonical storage names and warns on portrait images', async () => {
-    const dir = createGalleryFolder({
-      manifest: {
-        ...validManifest,
-        gallery_05: 'portrait-entrance.jpg',
-      },
-      files: {
-        ...defaultFiles,
-        'portrait-entrance.jpg': createFakeJpegBuffer(1200, 1800),
-      },
+  it('builds a plan from storage objects with hero first and the rest alphabetically', async () => {
+    const list = jest.fn().mockResolvedValue({
+      data: [
+        createStorageObject('gallery-03.jpg'),
+        createStorageObject('IMG_2737.JPG'),
+        createStorageObject('hero.webp'),
+        createStorageObject('gallery-02.jpg'),
+      ],
+      error: null,
     })
 
     const plan = await buildVenueGalleryPlan({
@@ -244,33 +62,41 @@ describe('venueGalleryPublish helpers', () => {
         name: 'First Presbyterian Church of Hollywood',
         slug: 'first-presbyterian-hollywood',
       },
-      sourceDir: dir,
+      supabase: {
+        storage: {
+          from: () => ({ list }),
+        },
+        from: jest.fn(),
+      } as never,
       supabaseUrl: 'https://example.supabase.co',
       appUrl: 'https://www.playbookings.com',
     })
 
-    expect(plan.entries.map((entry) => entry.canonicalFilename)).toEqual([
-      'hero.jpg',
+    expect(plan.entries.map((entry) => entry.filename)).toEqual([
+      'hero.webp',
       'gallery-02.jpg',
       'gallery-03.jpg',
-      'gallery-04.jpg',
-      'gallery-05.jpg',
+      'IMG_2737.JPG',
     ])
     expect(plan.entries.map((entry) => entry.objectPath)).toEqual([
-      'first-presbyterian-hollywood/hero.jpg',
+      'first-presbyterian-hollywood/hero.webp',
       'first-presbyterian-hollywood/gallery-02.jpg',
       'first-presbyterian-hollywood/gallery-03.jpg',
-      'first-presbyterian-hollywood/gallery-04.jpg',
-      'first-presbyterian-hollywood/gallery-05.jpg',
+      'first-presbyterian-hollywood/IMG_2737.JPG',
     ])
+    expect(plan.entries[0].isHero).toBe(true)
     expect(plan.reviewUrl).toBe('https://www.playbookings.com/venue/first-presbyterian-church-of-hollywood')
-    expect(plan.entries[4].warnings).toContain('Image is portrait-oriented; SOP prefers landscape images.')
   })
 
-  it('does not perform writes in preview mode', async () => {
-    const dir = createGalleryFolder({
-      manifest: validManifest,
-      files: defaultFiles,
+  it('filters out unsupported files and folder rows', async () => {
+    const list = jest.fn().mockResolvedValue({
+      data: [
+        createStorageObject('notes.txt'),
+        createStorageObject('subfolder', null),
+        createStorageObject('hero.png'),
+        createStorageObject('gallery-02.jpeg'),
+      ],
+      error: null,
     })
 
     const plan = await buildVenueGalleryPlan({
@@ -279,12 +105,62 @@ describe('venueGalleryPublish helpers', () => {
         name: 'First Presbyterian Church of Hollywood',
         slug: 'first-presbyterian-hollywood',
       },
-      sourceDir: dir,
+      supabase: {
+        storage: {
+          from: () => ({ list }),
+        },
+        from: jest.fn(),
+      } as never,
       supabaseUrl: 'https://example.supabase.co',
     })
 
-    const upload = jest.fn()
-    const list = jest.fn()
+    expect(plan.entries.map((entry) => entry.filename)).toEqual(['hero.png', 'gallery-02.jpeg'])
+  })
+
+  it('fails when no supported images exist in storage', async () => {
+    const list = jest.fn().mockResolvedValue({
+      data: [
+        createStorageObject('notes.txt'),
+        createStorageObject('subfolder', null),
+      ],
+      error: null,
+    })
+
+    await expect(
+      buildVenueGalleryPlan({
+        venue: {
+          id: 'venue-1',
+          name: 'First Presbyterian Church of Hollywood',
+          slug: 'first-presbyterian-hollywood',
+        },
+        supabase: {
+          storage: {
+            from: () => ({ list }),
+          },
+          from: jest.fn(),
+        } as never,
+        supabaseUrl: 'https://example.supabase.co',
+      })
+    ).rejects.toThrow('No supported images found')
+  })
+
+  it('does not perform writes in preview mode', async () => {
+    const plan = {
+      venueId: 'venue-1',
+      venueName: 'First Presbyterian Church of Hollywood',
+      venueSlug: 'first-presbyterian-hollywood',
+      routeSlug: 'first-presbyterian-church-of-hollywood',
+      reviewUrl: 'https://www.playbookings.com/venue/first-presbyterian-church-of-hollywood',
+      entries: [
+        {
+          filename: 'hero.jpg',
+          objectPath: 'first-presbyterian-hollywood/hero.jpg',
+          publicUrl: 'https://example.supabase.co/storage/v1/object/public/venue-photos/first-presbyterian-hollywood/hero.jpg',
+          isHero: true,
+        },
+      ],
+    }
+
     const from = jest.fn()
 
     const result = await runVenueGalleryPublish({
@@ -293,37 +169,45 @@ describe('venueGalleryPublish helpers', () => {
       plan,
       supabase: {
         storage: {
-          from: () => ({ upload, list }),
+          from: () => ({ list: jest.fn() }),
         },
         from,
       } as never,
     })
 
     expect(result.mode).toBe('preview')
-    expect(upload).not.toHaveBeenCalled()
     expect(mockedReplaceVenueImages).not.toHaveBeenCalled()
     expect(from).not.toHaveBeenCalled()
   })
 
-  it('uploads files and replaces venue media rows on apply', async () => {
-    const dir = createGalleryFolder({
-      manifest: validManifest,
-      files: defaultFiles,
-    })
+  it('replaces venue media rows from storage-derived urls on apply', async () => {
+    const plan = {
+      venueId: 'venue-1',
+      venueName: 'First Presbyterian Church of Hollywood',
+      venueSlug: 'first-presbyterian-hollywood',
+      routeSlug: 'first-presbyterian-church-of-hollywood',
+      reviewUrl: 'https://www.playbookings.com/venue/first-presbyterian-church-of-hollywood',
+      entries: [
+        {
+          filename: 'hero.webp',
+          objectPath: 'first-presbyterian-hollywood/hero.webp',
+          publicUrl: 'https://example.supabase.co/storage/v1/object/public/venue-photos/first-presbyterian-hollywood/hero.webp',
+          isHero: true,
+        },
+        {
+          filename: 'gallery-02.jpg',
+          objectPath: 'first-presbyterian-hollywood/gallery-02.jpg',
+          publicUrl: 'https://example.supabase.co/storage/v1/object/public/venue-photos/first-presbyterian-hollywood/gallery-02.jpg',
+          isHero: false,
+        },
+      ],
+    }
 
-    const plan = await buildVenueGalleryPlan({
-      venue: {
-        id: 'venue-1',
-        name: 'First Presbyterian Church of Hollywood',
-        slug: 'first-presbyterian-hollywood',
-      },
-      sourceDir: dir,
-      supabaseUrl: 'https://example.supabase.co',
-    })
-
-    const upload = jest.fn().mockResolvedValue({ error: null })
     const list = jest.fn().mockResolvedValue({
-      data: plan.entries.map((entry) => ({ name: entry.canonicalFilename })),
+      data: [
+        createStorageObject('hero.webp'),
+        createStorageObject('gallery-02.jpg'),
+      ],
       error: null,
     })
     const order = jest.fn().mockResolvedValue({
@@ -347,46 +231,40 @@ describe('venueGalleryPublish helpers', () => {
       plan,
       supabase: {
         storage: {
-          from: () => ({ upload, list }),
+          from: () => ({ list }),
         },
         from,
       } as never,
       openUrl,
     })
 
-    expect(upload).toHaveBeenCalledTimes(5)
-    expect(mockedReplaceVenueImages).toHaveBeenCalledWith(
-      expect.anything(),
-      {
-        venueId: 'venue-1',
-        photoUrls: plan.entries.map((entry) => entry.publicUrl),
-      }
-    )
+    expect(mockedReplaceVenueImages).toHaveBeenCalledWith(expect.anything(), {
+      venueId: 'venue-1',
+      photoUrls: plan.entries.map((entry) => entry.publicUrl),
+    })
     expect(result.mode).toBe('applied')
-    expect(result.verification.rows).toHaveLength(5)
+    expect(result.verification.rows).toHaveLength(2)
     expect(openUrl).toHaveBeenCalledWith(plan.reviewUrl)
   })
 
-  it('aborts before db replacement if an upload fails', async () => {
-    const dir = createGalleryFolder({
-      manifest: validManifest,
-      files: defaultFiles,
-    })
+  it('fails verification when stored row urls do not match the derived plan', async () => {
+    const plan = {
+      venueId: 'venue-1',
+      venueName: 'First Presbyterian Church of Hollywood',
+      venueSlug: 'first-presbyterian-hollywood',
+      routeSlug: 'first-presbyterian-church-of-hollywood',
+      reviewUrl: 'https://www.playbookings.com/venue/first-presbyterian-church-of-hollywood',
+      entries: [
+        {
+          filename: 'hero.jpg',
+          objectPath: 'first-presbyterian-hollywood/hero.jpg',
+          publicUrl: 'https://example.supabase.co/storage/v1/object/public/venue-photos/first-presbyterian-hollywood/hero.jpg',
+          isHero: true,
+        },
+      ],
+    }
 
-    const plan = await buildVenueGalleryPlan({
-      venue: {
-        id: 'venue-1',
-        name: 'First Presbyterian Church of Hollywood',
-        slug: 'first-presbyterian-hollywood',
-      },
-      sourceDir: dir,
-      supabaseUrl: 'https://example.supabase.co',
-    })
-
-    const upload = jest
-      .fn()
-      .mockResolvedValueOnce({ error: null })
-      .mockResolvedValueOnce({ error: { message: 'boom' } })
+    mockedReplaceVenueImages.mockResolvedValue(undefined)
 
     await expect(
       runVenueGalleryPublish({
@@ -395,34 +273,58 @@ describe('venueGalleryPublish helpers', () => {
         plan,
         supabase: {
           storage: {
-            from: () => ({ upload, list: jest.fn() }),
+            from: () => ({
+              list: jest.fn().mockResolvedValue({
+                data: [createStorageObject('hero.jpg')],
+                error: null,
+              }),
+            }),
           },
-          from: jest.fn(),
+          from: jest.fn().mockReturnValue({
+            select: jest.fn().mockReturnValue({
+              eq: jest.fn().mockReturnValue({
+                order: jest.fn().mockResolvedValue({
+                  data: [
+                    {
+                      public_url: 'https://example.supabase.co/storage/v1/object/public/venue-photos/first-presbyterian-hollywood/other.jpg',
+                      sort_order: 0,
+                      is_primary: true,
+                    },
+                  ],
+                  error: null,
+                }),
+              }),
+            }),
+          }),
         } as never,
       })
-    ).rejects.toThrow('Failed to upload gallery-02.jpg')
-
-    expect(mockedReplaceVenueImages).not.toHaveBeenCalled()
+    ).rejects.toThrow('venue_media URL verification failed')
   })
 
-  it('reports a partial failure when uploads succeed but db replacement fails', async () => {
-    const dir = createGalleryFolder({
-      manifest: validManifest,
-      files: defaultFiles,
-    })
+  it('fails verification when sort order is wrong', async () => {
+    const plan = {
+      venueId: 'venue-1',
+      venueName: 'First Presbyterian Church of Hollywood',
+      venueSlug: 'first-presbyterian-hollywood',
+      routeSlug: 'first-presbyterian-church-of-hollywood',
+      reviewUrl: 'https://www.playbookings.com/venue/first-presbyterian-church-of-hollywood',
+      entries: [
+        {
+          filename: 'hero.jpg',
+          objectPath: 'first-presbyterian-hollywood/hero.jpg',
+          publicUrl: 'https://example.supabase.co/storage/v1/object/public/venue-photos/first-presbyterian-hollywood/hero.jpg',
+          isHero: true,
+        },
+        {
+          filename: 'gallery-02.jpg',
+          objectPath: 'first-presbyterian-hollywood/gallery-02.jpg',
+          publicUrl: 'https://example.supabase.co/storage/v1/object/public/venue-photos/first-presbyterian-hollywood/gallery-02.jpg',
+          isHero: false,
+        },
+      ],
+    }
 
-    const plan = await buildVenueGalleryPlan({
-      venue: {
-        id: 'venue-1',
-        name: 'First Presbyterian Church of Hollywood',
-        slug: 'first-presbyterian-hollywood',
-      },
-      sourceDir: dir,
-      supabaseUrl: 'https://example.supabase.co',
-    })
-
-    const upload = jest.fn().mockResolvedValue({ error: null })
-    mockedReplaceVenueImages.mockRejectedValue(new Error('db failure'))
+    mockedReplaceVenueImages.mockResolvedValue(undefined)
 
     await expect(
       runVenueGalleryPublish({
@@ -431,11 +333,39 @@ describe('venueGalleryPublish helpers', () => {
         plan,
         supabase: {
           storage: {
-            from: () => ({ upload, list: jest.fn() }),
+            from: () => ({
+              list: jest.fn().mockResolvedValue({
+                data: [
+                  createStorageObject('hero.jpg'),
+                  createStorageObject('gallery-02.jpg'),
+                ],
+                error: null,
+              }),
+            }),
           },
-          from: jest.fn(),
+          from: jest.fn().mockReturnValue({
+            select: jest.fn().mockReturnValue({
+              eq: jest.fn().mockReturnValue({
+                order: jest.fn().mockResolvedValue({
+                  data: [
+                    {
+                      public_url: plan.entries[0].publicUrl,
+                      sort_order: 1,
+                      is_primary: true,
+                    },
+                    {
+                      public_url: plan.entries[1].publicUrl,
+                      sort_order: 0,
+                      is_primary: false,
+                    },
+                  ],
+                  error: null,
+                }),
+              }),
+            }),
+          }),
         } as never,
       })
-    ).rejects.toThrow('Uploaded 5 files but failed to write venue media')
+    ).rejects.toThrow('venue_media sort_order verification failed')
   })
 })
