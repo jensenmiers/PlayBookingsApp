@@ -263,7 +263,15 @@ describe('architecture doc refresh helpers', () => {
     expect(resolved).toBe('/Users/example/.codex/automations/refresh-architecture-docs/last-run.json')
   })
 
-  it('falls back to project-local state path when no env override is provided', () => {
+  it('falls back to HOME codex automation state path when CODEX_HOME is absent', () => {
+    const resolved = resolveArchitectureDocRefreshStatePath('/repo', {
+      HOME: '/Users/example',
+    })
+
+    expect(resolved).toBe('/Users/example/.codex/automations/refresh-architecture-docs/last-run.json')
+  })
+
+  it('falls back to project-local state path when both CODEX_HOME and HOME are absent', () => {
     const resolved = resolveArchitectureDocRefreshStatePath('/repo', {})
 
     expect(resolved).toBe(`/repo/${DEFAULT_PROJECT_STATE_PATH_SEGMENTS.join('/')}`)

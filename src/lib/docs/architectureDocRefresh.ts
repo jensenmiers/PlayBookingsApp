@@ -8,6 +8,10 @@ export const PACIFIC_TIME_ZONE = 'America/Los_Angeles'
 export const ARCHITECTURE_DOC_REFRESH_AUTOMATION_ID = 'refresh-architecture-docs'
 export const DEFAULT_PROJECT_STATE_PATH_SEGMENTS = ['.codex', 'architecture-doc-refresh-state.json'] as const
 
+function getAutomationStatePath(baseDir: string): string {
+  return join(baseDir, 'automations', ARCHITECTURE_DOC_REFRESH_AUTOMATION_ID, 'last-run.json')
+}
+
 export type SnapshotChange = {
   label: string
   previous: string
@@ -411,7 +415,12 @@ export function resolveArchitectureDocRefreshStatePath(
 
   const codexHome = env.CODEX_HOME?.trim()
   if (codexHome) {
-    return join(codexHome, 'automations', ARCHITECTURE_DOC_REFRESH_AUTOMATION_ID, 'last-run.json')
+    return getAutomationStatePath(codexHome)
+  }
+
+  const homeDir = env.HOME?.trim()
+  if (homeDir) {
+    return getAutomationStatePath(join(homeDir, '.codex'))
   }
 
   return join(projectRoot, ...DEFAULT_PROJECT_STATE_PATH_SEGMENTS)
