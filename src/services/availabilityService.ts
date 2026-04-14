@@ -3,7 +3,9 @@
  * Uses slot_instances as the source of truth and filters out blocked slots.
  */
 
+import type { SupabaseClient } from '@supabase/supabase-js'
 import { createClient } from '@/lib/supabase/server'
+import { measureDurationMs } from '@/lib/performance'
 import { timeStringToDate } from '@/utils/dateHelpers'
 import type { SlotActionType, SlotModalContent, SlotPricing } from '@/types'
 import { isSlotAllowedByVenueConfig, normalizeVenueAdminConfig } from '@/lib/venueAdminConfig'
@@ -61,6 +63,18 @@ export interface UnifiedAvailableSlot {
   slot_pricing?: SlotPricing | null
 }
 
+type AvailabilityQueryTimings = Record<string, number>
+
+type AvailabilityTimingReport = {
+  venueId: string
+  dateFrom: string
+  dateTo: string
+  totalMs: number
+  queryTimingsMs: AvailabilityQueryTimings
+  slowestQueryLabel: string | null
+  slowestQueryMs: number | null
+}
+
 function sortSlots(slots: UnifiedAvailableSlot[]): UnifiedAvailableSlot[] {
   return slots.sort((a, b) => {
     if (a.date !== b.date) {
@@ -83,6 +97,13 @@ function overlapsExternalBlock(
 }
 
 export class AvailabilityService {
+  constructor(
+    private readonly options: {
+      getClient?: () => Promise<Pick<SupabaseClient, 'from' | 'rpc'>>
+      onTiming?: (report: AvailabilityTimingReport) => void
+    } = {}
+  ) {}
+
   /**
    * Get true available slots for a venue within a date range
    * Filters out slots that overlap with existing bookings
@@ -97,8 +118,20 @@ export class AvailabilityService {
     dateFrom: string,
     dateTo: string
   ): Promise<UnifiedAvailableSlot[]> {
-    const supabase = await createClient()
+    const totalStartTime = performance.now()
+    const queryTimingsMs: AvailabilityQueryTimings = {}
+    const supabase = await (this.options.getClient?.() || createClient())
     const now = new Date()
+
+    const captureQuery = async <T>(
+      label: string,
+      query: Promise<T>
+    ): Promise<T> => {
+      const queryStartTime = performance.now()
+      const result = await query
+      queryTimingsMs[label] = measureDurationMs(queryStartTime)
+      return result
+    }
 
     const adminConfigQuery = supabase
       .from('venue_admin_configs')
@@ -121,42 +154,57 @@ export class AvailabilityService {
       modalContentResult,
       externalBlocksResult,
     ] = await Promise.all([
-      supabase
-        .from('venues')
-        .select('instant_booking')
-        .eq('id', venueId)
-        .single(),
+      captureQuery(
+        'venue',
+        supabase
+          .from('venues')
+          .select('instant_booking')
+          .eq('id', venueId)
+          .single()
+      ),
 
-      adminConfigPromise,
+      captureQuery('adminConfig', adminConfigPromise),
 
-      supabase.rpc('get_regular_available_slot_instances', {
-        p_venue_id: venueId,
-        p_date_from: dateFrom,
-        p_date_to: dateTo,
-        p_date_filter: null,
-      }),
+      captureQuery(
+        'regularSlotsRpc',
+        supabase.rpc('get_regular_available_slot_instances', {
+          p_venue_id: venueId,
+          p_date_from: dateFrom,
+          p_date_to: dateTo,
+          p_date_filter: null,
+        })
+      ),
 
-      supabase
-        .from('slot_instances')
-        .select('id, venue_id, date, start_time, end_time, action_type, blocks_inventory')
-        .eq('venue_id', venueId)
-        .gte('date', dateFrom)
-        .lte('date', dateTo)
-        .eq('is_active', true)
-        .eq('action_type', 'info_only_open_gym')
-        .order('date', { ascending: true })
-        .order('start_time', { ascending: true }),
+      captureQuery(
+        'infoSlots',
+        supabase
+          .from('slot_instances')
+          .select('id, venue_id, date, start_time, end_time, action_type, blocks_inventory')
+          .eq('venue_id', venueId)
+          .gte('date', dateFrom)
+          .lte('date', dateTo)
+          .eq('is_active', true)
+          .eq('action_type', 'info_only_open_gym')
+          .order('date', { ascending: true })
+          .order('start_time', { ascending: true })
+      ),
 
-      supabase
-        .from('slot_modal_content')
-        .select('action_type, title, body, bullet_points, cta_label')
-        .eq('venue_id', venueId),
+      captureQuery(
+        'slotModalContent',
+        supabase
+          .from('slot_modal_content')
+          .select('action_type, title, body, bullet_points, cta_label')
+          .eq('venue_id', venueId)
+      ),
 
-      supabase
-        .from('external_availability_blocks')
-        .select('id, venue_id, source, source_event_id, start_at, end_at, status')
-        .eq('venue_id', venueId)
-        .eq('status', 'active'),
+      captureQuery(
+        'externalAvailabilityBlocks',
+        supabase
+          .from('external_availability_blocks')
+          .select('id, venue_id, source, source_event_id, start_at, end_at, status')
+          .eq('venue_id', venueId)
+          .eq('status', 'active')
+      ),
     ])
 
     if (venueError || !venue) {
@@ -245,6 +293,19 @@ export class AvailabilityService {
       .filter((slot) => !externalBlocks.some((block) => overlapsExternalBlock(slot, block)))
       .filter((slot) => isSlotAllowedByVenueConfig(slot, adminConfig))
 
-    return sortSlots([...regularSlots, ...infoOnlySlots])
+    const result = sortSlots([...regularSlots, ...infoOnlySlots])
+    const slowestTimingEntry = Object.entries(queryTimingsMs).sort((left, right) => right[1] - left[1])[0]
+
+    this.options.onTiming?.({
+      venueId,
+      dateFrom,
+      dateTo,
+      totalMs: measureDurationMs(totalStartTime),
+      queryTimingsMs,
+      slowestQueryLabel: slowestTimingEntry?.[0] || null,
+      slowestQueryMs: slowestTimingEntry?.[1] ?? null,
+    })
+
+    return result
   }
 }

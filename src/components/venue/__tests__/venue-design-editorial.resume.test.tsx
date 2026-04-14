@@ -19,8 +19,8 @@ jest.mock('@/hooks/useVenues', () => ({
   useVenueAvailabilityRange: (...args: unknown[]) => mockUseVenueAvailabilityRange(...args),
 }))
 
-jest.mock('@/components/booking/slot-booking-confirmation', () => ({
-  SlotBookingConfirmation: ({
+jest.mock('@/components/venue/deferred-slot-booking-confirmation', () => ({
+  DeferredSlotBookingConfirmation: ({
     date,
     startTime,
   }: {
@@ -29,12 +29,12 @@ jest.mock('@/components/booking/slot-booking-confirmation', () => ({
   }) => <div data-testid="slot-booking-dialog">{date}:{startTime}</div>,
 }))
 
-jest.mock('@/components/ui/calendar', () => ({
-  Calendar: () => <div data-testid="date-picker-calendar" />,
+jest.mock('@/components/venue/deferred-calendar', () => ({
+  DeferredCalendar: () => <div data-testid="date-picker-calendar" />,
 }))
 
-jest.mock('@/components/maps/venue-location-map', () => ({
-  VenueLocationMap: () => <div data-testid="venue-location-map" />,
+jest.mock('@/components/venue/deferred-venue-location-map', () => ({
+  DeferredVenueLocationMap: () => <div data-testid="venue-location-map" />,
 }))
 
 const venue: Venue = {

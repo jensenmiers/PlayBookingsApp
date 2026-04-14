@@ -3,13 +3,13 @@
 import { useState, useMemo, useCallback } from 'react'
 import { useRouter } from 'next/navigation'
 import { PhotoCarousel } from './photo-carousel'
-import { PhotoLightbox } from './photo-lightbox'
+import { DeferredPhotoLightbox } from './deferred-photo-lightbox'
+import { DeferredSlotBookingConfirmation } from './deferred-slot-booking-confirmation'
+import { DeferredVenueLocationMap } from './deferred-venue-location-map'
+import { DeferredCalendar } from './deferred-calendar'
 import { format } from 'date-fns'
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome'
 import { faArrowLeft, faShield, faCalendarDays } from '@fortawesome/free-solid-svg-icons'
-import { SlotBookingConfirmation } from '@/components/booking/slot-booking-confirmation'
-import { VenueLocationMap } from '@/components/maps/venue-location-map'
-import { Calendar } from '@/components/ui/calendar'
 import { GoogleMapsLink } from './shared'
 import { useVenueAvailabilityRange, ComputedAvailabilitySlot } from '@/hooks/useVenues'
 import { formatTime } from '@/utils/dateHelpers'
@@ -20,6 +20,7 @@ import type { Venue } from '@/types'
 
 interface VenueDesignEditorialProps {
   venue: Venue
+  initialAvailability?: ComputedAvailabilitySlot[]
 }
 
 const LOS_ANGELES_TIME_ZONE = 'America/Los_Angeles'
@@ -107,7 +108,10 @@ function getSlotSecondaryLabel(slot: ComputedAvailabilitySlot, venue: Venue): st
   return getBookingModeDisplay(venue.instant_booking, 'compact').label
 }
 
-export function VenueDesignEditorial({ venue }: VenueDesignEditorialProps) {
+export function VenueDesignEditorial({
+  venue,
+  initialAvailability = [],
+}: VenueDesignEditorialProps) {
   const router = useRouter()
   const [selectedSlot, setSelectedSlot] = useState<ComputedAvailabilitySlot | null>(null)
   const [showBooking, setShowBooking] = useState(false)
@@ -143,7 +147,8 @@ export function VenueDesignEditorial({ venue }: VenueDesignEditorialProps) {
   const { data: availability, loading } = useVenueAvailabilityRange(
     venue.id,
     dateFrom,
-    dateTo
+    dateTo,
+    { initialData: initialAvailability }
   )
 
   // Calendar-picked date: fetch availability if outside pill range
@@ -432,7 +437,7 @@ export function VenueDesignEditorial({ venue }: VenueDesignEditorialProps) {
           {/* Calendar Date Picker */}
           {showDatePicker && (
             <div className="mt-m flex justify-center rounded-xl border border-secondary-50/10 bg-secondary-800/60 p-l animate-in slide-in-from-top-2 duration-200">
-              <Calendar
+              <DeferredCalendar
                 mode="single"
                 selected={pickerDate}
                 defaultMonth={new Date()}
@@ -542,7 +547,7 @@ export function VenueDesignEditorial({ venue }: VenueDesignEditorialProps) {
 
           {/* Lightbox */}
           {lightboxIndex !== null && venue.photos && venue.photos.length > 0 && (
-            <PhotoLightbox
+            <DeferredPhotoLightbox
               photos={venue.photos}
               venueName={venue.name}
               currentIndex={lightboxIndex}
@@ -553,7 +558,7 @@ export function VenueDesignEditorial({ venue }: VenueDesignEditorialProps) {
 
           <section>
             <h2 className="font-serif text-xl text-secondary-50 mb-m">Map</h2>
-            <VenueLocationMap
+            <DeferredVenueLocationMap
               name={venue.name}
               city={venue.city}
               state={venue.state}
@@ -567,7 +572,7 @@ export function VenueDesignEditorial({ venue }: VenueDesignEditorialProps) {
 
       {/* Booking Dialog */}
       {showBooking && selectedSlot && (
-        <SlotBookingConfirmation
+        <DeferredSlotBookingConfirmation
           venue={venue}
           date={selectedSlot.date}
           startTime={selectedSlot.start_time}

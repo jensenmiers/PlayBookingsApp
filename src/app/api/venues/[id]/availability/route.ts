@@ -8,8 +8,9 @@
 
 import { NextRequest } from 'next/server'
 import { AvailabilityService } from '@/services/availabilityService'
+import { logPerformance, measureDurationMs } from '@/lib/performance'
 import { handleApiError, badRequest, notFound } from '@/utils/errorHandling'
-import { createClient } from '@/lib/supabase/server'
+import { createPublicServerClient } from '@/lib/supabase/public-server'
 import type { ApiResponse } from '@/types/api'
 import type { UnifiedAvailableSlot } from '@/services/availabilityService'
 
@@ -21,6 +22,8 @@ export async function GET(
   request: NextRequest,
   context: RouteContext
 ): Promise<Response> {
+  const routeStartTime = performance.now()
+
   try {
     const { id: venueId } = await context.params
     const searchParams = request.nextUrl.searchParams
@@ -45,7 +48,7 @@ export async function GET(
     }
 
     // Verify venue exists
-    const supabase = await createClient()
+    const supabase = createPublicServerClient()
     const { data: venue, error: venueError } = await supabase
       .from('venues')
       .select('id')
@@ -58,8 +61,21 @@ export async function GET(
     }
 
     // Get available slots
-    const availabilityService = new AvailabilityService()
+    const availabilityService = new AvailabilityService({
+      getClient: async () => createPublicServerClient(),
+      onTiming: (timing) => {
+        logPerformance('venue-availability-api-queries', timing)
+      },
+    })
     const slots = await availabilityService.getAvailableSlots(venueId, dateFrom, dateTo)
+
+    logPerformance('venue-availability-api-total', {
+      venueId,
+      dateFrom,
+      dateTo,
+      totalMs: measureDurationMs(routeStartTime),
+      slotCount: slots.length,
+    })
 
     const response: GetAvailabilityResponse = {
       success: true,

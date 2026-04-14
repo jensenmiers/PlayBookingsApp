@@ -30,16 +30,49 @@ jest.mock('@/hooks/useVenues', () => ({
   useVenueAvailabilityRange: (...args: any[]) => mockUseVenueAvailabilityRange(...args),
 }))
 
-jest.mock('@/components/booking/slot-booking-confirmation', () => ({
-  SlotBookingConfirmation: () => <div data-testid="slot-booking-dialog" />,
+jest.mock('@/components/venue/deferred-slot-booking-confirmation', () => ({
+  DeferredSlotBookingConfirmation: () => <div data-testid="slot-booking-dialog" />,
 }))
 
-jest.mock('@/components/ui/calendar', () => ({
-  Calendar: () => <div data-slot="calendar" data-testid="date-picker-calendar" />,
+jest.mock('@/components/venue/deferred-calendar', () => ({
+  DeferredCalendar: () => <div data-slot="calendar" data-testid="date-picker-calendar" />,
 }))
 
-jest.mock('@/components/maps/venue-location-map', () => ({
-  VenueLocationMap: () => <div data-testid="venue-location-map" />,
+jest.mock('@/components/venue/deferred-venue-location-map', () => ({
+  DeferredVenueLocationMap: () => <div data-testid="venue-location-map" />,
+}))
+
+jest.mock('@/components/venue/deferred-photo-lightbox', () => ({
+  DeferredPhotoLightbox: ({
+    venueName,
+    currentIndex,
+    photos,
+    onClose,
+    onIndexChange,
+  }: {
+    venueName: string
+    currentIndex: number
+    photos: string[]
+    onClose: () => void
+    onIndexChange: (index: number | null) => void
+    }) => (
+    <div role="dialog" aria-label={`${venueName} photo viewer`}>
+      <button onClick={() => onClose()}>Close</button>
+      <button
+        onClick={() => onIndexChange(Math.max(0, currentIndex - 1))}
+        disabled={currentIndex === 0}
+      >
+        Previous
+      </button>
+      <button
+        onClick={() => onIndexChange(Math.min(photos.length - 1, currentIndex + 1))}
+        disabled={currentIndex === photos.length - 1}
+      >
+        Next
+      </button>
+      {photos.length > 1 ? `${currentIndex + 1} / ${photos.length}` : null}
+    </div>
+  ),
 }))
 
 const createMockVenue = (overrides: Partial<Venue> = {}): Venue => ({
@@ -238,6 +271,47 @@ describe('VenueDesignEditorial coming-up pills', () => {
 
   afterEach(() => {
     jest.useRealTimers()
+  })
+
+  it('renders server-provided initial availability without the loading skeleton', () => {
+    mockUseVenueAvailabilityRange.mockReturnValue({
+      data: [
+        { date: '2026-02-21', start_time: '12:00:00', end_time: '13:00:00', venue_id: 'venue-1', action_type: 'request_private' },
+      ],
+      loading: false,
+      error: null,
+    })
+
+    render(
+      <VenueDesignEditorial
+        venue={createMockVenue()}
+        initialAvailability={[
+          {
+            date: '2026-02-21',
+            start_time: '12:00:00',
+            end_time: '13:00:00',
+            venue_id: 'venue-1',
+            action_type: 'request_private',
+          },
+        ]}
+      />
+    )
+
+    expect(screen.getByText(/Today\s*·\s*12:00 PM - 1:00 PM/)).toBeInTheDocument()
+    expect(document.querySelector('.animate-pulse')).not.toBeInTheDocument()
+    expect(mockUseVenueAvailabilityRange).toHaveBeenCalledWith(
+      'venue-1',
+      '2026-02-21',
+      '2026-02-27',
+      expect.objectContaining({
+        initialData: [
+          expect.objectContaining({
+            date: '2026-02-21',
+            start_time: '12:00:00',
+          }),
+        ],
+      })
+    )
   })
 
   it('shows 7 day pills and a More dates button; clicking More dates shows calendar', () => {

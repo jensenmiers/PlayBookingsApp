@@ -329,11 +329,14 @@ export interface ComputedAvailabilitySlot {
 export function useVenueAvailabilityRange(
   venueId: string | null,
   dateFrom: string | null,
-  dateTo: string | null
+  dateTo: string | null,
+  options?: {
+    initialData?: ComputedAvailabilitySlot[] | null
+  }
 ) {
   const [state, setState] = useState<UseAsyncState<ComputedAvailabilitySlot[]>>({
-    data: null,
-    loading: true,
+    data: options?.initialData ?? null,
+    loading: options?.initialData ? false : true,
     error: null,
   })
 
@@ -343,7 +346,11 @@ export function useVenueAvailabilityRange(
       return
     }
 
-    setState((prev) => ({ ...prev, loading: true, error: null }))
+    setState((prev) => ({
+      ...prev,
+      loading: prev.data ? false : true,
+      error: null,
+    }))
     try {
       const params = new URLSearchParams({
         date_from: dateFrom,
