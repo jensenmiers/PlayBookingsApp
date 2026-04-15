@@ -1,4 +1,5 @@
-type PerformanceLogPayload = Record<string, number | string | boolean | null | undefined>
+type PerformanceLogPrimitive = number | string | boolean | null | undefined
+type PerformanceLogPayload = Record<string, PerformanceLogPrimitive | Record<string, PerformanceLogPrimitive>>
 
 export function startMeasurement(): number {
   return performance.now()

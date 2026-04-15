@@ -41,7 +41,7 @@ async function fetchVenueRows<T extends BaseVenueRow>(
     throw error
   }
 
-  return (data || []) as T[]
+  return (data || []) as unknown as T[]
 }
 
 export async function findVenueMetadataBySlug(

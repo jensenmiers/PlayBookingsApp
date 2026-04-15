@@ -34,8 +34,23 @@ function extractStorageSlugFromMediaRow(row: { object_path?: string | null; publ
   return match?.[1] || null
 }
 
+type VenueLookupRow = {
+  id: string
+  name: string
+}
+
+type ExistingVenueMediaRow = {
+  object_path: string | null
+  public_url: string | null
+  sort_order: number
+}
+
+type VenueLookupSupabaseClient = {
+  from: (table: string) => any
+}
+
 async function resolveVenue(args: {
-  supabase: ReturnType<typeof createClient>
+  supabase: VenueLookupSupabaseClient
   venueName: string
 }): Promise<{ id: string; name: string; slug: string }> {
   const { data: venue, error } = await args.supabase
@@ -48,19 +63,21 @@ async function resolveVenue(args: {
     throw new Error(`Venue not found: ${args.venueName}`)
   }
 
+  const resolvedVenue = venue as VenueLookupRow
+
   const { data: existingMediaRows } = await args.supabase
     .from('venue_media')
     .select('object_path, public_url, sort_order')
-    .eq('venue_id', venue.id)
+    .eq('venue_id', resolvedVenue.id)
     .order('sort_order', { ascending: true })
     .limit(1)
 
-  const existingStorageSlug = extractStorageSlugFromMediaRow(existingMediaRows?.[0] || null)
+  const existingStorageSlug = extractStorageSlugFromMediaRow((existingMediaRows as ExistingVenueMediaRow[] | null)?.[0] || null)
 
   return {
-    id: venue.id,
-    name: venue.name,
-    slug: existingStorageSlug || slugifyVenueName(venue.name),
+    id: resolvedVenue.id,
+    name: resolvedVenue.name,
+    slug: existingStorageSlug || slugifyVenueName(resolvedVenue.name),
   }
 }
 

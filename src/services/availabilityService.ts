@@ -75,6 +75,11 @@ type AvailabilityTimingReport = {
   slowestQueryMs: number | null
 }
 
+type AvailabilityQueryResult<T> = {
+  data: T | null
+  error: { message?: string; code?: string } | null
+}
+
 function sortSlots(slots: UnifiedAvailableSlot[]): UnifiedAvailableSlot[] {
   return slots.sort((a, b) => {
     if (a.date !== b.date) {
@@ -125,7 +130,7 @@ export class AvailabilityService {
 
     const captureQuery = async <T>(
       label: string,
-      query: Promise<T>
+      query: PromiseLike<T>
     ): Promise<T> => {
       const queryStartTime = performance.now()
       const result = await query
@@ -139,10 +144,10 @@ export class AvailabilityService {
       .eq('venue_id', venueId)
     const maybeSingle = (
       adminConfigQuery as {
-        maybeSingle?: () => PromiseLike<{ data: unknown; error: { message?: string; code?: string } | null }>
+        maybeSingle?: () => PromiseLike<AvailabilityQueryResult<unknown>>
       }
     ).maybeSingle
-    const adminConfigPromise = maybeSingle
+    const adminConfigPromise: PromiseLike<AvailabilityQueryResult<unknown>> = maybeSingle
       ? maybeSingle.call(adminConfigQuery)
       : Promise.resolve({ data: null, error: null })
 
