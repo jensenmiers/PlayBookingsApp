@@ -368,7 +368,21 @@ export function useVenueAvailabilityRange(
     } catch (error) {
       console.error('Availability range fetch error:', error)
       const message = error instanceof Error ? error.message : 'Failed to fetch availability'
-      setState({ data: null, loading: false, error: message })
+      setState((prev) => {
+        if (prev.data) {
+          return {
+            data: prev.data,
+            loading: false,
+            error: null,
+          }
+        }
+
+        return {
+          data: null,
+          loading: false,
+          error: message,
+        }
+      })
     }
   }, [venueId, dateFrom, dateTo])
 

@@ -178,4 +178,27 @@ describe('VenuePage', () => {
       }),
     ])
   })
+
+  it('renders the venue page with empty initial availability when SSR availability loading fails', async () => {
+    mockFindVenueBySlug.mockResolvedValue(venueRecord)
+    mockGetAvailableSlots.mockRejectedValue(new Error('Availability RPC failed'))
+    const consoleErrorSpy = jest.spyOn(console, 'error').mockImplementation(() => {})
+
+    const result = await VenuePage({
+      params: Promise.resolve({ name: 'test-basketball-court' }),
+    })
+
+    expect(result).toBeDefined()
+    expect((result as { props: { initialAvailability: unknown[] } }).props.initialAvailability).toEqual([])
+    expect(consoleErrorSpy).toHaveBeenCalledWith(
+      'Failed to load initial venue availability during SSR:',
+      expect.objectContaining({
+        slug: 'test-basketball-court',
+        venueId: '123',
+      })
+    )
+    expect(mockNotFound).not.toHaveBeenCalled()
+
+    consoleErrorSpy.mockRestore()
+  })
 })

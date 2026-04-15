@@ -3,7 +3,7 @@ import { VenueDesignEditorial } from '@/components/venue/venue-design-editorial'
 import { createPublicServerClient } from '@/lib/supabase/public-server'
 import { logPerformance, measureDurationMs, startMeasurement } from '@/lib/performance'
 import { findVenueBySlug, findVenueMetadataBySlug } from '@/lib/venuePage'
-import { AvailabilityService } from '@/services/availabilityService'
+import { AvailabilityService, type UnifiedAvailableSlot } from '@/services/availabilityService'
 import { notFound } from 'next/navigation'
 import type { Metadata } from 'next'
 import type { Venue } from '@/types'
@@ -87,7 +87,22 @@ export default async function VenuePage({ params }: PageProps) {
   })
 
   const availabilityStartTime = startMeasurement()
-  const initialAvailability = await availabilityService.getAvailableSlots(venue.id, dateFrom, dateTo)
+  let initialAvailability: UnifiedAvailableSlot[] = []
+  let initialAvailabilityFallback = false
+
+  try {
+    initialAvailability = await availabilityService.getAvailableSlots(venue.id, dateFrom, dateTo)
+  } catch (error) {
+    initialAvailabilityFallback = true
+    console.error('Failed to load initial venue availability during SSR:', {
+      slug,
+      venueId: venue.id,
+      dateFrom,
+      dateTo,
+      error,
+    })
+  }
+
   const availabilityMs = measureDurationMs(availabilityStartTime)
 
   logPerformance('venue-page-load', {
@@ -97,6 +112,7 @@ export default async function VenuePage({ params }: PageProps) {
     venueLookupMs,
     initialAvailabilityMs: availabilityMs,
     initialAvailabilityCount: initialAvailability.length,
+    initialAvailabilityFallback,
     totalMs: measureDurationMs(pageStartTime),
   })
 
