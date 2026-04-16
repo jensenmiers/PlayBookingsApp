@@ -5,7 +5,7 @@
 
 'use client'
 
-import { useState, useEffect, useCallback } from 'react'
+import { useState, useEffect, useCallback, useRef } from 'react'
 import { createClient } from '@/lib/supabase/client'
 import type {
   Venue,
@@ -321,6 +321,18 @@ export interface ComputedAvailabilitySlot {
   slot_pricing?: SlotPricing | null
 }
 
+function buildAvailabilityRangeKey(
+  venueId: string | null,
+  dateFrom: string | null,
+  dateTo: string | null
+): string | null {
+  if (!venueId || !dateFrom || !dateTo) {
+    return null
+  }
+
+  return `${venueId}::${dateFrom}::${dateTo}`
+}
+
 /**
  * Fetch true availability for a venue within a date range
  * Uses the API route that filters out existing bookings
@@ -339,6 +351,10 @@ export function useVenueAvailabilityRange(
     loading: options?.initialData ? false : true,
     error: null,
   })
+  const initialHydratedRangeKeyRef = useRef(
+    options?.initialData ? buildAvailabilityRangeKey(venueId, dateFrom, dateTo) : null
+  )
+  const initialHydrationSkipConsumedRef = useRef(false)
 
   const fetchAvailabilityRange = useCallback(async () => {
     if (!venueId || !dateFrom || !dateTo) {
@@ -388,8 +404,18 @@ export function useVenueAvailabilityRange(
 
   // Initial fetch
   useEffect(() => {
-    fetchAvailabilityRange()
-  }, [fetchAvailabilityRange])
+    const currentRangeKey = buildAvailabilityRangeKey(venueId, dateFrom, dateTo)
+    if (
+      !initialHydrationSkipConsumedRef.current
+      && initialHydratedRangeKeyRef.current
+      && currentRangeKey === initialHydratedRangeKeyRef.current
+    ) {
+      initialHydrationSkipConsumedRef.current = true
+      return
+    }
+
+    void fetchAvailabilityRange()
+  }, [fetchAvailabilityRange, venueId, dateFrom, dateTo])
 
   // Refetch on window focus (visibility change)
   useEffect(() => {
