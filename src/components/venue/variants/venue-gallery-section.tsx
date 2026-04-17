@@ -17,7 +17,7 @@ export function VenueGallerySection({ photos, venueName, style, onPhotoTap }: Ve
   return (
     <section>
       <h2 className="font-serif text-xl text-secondary-50 mb-m">
-        {style === 'tour' ? 'Take the Tour' : 'Gallery'}
+        Take the Tour
       </h2>
 
       {style === 'strip' && (

@@ -48,19 +48,16 @@ export function VenueHeroAffordance({ photoCount, style, onOpenGallery }: VenueH
   // style === 'expand'
   return (
     <div className="absolute top-16 right-4 z-10">
-      <div className="relative">
-        <div className="absolute inset-0 rounded-full bg-secondary-50/20 animate-ping" />
-        <button
+      <button
           onClick={(e) => {
             e.stopPropagation()
             onOpenGallery?.()
           }}
           aria-label="Expand photos"
-          className="relative flex items-center justify-center w-10 h-10 rounded-full bg-secondary-900/60 backdrop-blur-md text-secondary-50 border border-secondary-50/20 hover:bg-secondary-900/80 hover:border-secondary-50/40 active:scale-95 transition-all"
+          className="flex items-center justify-center w-10 h-10 rounded-full bg-secondary-900/60 backdrop-blur-md text-secondary-50 border border-secondary-50/20 hover:bg-secondary-900/80 hover:border-secondary-50/40 active:scale-95 transition-all"
         >
           <FontAwesomeIcon icon={faExpand} className="text-sm" />
         </button>
-      </div>
     </div>
   )
 }
