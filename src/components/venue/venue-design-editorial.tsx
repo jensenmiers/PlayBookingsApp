@@ -11,6 +11,9 @@ import { format } from 'date-fns'
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome'
 import { faArrowLeft, faShield, faCalendarDays } from '@fortawesome/free-solid-svg-icons'
 import { GoogleMapsLink } from './shared'
+import { VenueHeroAffordance } from './variants/venue-hero-affordance'
+import { VenueFaqSection } from './variants/venue-faq-section'
+import { VenueGallerySection } from './variants/venue-gallery-section'
 import { useVenueAvailabilityRange, ComputedAvailabilitySlot } from '@/hooks/useVenues'
 import { formatTime } from '@/utils/dateHelpers'
 import { getBookingModeDisplay } from '@/lib/booking-mode'
@@ -21,6 +24,9 @@ import type { Venue } from '@/types'
 interface VenueDesignEditorialProps {
   venue: Venue
   initialAvailability?: ComputedAvailabilitySlot[]
+  photoAffordance?: 'none' | 'pill' | 'cta' | 'expand'
+  faqStyle?: 'none' | 'accordion' | 'tabs' | 'list'
+  bottomGallery?: 'none' | 'strip' | 'mosaic' | 'tour'
 }
 
 const LOS_ANGELES_TIME_ZONE = 'America/Los_Angeles'
@@ -111,6 +117,9 @@ function getSlotSecondaryLabel(slot: ComputedAvailabilitySlot, venue: Venue): st
 export function VenueDesignEditorial({
   venue,
   initialAvailability = [],
+  photoAffordance = 'none',
+  faqStyle = 'none',
+  bottomGallery = 'none',
 }: VenueDesignEditorialProps) {
   const router = useRouter()
   const [selectedSlot, setSelectedSlot] = useState<ComputedAvailabilitySlot | null>(null)
@@ -281,6 +290,15 @@ export function VenueDesignEditorial({
 
         {/* Gradient Overlay */}
         <div className="absolute inset-0 bg-gradient-to-t from-secondary-900 via-secondary-900/60 to-transparent pointer-events-none" />
+
+        {/* Photo affordance overlay (variant-controlled) */}
+        {photoAffordance !== 'none' && (
+          <VenueHeroAffordance
+            photoCount={(venue.photos || []).length}
+            style={photoAffordance}
+            onOpenGallery={() => setLightboxIndex(0)}
+          />
+        )}
 
         {/* Back Button */}
         <button
@@ -543,6 +561,21 @@ export function VenueDesignEditorial({
                 </div>
               </div>
             </section>
+          )}
+
+          {/* Bottom Gallery (variant-controlled) */}
+          {bottomGallery !== 'none' && venue.photos && venue.photos.length > 0 && (
+            <VenueGallerySection
+              photos={venue.photos}
+              venueName={venue.name}
+              style={bottomGallery}
+              onPhotoTap={(index) => setLightboxIndex(index)}
+            />
+          )}
+
+          {/* FAQ Section (variant-controlled) */}
+          {faqStyle !== 'none' && (
+            <VenueFaqSection venue={venue} style={faqStyle} />
           )}
 
           {/* Lightbox */}

@@ -1,0 +1,94 @@
+import type { Venue } from '@/types'
+
+export interface VenueFaq {
+  group: 'Booking' | 'Space' | 'Policies'
+  q: string
+  a: string
+}
+
+export function buildVenueFaqs(venue: Venue): VenueFaq[] {
+  const faqs: VenueFaq[] = []
+
+  // --- Booking ---
+  if (venue.instant_booking) {
+    faqs.push({
+      group: 'Booking',
+      q: 'How do I reserve this space?',
+      a: `${venue.name} supports instant booking — pick your date and time, confirm, and you're all set. No waiting for host approval.`,
+    })
+  } else {
+    faqs.push({
+      group: 'Booking',
+      q: 'How do I reserve this space?',
+      a: `Select a time slot and submit a booking request. The host will review and confirm your reservation, usually within 24 hours.`,
+    })
+  }
+
+  const rate = venue.hourly_rate
+  if (venue.weekend_rate && venue.weekend_rate !== rate) {
+    faqs.push({
+      group: 'Booking',
+      q: 'What does it cost?',
+      a: `The weekday rate is $${rate}/hr. Weekend bookings (Saturday & Sunday) are $${venue.weekend_rate}/hr.`,
+    })
+  } else {
+    faqs.push({
+      group: 'Booking',
+      q: 'What does it cost?',
+      a: `The hourly rate is $${rate}/hr.`,
+    })
+  }
+
+  faqs.push({
+    group: 'Booking',
+    q: 'How far in advance can I book?',
+    a: `You can book up to ${venue.max_advance_booking_days} days in advance.`,
+  })
+
+  // --- Space ---
+  faqs.push({
+    group: 'Space',
+    q: 'Where is this venue located?',
+    a: `${venue.name} is located at ${venue.address}, ${venue.city}, ${venue.state} ${venue.zip_code}.`,
+  })
+
+  if (venue.amenities && venue.amenities.length > 0) {
+    const list = venue.amenities.join(', ')
+    faqs.push({
+      group: 'Space',
+      q: 'What amenities are included?',
+      a: `This venue includes: ${list}.`,
+    })
+  }
+
+  if (venue.venue_type) {
+    faqs.push({
+      group: 'Space',
+      q: 'What type of space is this?',
+      a: `This venue is categorized as a ${venue.venue_type}.`,
+    })
+  }
+
+  // --- Policies ---
+  if (venue.insurance_required) {
+    faqs.push({
+      group: 'Policies',
+      q: 'Is insurance required?',
+      a: 'Yes — proof of insurance must be verified before your booking is confirmed. Contact the host if you have questions about coverage requirements.',
+    })
+  } else {
+    faqs.push({
+      group: 'Policies',
+      q: 'Is insurance required?',
+      a: 'No, insurance is not required to book this venue.',
+    })
+  }
+
+  faqs.push({
+    group: 'Policies',
+    q: 'What is the cancellation policy?',
+    a: "Please refer to the host's cancellation terms when completing your reservation. You can reach out to the host directly through PlayBookings for specific questions.",
+  })
+
+  return faqs
+}
