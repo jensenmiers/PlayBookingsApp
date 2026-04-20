@@ -194,4 +194,28 @@ export function isPastBookingStart(dateStr: string, timeStr: string, now: Date =
   return timeStringToDate(dateStr, timeStr) < now
 }
 
+export function getDateStringInTimeZone(date: Date, timeZone: string): string {
+  const parts = new Intl.DateTimeFormat('en-US', {
+    timeZone,
+    year: 'numeric',
+    month: '2-digit',
+    day: '2-digit',
+  }).formatToParts(date)
 
+  const get = (type: string) => Number(parts.find((part) => part.type === type)?.value || '0')
+  const year = get('year')
+  const month = get('month')
+  const day = get('day')
+
+  return `${year}-${String(month).padStart(2, '0')}-${String(day).padStart(2, '0')}`
+}
+
+export function addDaysToDateString(dateStr: string, days: number): string {
+  const [year, month, day] = dateStr.split('-').map(Number)
+  const date = new Date(year, month - 1, day)
+  date.setDate(date.getDate() + days)
+  const y = date.getFullYear()
+  const m = date.getMonth() + 1
+  const d = date.getDate()
+  return `${y}-${String(m).padStart(2, '0')}-${String(d).padStart(2, '0')}`
+}
