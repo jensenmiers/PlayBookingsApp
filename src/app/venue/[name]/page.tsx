@@ -1,5 +1,5 @@
-import { format } from 'date-fns'
 import { VenueDesignEditorial } from '@/components/venue/venue-design-editorial'
+import { getDateStringInTimeZone, addDaysToDateString } from '@/utils/dateHelpers'
 import { createPublicServerClient } from '@/lib/supabase/public-server'
 import { logPerformance, measureDurationMs, startMeasurement } from '@/lib/performance'
 import { findVenueBySlug, findVenueMetadataBySlug } from '@/lib/venuePage'
@@ -14,29 +14,6 @@ const LOS_ANGELES_TIME_ZONE = 'America/Los_Angeles'
 const INITIAL_AVAILABILITY_DAYS = 7
 
 type PageProps = { params: Promise<{ name: string }> }
-
-function getDateStringInTimeZone(date: Date, timeZone: string): string {
-  const parts = new Intl.DateTimeFormat('en-US', {
-    timeZone,
-    year: 'numeric',
-    month: '2-digit',
-    day: '2-digit',
-  }).formatToParts(date)
-
-  const get = (type: string) => Number(parts.find((part) => part.type === type)?.value || '0')
-  const year = get('year')
-  const month = get('month')
-  const day = get('day')
-
-  return `${year}-${String(month).padStart(2, '0')}-${String(day).padStart(2, '0')}`
-}
-
-function addDaysToDateString(dateStr: string, days: number): string {
-  const [year, month, day] = dateStr.split('-').map(Number)
-  const date = new Date(year, month - 1, day)
-  date.setDate(date.getDate() + days)
-  return format(date, 'yyyy-MM-dd')
-}
 
 export async function generateMetadata({ params }: PageProps): Promise<Metadata> {
   const metadataStartTime = startMeasurement()

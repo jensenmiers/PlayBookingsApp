@@ -1,4 +1,5 @@
 import { createAdminClient } from '@/lib/supabase/admin'
+import { getDateStringInTimeZone, addDaysToDateString } from '@/utils/dateHelpers'
 import {
   PLATFORM_TIME_ZONE,
   isSlotAllowedByVenueConfig,
@@ -62,31 +63,10 @@ function normalizeTime(value: string): string {
   return value
 }
 
-function getDateStringInTimeZone(date: Date, timeZone: string): string {
-  const parts = new Intl.DateTimeFormat('en-US', {
-    timeZone,
-    year: 'numeric',
-    month: '2-digit',
-    day: '2-digit',
-  }).formatToParts(date)
-
-  const year = Number(parts.find((part) => part.type === 'year')?.value || '0')
-  const month = Number(parts.find((part) => part.type === 'month')?.value || '0')
-  const day = Number(parts.find((part) => part.type === 'day')?.value || '0')
-
-  return `${year}-${String(month).padStart(2, '0')}-${String(day).padStart(2, '0')}`
-}
-
-function addDays(dateValue: string, days: number): string {
-  const [year, month, day] = dateValue.split('-').map(Number)
-  const next = new Date(year, month - 1, day)
-  next.setDate(next.getDate() + days)
-  return `${next.getFullYear()}-${String(next.getMonth() + 1).padStart(2, '0')}-${String(next.getDate()).padStart(2, '0')}`
-}
 
 function getNextSevenDates(now: Date): string[] {
   const start = getDateStringInTimeZone(now, PLATFORM_TIME_ZONE)
-  return Array.from({ length: 7 }, (_, index) => addDays(start, index))
+  return Array.from({ length: 7 }, (_, index) => addDaysToDateString(start, index))
 }
 
 function getDayOfWeek(dateValue: string): number {

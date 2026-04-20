@@ -15,7 +15,7 @@ import { VenueHeroAffordance } from './variants/venue-hero-affordance'
 import { VenueFaqSection } from './variants/venue-faq-section'
 import { VenueGallerySection } from './variants/venue-gallery-section'
 import { useVenueAvailabilityRange, ComputedAvailabilitySlot } from '@/hooks/useVenues'
-import { formatTime } from '@/utils/dateHelpers'
+import { formatTime, getDateStringInTimeZone, addDaysToDateString } from '@/utils/dateHelpers'
 import { getBookingModeDisplay } from '@/lib/booking-mode'
 import { getCurrentRelativeUrl, peekAuthResumeStateForReturnTo } from '@/lib/auth/authResume'
 import { useSlotBookingAuthResume } from '@/lib/auth/useAuthResume'
@@ -35,48 +35,6 @@ const DAY_PILLS_COUNT = 7
 function parseLocalDate(dateStr: string): Date {
   const [year, month, day] = dateStr.split('-').map(Number)
   return new Date(year, month - 1, day)
-}
-
-function addDaysToDateString(dateStr: string, days: number): string {
-  const date = parseLocalDate(dateStr)
-  date.setDate(date.getDate() + days)
-  return format(date, 'yyyy-MM-dd')
-}
-
-function getTimePartsInTimeZone(date: Date, timeZone: string): {
-  year: number
-  month: number
-  day: number
-  hour: number
-  minute: number
-  second: number
-} {
-  const parts = new Intl.DateTimeFormat('en-US', {
-    timeZone,
-    year: 'numeric',
-    month: '2-digit',
-    day: '2-digit',
-    hour: '2-digit',
-    minute: '2-digit',
-    second: '2-digit',
-    hour12: false,
-  }).formatToParts(date)
-
-  const get = (type: string) => Number(parts.find((part) => part.type === type)?.value || '0')
-
-  return {
-    year: get('year'),
-    month: get('month'),
-    day: get('day'),
-    hour: get('hour'),
-    minute: get('minute'),
-    second: get('second'),
-  }
-}
-
-function getDateStringInTimeZone(date: Date, timeZone: string): string {
-  const { year, month, day } = getTimePartsInTimeZone(date, timeZone)
-  return `${year}-${String(month).padStart(2, '0')}-${String(day).padStart(2, '0')}`
 }
 
 function formatCurrencyFromCents(amountCents: number, currency: string): string {
