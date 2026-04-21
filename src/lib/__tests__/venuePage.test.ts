@@ -23,7 +23,29 @@ describe('venuePage helpers', () => {
   it('queries metadata by narrowed name pattern and resolves the exact slug match', async () => {
     mockIlike.mockResolvedValue({
       data: [
-        { id: '1', name: 'First Presbyterian Church of Hollywood', description: 'Historic gym' },
+        {
+          id: '1',
+          name: 'First Presbyterian Church of Hollywood',
+          description: 'Historic gym',
+          venue_type: 'gym',
+          address: '1760 N Gower St',
+          city: 'Los Angeles',
+          state: 'CA',
+          zip_code: '90028',
+          neighborhood: 'Hollywood',
+          neighborhood_slug: 'hollywood',
+          latitude: 34.1055,
+          longitude: -118.3229,
+          hourly_rate: 120,
+          weekend_rate: 150,
+          venue_media: [
+            {
+              public_url: 'https://example.com/hero.webp',
+              sort_order: 0,
+              is_primary: true,
+            },
+          ],
+        },
       ],
       error: null,
     })
@@ -34,14 +56,19 @@ describe('venuePage helpers', () => {
     )
 
     expect(mockFrom).toHaveBeenCalledWith('venues')
-    expect(mockSelect).toHaveBeenCalledWith('id, name, description')
     expect(mockEq).toHaveBeenCalledWith('is_active', true)
     expect(mockIlike).toHaveBeenCalledWith('name', '%first%presbyterian%church%of%hollywood%')
-    expect(venue).toEqual({
-      id: '1',
-      name: 'First Presbyterian Church of Hollywood',
-      description: 'Historic gym',
-    })
+    expect(venue).toEqual(
+      expect.objectContaining({
+        id: '1',
+        name: 'First Presbyterian Church of Hollywood',
+        description: 'Historic gym',
+        neighborhood: 'Hollywood',
+        neighborhood_slug: 'hollywood',
+        hourly_rate: 120,
+        primary_photo_url: 'https://example.com/hero.webp',
+      })
+    )
   })
 
   it('returns the normalized venue and media for a matching slug', async () => {

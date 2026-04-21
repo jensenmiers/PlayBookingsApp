@@ -30,7 +30,8 @@
     "venue-media:publish": "tsx scripts/publish-venue-gallery.ts",
     "seed:availability": "tsx scripts/seed-availability.ts",
     "seed:venues": "tsx scripts/seed-venues.ts",
-    "update:venue-photo": "tsx scripts/update-venue-photo.ts"
+    "update:venue-photo": "tsx scripts/update-venue-photo.ts",
+    "backfill:venue-neighborhoods": "tsx scripts/backfill-venue-neighborhoods.ts"
   },
   "dependencies": {
     "@fortawesome/fontawesome-svg-core": "^6.6.0",
