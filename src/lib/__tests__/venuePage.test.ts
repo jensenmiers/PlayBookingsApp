@@ -57,6 +57,7 @@ describe('venuePage helpers', () => {
 
     expect(mockFrom).toHaveBeenCalledWith('venues')
     expect(mockEq).toHaveBeenCalledWith('is_active', true)
+    expect(mockSelect).toHaveBeenCalledWith(expect.stringContaining('photos'))
     expect(mockIlike).toHaveBeenCalledWith('name', '%first%presbyterian%church%of%hollywood%')
     expect(venue).toEqual(
       expect.objectContaining({
@@ -138,6 +139,33 @@ describe('venuePage helpers', () => {
         id: '1',
         name: 'First Presbyterian Church of Hollywood',
         photos: ['https://example.com/hero.webp', 'https://example.com/detail.webp'],
+      })
+    )
+  })
+
+
+  it('falls back to legacy photos for metadata when venue_media is empty', async () => {
+    mockIlike.mockResolvedValue({
+      data: [
+        {
+          id: '1',
+          name: 'First Presbyterian Church of Hollywood',
+          description: 'Historic gym',
+          photos: ['https://legacy.example.com/hero.webp'],
+          venue_media: [],
+        },
+      ],
+      error: null,
+    })
+
+    const venue = await findVenueMetadataBySlug(
+      supabase as never,
+      'first-presbyterian-church-of-hollywood'
+    )
+
+    expect(venue).toEqual(
+      expect.objectContaining({
+        primary_photo_url: 'https://legacy.example.com/hero.webp',
       })
     )
   })

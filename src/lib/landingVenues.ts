@@ -7,13 +7,12 @@ import {
   type VenueWithOptionalMediaFields,
 } from '@/lib/venueMedia'
 import type { VenueCategory } from '@/lib/seoLandingRoutes'
+import { isGymVenueType } from '@/lib/venueSeo'
 
 type VenueRow = Venue & VenueWithOptionalMediaFields
 
-const GYM_REGEX = /gym|gymnasium|fieldhouse|studio/i
-
 export function matchesCategory(venueType: string | null | undefined, category: VenueCategory): boolean {
-  const isGym = typeof venueType === 'string' && GYM_REGEX.test(venueType)
+  const isGym = isGymVenueType(venueType)
   return category === 'gym-rentals' ? isGym : !isGym
 }
 
