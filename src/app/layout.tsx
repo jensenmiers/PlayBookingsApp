@@ -29,6 +29,7 @@ const geistMono = Geist_Mono({
 
 const SHARE_PREVIEW_TEXT = "Community courts, unlocked. Find a court. Book it. Go play.";
 const OG_IMAGE_PATH = "/og-default-v3.jpg";
+const GOOGLE_SITE_VERIFICATION = process.env.GOOGLE_SITE_VERIFICATION;
 
 export const metadata: Metadata = {
   metadataBase: new URL("https://www.playbookings.com"),
@@ -64,6 +65,9 @@ export const metadata: Metadata = {
     description: SHARE_PREVIEW_TEXT,
     images: [OG_IMAGE_PATH],
   },
+  ...(GOOGLE_SITE_VERIFICATION
+    ? { verification: { google: GOOGLE_SITE_VERIFICATION } }
+    : {}),
 };
 
 export default function RootLayout({

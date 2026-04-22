@@ -1,8 +1,16 @@
 import { VenueDesignEditorial } from '@/components/venue/venue-design-editorial'
+import { JsonLd } from '@/components/seo/json-ld'
 import { getDateStringInTimeZone, addDaysToDateString } from '@/utils/dateHelpers'
 import { createPublicServerClient } from '@/lib/supabase/public-server'
 import { logPerformance, measureDurationMs, startMeasurement } from '@/lib/performance'
 import { findVenueBySlug, findVenueMetadataBySlug } from '@/lib/venuePage'
+import {
+  buildVenueCanonicalPath,
+  buildVenueSeoDescription,
+  buildVenueSeoTitle,
+  buildVenueSportsActivityJsonLd,
+  venueToSeoMetadata,
+} from '@/lib/venueSeo'
 import { AvailabilityService, type UnifiedAvailableSlot } from '@/services/availabilityService'
 import { notFound } from 'next/navigation'
 import type { Metadata } from 'next'
@@ -27,9 +35,35 @@ export async function generateMetadata({ params }: PageProps): Promise<Metadata>
     totalMs: measureDurationMs(metadataStartTime),
   })
 
+  if (!venue) {
+    return {
+      title: 'Venue Not Found',
+      description: 'Book venues on PlayBookings',
+    }
+  }
+
+  const title = buildVenueSeoTitle(venue)
+  const description = buildVenueSeoDescription(venue)
+  const canonical = buildVenueCanonicalPath(slug)
+  const ogImage = venue.primary_photo_url
+
   return {
-    title: venue ? `${venue.name} | PlayBookings` : 'Venue Not Found',
-    description: venue?.description || 'Book venues on PlayBookings',
+    title,
+    description,
+    alternates: { canonical },
+    openGraph: {
+      title,
+      description,
+      url: canonical,
+      type: 'website',
+      ...(ogImage ? { images: [{ url: ogImage, width: 1200, height: 630, alt: venue.name }] } : {}),
+    },
+    twitter: {
+      card: 'summary_large_image',
+      title,
+      description,
+      ...(ogImage ? { images: [ogImage] } : {}),
+    },
   }
 }
 
@@ -93,13 +127,18 @@ export default async function VenuePage({ params }: PageProps) {
     totalMs: measureDurationMs(pageStartTime),
   })
 
+  const jsonLd = buildVenueSportsActivityJsonLd(venueToSeoMetadata(venue as Venue), slug)
+
   return (
-    <VenueDesignEditorial
-      venue={venue as Venue}
-      initialAvailability={initialAvailability}
-      photoAffordance="pill"
-      faqStyle="accordion"
-      bottomGallery="strip"
-    />
+    <>
+      <JsonLd id="venue-jsonld" data={jsonLd} />
+      <VenueDesignEditorial
+        venue={venue as Venue}
+        initialAvailability={initialAvailability}
+        photoAffordance="pill"
+        faqStyle="accordion"
+        bottomGallery="strip"
+      />
+    </>
   )
 }

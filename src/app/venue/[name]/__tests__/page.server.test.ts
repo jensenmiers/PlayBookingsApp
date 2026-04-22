@@ -39,24 +39,61 @@ const { VenueDesignEditorial: mockVenueDesignEditorial } = jest.requireMock(
   '@/components/venue/venue-design-editorial'
 ) as { VenueDesignEditorial: jest.Mock }
 
+function findVenueDesignEditorial(node: unknown): { type: unknown; props: Record<string, unknown> } {
+  const visit = (n: unknown): { type: unknown; props: Record<string, unknown> } | null => {
+    if (!n || typeof n !== 'object') return null
+    const el = n as { type?: unknown; props?: { children?: unknown } }
+    if (el.type === mockVenueDesignEditorial) {
+      return el as { type: unknown; props: Record<string, unknown> }
+    }
+    const children = el.props?.children
+    if (Array.isArray(children)) {
+      for (const child of children) {
+        const found = visit(child)
+        if (found) return found
+      }
+    } else if (children) {
+      const found = visit(children)
+      if (found) return found
+    }
+    return null
+  }
+  const found = visit(node)
+  if (!found) throw new Error('VenueDesignEditorial element not found in render tree')
+  return found
+}
+
 describe('generateMetadata', () => {
   beforeEach(() => {
     jest.clearAllMocks()
   })
 
-  it('returns venue name in title for valid venue slug', async () => {
+  it('returns a keyword-rich title and canonical path for a valid venue slug', async () => {
     mockFindVenueMetadataBySlug.mockResolvedValue({
       id: 'venue-1',
       name: 'Test Basketball Court',
       description: 'A great court',
+      venue_type: 'court',
+      address: '123 Main St',
+      city: 'Los Angeles',
+      state: 'CA',
+      zip_code: '90028',
+      neighborhood: 'Hollywood',
+      neighborhood_slug: 'hollywood',
+      latitude: 34.1,
+      longitude: -118.33,
+      hourly_rate: 75,
+      weekend_rate: null,
+      primary_photo_url: 'https://example.com/hero.jpg',
     })
 
     const metadata = await generateMetadata({
       params: Promise.resolve({ name: 'test-basketball-court' }),
     })
 
-    expect(metadata.title).toBe('Test Basketball Court | PlayBookings')
-    expect(metadata.description).toBe('A great court')
+    expect(metadata.title).toBe('Book Test Basketball Court — Indoor Basketball Court in Hollywood, LA — $75/hr')
+    expect(metadata.alternates?.canonical).toBe('/venue/test-basketball-court')
+    expect(typeof metadata.description).toBe('string')
   })
 
   it('returns "Venue Not Found" for invalid slug', async () => {
@@ -125,8 +162,7 @@ describe('VenuePage', () => {
     })
 
     expect(mockNotFound).not.toHaveBeenCalled()
-    expect((result as { type: unknown }).type).toBe(mockVenueDesignEditorial)
-    expect(result).toBeDefined()
+    expect(findVenueDesignEditorial(result).type).toBe(mockVenueDesignEditorial)
   })
 
   it('normalizes venue media into ordered photos before rendering the venue page', async () => {
@@ -142,7 +178,8 @@ describe('VenuePage', () => {
       params: Promise.resolve({ name: 'test-basketball-court' }),
     })
 
-    expect((result as { props: { venue: { media: Array<{ public_url: string }>; photos: string[] } } }).props.venue).toEqual(
+    const editorial = findVenueDesignEditorial(result)
+    expect(editorial.props.venue).toEqual(
       expect.objectContaining({
         media: expect.arrayContaining([
           expect.objectContaining({ public_url: 'https://example.com/hero.webp' }),
@@ -171,7 +208,8 @@ describe('VenuePage', () => {
       params: Promise.resolve({ name: 'test-basketball-court' }),
     })
 
-    expect((result as { props: { initialAvailability: unknown[] } }).props.initialAvailability).toEqual([
+    const editorial = findVenueDesignEditorial(result)
+    expect(editorial.props.initialAvailability).toEqual([
       expect.objectContaining({
         date: '2026-04-13',
         start_time: '18:00:00',
@@ -189,7 +227,8 @@ describe('VenuePage', () => {
     })
 
     expect(result).toBeDefined()
-    expect((result as { props: { initialAvailability: unknown[] } }).props.initialAvailability).toEqual([])
+    const editorial = findVenueDesignEditorial(result)
+    expect(editorial.props.initialAvailability).toEqual([])
     expect(consoleErrorSpy).toHaveBeenCalledWith(
       'Failed to load initial venue availability during SSR:',
       expect.objectContaining({

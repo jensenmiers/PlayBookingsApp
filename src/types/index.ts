@@ -47,6 +47,8 @@ export interface Venue {
   city: string
   state: string
   zip_code: string
+  neighborhood?: string | null
+  neighborhood_slug?: string | null
   latitude?: number
   longitude?: number
   owner_id: string
