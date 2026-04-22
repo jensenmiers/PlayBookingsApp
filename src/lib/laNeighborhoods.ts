@@ -6,7 +6,7 @@ export type LaNeighborhood = {
 }
 
 export const LA_NEIGHBORHOODS: LaNeighborhood[] = [
-  { slug: 'hollywood', name: 'Hollywood', aliases: ['hollywood', 'west hollywood', 'east hollywood'], bounds: { minLat: 34.085, maxLat: 34.125, minLng: -118.360, maxLng: -118.305 } },
+  { slug: 'hollywood', name: 'Hollywood', aliases: ['hollywood', 'east hollywood'], bounds: { minLat: 34.085, maxLat: 34.125, minLng: -118.360, maxLng: -118.305 } },
   { slug: 'los-feliz', name: 'Los Feliz', aliases: ['los feliz'], bounds: { minLat: 34.095, maxLat: 34.135, minLng: -118.305, maxLng: -118.275 } },
   { slug: 'silver-lake', name: 'Silver Lake', aliases: ['silver lake', 'silverlake'], bounds: { minLat: 34.080, maxLat: 34.110, minLng: -118.285, maxLng: -118.255 } },
   { slug: 'echo-park', name: 'Echo Park', aliases: ['echo park'], bounds: { minLat: 34.065, maxLat: 34.090, minLng: -118.270, maxLng: -118.240 } },
@@ -47,14 +47,38 @@ export const DEFAULT_LA_NEIGHBORHOOD: LaNeighborhood = {
   bounds: { minLat: -90, maxLat: 90, minLng: -180, maxLng: 180 },
 }
 
+
+function escapeRegExp(value: string): string {
+  return value.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')
+}
+
+function addressContainsAlias(haystack: string, alias: string): boolean {
+  const pattern = new RegExp(`\\b${escapeRegExp(alias)}\\b`, 'i')
+  return pattern.test(haystack)
+}
+
 function matchByAddress(address: string | null | undefined): LaNeighborhood | null {
   if (!address) return null
-  const haystack = address.toLowerCase()
-  for (const hood of LA_NEIGHBORHOODS) {
-    for (const alias of hood.aliases) {
-      if (haystack.includes(alias)) return hood
+
+  const segments = address
+    .toLowerCase()
+    .split(',')
+    .map((segment) => segment.trim())
+    .filter(Boolean)
+
+  const localitySegments = segments.length > 1 ? segments.slice(1) : segments
+  const haystack = localitySegments.join(' ')
+
+  const orderedAliases = LA_NEIGHBORHOODS.flatMap((hood) =>
+    hood.aliases.map((alias) => ({ hood, alias }))
+  ).sort((a, b) => b.alias.length - a.alias.length)
+
+  for (const candidate of orderedAliases) {
+    if (addressContainsAlias(haystack, candidate.alias)) {
+      return candidate.hood
     }
   }
+
   return null
 }
 

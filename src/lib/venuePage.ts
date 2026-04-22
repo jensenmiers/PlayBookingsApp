@@ -71,6 +71,7 @@ const VENUE_METADATA_SELECT = [
   'longitude',
   'hourly_rate',
   'weekend_rate',
+  'photos',
 ].join(', ')
 
 const VENUE_METADATA_SELECT_WITH_MEDIA = `${VENUE_METADATA_SELECT}, venue_media(public_url, sort_order, is_primary)`

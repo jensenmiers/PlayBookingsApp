@@ -1,7 +1,7 @@
 import type { MetadataRoute } from 'next'
 import { createPublicServerClient } from '@/lib/supabase/public-server'
 import { slugifyVenueName } from '@/lib/venuePage'
-import { SITE_ORIGIN } from '@/lib/venueSeo'
+import { SITE_ORIGIN, isGymVenueType } from '@/lib/venueSeo'
 import { CITY_LANDING_ROUTES, INTENT_LANDING_ROUTES } from '@/lib/seoLandingRoutes'
 
 export const revalidate = 3600
@@ -17,10 +17,6 @@ function absolute(path: string): string {
   return `${SITE_ORIGIN}${path.startsWith('/') ? path : `/${path}`}`
 }
 
-function isGymType(venueType: string | null): boolean {
-  if (!venueType) return false
-  return /gym|gymnasium|fieldhouse|studio/i.test(venueType)
-}
 
 export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
   const now = new Date()
@@ -72,7 +68,7 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
 
       for (const row of rows) {
         if (!row.neighborhood_slug) continue
-        const bucket = isGymType(row.venue_type) ? 'gym-rentals' : 'basketball-courts'
+        const bucket = isGymVenueType(row.venue_type) ? 'gym-rentals' : 'basketball-courts'
         neighborhoodByCategory[bucket].add(row.neighborhood_slug)
       }
     }
