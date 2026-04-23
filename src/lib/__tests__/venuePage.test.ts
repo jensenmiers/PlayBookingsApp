@@ -20,6 +20,51 @@ describe('venuePage helpers', () => {
     )
   })
 
+  it('retries metadata select without neighborhood columns when Postgres returns 42703', async () => {
+    const row = {
+      id: '1',
+      name: 'First Presbyterian Church of Hollywood',
+      description: 'Historic gym',
+      venue_type: 'gym',
+      address: '1760 N Gower St',
+      city: 'Los Angeles',
+      state: 'CA',
+      zip_code: '90028',
+      latitude: 34.1055,
+      longitude: -118.3229,
+      hourly_rate: 120,
+      weekend_rate: 150,
+      photos: null,
+      venue_media: [
+        {
+          public_url: 'https://example.com/hero.webp',
+          sort_order: 0,
+          is_primary: true,
+        },
+      ],
+    }
+    const undefinedCol = { code: '42703', message: 'column venues.neighborhood does not exist' }
+    mockIlike
+      .mockResolvedValueOnce({ data: null, error: undefinedCol })
+      .mockResolvedValueOnce({ data: null, error: undefinedCol })
+      .mockResolvedValueOnce({ data: [row], error: null })
+
+    const venue = await findVenueMetadataBySlug(
+      supabase as never,
+      'first-presbyterian-church-of-hollywood'
+    )
+
+    expect(mockIlike).toHaveBeenCalledTimes(3)
+    expect(venue).toEqual(
+      expect.objectContaining({
+        id: '1',
+        neighborhood: null,
+        neighborhood_slug: null,
+        primary_photo_url: 'https://example.com/hero.webp',
+      })
+    )
+  })
+
   it('queries metadata by narrowed name pattern and resolves the exact slug match', async () => {
     mockIlike.mockResolvedValue({
       data: [
