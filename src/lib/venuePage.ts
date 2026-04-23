@@ -74,7 +74,41 @@ const VENUE_METADATA_SELECT = [
   'photos',
 ].join(', ')
 
+const VENUE_METADATA_SELECT_NO_NEIGHBORHOOD = [
+  'id',
+  'name',
+  'description',
+  'venue_type',
+  'address',
+  'city',
+  'state',
+  'zip_code',
+  'latitude',
+  'longitude',
+  'hourly_rate',
+  'weekend_rate',
+  'photos',
+].join(', ')
+
 const VENUE_METADATA_SELECT_WITH_MEDIA = `${VENUE_METADATA_SELECT}, venue_media(public_url, sort_order, is_primary)`
+const VENUE_METADATA_SELECT_WITH_MEDIA_NO_NEIGHBORHOOD =
+  `${VENUE_METADATA_SELECT_NO_NEIGHBORHOOD}, venue_media(public_url, sort_order, is_primary)`
+
+const VENUE_METADATA_SELECT_ATTEMPTS = [
+  VENUE_METADATA_SELECT_WITH_MEDIA,
+  VENUE_METADATA_SELECT_WITH_MEDIA_NO_NEIGHBORHOOD,
+  VENUE_METADATA_SELECT,
+  VENUE_METADATA_SELECT_NO_NEIGHBORHOOD,
+] as const
+
+function isPostgresUndefinedColumnError(error: unknown): boolean {
+  return (error as { code?: string } | null | undefined)?.code === '42703'
+}
+
+function shouldRetryVenueMetadataQuery(error: unknown): boolean {
+  return isMissingVenueMediaQueryError(error as { code?: string; message?: string; details?: string })
+    || isPostgresUndefinedColumnError(error)
+}
 
 type FullVenueRow = BaseVenueRow & VenueWithOptionalMediaFields
 
@@ -130,15 +164,18 @@ export async function findVenueMetadataBySlug(
   supabase: Pick<SupabaseClient, 'from'>,
   slug: string
 ): Promise<VenueSeoMetadata | null> {
-  let rows: VenueMetadataRow[]
+  let rows: VenueMetadataRow[] = []
 
-  try {
-    rows = await fetchVenueRows<VenueMetadataRow>(supabase, slug, VENUE_METADATA_SELECT_WITH_MEDIA)
-  } catch (error) {
-    if (!isMissingVenueMediaQueryError(error as { code?: string; message?: string; details?: string })) {
-      throw error
+  for (const clause of VENUE_METADATA_SELECT_ATTEMPTS) {
+    try {
+      rows = await fetchVenueRows<VenueMetadataRow>(supabase, slug, clause)
+      break
+    } catch (error) {
+      const isLast = clause === VENUE_METADATA_SELECT_ATTEMPTS[VENUE_METADATA_SELECT_ATTEMPTS.length - 1]
+      if (isLast || !shouldRetryVenueMetadataQuery(error)) {
+        throw error
+      }
     }
-    rows = await fetchVenueRows<VenueMetadataRow>(supabase, slug, VENUE_METADATA_SELECT)
   }
 
   const match = rows.find((venue) => slugifyVenueName(venue.name) === slug)

@@ -74,7 +74,7 @@ export function normalizeVenueMediaRows(rows: VenueMedia[] | null | undefined): 
       return left.is_primary ? -1 : 1
     }
 
-    return left.public_url.localeCompare(right.public_url)
+    return String(left.public_url ?? '').localeCompare(String(right.public_url ?? ''))
   })
 }
 
