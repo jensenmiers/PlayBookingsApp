@@ -20,7 +20,7 @@ describe('venuePage helpers', () => {
     )
   })
 
-  it('retries metadata select without neighborhood columns when Postgres returns 42703', async () => {
+  it('retries metadata select without neighborhood columns immediately when Postgres returns 42703', async () => {
     const row = {
       id: '1',
       name: 'First Presbyterian Church of Hollywood',
@@ -46,7 +46,6 @@ describe('venuePage helpers', () => {
     const undefinedCol = { code: '42703', message: 'column venues.neighborhood does not exist' }
     mockIlike
       .mockResolvedValueOnce({ data: null, error: undefinedCol })
-      .mockResolvedValueOnce({ data: null, error: undefinedCol })
       .mockResolvedValueOnce({ data: [row], error: null })
 
     const venue = await findVenueMetadataBySlug(
@@ -54,7 +53,9 @@ describe('venuePage helpers', () => {
       'first-presbyterian-church-of-hollywood'
     )
 
-    expect(mockIlike).toHaveBeenCalledTimes(3)
+    expect(mockIlike).toHaveBeenCalledTimes(2)
+    expect(mockSelect).toHaveBeenNthCalledWith(2, expect.stringContaining('venue_media('))
+    expect(mockSelect).toHaveBeenNthCalledWith(2, expect.not.stringContaining('neighborhood'))
     expect(venue).toEqual(
       expect.objectContaining({
         id: '1',
