@@ -5,7 +5,7 @@ It is intentionally not a column-by-column reference.
 
 ## Known Gaps
 
-- Last verified: 2026-04-11 (America/Los_Angeles)
+- Last verified: 2026-04-24 (America/Los_Angeles)
 - Verification sources:
   - Live table existence checks with service-role Supabase queries
   - SQL migrations in `supabase/migrations`
@@ -16,8 +16,8 @@ It is intentionally not a column-by-column reference.
 ## Automated Snapshot (Generated)
 
 <!-- AUTO-SNAPSHOT:DB:START -->
-- Generated at: 2026-04-11 (America/Los_Angeles)
-- Latest migration in repo: `20260330000100_create_venue_media.sql` (42 total)
+- Generated at: 2026-04-24 (America/Los_Angeles)
+- Latest migration in repo: `20260421000100_add_venue_neighborhood.sql` (43 total)
 - Distinct tables referenced in app code via `.from()`: 21
 - App tables referenced in app code: `audit_logs`, `auth_oauth_states`, `availability`, `bookings`, `drop_in_template_sync_queue`, `external_availability_blocks`, `payments`, `recurring_bookings`, `regular_template_sync_queue`, `slot_instances`, `slot_interactions`, `slot_modal_content`, `slot_templates`, `users`, `venue_admin_configs`, `venue_availability_publish_states`, `venue_calendar_integrations`, `venue_calendar_oauth_states`, `venue_calendar_tokens`, `venue_media`, `venues`
 - Live key-table check: 19/19 tables available
