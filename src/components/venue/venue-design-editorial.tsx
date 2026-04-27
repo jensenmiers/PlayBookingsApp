@@ -465,20 +465,6 @@ export function VenueDesignEditorial({
 
         {/* Content Section */}
         <div className="px-l py-2xl space-y-8">
-          {/* Location */}
-          <section>
-            <h2 className="font-serif text-xl text-secondary-50 mb-m">Location</h2>
-            <GoogleMapsLink
-              address={venue.address}
-              city={venue.city}
-              state={venue.state}
-              zipCode={venue.zip_code}
-              variant="default"
-              showArrow
-              stackAddressOnMobile
-            />
-          </section>
-
           {/* About */}
           {venue.description && (
             <section>
@@ -556,6 +542,20 @@ export function VenueDesignEditorial({
               latitude={venue.latitude}
               longitude={venue.longitude}
               className="h-56 sm:h-64 md:h-72"
+            />
+          </section>
+
+          {/* Location */}
+          <section>
+            <h2 className="font-serif text-xl text-secondary-50 mb-m">Location</h2>
+            <GoogleMapsLink
+              address={venue.address}
+              city={venue.city}
+              state={venue.state}
+              zipCode={venue.zip_code}
+              variant="default"
+              showArrow
+              stackAddressOnMobile
             />
           </section>
         </div>
