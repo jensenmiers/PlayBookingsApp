@@ -31,6 +31,26 @@ function createMedia(overrides: Partial<VenueMedia> = {}): VenueMedia {
 }
 
 describe('venueMedia helpers', () => {
+  it('does not throw when public_url is null at the URL tie-breaker', () => {
+    const m1 = createMedia({
+      id: 'media-1',
+      sort_order: 0,
+      is_primary: true,
+      public_url: 'https://example.com/a.webp',
+    })
+    const m2: VenueMedia = {
+      ...createMedia({
+        id: 'media-2',
+        sort_order: 0,
+        is_primary: true,
+        public_url: 'https://example.com/b.webp',
+      }),
+      public_url: null as unknown as string,
+    }
+
+    expect(() => normalizeVenueMediaRows([m1, m2])).not.toThrow()
+  })
+
   it('sorts media rows by sort_order', () => {
     const rows = normalizeVenueMediaRows([
       createMedia({
