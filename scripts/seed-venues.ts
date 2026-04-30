@@ -174,7 +174,7 @@ const VENUES: VenueSeed[] = [
   },
   {
     name: 'First Presbyterian Church of Hollywood',
-    description: 'Large church campus in Hollywood with gymnasium facilities. Community-focused space available for basketball activities and events. Historic venue with ample parking.',
+    description: 'Large church campus in Hollywood with gymnasium facilities. Community-focused space available for basketball practices, training sessions, pickup runs, and basketball-specific activities. Historic venue with ample parking.',
     venue_type: 'Church Gymnasium',
     address: '1760 N Gower St',
     city: 'Hollywood',
