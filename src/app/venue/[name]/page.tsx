@@ -135,7 +135,7 @@ export default async function VenuePage({ params }: PageProps) {
       <VenueDesignEditorial
         venue={venue as Venue}
         initialAvailability={initialAvailability}
-        photoAffordance="pill"
+        photoAffordance="cta"
         faqStyle="accordion"
         bottomGallery="strip"
       />

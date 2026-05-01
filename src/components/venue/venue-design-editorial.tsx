@@ -346,7 +346,7 @@ export function VenueDesignEditorial({
           </h3>
 
           {/* Day Pills */}
-          <div className="flex gap-s overflow-x-auto scrollbar-hide pb-s md:grid md:grid-cols-7 md:overflow-visible">
+          <div className="grid grid-cols-4 gap-s md:grid-cols-7">
             {datePills.map((date) => {
               const slots = slotsByDate.get(date) || []
               const slotCount = slots.length
@@ -359,7 +359,7 @@ export function VenueDesignEditorial({
                   onClick={() => handleDateClick(date)}
                   disabled={isDisabled}
                   aria-label={`coming-up-day-${date}`}
-                  className={`flex-shrink-0 px-l py-m rounded-xl text-center transition-all ${
+                  className={`px-s py-m rounded-xl text-center transition-all md:px-l ${
                     isExpanded
                       ? 'bg-primary-400 text-secondary-900'
                       : isDisabled
@@ -377,11 +377,11 @@ export function VenueDesignEditorial({
               )
             })}
 
-            {/* Mobile-only "More" pill in scroll row */}
+            {/* Mobile-only "More" pill fills the 8th cell */}
             <button
               onClick={() => setShowDatePicker((prev) => !prev)}
               aria-label="More dates"
-              className={`md:hidden flex-shrink-0 px-l py-m rounded-xl text-center border transition-all ${
+              className={`md:hidden px-s py-m rounded-xl text-center border transition-all ${
                 showDatePicker
                   ? 'bg-primary-400 text-secondary-900 border-primary-400'
                   : 'bg-secondary-800/60 hover:bg-secondary-800 text-secondary-50 border-secondary-50/10'
