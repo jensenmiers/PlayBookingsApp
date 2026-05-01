@@ -5,8 +5,8 @@ import { FontAwesomeIcon } from '@fortawesome/react-fontawesome'
 import { faLocationDot, faClock } from '@fortawesome/free-solid-svg-icons'
 import type { Venue } from '@/types'
 import { slugify } from '@/lib/utils'
-import { getBookingModeDisplay } from '@/lib/booking-mode'
 import { PhotoCarousel } from '@/components/venue/photo-carousel'
+import { BookingModeChip } from '@/components/venue/shared'
 import { deriveVenuePhotos } from '@/lib/venueMedia'
 
 interface NextAvailableInfo {
@@ -22,7 +22,6 @@ interface VenueCardProps {
 
 export function VenueCard({ venue, nextAvailable }: VenueCardProps) {
   const venueSlug = slugify(venue.name)
-  const bookingMode = getBookingModeDisplay(venue.instant_booking, 'compact')
   const photos = deriveVenuePhotos(venue)
 
   return (
@@ -41,16 +40,10 @@ export function VenueCard({ venue, nextAvailable }: VenueCardProps) {
         </div>
 
         {/* Booking mode badge overlay */}
-        <span
-          className={`absolute top-s right-s z-10 flex items-center gap-xs text-xs px-s py-xs rounded-full ${
-            bookingMode.mode === 'instant'
-              ? 'bg-accent-400/15 text-accent-400'
-              : 'bg-secondary-50/10 text-secondary-50/70'
-          }`}
-        >
-          <FontAwesomeIcon icon={bookingMode.icon} className="text-xs" />
-          <span>{bookingMode.label}</span>
-        </span>
+        <BookingModeChip
+          instantBooking={venue.instant_booking}
+          className="absolute right-s top-s z-10"
+        />
       </div>
 
       {/* Content area */}

@@ -165,6 +165,19 @@ describe('VenuePage', () => {
     expect(findVenueDesignEditorial(result).type).toBe(mockVenueDesignEditorial)
   })
 
+  it('renders the canonical venue page without variant photo affordance props', async () => {
+    mockFindVenueBySlug.mockResolvedValue(venueRecord)
+
+    const result = await VenuePage({
+      params: Promise.resolve({ name: 'test-basketball-court' }),
+    })
+
+    const editorial = findVenueDesignEditorial(result)
+    expect(editorial.props).not.toHaveProperty('photoAffordance')
+    expect(editorial.props.faqStyle).toBe('accordion')
+    expect(editorial.props.bottomGallery).toBe('strip')
+  })
+
   it('normalizes venue media into ordered photos before rendering the venue page', async () => {
     mockFindVenueBySlug.mockResolvedValue({
       ...venueRecord,
