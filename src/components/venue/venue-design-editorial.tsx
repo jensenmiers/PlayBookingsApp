@@ -10,8 +10,7 @@ import { DeferredCalendar } from './deferred-calendar'
 import { format } from 'date-fns'
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome'
 import { faArrowLeft, faShield, faCalendarDays } from '@fortawesome/free-solid-svg-icons'
-import { GoogleMapsLink } from './shared'
-import { VenueHeroAffordance } from './variants/venue-hero-affordance'
+import { BookingModeChip, GoogleMapsLink, VenuePhotoPillButton } from './shared'
 import { VenueFaqSection } from './variants/venue-faq-section'
 import { VenueGallerySection } from './variants/venue-gallery-section'
 import { useVenueAvailabilityRange, ComputedAvailabilitySlot } from '@/hooks/useVenues'
@@ -24,7 +23,6 @@ import type { Venue } from '@/types'
 interface VenueDesignEditorialProps {
   venue: Venue
   initialAvailability?: ComputedAvailabilitySlot[]
-  photoAffordance?: 'none' | 'pill' | 'cta' | 'expand'
   faqStyle?: 'none' | 'accordion' | 'tabs' | 'list'
   bottomGallery?: 'none' | 'strip' | 'mosaic' | 'tour'
 }
@@ -75,7 +73,6 @@ function getSlotSecondaryLabel(slot: ComputedAvailabilitySlot, venue: Venue): st
 export function VenueDesignEditorial({
   venue,
   initialAvailability = [],
-  photoAffordance = 'none',
   faqStyle = 'none',
   bottomGallery = 'none',
 }: VenueDesignEditorialProps) {
@@ -249,14 +246,12 @@ export function VenueDesignEditorial({
         {/* Gradient Overlay */}
         <div className="absolute inset-0 bg-gradient-to-t from-secondary-900 via-secondary-900/60 to-transparent pointer-events-none" />
 
-        {/* Photo affordance overlay (variant-controlled) */}
-        {photoAffordance !== 'none' && (
-          <VenueHeroAffordance
+        <div className="absolute bottom-3xl left-l right-l z-20 flex justify-end">
+          <VenuePhotoPillButton
             photoCount={(venue.photos || []).length}
-            style={photoAffordance}
             onOpenGallery={() => setLightboxIndex(0)}
           />
-        )}
+        </div>
 
         {/* Back Button */}
         <button
@@ -272,9 +267,12 @@ export function VenueDesignEditorial({
             <h1 className="font-serif text-4xl sm:text-5xl text-secondary-50 leading-tight mb-s">
               {venue.name}
             </h1>
-            <p className="text-secondary-50/60 text-lg">
-              {venue.city}, {venue.state}
-            </p>
+            <div className="flex flex-wrap items-center gap-s">
+              <p className="text-secondary-50/60 text-lg">
+                {venue.city}, {venue.state}
+              </p>
+              <BookingModeChip instantBooking={venue.instant_booking} />
+            </div>
           </div>
         </div>
       </div>

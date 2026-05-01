@@ -145,6 +145,25 @@ describe('VenueDesignEditorial photo carousel and lightbox', () => {
     expect(screen.queryByText('1 / 1')).not.toBeInTheDocument()
   })
 
+  it('opens the lightbox from the shared photo pill button', () => {
+    render(
+      <VenueDesignEditorial
+        venue={createMockVenue({ photos: ['https://example.com/hero.jpg'] })}
+      />
+    )
+
+    fireEvent.click(screen.getByRole('button', { name: /view all 1 venue photo/i }))
+
+    expect(screen.getByRole('dialog', { name: 'Memorial Park photo viewer' })).toBeInTheDocument()
+  })
+
+  it('shows the booking mode chip in the hero meta row', () => {
+    render(<VenueDesignEditorial venue={createMockVenue({ instant_booking: false })} />)
+
+    expect(screen.getByText('Host Approval')).toBeInTheDocument()
+    expect(screen.getByText('Santa Monica, CA')).toBeInTheDocument()
+  })
+
   it('renders all photos in a scrollable carousel with dot indicators', () => {
     const photos = [
       'https://example.com/1.jpg',
@@ -395,8 +414,10 @@ describe('VenueDesignEditorial coming-up pills', () => {
 
     const { container } = render(<VenueDesignEditorial venue={createMockVenue({ instant_booking: false })} />)
 
-    const approvalLabel = screen.getByText('Host Approval')
-    const approvalContainer = approvalLabel.parentElement
+    const approvalLabels = screen.getAllByText('Host Approval')
+    const approvalContainer = approvalLabels.find((label) =>
+      Boolean(label.parentElement?.querySelector('[data-icon="clock"]'))
+    )?.parentElement
 
     expect(approvalContainer).not.toBeNull()
     expect(approvalContainer?.querySelector('[data-icon="clock"]')).toBeInTheDocument()
