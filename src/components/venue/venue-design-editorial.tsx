@@ -82,7 +82,6 @@ export function VenueDesignEditorial({
   const [expandedDate, setExpandedDate] = useState<string | null>(null)
   const [showDatePicker, setShowDatePicker] = useState(false)
   const [pickerDate, setPickerDate] = useState<Date | undefined>(undefined)
-  const bookingMode = getBookingModeDisplay(venue.instant_booking, 'compact')
 
   const todayStr = getDateStringInTimeZone(new Date(), LOS_ANGELES_TIME_ZONE)
   const datePills = useMemo(
@@ -267,12 +266,9 @@ export function VenueDesignEditorial({
             <h1 className="font-serif text-4xl sm:text-5xl text-secondary-50 leading-tight mb-s">
               {venue.name}
             </h1>
-            <div className="flex flex-wrap items-center gap-s">
-              <p className="text-secondary-50/60 text-lg">
-                {venue.city}, {venue.state}
-              </p>
-              <BookingModeChip instantBooking={venue.instant_booking} />
-            </div>
+            <p className="text-secondary-50/60 text-lg">
+              {venue.city}, {venue.state}
+            </p>
           </div>
         </div>
       </div>
@@ -281,7 +277,10 @@ export function VenueDesignEditorial({
       <div className="max-w-2xl mx-auto">
         {/* Floating Booking Card */}
         <div className="relative -mt-2xl mx-l z-20">
-          <div className="bg-secondary-800/90 backdrop-blur-xl rounded-2xl border border-secondary-50/10 shadow-glass overflow-hidden">
+          <div
+            data-testid="venue-booking-card"
+            className="bg-secondary-800/90 backdrop-blur-xl rounded-2xl border border-secondary-50/10 shadow-glass overflow-hidden"
+          >
             {loading ? (
               <div className="p-xl">
                 <div className="h-6 w-32 bg-secondary-50/10 rounded animate-pulse mb-s" />
@@ -290,7 +289,7 @@ export function VenueDesignEditorial({
             ) : nextSlot ? (
               <>
                 <div className="p-xl">
-                  <div className="flex items-start justify-between">
+                  <div className="flex items-start justify-between gap-l">
                     <div>
                       <div className="text-secondary-50/50 text-xs uppercase tracking-wider mb-xs">
                         Next Available
@@ -302,23 +301,24 @@ export function VenueDesignEditorial({
                         <span className="text-secondary-50/70">
                           {getSlotPricingLabel(nextSlot, venue)}
                         </span>
-                        <span className="text-secondary-50/30">·</span>
-                        <span className={`flex items-center gap-xs ${
-                          nextSlot.action_type === 'info_only_open_gym'
-                            ? 'text-secondary-50/60'
-                            : bookingMode.mode === 'instant'
-                              ? 'text-primary-400'
-                              : 'text-accent-400'
-                        }`}>
-                          {nextSlot.action_type !== 'info_only_open_gym' && (
-                            <FontAwesomeIcon icon={bookingMode.icon} className="text-xs" />
-                          )}
-                          <span className="text-sm">
-                            {getSlotSecondaryLabel(nextSlot, venue)}
-                          </span>
-                        </span>
+                        {nextSlot.action_type === 'info_only_open_gym' && (
+                          <>
+                            <span className="text-secondary-50/30">·</span>
+                            <span className="flex items-center gap-xs text-secondary-50/60">
+                              <span className="text-sm">
+                                {getSlotSecondaryLabel(nextSlot, venue)}
+                              </span>
+                            </span>
+                          </>
+                        )}
                       </div>
                     </div>
+                    {nextSlot.action_type !== 'info_only_open_gym' && (
+                      <BookingModeChip
+                        instantBooking={venue.instant_booking}
+                        className="flex-shrink-0"
+                      />
+                    )}
                   </div>
                 </div>
 
@@ -330,8 +330,11 @@ export function VenueDesignEditorial({
                 </button>
               </>
             ) : (
-              <div className="p-xl text-center text-secondary-50/50">
-                No availability this week
+              <div className="flex flex-col items-center gap-s p-xl text-center">
+                <BookingModeChip instantBooking={venue.instant_booking} />
+                <div className="text-secondary-50/50">
+                  No availability this week
+                </div>
               </div>
             )}
           </div>

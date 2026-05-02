@@ -1,4 +1,4 @@
-import { fireEvent, render, screen } from '@testing-library/react'
+import { fireEvent, render, screen, within } from '@testing-library/react'
 import type { Venue } from '@/types'
 import { VenueDesignEditorial } from '@/components/venue/venue-design-editorial'
 
@@ -157,11 +157,24 @@ describe('VenueDesignEditorial photo carousel and lightbox', () => {
     expect(screen.getByRole('dialog', { name: 'Memorial Park photo viewer' })).toBeInTheDocument()
   })
 
-  it('shows the booking mode chip in the hero meta row', () => {
+  it('shows compact photo count text in the shared photo pill button', () => {
+    render(
+      <VenueDesignEditorial
+        venue={createMockVenue({
+          photos: ['https://example.com/hero.jpg', 'https://example.com/detail.jpg'],
+        })}
+      />
+    )
+
+    expect(screen.getByRole('button', { name: /view all 2 venue photos/i })).toBeInTheDocument()
+    expect(screen.getByText('2 photos')).toBeInTheDocument()
+  })
+
+  it('keeps the booking mode chip out of the hero meta row', () => {
     render(<VenueDesignEditorial venue={createMockVenue({ instant_booking: false })} />)
 
-    expect(screen.getByText('Host Approval')).toBeInTheDocument()
-    expect(screen.getByText('Santa Monica, CA')).toBeInTheDocument()
+    const city = screen.getByText('Santa Monica, CA')
+    expect(city.parentElement).not.toHaveTextContent('Host Approval')
   })
 
   it('renders all photos in a scrollable carousel with dot indicators', () => {
@@ -422,6 +435,20 @@ describe('VenueDesignEditorial coming-up pills', () => {
     expect(approvalContainer).not.toBeNull()
     expect(approvalContainer?.querySelector('[data-icon="clock"]')).toBeInTheDocument()
     expect(container.querySelector('[data-icon="bolt"]')).not.toBeInTheDocument()
+  })
+
+  it('shows Host Approval in the booking card when no slots are available', () => {
+    mockUseVenueAvailabilityRange.mockReturnValue({
+      data: [],
+      loading: false,
+      error: null,
+    })
+
+    render(<VenueDesignEditorial venue={createMockVenue({ instant_booking: false })} />)
+
+    const bookingCard = screen.getByTestId('venue-booking-card')
+    expect(within(bookingCard).getByText('Host Approval')).toBeInTheDocument()
+    expect(within(bookingCard).getByText('No availability this week')).toBeInTheDocument()
   })
 
   it('shows drop-in person pricing for info-only slots instead of venue hourly rate', () => {
