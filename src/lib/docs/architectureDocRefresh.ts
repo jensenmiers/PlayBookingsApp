@@ -41,6 +41,11 @@ type ErrorLike = {
   message?: unknown
   code?: unknown
   cause?: unknown
+  errno?: unknown
+  syscall?: unknown
+  hostname?: unknown
+  address?: unknown
+  port?: unknown
 }
 
 export function replaceBetweenMarkers(
@@ -165,6 +170,28 @@ function toStringValue(value: unknown): string | undefined {
   return compactReason(value)
 }
 
+function toMetadataValue(value: unknown): string | undefined {
+  if (typeof value === 'number') {
+    return String(value)
+  }
+
+  return toStringValue(value)
+}
+
+function buildErrorMetadata(errorLike: ErrorLike): string[] {
+  return [
+    ['code', errorLike.code],
+    ['errno', errorLike.errno],
+    ['syscall', errorLike.syscall],
+    ['hostname', errorLike.hostname],
+    ['address', errorLike.address],
+    ['port', errorLike.port],
+  ].flatMap(([label, rawValue]) => {
+    const value = toMetadataValue(rawValue)
+    return value ? [`${label}: ${value}`] : []
+  })
+}
+
 function buildErrorSegment(value: unknown): string | null {
   const errorLike = asErrorLike(value)
   if (!errorLike) {
@@ -172,12 +199,12 @@ function buildErrorSegment(value: unknown): string | null {
   }
 
   const message = toStringValue(errorLike.message)
-  const code = toStringValue(errorLike.code)
-  if (message && code) {
-    return `${message} (code: ${code})`
+  const metadata = buildErrorMetadata(errorLike)
+  if (message && metadata.length > 0) {
+    return `${message} (${metadata.join(', ')})`
   }
 
-  return message ?? (code ? `code: ${code}` : null)
+  return message ?? (metadata.length > 0 ? metadata.join(', ') : null)
 }
 
 export function formatErrorWithCauses(error: unknown, maxDepth = 6): string {
@@ -219,6 +246,11 @@ export function inferLiveTableVerificationHint(reason: string): string | null {
     'econnreset',
     'econnrefused',
     'etimedout',
+    'ehostunreach',
+    'enetunreach',
+    'cert_',
+    'certificate',
+    'und_err',
     'network',
     'tls',
     'socket',

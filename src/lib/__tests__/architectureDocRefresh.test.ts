@@ -135,6 +135,21 @@ describe('architecture doc refresh helpers', () => {
     expect(formatErrorWithCauses(error)).toBe('fetch failed <- cause: getaddrinfo ENOTFOUND (code: ENOTFOUND)')
   })
 
+  it('formats Undici network causes with connection metadata', () => {
+    const error = new TypeError('fetch failed')
+    ;(error as TypeError & { cause?: unknown }).cause = {
+      message: 'getaddrinfo ENOTFOUND',
+      code: 'ENOTFOUND',
+      errno: -3008,
+      syscall: 'getaddrinfo',
+      hostname: 'phwwfimrpbdwiwpkuzwj.supabase.co',
+    }
+
+    expect(formatErrorWithCauses(error)).toBe(
+      'fetch failed <- cause: getaddrinfo ENOTFOUND (code: ENOTFOUND, errno: -3008, syscall: getaddrinfo, hostname: phwwfimrpbdwiwpkuzwj.supabase.co)'
+    )
+  })
+
   it('detects likely connectivity hints for fetch failures', () => {
     expect(inferLiveTableVerificationHint('TypeError: fetch failed (code: ENOTFOUND)')).toBe(
       'Likely connectivity issue between the automation runner and Supabase (network egress, DNS, or transient outage).'
@@ -182,6 +197,17 @@ describe('architecture doc refresh helpers', () => {
         'Hint: Likely connectivity issue between the automation runner and Supabase (network egress, DNS, or transient outage).',
       ],
     })
+  })
+
+  it('surfaces detailed fetch causes in live table summary console lines', () => {
+    const reason =
+      'fetch failed <- cause: getaddrinfo ENOTFOUND (code: ENOTFOUND, syscall: getaddrinfo, hostname: phwwfimrpbdwiwpkuzwj.supabase.co)'
+
+    expect(
+      buildLiveTableSummaryResult([
+        { table: 'users', status: 'verification_failed', reason },
+      ]).consoleLines
+    ).toContain(`Failure reasons: ${reason}`)
   })
 
   it('preserves the previous live key-table check line when verification fails', () => {
