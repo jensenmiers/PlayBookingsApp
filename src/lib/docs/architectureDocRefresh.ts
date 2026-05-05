@@ -37,6 +37,14 @@ export type LiveTableSummaryResult = {
   consoleLines: string[]
 }
 
+export type NetworkDiagnosticInput = {
+  supabaseUrl: string
+  env?: NodeJS.ProcessEnv
+  nodeVersion?: string
+  platform?: string
+  arch?: string
+}
+
 type ErrorLike = {
   message?: unknown
   code?: unknown
@@ -261,6 +269,30 @@ export function inferLiveTableVerificationHint(reason: string): string | null {
   }
 
   return null
+}
+
+function formatSupabaseHost(supabaseUrl: string): string {
+  try {
+    return new URL(supabaseUrl).hostname
+  } catch {
+    return 'invalid NEXT_PUBLIC_SUPABASE_URL'
+  }
+}
+
+export function buildNetworkDiagnosticLines({
+  supabaseUrl,
+  env = process.env,
+  nodeVersion = process.version,
+  platform = process.platform,
+  arch = process.arch,
+}: NetworkDiagnosticInput): string[] {
+  const proxyVariables = ['HTTPS_PROXY', 'HTTP_PROXY', 'ALL_PROXY', 'NO_PROXY', 'https_proxy', 'http_proxy', 'all_proxy', 'no_proxy']
+  const configuredProxyVariables = proxyVariables.filter((name) => Boolean(env[name]?.trim())).sort()
+
+  return [
+    `Network diagnostics: Supabase host \`${formatSupabaseHost(supabaseUrl)}\`; Node ${nodeVersion} on ${platform}/${arch}`,
+    `Network diagnostics: proxy env vars set: ${configuredProxyVariables.length > 0 ? configuredProxyVariables.map((name) => `\`${name}\``).join(', ') : 'none'}`,
+  ]
 }
 
 type LiveTableErrorLike = {

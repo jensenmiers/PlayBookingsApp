@@ -7,6 +7,7 @@ import { existsSync, mkdirSync, readdirSync, readFileSync, writeFileSync } from 
 import { dirname, join, resolve, relative } from 'path'
 import {
   buildLiveTableSummaryResult,
+  buildNetworkDiagnosticLines,
   classifyLiveTableError,
   formatErrorWithCauses,
   resolveArchitectureDocRefreshStatePath,
@@ -139,6 +140,29 @@ function sleep(ms: number): Promise<void> {
   return new Promise((resolvePromise) => setTimeout(resolvePromise, ms))
 }
 
+async function runDirectRestProbe(supabaseUrl: string, serviceRoleKey: string): Promise<string[]> {
+  let probeUrl: string
+
+  try {
+    probeUrl = new URL('/rest/v1/users?select=*&limit=0', supabaseUrl).toString()
+  } catch {
+    return ['Direct REST probe: skipped (invalid NEXT_PUBLIC_SUPABASE_URL)']
+  }
+
+  try {
+    const response = await fetch(probeUrl, {
+      headers: {
+        apikey: serviceRoleKey,
+        Authorization: `Bearer ${serviceRoleKey}`,
+      },
+    })
+
+    return [`Direct REST probe: HTTP ${response.status}`]
+  } catch (error) {
+    return [`Direct REST probe failed: ${formatErrorWithCauses(error)}`]
+  }
+}
+
 async function buildDatabaseSnapshot(nowPacific: string): Promise<{ snapshot: string; liveTableSummary: LiveTableSummaryResult }> {
   const migrationFiles = existsSync(MIGRATIONS_DIR)
     ? readdirSync(MIGRATIONS_DIR).filter((name) => name.endsWith('.sql')).sort()
@@ -231,21 +255,36 @@ async function getLiveTableSummary(tables: string[]): Promise<LiveTableSummaryRe
     }
 
     const summary = buildLiveTableSummaryResult(finalChecks)
+    const diagnosticLines = summary.isVerifiable
+      ? []
+      : [
+          ...buildNetworkDiagnosticLines({ supabaseUrl }),
+          ...(await runDirectRestProbe(supabaseUrl, serviceRoleKey)),
+        ]
+
     return retryableTables.length > 0
       ? {
           ...summary,
           consoleLines: [
             ...summary.consoleLines,
             `Retry attempted for verification failures: ${retryableTables.map((table) => `\`${table}\``).join(', ')}`,
+            ...diagnosticLines,
           ],
         }
-      : summary
+      : {
+          ...summary,
+          consoleLines: [...summary.consoleLines, ...diagnosticLines],
+        }
   } catch (error) {
     const message = formatErrorWithCauses(error)
     return {
       snapshotLine: '- Live key-table check: verification failed',
       isVerifiable: false,
-      consoleLines: [`Live key-table check: verification failed (${message})`],
+      consoleLines: [
+        `Live key-table check: verification failed (${message})`,
+        ...buildNetworkDiagnosticLines({ supabaseUrl }),
+        ...(await runDirectRestProbe(supabaseUrl, serviceRoleKey)),
+      ],
     }
   }
 }

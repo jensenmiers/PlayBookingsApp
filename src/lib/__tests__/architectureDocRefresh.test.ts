@@ -1,6 +1,7 @@
 import {
   DEFAULT_PROJECT_STATE_PATH_SEGMENTS,
   buildLiveTableSummaryResult,
+  buildNetworkDiagnosticLines,
   classifyLiveTableError,
   extractBetweenMarkers,
   extractSupabaseTables,
@@ -155,6 +156,24 @@ describe('architecture doc refresh helpers', () => {
       'Likely connectivity issue between the automation runner and Supabase (network egress, DNS, or transient outage).'
     )
     expect(inferLiveTableVerificationHint('table does not exist')).toBeNull()
+  })
+
+  it('builds sanitized network diagnostics for automation failures', () => {
+    expect(
+      buildNetworkDiagnosticLines({
+        supabaseUrl: 'https://example.supabase.co',
+        env: {
+          HTTPS_PROXY: 'http://proxy.local:8080',
+          SUPABASE_SERVICE_ROLE_KEY: 'secret',
+        },
+        nodeVersion: 'v20.19.0',
+        platform: 'darwin',
+        arch: 'arm64',
+      })
+    ).toEqual([
+      'Network diagnostics: Supabase host `example.supabase.co`; Node v20.19.0 on darwin/arm64',
+      'Network diagnostics: proxy env vars set: `HTTPS_PROXY`',
+    ])
   })
 
   it('returns only verification failures for retry', () => {
