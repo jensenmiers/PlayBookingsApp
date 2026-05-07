@@ -1,4 +1,5 @@
 import type { Venue } from '@/types'
+import { resolveVenueBookingMode } from '@/lib/booking-mode'
 
 export interface VenueFaq {
   group: 'Booking' | 'Space' | 'Policies'
@@ -8,13 +9,20 @@ export interface VenueFaq {
 
 export function buildVenueFaqs(venue: Venue): VenueFaq[] {
   const faqs: VenueFaq[] = []
+  const bookingMode = resolveVenueBookingMode(venue)
 
   // --- Booking ---
-  if (venue.instant_booking) {
+  if (bookingMode === 'instant_slots') {
     faqs.push({
       group: 'Booking',
       q: 'How do I reserve this space?',
       a: `${venue.name} supports instant booking — pick your date and time, confirm, and you're all set. No waiting for host approval.`,
+    })
+  } else if (bookingMode === 'request_to_book') {
+    faqs.push({
+      group: 'Booking',
+      q: 'How do I reserve this space?',
+      a: 'Request your preferred time and PlayBookings will follow up after reviewing your request.',
     })
   } else {
     faqs.push({

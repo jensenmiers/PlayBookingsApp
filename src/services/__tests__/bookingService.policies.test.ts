@@ -279,6 +279,41 @@ describe('BookingService.createBooking - venue policy enforcement', () => {
     expect(mockBookingRepo.create).toHaveBeenCalled()
   })
 
+  it('rejects request-to-book requests outside configured operating hours', async () => {
+    ;(createClient as jest.Mock).mockResolvedValue(
+      makeSupabase({
+        venue: {
+          ...baseVenue,
+          instant_booking: false,
+          booking_mode: 'request_to_book',
+        },
+        adminConfig: {
+          venue_id: 'venue-123',
+          min_advance_booking_days: 0,
+          min_advance_lead_time_hours: 0,
+          blackout_dates: [],
+          holiday_dates: [],
+          operating_hours: [{ day_of_week: 4, start_time: '09:00:00', end_time: '17:00:00' }],
+        },
+      })
+    )
+
+    await expect(
+      bookingService.createBooking(
+        {
+          venue_id: 'venue-123',
+          date: '2026-02-26',
+          start_time: '18:00:00',
+          end_time: '19:00:00',
+        },
+        'user-123'
+      )
+    ).rejects.toMatchObject({
+      message: expect.stringContaining('outside venue operating hours'),
+      statusCode: 400,
+    })
+  })
+
   it('allows booking when venue policy constraints are satisfied', async () => {
     ;(createClient as jest.Mock).mockResolvedValue(
       makeSupabase({

@@ -23,7 +23,7 @@ export function VenueDetailPage({ venue }: VenueDetailPageProps) {
   const router = useRouter()
 
   const primaryPhoto = venue.photos && venue.photos.length > 0 ? venue.photos[0] : null
-  const bookingMode = getBookingModeDisplay(venue.instant_booking, 'full')
+  const bookingMode = getBookingModeDisplay(venue, 'full')
 
   return (
     <div className="min-h-screen bg-background">

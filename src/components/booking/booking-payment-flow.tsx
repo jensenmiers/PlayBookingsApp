@@ -471,6 +471,17 @@ export function BookingPaymentFlow({
     if (result.data) {
       setBooking(result.data)
 
+      if (result.data.requiresPayment === false) {
+        toast({
+          title: 'Request sent',
+          description: 'You are not booked yet. We will follow up after reviewing your request.',
+          variant: 'success',
+        })
+        onSuccess(result.data.id)
+        onOpenChange(false)
+        return
+      }
+
       // Create payment/setup intent based on venue configuration
       if (requiresImmediatePayment) {
         // Immediate payment - create PaymentIntent
@@ -492,7 +503,8 @@ export function BookingPaymentFlow({
     }
   }, [
     user, openAuthModal, createBooking, venue.id, date, startTime, endTime,
-    requiresImmediatePayment, createIntent, createSetupIntent, slotActionType, slotInstanceId, slotModalContent
+    requiresImmediatePayment, createIntent, createSetupIntent, slotActionType, slotInstanceId, slotModalContent,
+    toast, onSuccess, onOpenChange
   ])
 
   const handlePaymentSuccess = useCallback(() => {

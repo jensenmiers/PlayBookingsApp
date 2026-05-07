@@ -183,6 +183,66 @@ describe('BookingService - Payment Flow', () => {
       expect(result.awaitingOwnerApproval).toBe(true)
     })
 
+    it('creates request-to-book requests without slot gating or payment/approval flags', async () => {
+      const venue = createVenue({
+        instant_booking: false,
+        insurance_required: false,
+        booking_mode: 'request_to_book',
+      })
+      const mockBooking = {
+        id: 'booking-123',
+        ...bookingData,
+        renter_id: 'user-123',
+        status: 'pending' as const,
+        total_amount: 100,
+        insurance_approved: true,
+        insurance_required: false,
+        recurring_type: 'none' as const,
+        created_at: new Date().toISOString(),
+        updated_at: new Date().toISOString(),
+      }
+
+      const supabaseClient = await createClient()
+      ;(supabaseClient.from as jest.Mock).mockImplementation((table: string) => {
+        if (table === 'venues') {
+          return {
+            select: jest.fn().mockReturnThis(),
+            eq: jest.fn().mockReturnThis(),
+            single: jest.fn().mockResolvedValue({ data: venue, error: null }),
+          }
+        }
+        if (table === 'venue_admin_configs') {
+          return {
+            select: jest.fn().mockReturnThis(),
+            eq: jest.fn().mockReturnThis(),
+            maybeSingle: jest.fn().mockResolvedValue({ data: null, error: null }),
+          }
+        }
+        return mockSupabase
+      })
+
+      mockBookingRepo.create = jest.fn().mockResolvedValue(mockBooking)
+      mockBookingRepo.findConflictingBookings = jest.fn().mockResolvedValue([])
+      mockBookingRepo.findConflictingRecurring = jest.fn().mockResolvedValue([])
+
+      const auditService = (bookingService as unknown as { auditService: { logCreate: jest.Mock } }).auditService
+      auditService.logCreate = jest.fn().mockResolvedValue(undefined)
+
+      const result = await bookingService.createBooking(bookingData, 'user-123')
+
+      expect(bookingService.checkConflicts).not.toHaveBeenCalled()
+      expect(mockBookingRepo.create).toHaveBeenCalledWith(
+        expect.objectContaining({
+          status: 'pending',
+          total_amount: 100,
+        })
+      )
+      expect(result.requiresImmediatePayment).toBe(false)
+      expect(result.requiresPayment).toBe(false)
+      expect(result.awaitingOwnerApproval).toBe(false)
+      expect(result.awaitingInsuranceApproval).toBe(false)
+    })
+
     it('should return awaitingInsuranceApproval=true when insurance required', async () => {
       const venue = createVenue({ instant_booking: true, insurance_required: true })
       const mockBooking = {

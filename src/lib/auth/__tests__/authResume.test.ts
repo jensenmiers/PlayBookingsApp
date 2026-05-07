@@ -74,6 +74,30 @@ describe('authResume helpers', () => {
     expect(consumeAuthResumeStateForReturnTo('/venue/memorial-park')).toBeNull()
   })
 
+  it('persists and consumes request-to-book state once', () => {
+    persistAuthResumeState({
+      returnTo: '/venue/first-presbyterian-church-of-hollywood',
+      resumeState: {
+        type: 'request-to-book',
+        venueId: 'venue-1',
+        date: '2026-03-20',
+        startTime: '18:00',
+        durationHours: 2,
+        notes: 'Youth basketball practice',
+      },
+    })
+
+    expect(consumeAuthResumeStateForReturnTo('/venue/first-presbyterian-church-of-hollywood')).toEqual({
+      type: 'request-to-book',
+      venueId: 'venue-1',
+      date: '2026-03-20',
+      startTime: '18:00',
+      durationHours: 2,
+      notes: 'Youth basketball practice',
+    })
+    expect(consumeAuthResumeStateForReturnTo('/venue/first-presbyterian-church-of-hollywood')).toBeNull()
+  })
+
   it('clears state when current returnTo does not match', () => {
     persistAuthResumeState({
       returnTo: '/search',

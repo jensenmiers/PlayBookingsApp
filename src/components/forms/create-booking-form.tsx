@@ -202,6 +202,14 @@ export function CreateBookingForm({
 
     const result = await createBooking.mutate(data)
     if (result.data) {
+      if (result.data.requiresPayment === false) {
+        onSuccess?.(result.data.id)
+        form.reset()
+        setConflictChecked(false)
+        onOpenChange?.(false)
+        return
+      }
+
       // All bookings now require payment info collection
       setPendingBookingId(result.data.id)
       setPendingBookingAmount(result.data.total_amount)

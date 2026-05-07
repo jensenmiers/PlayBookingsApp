@@ -1,9 +1,15 @@
-import { fireEvent, render, screen, within } from '@testing-library/react'
+import { fireEvent, render, screen, waitFor, within } from '@testing-library/react'
 import type { Venue } from '@/types'
 import { VenueDesignEditorial } from '@/components/venue/venue-design-editorial'
 
 const mockBack = jest.fn()
 const mockUseVenueAvailabilityRange = jest.fn()
+const mockCreateBookingMutate = jest.fn()
+const mockOpenAuthModal = jest.fn()
+let mockCurrentUser: { id: string; email: string } | null = {
+  id: 'user-1',
+  email: 'user@example.com',
+}
 
 jest.mock('next/navigation', () => ({
   useRouter: () => ({
@@ -28,6 +34,26 @@ jest.mock('next/image', () => ({
 
 jest.mock('@/hooks/useVenues', () => ({
   useVenueAvailabilityRange: (...args: any[]) => mockUseVenueAvailabilityRange(...args),
+}))
+
+jest.mock('@/hooks/useBookings', () => ({
+  useCreateBooking: () => ({
+    mutate: mockCreateBookingMutate,
+    loading: false,
+  }),
+}))
+
+jest.mock('@/hooks/useCurrentUser', () => ({
+  useCurrentUser: () => ({
+    user: mockCurrentUser,
+    loading: false,
+  }),
+}))
+
+jest.mock('@/contexts/AuthModalContext', () => ({
+  useAuthModal: () => ({
+    openAuthModal: mockOpenAuthModal,
+  }),
 }))
 
 jest.mock('@/components/venue/deferred-slot-booking-confirmation', () => ({
@@ -99,6 +125,10 @@ const createMockVenue = (overrides: Partial<Venue> = {}): Venue => ({
 describe('VenueDesignEditorial photo carousel and lightbox', () => {
   beforeEach(() => {
     jest.clearAllMocks()
+    mockCurrentUser = {
+      id: 'user-1',
+      email: 'user@example.com',
+    }
     jest.useFakeTimers()
     jest.setSystemTime(new Date('2026-02-21T20:00:00.000Z'))
     mockUseVenueAvailabilityRange.mockReturnValue({
@@ -106,6 +136,7 @@ describe('VenueDesignEditorial photo carousel and lightbox', () => {
       loading: false,
       error: null,
     })
+    mockCreateBookingMutate.mockResolvedValue({ data: { id: 'booking-1' }, error: null })
   })
 
   afterEach(() => {
@@ -299,6 +330,7 @@ describe('VenueDesignEditorial coming-up pills', () => {
     jest.clearAllMocks()
     jest.useFakeTimers()
     jest.setSystemTime(new Date('2026-02-21T20:00:00.000Z'))
+    mockCreateBookingMutate.mockResolvedValue({ data: { id: 'booking-1' }, error: null })
   })
 
   afterEach(() => {
@@ -449,6 +481,115 @@ describe('VenueDesignEditorial coming-up pills', () => {
     const bookingCard = screen.getByTestId('venue-booking-card')
     expect(within(bookingCard).getByText('Host Approval')).toBeInTheDocument()
     expect(within(bookingCard).getByText('No availability this week')).toBeInTheDocument()
+  })
+
+  it('replaces slot availability with a request form for request-to-book venues', () => {
+    mockUseVenueAvailabilityRange.mockReturnValue({
+      data: [],
+      loading: false,
+      error: null,
+    })
+
+    render(
+      <VenueDesignEditorial
+        venue={createMockVenue({
+          instant_booking: false,
+          booking_mode: 'request_to_book',
+        })}
+      />
+    )
+
+    expect(screen.getByText('Request your preferred time')).toBeInTheDocument()
+    expect(screen.getByLabelText('Date')).toBeInTheDocument()
+    expect(screen.getByLabelText('Start time')).toBeInTheDocument()
+    expect(screen.getByLabelText('Duration')).toBeInTheDocument()
+    expect(screen.getByRole('button', { name: 'Review request' })).toBeInTheDocument()
+    expect(screen.queryByText('No availability this week')).not.toBeInTheDocument()
+    expect(screen.queryByRole('heading', { name: 'Coming Up' })).not.toBeInTheDocument()
+    expect(screen.queryByRole('button', { name: /coming-up-day/i })).not.toBeInTheDocument()
+  })
+
+  it('sends request-to-book details from the review step', async () => {
+    mockUseVenueAvailabilityRange.mockReturnValue({
+      data: [],
+      loading: false,
+      error: null,
+    })
+
+    render(
+      <VenueDesignEditorial
+        venue={createMockVenue({
+          instant_booking: false,
+          booking_mode: 'request_to_book',
+        })}
+      />
+    )
+
+    fireEvent.change(screen.getByLabelText('Start time'), { target: { value: '19:00' } })
+    fireEvent.change(screen.getByLabelText('Duration'), { target: { value: '2' } })
+    fireEvent.click(screen.getByRole('button', { name: 'Review request' }))
+
+    expect(screen.getByText('Basketball')).toBeInTheDocument()
+    expect(screen.getByText('$150.00')).toBeInTheDocument()
+
+    fireEvent.change(screen.getByLabelText('Notes (optional)'), {
+      target: { value: 'Youth basketball practice' },
+    })
+    fireEvent.click(screen.getByRole('button', { name: 'Send request' }))
+
+    await waitFor(() => {
+      expect(mockCreateBookingMutate).toHaveBeenCalledWith({
+        venue_id: 'venue-1',
+        date: '2026-02-21',
+        start_time: '19:00:00',
+        end_time: '21:00:00',
+        recurring_type: 'none',
+        notes: 'Youth basketball practice',
+      })
+    })
+    expect(await screen.findByText('Request sent')).toBeInTheDocument()
+  })
+
+  it('opens sign-in with request details when a signed-out user sends a request', async () => {
+    mockCurrentUser = null
+    mockUseVenueAvailabilityRange.mockReturnValue({
+      data: [],
+      loading: false,
+      error: null,
+    })
+
+    render(
+      <VenueDesignEditorial
+        venue={createMockVenue({
+          instant_booking: false,
+          booking_mode: 'request_to_book',
+        })}
+      />
+    )
+
+    fireEvent.change(screen.getByLabelText('Start time'), { target: { value: '19:00' } })
+    fireEvent.change(screen.getByLabelText('Duration'), { target: { value: '2' } })
+    fireEvent.click(screen.getByRole('button', { name: 'Review request' }))
+    fireEvent.change(screen.getByLabelText('Notes (optional)'), {
+      target: { value: 'Youth basketball practice' },
+    })
+    fireEvent.click(screen.getByRole('button', { name: 'Send request' }))
+
+    await waitFor(() => {
+      expect(mockOpenAuthModal).toHaveBeenCalledWith({
+        entryMode: 'login',
+        contextMessage: 'Sign in to send your request',
+        resumeState: {
+          type: 'request-to-book',
+          venueId: 'venue-1',
+          date: '2026-02-21',
+          startTime: '19:00',
+          durationHours: 2,
+          notes: 'Youth basketball practice',
+        },
+      })
+    })
+    expect(mockCreateBookingMutate).not.toHaveBeenCalled()
   })
 
   it('shows drop-in person pricing for info-only slots instead of venue hourly rate', () => {

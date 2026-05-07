@@ -17,7 +17,7 @@ It is intentionally not a column-by-column reference.
 
 <!-- AUTO-SNAPSHOT:DB:START -->
 - Generated at: 2026-05-02 (America/Los_Angeles)
-- Latest migration in repo: `20260501000100_update_first_presbyterian_rates.sql` (45 total)
+- Latest migration in repo: `20260505000100_add_request_to_book_booking_mode.sql` (46 total)
 - Distinct tables referenced in app code via `.from()`: 21
 - App tables referenced in app code: `audit_logs`, `auth_oauth_states`, `availability`, `bookings`, `drop_in_template_sync_queue`, `external_availability_blocks`, `payments`, `recurring_bookings`, `regular_template_sync_queue`, `slot_instances`, `slot_interactions`, `slot_modal_content`, `slot_templates`, `users`, `venue_admin_configs`, `venue_availability_publish_states`, `venue_calendar_integrations`, `venue_calendar_oauth_states`, `venue_calendar_tokens`, `venue_media`, `venues`
 - Live key-table check: 19/19 tables available
@@ -95,6 +95,10 @@ It is intentionally not a column-by-column reference.
 9. Google Calendar OAuth callbacks are now fixed-path:
    - Venue-specific callback URLs were removed.
    - Short-lived `venue_calendar_oauth_states` records now map the static callback back to the initiating venue/admin.
+10. Request-to-book venue mode is explicit:
+   - `venues.booking_mode` distinguishes `instant_slots`, `approval_slots`, and `request_to_book`.
+   - Request-to-book venues can accept precise pending booking requests without published slot inventory.
+   - `venues.instant_booking` remains present for legacy compatibility while runtime behavior moves toward `booking_mode`.
 
 ## Operational Notes
 

@@ -23,7 +23,16 @@ export interface SlotBookingResumeState {
   slotModalContent: SlotModalContent | null
 }
 
-export type AuthResumeState = CreateBookingFormResumeState | SlotBookingResumeState
+export interface RequestToBookResumeState {
+  type: 'request-to-book'
+  venueId: string
+  date: string
+  startTime: string
+  durationHours: number
+  notes: string
+}
+
+export type AuthResumeState = CreateBookingFormResumeState | SlotBookingResumeState | RequestToBookResumeState
 
 interface StoredAuthResumeState {
   returnTo: string
@@ -94,8 +103,27 @@ function isSlotBookingResumeState(value: unknown): value is SlotBookingResumeSta
     && (value.slotModalContent === null || isSlotModalContent(value.slotModalContent))
 }
 
+function isRequestToBookResumeState(value: unknown): value is RequestToBookResumeState {
+  if (!isObject(value)) {
+    return false
+  }
+
+  const durationHours = value.durationHours
+
+  return value.type === 'request-to-book'
+    && typeof value.venueId === 'string'
+    && typeof value.date === 'string'
+    && typeof value.startTime === 'string'
+    && typeof durationHours === 'number'
+    && Number.isInteger(durationHours)
+    && durationHours >= 1
+    && typeof value.notes === 'string'
+}
+
 function isAuthResumeState(value: unknown): value is AuthResumeState {
-  return isCreateBookingFormResumeState(value) || isSlotBookingResumeState(value)
+  return isCreateBookingFormResumeState(value)
+    || isSlotBookingResumeState(value)
+    || isRequestToBookResumeState(value)
 }
 
 function parseStoredAuthResumeState(rawValue: string | null): StoredAuthResumeState | null {

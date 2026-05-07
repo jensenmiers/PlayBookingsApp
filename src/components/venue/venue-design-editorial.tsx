@@ -7,6 +7,7 @@ import { DeferredPhotoLightbox } from './deferred-photo-lightbox'
 import { DeferredSlotBookingConfirmation } from './deferred-slot-booking-confirmation'
 import { DeferredVenueLocationMap } from './deferred-venue-location-map'
 import { DeferredCalendar } from './deferred-calendar'
+import { RequestToBookPanel } from './request-to-book-panel'
 import { format } from 'date-fns'
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome'
 import { faArrowLeft, faShield, faCalendarDays } from '@fortawesome/free-solid-svg-icons'
@@ -15,7 +16,7 @@ import { VenueFaqSection } from './variants/venue-faq-section'
 import { VenueGallerySection } from './variants/venue-gallery-section'
 import { useVenueAvailabilityRange, ComputedAvailabilitySlot } from '@/hooks/useVenues'
 import { formatTime, getDateStringInTimeZone, addDaysToDateString } from '@/utils/dateHelpers'
-import { getBookingModeDisplay } from '@/lib/booking-mode'
+import { getBookingModeDisplay, resolveVenueBookingMode } from '@/lib/booking-mode'
 import { getCurrentRelativeUrl, peekAuthResumeStateForReturnTo } from '@/lib/auth/authResume'
 import { useSlotBookingAuthResume } from '@/lib/auth/useAuthResume'
 import type { Venue } from '@/types'
@@ -67,7 +68,7 @@ function getSlotSecondaryLabel(slot: ComputedAvailabilitySlot, venue: Venue): st
     return paymentMethod === 'on_site' ? 'Pay on site' : 'Pay in app'
   }
 
-  return getBookingModeDisplay(venue.instant_booking, 'compact').label
+  return getBookingModeDisplay(venue, 'compact').label
 }
 
 export function VenueDesignEditorial({
@@ -77,6 +78,8 @@ export function VenueDesignEditorial({
   bottomGallery = 'none',
 }: VenueDesignEditorialProps) {
   const router = useRouter()
+  const bookingMode = resolveVenueBookingMode(venue)
+  const isRequestToBook = bookingMode === 'request_to_book'
   const [selectedSlot, setSelectedSlot] = useState<ComputedAvailabilitySlot | null>(null)
   const [showBooking, setShowBooking] = useState(false)
   const [expandedDate, setExpandedDate] = useState<string | null>(null)
@@ -108,7 +111,7 @@ export function VenueDesignEditorial({
   const dateTo = datePills[datePills.length - 1]
 
   const { data: availability, loading } = useVenueAvailabilityRange(
-    venue.id,
+    isRequestToBook ? null : venue.id,
     dateFrom,
     dateTo,
     { initialData: initialAvailability }
@@ -122,15 +125,15 @@ export function VenueDesignEditorial({
     : resumeDateOverride
 
   const { data: pickerAvailability, loading: pickerLoading } = useVenueAvailabilityRange(
-    offRangeDateStr ? venue.id : null,
+    offRangeDateStr && !isRequestToBook ? venue.id : null,
     offRangeDateStr,
     offRangeDateStr
   )
 
   const bookableSlots = useMemo(() => {
-    if (!availability) return []
+    if (isRequestToBook || !availability) return []
     return availability
-  }, [availability])
+  }, [availability, isRequestToBook])
 
   const slotsByDate = useMemo(() => {
     const grouped = new Map<string, ComputedAvailabilitySlot[]>()
@@ -281,7 +284,9 @@ export function VenueDesignEditorial({
             data-testid="venue-booking-card"
             className="bg-secondary-800/90 backdrop-blur-xl rounded-2xl border border-secondary-50/10 shadow-glass overflow-hidden"
           >
-            {loading ? (
+            {isRequestToBook ? (
+              <RequestToBookPanel venue={venue} />
+            ) : loading ? (
               <div className="p-xl">
                 <div className="h-6 w-32 bg-secondary-50/10 rounded animate-pulse mb-s" />
                 <div className="h-4 w-24 bg-secondary-50/10 rounded animate-pulse" />
@@ -316,6 +321,7 @@ export function VenueDesignEditorial({
                     {nextSlot.action_type !== 'info_only_open_gym' && (
                       <BookingModeChip
                         instantBooking={venue.instant_booking}
+                        bookingMode={bookingMode}
                         className="flex-shrink-0"
                       />
                     )}
@@ -331,7 +337,7 @@ export function VenueDesignEditorial({
               </>
             ) : (
               <div className="flex flex-col items-center gap-s p-xl text-center">
-                <BookingModeChip instantBooking={venue.instant_booking} />
+                <BookingModeChip instantBooking={venue.instant_booking} bookingMode={bookingMode} />
                 <div className="text-secondary-50/50">
                   No availability this week
                 </div>
@@ -341,6 +347,7 @@ export function VenueDesignEditorial({
         </div>
 
         {/* Coming Up Section */}
+        {!isRequestToBook && (
         <div className="px-l mt-xl">
           <h3 className="text-sm font-medium text-secondary-50/60 mb-m tracking-wide uppercase">
             Coming Up
@@ -463,6 +470,7 @@ export function VenueDesignEditorial({
             </div>
           )}
         </div>
+        )}
 
         {/* Content Section */}
         <div className="px-l py-2xl space-y-8">
