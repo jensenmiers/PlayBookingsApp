@@ -10,7 +10,7 @@ import { DeferredCalendar } from './deferred-calendar'
 import { RequestToBookPanel } from './request-to-book-panel'
 import { format } from 'date-fns'
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome'
-import { faArrowLeft, faShield, faCalendarDays } from '@fortawesome/free-solid-svg-icons'
+import { faArrowLeft, faShield, faCalendarDays, faDollarSign } from '@fortawesome/free-solid-svg-icons'
 import { BookingModeChip, GoogleMapsLink, VenuePhotoPillButton } from './shared'
 import { VenueFaqSection } from './variants/venue-faq-section'
 import { VenueGallerySection } from './variants/venue-gallery-section'
@@ -168,6 +168,38 @@ export function VenueDesignEditorial({
 
   const nextSlot = bookableSlots[0]
   const [lightboxIndex, setLightboxIndex] = useState<number | null>(null)
+  const hasDistinctWeekendRate = Boolean(venue.weekend_rate && venue.weekend_rate !== venue.hourly_rate)
+  const fullBookingModeDisplay = getBookingModeDisplay(venue, 'full')
+  const venueQuickFacts = [
+    {
+      label: 'Rate',
+      value: hasDistinctWeekendRate ? `$${venue.hourly_rate}/hr weekdays` : `$${venue.hourly_rate}/hr`,
+      detail: hasDistinctWeekendRate ? `$${venue.weekend_rate}/hr weekends` : 'Standard hourly rate',
+      icon: faDollarSign,
+    },
+    {
+      label: 'Booking',
+      value: fullBookingModeDisplay.label,
+      detail: bookingMode === 'instant_slots'
+        ? 'Confirm from available slots'
+        : bookingMode === 'request_to_book'
+          ? 'No published slots needed'
+          : 'Host reviews your request',
+      icon: fullBookingModeDisplay.icon,
+    },
+    {
+      label: 'Planning',
+      value: `Book up to ${venue.max_advance_booking_days} days ahead`,
+      detail: 'Availability updates by date',
+      icon: faCalendarDays,
+    },
+    {
+      label: 'Insurance',
+      value: venue.insurance_required ? 'Insurance Required' : 'Insurance not required',
+      detail: venue.insurance_required ? 'Verified before confirmation' : 'No document upload needed',
+      icon: faShield,
+    },
+  ]
 
   const getDateDisplay = (dateStr: string) => {
     if (dateStr === todayStr) return 'Today'
@@ -474,6 +506,36 @@ export function VenueDesignEditorial({
 
         {/* Content Section */}
         <div className="px-l py-2xl space-y-8">
+          {/* Quick Facts */}
+          <section>
+            <h2 className="font-serif text-xl text-secondary-50 mb-m">Good to know</h2>
+            <div className="grid gap-s sm:grid-cols-2">
+              {venueQuickFacts.map((fact) => (
+                <div
+                  key={fact.label}
+                  className="rounded-xl border border-secondary-50/10 bg-secondary-800/45 p-l"
+                >
+                  <div className="flex items-start gap-m">
+                    <div className="flex h-xl w-xl flex-shrink-0 items-center justify-center rounded-full bg-secondary-50/10 text-secondary-50/70">
+                      <FontAwesomeIcon icon={fact.icon} className="text-xs" />
+                    </div>
+                    <div>
+                      <div className="text-xs font-medium uppercase tracking-wide text-secondary-50/40">
+                        {fact.label}
+                      </div>
+                      <div className="mt-xs text-sm font-semibold text-secondary-50">
+                        {fact.value}
+                      </div>
+                      <div className="mt-xxs text-xs text-secondary-50/50">
+                        {fact.detail}
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              ))}
+            </div>
+          </section>
+
           {/* About */}
           {venue.description && (
             <section>
