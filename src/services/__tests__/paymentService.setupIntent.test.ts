@@ -287,6 +287,44 @@ describe('PaymentService - SetupIntent Flow', () => {
         .rejects.toThrow('Payment has already been authorized for this booking')
     })
 
+    it('should throw BadRequestError for request-to-book bookings', async () => {
+      const booking = createBooking({ insurance_approved: true })
+
+      ;(createClient as jest.Mock).mockResolvedValue({
+        from: jest.fn().mockImplementation((table: string) => {
+          if (table === 'venues') {
+            return {
+              select: jest.fn().mockReturnThis(),
+              eq: jest.fn().mockReturnThis(),
+              single: jest.fn().mockResolvedValue({
+                data: createVenue({
+                  instant_booking: false,
+                  insurance_required: false,
+                  booking_mode: 'request_to_book',
+                }),
+                error: null,
+              }),
+            }
+          }
+          if (table === 'users') {
+            return {
+              select: jest.fn().mockReturnThis(),
+              eq: jest.fn().mockReturnThis(),
+              single: jest.fn().mockResolvedValue({ data: { is_admin: false }, error: null }),
+            }
+          }
+          return mockSupabase
+        }),
+      })
+
+      mockBookingRepo.findById = jest.fn().mockResolvedValue(booking)
+      mockPaymentRepo.findByBookingId = jest.fn().mockResolvedValue(null)
+
+      await expect(paymentService.createSetupIntent('booking-123', 'user-123'))
+        .rejects.toThrow('Booking is not ready for payment')
+      expect(stripe.setupIntents.create).not.toHaveBeenCalled()
+    })
+
     it('should update existing pending payment instead of creating new one', async () => {
       const booking = createBooking()
       const existingPayment = createPayment({ status: 'pending' })

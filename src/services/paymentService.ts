@@ -6,6 +6,7 @@ import { stripe } from '@/lib/stripe'
 import { PaymentRepository } from '@/repositories/paymentRepository'
 import { BookingRepository } from '@/repositories/bookingRepository'
 import { createClient } from '@/lib/supabase/server'
+import { resolveVenueBookingMode } from '@/lib/booking-mode'
 import { badRequest, notFound } from '@/utils/errorHandling'
 import type { Booking, Venue, Payment } from '@/types'
 
@@ -89,23 +90,29 @@ export class PaymentService {
    * Check if a booking is ready for payment based on venue settings
    */
   isBookingReadyForPayment(booking: Booking, venue: Venue): boolean {
+    const bookingMode = resolveVenueBookingMode(venue)
+
+    if (bookingMode === 'request_to_book') {
+      return false
+    }
+
     // Instant booking without insurance requirement - ready immediately
-    if (venue.instant_booking && !venue.insurance_required) {
+    if (bookingMode === 'instant_slots' && !venue.insurance_required) {
       return true
     }
 
     // Instant booking with insurance - must be approved
-    if (venue.instant_booking && venue.insurance_required) {
+    if (bookingMode === 'instant_slots' && venue.insurance_required) {
       return booking.insurance_approved
     }
 
     // Non-instant booking without insurance - ready after owner confirms (status check elsewhere)
-    if (!venue.instant_booking && !venue.insurance_required) {
+    if (bookingMode === 'approval_slots' && !venue.insurance_required) {
       return true
     }
 
     // Non-instant booking with insurance - must be approved
-    if (!venue.instant_booking && venue.insurance_required) {
+    if (bookingMode === 'approval_slots' && venue.insurance_required) {
       return booking.insurance_approved
     }
 
@@ -116,7 +123,7 @@ export class PaymentService {
    * Check if booking requires immediate payment (instant booking, no insurance)
    */
   requiresImmediatePayment(venue: Venue): boolean {
-    return venue.instant_booking && !venue.insurance_required
+    return resolveVenueBookingMode(venue) === 'instant_slots' && !venue.insurance_required
   }
 
   /**
@@ -331,6 +338,13 @@ export class PaymentService {
 
     if (booking.status === 'completed') {
       throw badRequest('This booking is already completed')
+    }
+
+    if (!this.isBookingReadyForPayment(booking, venue)) {
+      if (venue.insurance_required && !booking.insurance_approved) {
+        throw badRequest('Insurance must be approved before payment')
+      }
+      throw badRequest('Booking is not ready for payment')
     }
 
     // Check if already paid or authorized
