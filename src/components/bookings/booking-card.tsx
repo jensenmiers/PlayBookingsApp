@@ -47,7 +47,7 @@ const statusDotColor: Record<string, string> = {
 }
 
 export function BookingCard({ booking, onPayClick }: BookingCardProps) {
-  const ticketState = getTicketState(booking, null)
+  const ticketState = getTicketState(booking, booking.venue ?? null)
   const venueName = booking.venue?.name || 'Unknown Venue'
   const primaryPhoto = booking.venue ? deriveVenuePhotos(booking.venue)[0] : undefined
   const relativeDate = getRelativeDate(booking.date)
@@ -96,6 +96,9 @@ export function BookingCard({ booking, onPayClick }: BookingCardProps) {
             </div>
             <p className="text-sm text-secondary-50/50 mt-xxs">
               {relativeDate} · {startTime} – {endTime}
+            </p>
+            <p className="text-xs text-secondary-50/40 mt-xxs">
+              {ticketState.statusLabel}
             </p>
             <p
               className={cn(

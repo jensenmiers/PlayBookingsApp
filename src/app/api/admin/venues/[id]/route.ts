@@ -470,6 +470,7 @@ export async function PATCH(request: NextRequest, context: RouteContext): Promis
     const venueUpdates: Record<string, unknown> = {}
     const venueFields = [
       'hourly_rate',
+      'booking_mode',
       'instant_booking',
       'insurance_required',
       'amenities',

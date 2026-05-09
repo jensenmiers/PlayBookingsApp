@@ -93,6 +93,9 @@ export function useVenues(filters?: VenueSearchFilters) {
         if (filters?.instant_booking !== undefined) {
           nextQuery = nextQuery.eq('instant_booking', filters.instant_booking)
         }
+        if (filters?.booking_mode !== undefined) {
+          nextQuery = nextQuery.eq('booking_mode', filters.booking_mode)
+        }
 
         return nextQuery
       }
@@ -119,7 +122,7 @@ export function useVenues(filters?: VenueSearchFilters) {
       const message = error instanceof Error ? error.message : 'Failed to fetch venues'
       setState({ data: null, loading: false, error: message })
     }
-  }, [filters?.city, filters?.state, filters?.min_price, filters?.max_price, filters?.insurance_required, filters?.instant_booking])
+  }, [filters?.city, filters?.state, filters?.min_price, filters?.max_price, filters?.insurance_required, filters?.instant_booking, filters?.booking_mode])
 
   useEffect(() => {
     fetchVenues()

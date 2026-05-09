@@ -1,7 +1,9 @@
 import type { IconDefinition } from '@fortawesome/fontawesome-svg-core'
-import { faBolt, faClock } from '@fortawesome/free-solid-svg-icons'
+import { faBolt, faClock, faPaperPlane } from '@fortawesome/free-solid-svg-icons'
+import type { BookingMode } from '@/types'
 
 export type BookingModeLabelVariant = 'compact' | 'full'
+export type BookingModeDisplayMode = 'instant' | 'approval' | 'request'
 
 const INSTANT_LABELS: Record<BookingModeLabelVariant, string> = {
   compact: 'Instant',
@@ -13,19 +15,58 @@ const APPROVAL_LABELS: Record<BookingModeLabelVariant, string> = {
   full: 'Host Approval',
 }
 
+const REQUEST_TO_BOOK_LABELS: Record<BookingModeLabelVariant, string> = {
+  compact: 'Request to book',
+  full: 'Request to book',
+}
+
+export function isBookingMode(value: unknown): value is BookingMode {
+  return value === 'instant_slots'
+    || value === 'approval_slots'
+    || value === 'request_to_book'
+}
+
+export function resolveVenueBookingMode(
+  venueOrMode: boolean | BookingMode | { booking_mode?: unknown; instant_booking?: boolean | null }
+): BookingMode {
+  if (typeof venueOrMode === 'boolean') {
+    return venueOrMode ? 'instant_slots' : 'approval_slots'
+  }
+
+  if (isBookingMode(venueOrMode)) {
+    return venueOrMode
+  }
+
+  if (isBookingMode(venueOrMode.booking_mode)) {
+    return venueOrMode.booking_mode
+  }
+
+  return venueOrMode.instant_booking ? 'instant_slots' : 'approval_slots'
+}
+
 export function getBookingModeDisplay(
-  instantBooking: boolean,
+  venueOrMode: boolean | BookingMode | { booking_mode?: unknown; instant_booking?: boolean | null },
   variant: BookingModeLabelVariant = 'compact'
 ): {
-  mode: 'instant' | 'approval'
+  mode: BookingModeDisplayMode
   label: string
   icon: IconDefinition
 } {
-  if (instantBooking) {
+  const bookingMode = resolveVenueBookingMode(venueOrMode)
+
+  if (bookingMode === 'instant_slots') {
     return {
       mode: 'instant',
       label: INSTANT_LABELS[variant],
       icon: faBolt,
+    }
+  }
+
+  if (bookingMode === 'request_to_book') {
+    return {
+      mode: 'request',
+      label: REQUEST_TO_BOOK_LABELS[variant],
+      icon: faPaperPlane,
     }
   }
 

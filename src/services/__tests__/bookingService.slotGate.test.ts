@@ -184,4 +184,40 @@ describe('BookingService.checkConflicts - slot instance gating', () => {
       })
     )
   })
+
+  it('does not block request-to-book requests on existing bookings or slot availability', async () => {
+    mockBookingRepo.findConflictingBookings = jest.fn().mockResolvedValue([
+      { id: 'booking-1' },
+    ])
+    mockBookingRepo.findConflictingRecurring = jest.fn().mockResolvedValue([
+      { id: 'recurring-1' },
+    ])
+
+    ;(createClient as jest.Mock).mockResolvedValue({
+      from: jest.fn((table: string) => {
+        if (table === 'venues') {
+          return createSupabaseQuery({
+            data: { instant_booking: false, booking_mode: 'request_to_book' },
+            error: null,
+          })
+        }
+        throw new Error(`Unexpected table query: ${table}`)
+      }),
+    })
+
+    const result = await bookingService.checkConflicts(
+      'venue-1',
+      '2026-03-01',
+      '17:00:00',
+      '18:00:00'
+    )
+
+    expect(result).toEqual(
+      expect.objectContaining({
+        hasConflict: false,
+      })
+    )
+    expect(mockBookingRepo.findConflictingBookings).not.toHaveBeenCalled()
+    expect(mockBookingRepo.findConflictingRecurring).not.toHaveBeenCalled()
+  })
 })

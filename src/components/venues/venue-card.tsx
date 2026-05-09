@@ -42,6 +42,7 @@ export function VenueCard({ venue, nextAvailable }: VenueCardProps) {
         {/* Booking mode badge overlay */}
         <BookingModeChip
           instantBooking={venue.instant_booking}
+          bookingMode={venue.booking_mode}
           className="absolute right-s top-s z-10"
         />
       </div>

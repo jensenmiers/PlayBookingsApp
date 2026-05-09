@@ -5,6 +5,7 @@ export type InsuranceStatus = 'pending' | 'approved' | 'rejected' | 'needs_chang
 export type PaymentStatus = 'pending' | 'authorized' | 'paid' | 'refunded' | 'failed'
 
 export type RecurringType = 'none' | 'weekly' | 'monthly'
+export type BookingMode = 'instant_slots' | 'approval_slots' | 'request_to_book'
 export type SlotActionType = 'instant_book' | 'request_private' | 'info_only_open_gym'
 export type SlotPricingUnit = 'hour' | 'person' | 'session'
 export type SlotPaymentMethod = 'in_app' | 'on_site'
@@ -55,6 +56,7 @@ export interface Venue {
   hourly_rate: number
   weekend_rate?: number // Optional rate for weekend bookings (Sat/Sun)
   instant_booking: boolean
+  booking_mode?: BookingMode | null
   insurance_required: boolean
   max_advance_booking_days: number
   media?: VenueMedia[]
@@ -276,6 +278,7 @@ export interface BookingWithVenue extends Booking {
     id: string
     name: string
     instant_booking: boolean
+    booking_mode?: BookingMode | null
     insurance_required: boolean
     media?: VenueMedia[]
     photos: string[]
@@ -311,6 +314,7 @@ export interface CreateVenueForm {
   hourly_rate: number
   weekend_rate?: number
   instant_booking: boolean
+  booking_mode?: BookingMode
   insurance_required: boolean
   max_advance_booking_days: number
   photos: string[]
@@ -376,6 +380,7 @@ export interface VenueSearchFilters {
   amenities?: string[]
   insurance_required?: boolean
   instant_booking?: boolean
+  booking_mode?: BookingMode
   date?: string
   start_time?: string
   end_time?: string

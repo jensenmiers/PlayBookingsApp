@@ -1,5 +1,8 @@
 import { isPastBookingStart } from '@/utils/dateHelpers'
+import { resolveVenueBookingMode } from '@/lib/booking-mode'
 import type { Booking, Venue } from '@/types'
+
+type BookingTicketVenue = Pick<Venue, 'instant_booking' | 'booking_mode' | 'insurance_required'>
 
 export interface TicketState {
   canPay: boolean
@@ -13,13 +16,18 @@ export interface TicketState {
   statusVariant: 'pending' | 'pending-insurance' | 'confirmed' | 'cancelled' | 'completed'
 }
 
-export function getTicketState(booking: Booking, venue: Venue | null): TicketState {
+export function getTicketState(booking: Booking, venue: BookingTicketVenue | null): TicketState {
   const isPast = isPastBookingStart(booking.date, booking.start_time)
   const insuranceGated = booking.insurance_required && !booking.insurance_approved && booking.status === 'pending'
+  const isRequestToBookPending =
+    booking.status === 'pending'
+    && venue !== null
+    && resolveVenueBookingMode(venue) === 'request_to_book'
 
   const canPay =
     booking.status === 'pending' &&
     !isPast &&
+    !isRequestToBookPending &&
     (!booking.insurance_required || booking.insurance_approved)
 
   const canCancel =
@@ -45,7 +53,11 @@ export function getTicketState(booking: Booking, venue: Venue | null): TicketSta
 
   switch (booking.status) {
     case 'pending':
-      if (insuranceGated) {
+      if (isRequestToBookPending && !isPast) {
+        statusLabel = 'Request sent'
+        statusDescription = 'Manual follow-up pending'
+        statusVariant = 'pending'
+      } else if (insuranceGated) {
         statusLabel = 'Pending'
         statusDescription = 'Insurance verification required before payment'
         statusVariant = 'pending-insurance'

@@ -33,6 +33,14 @@ describe('booking-mode', () => {
     expect(result.icon.iconName).toBe('clock')
   })
 
+  it('returns request-to-book display metadata', () => {
+    const result = getBookingModeDisplay('request_to_book', 'compact')
+
+    expect(result.mode).toBe('request')
+    expect(result.label).toBe('Request to book')
+    expect(result.icon.iconName).toBe('paper-plane')
+  })
+
   it('exposes canonical host-approval copy for renter flows', () => {
     expect(BOOKING_APPROVAL_COPY.discoveryLabel).toBe('Host Approval')
     expect(BOOKING_APPROVAL_COPY.pendingStatusLabel).toBe('Host Approval Pending')

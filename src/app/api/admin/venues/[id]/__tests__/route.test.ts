@@ -143,7 +143,7 @@ function createAdminClientMock(args?: {
 
   return {
     client: { from, rpc },
-    calls: { rpc, templatesInsert, templateDeleteRegularIn, publishStateUpsert },
+    calls: { rpc, templatesInsert, templateDeleteRegularIn, publishStateUpsert, venueUpdate },
   }
 }
 
@@ -412,6 +412,32 @@ describe('PATCH /api/admin/venues/[id]', () => {
       expect.any(Object)
     )
     expect(mockSyncVenueCalendarByVenueId).not.toHaveBeenCalled()
+  })
+
+  it('persists request-to-book booking mode without publishing slot availability', async () => {
+    const { client, calls } = createAdminClientMock()
+    mockCreateAdminClient.mockReturnValue(client)
+    mockValidateRequest.mockResolvedValue({
+      booking_mode: 'request_to_book',
+    })
+
+    const response = await PATCH(
+      new Request('http://localhost/api/admin/venues/venue-1', {
+        method: 'PATCH',
+        headers: { 'content-type': 'application/json' },
+        body: JSON.stringify({ booking_mode: 'request_to_book' }),
+      }),
+      createContext('venue-1')
+    )
+
+    expect(response.status).toBe(200)
+    expect(calls.venueUpdate).toHaveBeenCalledWith({
+      booking_mode: 'request_to_book',
+    })
+    expect(calls.rpc).not.toHaveBeenCalledWith(
+      'refresh_slot_instances_from_templates',
+      expect.any(Object)
+    )
   })
 
   it('returns success with needs_attention when immediate slot publish fails after persistence', async () => {

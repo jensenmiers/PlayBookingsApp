@@ -78,4 +78,25 @@ describe('BookingCard', () => {
 
     expect(screen.queryByRole('button', { name: /pay/i })).not.toBeInTheDocument()
   })
+
+  it('shows pending request-to-book bookings without a Pay CTA', () => {
+    render(
+      <BookingCard
+        booking={createBooking({
+          venue: {
+            id: 'venue-1',
+            name: 'Main Court',
+            instant_booking: false,
+            insurance_required: false,
+            booking_mode: 'request_to_book',
+            photos: [],
+          },
+        })}
+        onPayClick={jest.fn()}
+      />
+    )
+
+    expect(screen.getByText('Request sent')).toBeInTheDocument()
+    expect(screen.queryByRole('button', { name: /pay/i })).not.toBeInTheDocument()
+  })
 })

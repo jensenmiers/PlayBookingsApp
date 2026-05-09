@@ -12,6 +12,7 @@ import {
   venueToSeoMetadata,
 } from '@/lib/venueSeo'
 import { AvailabilityService, type UnifiedAvailableSlot } from '@/services/availabilityService'
+import { resolveVenueBookingMode } from '@/lib/booking-mode'
 import { notFound } from 'next/navigation'
 import type { Metadata } from 'next'
 import type { Venue } from '@/types'
@@ -89,6 +90,7 @@ export default async function VenuePage({ params }: PageProps) {
   const todayStr = getDateStringInTimeZone(new Date(), LOS_ANGELES_TIME_ZONE)
   const dateFrom = todayStr
   const dateTo = addDaysToDateString(todayStr, INITIAL_AVAILABILITY_DAYS - 1)
+  const isRequestToBook = resolveVenueBookingMode(venue as Venue) === 'request_to_book'
 
   const availabilityService = new AvailabilityService({
     getClient: async () => createPublicServerClient(),
@@ -101,17 +103,19 @@ export default async function VenuePage({ params }: PageProps) {
   let initialAvailability: UnifiedAvailableSlot[] = []
   let initialAvailabilityFallback = false
 
-  try {
-    initialAvailability = await availabilityService.getAvailableSlots(venue.id, dateFrom, dateTo)
-  } catch (error) {
-    initialAvailabilityFallback = true
-    console.error('Failed to load initial venue availability during SSR:', {
-      slug,
-      venueId: venue.id,
-      dateFrom,
-      dateTo,
-      error,
-    })
+  if (!isRequestToBook) {
+    try {
+      initialAvailability = await availabilityService.getAvailableSlots(venue.id, dateFrom, dateTo)
+    } catch (error) {
+      initialAvailabilityFallback = true
+      console.error('Failed to load initial venue availability during SSR:', {
+        slug,
+        venueId: venue.id,
+        dateFrom,
+        dateTo,
+        error,
+      })
+    }
   }
 
   const availabilityMs = measureDurationMs(availabilityStartTime)

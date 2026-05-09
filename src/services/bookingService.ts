@@ -6,9 +6,10 @@ import { BookingRepository } from '@/repositories/bookingRepository'
 import { AuditService } from './auditService'
 import { PaymentService } from './paymentService'
 import { calculateRecurringDates } from '@/utils/recurringGenerator'
-import { getCancellationInfo, calculateDuration, isPastBookingStart } from '@/utils/dateHelpers'
+import { getCancellationInfo, calculateDuration, isPastBookingStart, timeStringToDate } from '@/utils/dateHelpers'
 import { conflict, badRequest, notFound } from '@/utils/errorHandling'
 import { getBookingPolicyViolation, normalizeVenueAdminConfig } from '@/lib/venueAdminConfig'
+import { resolveVenueBookingMode } from '@/lib/booking-mode'
 import type { Booking, RecurringBooking, CreateBookingForm, BookingStatus, BookingWithPaymentInfo, CancellationResult, BookingWithVenue } from '@/types'
 import { createClient } from '@/lib/supabase/server'
 
@@ -29,6 +30,9 @@ type ExternalAvailabilityBlockRow = {
   status: 'active' | 'cancelled'
 }
 
+const REQUEST_TO_BOOK_MIN_DURATION_HOURS = 1
+const REQUEST_TO_BOOK_INCREMENT_HOURS = 1
+
 function overlapsExternalBlock(
   date: string,
   startTime: string,
@@ -44,6 +48,45 @@ function overlapsExternalBlock(
   const blockEnd = new Date(block.end_at).getTime()
 
   return slotStart < blockEnd && slotEnd > blockStart
+}
+
+function getDayOfWeek(date: string): number {
+  const [year, month, day] = date.split('-').map(Number)
+  return new Date(year, month - 1, day).getDay()
+}
+
+function getRequestToBookValidationMessage(
+  data: CreateBookingForm,
+  adminConfig: ReturnType<typeof normalizeVenueAdminConfig>,
+  now: Date = new Date()
+): string | null {
+  const duration = calculateDuration(data.start_time, data.end_time)
+  if (duration < REQUEST_TO_BOOK_MIN_DURATION_HOURS || duration % REQUEST_TO_BOOK_INCREMENT_HOURS !== 0) {
+    return 'Request duration must be at least 1 hour and use 1-hour increments'
+  }
+
+  if (timeStringToDate(data.date, data.start_time) <= now) {
+    return 'Requested time must be in the future'
+  }
+
+  if (data.recurring_type && data.recurring_type !== 'none') {
+    return 'Recurring requests are not supported for request-to-book venues'
+  }
+
+  if (adminConfig.operating_hours.length > 0) {
+    const dayOfWeek = getDayOfWeek(data.date)
+    const isInsideOperatingHours = adminConfig.operating_hours.some((window) =>
+      window.day_of_week === dayOfWeek
+      && data.start_time >= window.start_time
+      && data.end_time <= window.end_time
+    )
+
+    if (!isInsideOperatingHours) {
+      return 'Requested time is outside venue operating hours'
+    }
+  }
+
+  return null
 }
 
 export class BookingService {
@@ -88,6 +131,7 @@ export class BookingService {
     }
 
     const adminConfig = normalizeVenueAdminConfig(data.venue_id, isMissingConfigTable ? null : (adminConfigRow || null))
+    const bookingMode = resolveVenueBookingMode(venue)
     const policyViolation = getBookingPolicyViolation(
       {
         date: data.date,
@@ -100,16 +144,25 @@ export class BookingService {
       throw badRequest(policyViolation.message)
     }
 
-    // Check conflicts
-    const conflictResult = await this.checkConflicts(
-      data.venue_id,
-      data.date,
-      data.start_time,
-      data.end_time
-    )
+    if (bookingMode === 'request_to_book') {
+      const requestValidationMessage = getRequestToBookValidationMessage(data, adminConfig)
+      if (requestValidationMessage) {
+        throw badRequest(requestValidationMessage)
+      }
+    }
 
-    if (conflictResult.hasConflict) {
-      throw conflict(conflictResult.message || 'Booking conflict detected', conflictResult)
+    if (bookingMode !== 'request_to_book') {
+      // Check conflicts
+      const conflictResult = await this.checkConflicts(
+        data.venue_id,
+        data.date,
+        data.start_time,
+        data.end_time
+      )
+
+      if (conflictResult.hasConflict) {
+        throw conflict(conflictResult.message || 'Booking conflict detected', conflictResult)
+      }
     }
 
     // Calculate total amount
@@ -136,20 +189,22 @@ export class BookingService {
     await this.auditService.logCreate('bookings', booking.id, userId, booking as unknown as Record<string, unknown>)
 
     // Generate recurring bookings if needed
-    if (booking.recurring_type !== 'none') {
+    if (bookingMode !== 'request_to_book' && booking.recurring_type !== 'none') {
       await this.generateRecurringBookings(booking)
     }
 
     // Determine payment flow flags based on venue settings
-    const requiresImmediatePayment = venue.instant_booking && !venue.insurance_required
+    const requiresImmediatePayment = bookingMode === 'instant_slots' && !venue.insurance_required
     const awaitingInsuranceApproval = venue.insurance_required && !booking.insurance_approved
-    const awaitingOwnerApproval = !venue.instant_booking
+    const awaitingOwnerApproval = bookingMode === 'approval_slots'
+    const requiresPayment = bookingMode !== 'request_to_book'
 
     return {
       ...booking,
       requiresImmediatePayment,
+      requiresPayment,
       awaitingOwnerApproval: awaitingOwnerApproval && !awaitingInsuranceApproval,
-      awaitingInsuranceApproval,
+      awaitingInsuranceApproval: bookingMode === 'request_to_book' ? false : awaitingInsuranceApproval,
     }
   }
 
@@ -165,14 +220,30 @@ export class BookingService {
   ): Promise<BookingConflictResult> {
     const supabase = await createClient()
 
-    const [bookings, recurringBookings, venueResult, slotInstancesResult, externalBlocksResult] = await Promise.all([
+    const venueResult = await supabase
+      .from('venues')
+      .select('instant_booking, booking_mode')
+      .eq('id', venueId)
+      .single()
+
+    if (venueResult.error || !venueResult.data) {
+      return {
+        hasConflict: true,
+        conflictType: 'slot_unavailable',
+        message: 'Venue not found while validating slot availability',
+      }
+    }
+
+    const venueBookingMode = resolveVenueBookingMode(venueResult.data as { booking_mode?: unknown; instant_booking?: boolean })
+    if (venueBookingMode === 'request_to_book') {
+      return {
+        hasConflict: false,
+      }
+    }
+
+    const [bookings, recurringBookings, slotInstancesResult, externalBlocksResult] = await Promise.all([
       this.bookingRepo.findConflictingBookings(venueId, date, startTime, endTime, excludeBookingId),
       this.bookingRepo.findConflictingRecurring(venueId, date, startTime, endTime),
-      supabase
-        .from('venues')
-        .select('instant_booking')
-        .eq('id', venueId)
-        .single(),
       supabase
         .from('slot_instances')
         .select('id, action_type')
@@ -207,19 +278,11 @@ export class BookingService {
       }
     }
 
-    if (venueResult.error || !venueResult.data) {
-      return {
-        hasConflict: true,
-        conflictType: 'slot_unavailable',
-        message: 'Venue not found while validating slot availability',
-      }
-    }
-
     if (slotInstancesResult.error) {
       throw new Error(`Failed to validate slot availability: ${slotInstancesResult.error.message}`)
     }
 
-    const expectedActionType = venueResult.data.instant_booking ? 'instant_book' : 'request_private'
+    const expectedActionType = venueBookingMode === 'instant_slots' ? 'instant_book' : 'request_private'
     const matchingSlot = ((slotInstancesResult.data || []) as Array<{ id: string; action_type: string }>)
       .some((slot) => slot.action_type === expectedActionType)
 

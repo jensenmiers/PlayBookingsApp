@@ -8,6 +8,7 @@ import {
   getCurrentRelativeUrl,
   peekAuthResumeStateForReturnTo,
   type CreateBookingFormResumeState,
+  type RequestToBookResumeState,
   type SlotBookingResumeState,
 } from '@/lib/auth/authResume'
 
@@ -74,6 +75,24 @@ export function useSlotBookingAuthResume(args: {
     const consumedState = consumeAuthResumeStateForReturnTo(currentReturnTo)
     if (consumedState?.type === 'slot-booking') {
       args.onResume(matchingSlot)
+    }
+  }, [args])
+}
+
+export function useRequestToBookAuthResume(args: {
+  venueId: string
+  onResume: (resumeState: RequestToBookResumeState) => void
+}) {
+  useEffect(() => {
+    const currentReturnTo = getCurrentRelativeUrl()
+    const resumeState = peekAuthResumeStateForReturnTo(currentReturnTo)
+    if (!resumeState || resumeState.type !== 'request-to-book' || resumeState.venueId !== args.venueId) {
+      return
+    }
+
+    const consumedState = consumeAuthResumeStateForReturnTo(currentReturnTo)
+    if (consumedState?.type === 'request-to-book') {
+      args.onResume(consumedState)
     }
   }, [args])
 }

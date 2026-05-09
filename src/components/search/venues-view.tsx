@@ -18,7 +18,7 @@ import { useVenues } from '@/hooks/useVenues'
 import { CreateBookingForm } from '@/components/forms/create-booking-form'
 import { VenueCardSkeleton } from '@/components/search/venue-card-skeleton'
 import { ErrorMessage } from '@/components/ui/error-message'
-import { getBookingModeDisplay } from '@/lib/booking-mode'
+import { getBookingModeDisplay, resolveVenueBookingMode } from '@/lib/booking-mode'
 import { slugify } from '@/lib/utils'
 import Image from 'next/image'
 import { type CreateBookingFormResumeState } from '@/lib/auth/authResume'
@@ -123,7 +123,8 @@ export function VenuesView() {
           ) : nearbyVenues.length > 0 ? (
             nearbyVenues.map((venue) => {
               const venueSlug = slugify(venue.name)
-              const bookingMode = getBookingModeDisplay(venue.instant_booking, 'compact')
+              const resolvedBookingMode = resolveVenueBookingMode(venue)
+              const bookingMode = getBookingModeDisplay(resolvedBookingMode, 'compact')
               const photos = deriveVenuePhotos(venue)
               return (
                 <div key={venue.id} className="bg-secondary-800 rounded-2xl shadow-soft overflow-hidden">
@@ -198,12 +199,21 @@ export function VenuesView() {
                         >
                           View Details
                         </Link>
-                        <Button
-                          onClick={() => handleBookNow(venue.id)}
-                          className="flex-1 bg-secondary-600 hover:bg-secondary-700 text-secondary-50 font-medium py-s text-sm rounded-xl transition duration-200"
-                        >
-                          Book Now
-                        </Button>
+                        {resolvedBookingMode === 'request_to_book' ? (
+                          <Link
+                            href={`/venue/${venueSlug}`}
+                            className="flex-1 bg-secondary-600 hover:bg-secondary-700 text-secondary-50 font-medium py-s text-sm rounded-xl transition duration-200 text-center"
+                          >
+                            Request a time
+                          </Link>
+                        ) : (
+                          <Button
+                            onClick={() => handleBookNow(venue.id)}
+                            className="flex-1 bg-secondary-600 hover:bg-secondary-700 text-secondary-50 font-medium py-s text-sm rounded-xl transition duration-200"
+                          >
+                            Book Now
+                          </Button>
+                        )}
                       </div>
                     </div>
                   </div>

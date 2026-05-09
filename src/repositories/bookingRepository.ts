@@ -123,6 +123,7 @@ export class BookingRepository {
           id,
           name,
           instant_booking,
+          booking_mode,
           insurance_required,
           photos,
           venue_media(${VENUE_MEDIA_SELECT_COLUMNS})
@@ -155,6 +156,7 @@ export class BookingRepository {
             id,
             name,
             instant_booking,
+            booking_mode,
             insurance_required,
             photos
           )
