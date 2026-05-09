@@ -617,7 +617,8 @@ describe('VenueDesignEditorial coming-up pills', () => {
 
     expect(screen.getByText('$5/person')).toBeInTheDocument()
     expect(screen.getByText('Pay on site')).toBeInTheDocument()
-    expect(screen.queryByText('$75/hr')).not.toBeInTheDocument()
+    const bookingCard = screen.getByTestId('venue-booking-card')
+    expect(within(bookingCard).queryByText('$75/hr')).not.toBeInTheDocument()
   })
 
   it('renders a venue map section near the bottom of the page', () => {
@@ -631,5 +632,31 @@ describe('VenueDesignEditorial coming-up pills', () => {
 
     expect(screen.getByRole('heading', { name: 'Map' })).toBeInTheDocument()
     expect(screen.getByTestId('venue-location-map')).toBeInTheDocument()
+  })
+
+  it('summarizes renter decision details before the long-form venue content', () => {
+    mockUseVenueAvailabilityRange.mockReturnValue({
+      data: [],
+      loading: false,
+      error: null,
+    })
+
+    render(
+      <VenueDesignEditorial
+        venue={createMockVenue({
+          booking_mode: 'approval_slots',
+          weekend_rate: 95,
+          insurance_required: true,
+          max_advance_booking_days: 45,
+        })}
+      />
+    )
+
+    expect(screen.getByRole('heading', { name: 'Good to know' })).toBeInTheDocument()
+    expect(screen.getByText('$75/hr weekdays')).toBeInTheDocument()
+    expect(screen.getByText('$95/hr weekends')).toBeInTheDocument()
+    expect(screen.getAllByText('Host Approval').length).toBeGreaterThan(0)
+    expect(screen.getByText('Book up to 45 days ahead')).toBeInTheDocument()
+    expect(screen.getAllByText('Insurance Required').length).toBeGreaterThan(0)
   })
 })
