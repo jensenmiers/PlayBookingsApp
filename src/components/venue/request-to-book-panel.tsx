@@ -204,14 +204,24 @@ export function RequestToBookPanel({ venue }: { venue: Venue }) {
               <label htmlFor="request-duration" className="text-xs font-medium text-secondary-50/70">
                 Duration
               </label>
-              <Input
-                id="request-duration"
-                type="number"
-                min={1}
-                step={1}
-                value={durationHours}
-                onChange={(event) => setDurationHours(event.target.value)}
-              />
+              <div className="relative">
+                <Input
+                  id="request-duration"
+                  type="number"
+                  min={1}
+                  step={1}
+                  value={durationHours}
+                  onChange={(event) => setDurationHours(event.target.value)}
+                  aria-describedby="request-duration-unit"
+                  className="pr-4xl"
+                />
+                <span
+                  id="request-duration-unit"
+                  className="pointer-events-none absolute inset-y-0 right-l flex items-center text-sm text-secondary-50/50"
+                >
+                  hours
+                </span>
+              </div>
             </div>
           </div>
 
