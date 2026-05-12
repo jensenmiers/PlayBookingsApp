@@ -22,17 +22,22 @@ jest.mock('@/lib/venuePage', () => ({
 }))
 
 const mockGetAvailableSlots = jest.fn()
+const mockAvailabilityServiceCtor = jest.fn()
 
 jest.mock('@/services/availabilityService', () => ({
-  AvailabilityService: jest.fn().mockImplementation(() => ({
-    getAvailableSlots: (...args: unknown[]) => mockGetAvailableSlots(...args),
-  })),
+  AvailabilityService: jest.fn().mockImplementation((options) => {
+    mockAvailabilityServiceCtor(options)
+    return {
+      getAvailableSlots: (...args: unknown[]) => mockGetAvailableSlots(...args),
+    }
+  }),
 }))
 
 // Import after mocks
 import { generateMetadata } from '../page'
 import VenuePage from '../page'
 import { notFound } from 'next/navigation'
+import { createPublicServerClient } from '@/lib/supabase/public-server'
 
 const mockNotFound = notFound as jest.MockedFunction<typeof notFound>
 const { VenueDesignEditorial: mockVenueDesignEditorial } = jest.requireMock(
@@ -203,6 +208,23 @@ describe('VenuePage', () => {
         ],
       })
     )
+  })
+
+  it('reuses the same server Supabase client for venue lookup and initial availability', async () => {
+    const sharedClient = { from: jest.fn() }
+    ;(createPublicServerClient as jest.Mock).mockReturnValue(sharedClient)
+    mockFindVenueBySlug.mockResolvedValue(venueRecord)
+    mockGetAvailableSlots.mockResolvedValue([])
+
+    await VenuePage({
+      params: Promise.resolve({ name: 'test-basketball-court' }),
+    })
+
+    const ctorArgs = mockAvailabilityServiceCtor.mock.calls[0]?.[0] as {
+      getClient: () => Promise<unknown>
+    }
+    expect(ctorArgs).toBeDefined()
+    await expect(ctorArgs.getClient()).resolves.toBe(sharedClient)
   })
 
   it('passes server-rendered initial availability into the venue page component', async () => {

@@ -503,7 +503,7 @@ describe('VenueDesignEditorial coming-up pills', () => {
     expect(screen.getByLabelText('Date')).toBeInTheDocument()
     expect(screen.getByLabelText('Start time')).toBeInTheDocument()
     expect(screen.getByLabelText('Duration')).toBeInTheDocument()
-    expect(screen.getByText('hours')).toBeInTheDocument()
+    expect(screen.getByText('hour(s)')).toBeInTheDocument()
     expect(screen.getByRole('button', { name: 'Review request' })).toBeInTheDocument()
     expect(screen.queryByText('No availability this week')).not.toBeInTheDocument()
     expect(screen.queryByRole('heading', { name: 'Coming Up' })).not.toBeInTheDocument()

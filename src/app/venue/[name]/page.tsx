@@ -93,7 +93,7 @@ export default async function VenuePage({ params }: PageProps) {
   const isRequestToBook = resolveVenueBookingMode(venue as Venue) === 'request_to_book'
 
   const availabilityService = new AvailabilityService({
-    getClient: async () => createPublicServerClient(),
+    getClient: async () => supabase,
     onTiming: (timing) => {
       logPerformance('venue-page-initial-availability', timing)
     },

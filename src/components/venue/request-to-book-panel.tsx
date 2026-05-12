@@ -219,7 +219,7 @@ export function RequestToBookPanel({ venue }: { venue: Venue }) {
                   id="request-duration-unit"
                   className="pointer-events-none absolute inset-y-0 right-l flex items-center text-sm text-secondary-50/50"
                 >
-                  hours
+                  hour(s)
                 </span>
               </div>
             </div>
