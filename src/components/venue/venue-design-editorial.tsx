@@ -183,7 +183,7 @@ export function VenueDesignEditorial({
       detail: bookingMode === 'instant_slots'
         ? 'Confirm from available slots'
         : bookingMode === 'request_to_book'
-          ? 'No published slots needed'
+          ? 'No published availability shown'
           : 'Host reviews your request',
       icon: fullBookingModeDisplay.icon,
     },
@@ -196,7 +196,7 @@ export function VenueDesignEditorial({
     {
       label: 'Insurance',
       value: venue.insurance_required ? 'Insurance Required' : 'Insurance not required',
-      detail: venue.insurance_required ? 'Verified before confirmation' : 'No document upload needed',
+      detail: venue.insurance_required ? 'Certificate of insurance required before confirmation' : 'No document upload needed',
       icon: faShield,
     },
   ]
@@ -572,7 +572,7 @@ export function VenueDesignEditorial({
                   Insurance Required
                 </div>
                 <div className="text-secondary-50/50 text-xs mt-xxs">
-                  Proof of insurance must be verified before booking is confirmed
+                  Certificate of insurance must be verified before booking is confirmed
                 </div>
               </div>
             </section>

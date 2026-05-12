@@ -16,8 +16,8 @@ const APPROVAL_LABELS: Record<BookingModeLabelVariant, string> = {
 }
 
 const REQUEST_TO_BOOK_LABELS: Record<BookingModeLabelVariant, string> = {
-  compact: 'Request to book',
-  full: 'Request to book',
+  compact: 'Request a time',
+  full: 'Request a time to book',
 }
 
 export function isBookingMode(value: unknown): value is BookingMode {

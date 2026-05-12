@@ -500,6 +500,8 @@ describe('VenueDesignEditorial coming-up pills', () => {
     )
 
     expect(screen.getByText('Request your preferred time')).toBeInTheDocument()
+    expect(screen.getByText('Request a time to book')).toBeInTheDocument()
+    expect(screen.getByText('No published availability shown')).toBeInTheDocument()
     expect(screen.getByLabelText('Date')).toBeInTheDocument()
     expect(screen.getByLabelText('Start time')).toBeInTheDocument()
     expect(screen.getByLabelText('Duration')).toBeInTheDocument()
@@ -659,5 +661,6 @@ describe('VenueDesignEditorial coming-up pills', () => {
     expect(screen.getAllByText('Host Approval').length).toBeGreaterThan(0)
     expect(screen.getByText('Book up to 45 days ahead')).toBeInTheDocument()
     expect(screen.getAllByText('Insurance Required').length).toBeGreaterThan(0)
+    expect(screen.getByText('Certificate of insurance required before confirmation')).toBeInTheDocument()
   })
 })

@@ -75,7 +75,7 @@ const VENUES: VenueSeed[] = [
     max_advance_booking_days: 90,
     photos: [], // Will be populated when images are uploaded
     amenities: ['Indoor Court', 'Parking', 'Restrooms'],
-    is_active: true,
+    is_active: false,
   },
   {
     name: 'Boys & Girls Club of Hollywood',
@@ -94,7 +94,7 @@ const VENUES: VenueSeed[] = [
     max_advance_booking_days: 30,
     photos: [],
     amenities: ['Indoor Court', 'Restrooms'],
-    is_active: true,
+    is_active: false,
   },
   {
     name: 'Crosscourt',
@@ -188,7 +188,7 @@ const VENUES: VenueSeed[] = [
     insurance_required: true,
     max_advance_booking_days: 30,
     photos: [],
-    amenities: ['Indoor Court', 'Parking', 'Restrooms'],
+    amenities: ['Indoor Court', 'Parking', 'Bench seating'],
     is_active: true,
   },
   {

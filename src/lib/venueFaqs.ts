@@ -82,7 +82,7 @@ export function buildVenueFaqs(venue: Venue): VenueFaq[] {
     faqs.push({
       group: 'Policies',
       q: 'Is insurance required?',
-      a: 'Yes — proof of insurance must be verified before your booking is confirmed. Contact the host if you have questions about coverage requirements.',
+      a: 'Yes — this venue requires insurance, and proof must be verified before your booking is confirmed. You may be asked to provide a certificate of insurance that matches the host requirements.',
     })
   } else {
     faqs.push({

@@ -37,7 +37,15 @@ describe('booking-mode', () => {
     const result = getBookingModeDisplay('request_to_book', 'compact')
 
     expect(result.mode).toBe('request')
-    expect(result.label).toBe('Request to book')
+    expect(result.label).toBe('Request a time')
+    expect(result.icon.iconName).toBe('paper-plane')
+  })
+
+  it('returns full request-to-book display metadata', () => {
+    const result = getBookingModeDisplay('request_to_book', 'full')
+
+    expect(result.mode).toBe('request')
+    expect(result.label).toBe('Request a time to book')
     expect(result.icon.iconName).toBe('paper-plane')
   })
 
