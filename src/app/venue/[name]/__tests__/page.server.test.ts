@@ -15,10 +15,12 @@ jest.mock('@/components/venue/venue-design-editorial', () => ({
 
 const mockFindVenueMetadataBySlug = jest.fn()
 const mockFindVenueBySlug = jest.fn()
+const mockFindVenueAdminConfigByVenueId = jest.fn()
 
 jest.mock('@/lib/venuePage', () => ({
   findVenueMetadataBySlug: (...args: unknown[]) => mockFindVenueMetadataBySlug(...args),
   findVenueBySlug: (...args: unknown[]) => mockFindVenueBySlug(...args),
+  findVenueAdminConfigByVenueId: (...args: unknown[]) => mockFindVenueAdminConfigByVenueId(...args),
 }))
 
 const mockGetAvailableSlots = jest.fn()
@@ -147,6 +149,11 @@ describe('VenuePage', () => {
   beforeEach(() => {
     jest.clearAllMocks()
     mockGetAvailableSlots.mockResolvedValue([])
+    mockFindVenueAdminConfigByVenueId.mockResolvedValue({
+      venue_id: '123',
+      min_advance_booking_days: 0,
+      min_advance_lead_time_hours: 0,
+    })
   })
 
   it('calls notFound() when venue does not exist', async () => {
@@ -206,6 +213,28 @@ describe('VenuePage', () => {
           'https://example.com/hero.webp',
           'https://example.com/detail.webp',
         ],
+      })
+    )
+  })
+
+  it('passes the public venue policy into the venue page component', async () => {
+    mockFindVenueBySlug.mockResolvedValue(venueRecord)
+    mockFindVenueAdminConfigByVenueId.mockResolvedValue({
+      venue_id: '123',
+      min_advance_booking_days: 1,
+      min_advance_lead_time_hours: 24,
+    })
+
+    const result = await VenuePage({
+      params: Promise.resolve({ name: 'test-basketball-court' }),
+    })
+
+    const editorial = findVenueDesignEditorial(result)
+    expect(mockFindVenueAdminConfigByVenueId).toHaveBeenCalledWith(expect.anything(), '123')
+    expect(editorial.props.venueAdminConfig).toEqual(
+      expect.objectContaining({
+        min_advance_booking_days: 1,
+        min_advance_lead_time_hours: 24,
       })
     )
   })

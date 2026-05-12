@@ -19,10 +19,12 @@ import { formatTime, getDateStringInTimeZone, addDaysToDateString } from '@/util
 import { getBookingModeDisplay, resolveVenueBookingMode } from '@/lib/booking-mode'
 import { getCurrentRelativeUrl, peekAuthResumeStateForReturnTo } from '@/lib/auth/authResume'
 import { useSlotBookingAuthResume } from '@/lib/auth/useAuthResume'
+import { buildVenuePlanningFact, type VenuePlanningPolicy } from '@/lib/venuePlanning'
 import type { Venue } from '@/types'
 
 interface VenueDesignEditorialProps {
   venue: Venue
+  venueAdminConfig?: Partial<VenuePlanningPolicy> | null
   initialAvailability?: ComputedAvailabilitySlot[]
   faqStyle?: 'none' | 'accordion' | 'tabs' | 'list'
   bottomGallery?: 'none' | 'strip' | 'mosaic' | 'tour'
@@ -73,6 +75,7 @@ function getSlotSecondaryLabel(slot: ComputedAvailabilitySlot, venue: Venue): st
 
 export function VenueDesignEditorial({
   venue,
+  venueAdminConfig = null,
   initialAvailability = [],
   faqStyle = 'none',
   bottomGallery = 'none',
@@ -170,6 +173,7 @@ export function VenueDesignEditorial({
   const [lightboxIndex, setLightboxIndex] = useState<number | null>(null)
   const hasDistinctWeekendRate = Boolean(venue.weekend_rate && venue.weekend_rate !== venue.hourly_rate)
   const fullBookingModeDisplay = getBookingModeDisplay(venue, 'full')
+  const planningFact = buildVenuePlanningFact({ bookingMode, policy: venueAdminConfig })
   const venueQuickFacts = [
     {
       label: 'Rate',
@@ -189,8 +193,8 @@ export function VenueDesignEditorial({
     },
     {
       label: 'Planning',
-      value: `Book up to ${venue.max_advance_booking_days} days ahead`,
-      detail: 'Availability updates by date',
+      value: planningFact.value,
+      detail: planningFact.detail,
       icon: faCalendarDays,
     },
     {
@@ -256,7 +260,7 @@ export function VenueDesignEditorial({
     setResumeDateOverride(null)
     setSelectedSlot(slot)
     setShowBooking(true)
-  }, [])
+  }, [setResumeDateOverride, setSelectedSlot, setShowBooking])
 
   useSlotBookingAuthResume({
     venueId: venue.id,
@@ -317,7 +321,7 @@ export function VenueDesignEditorial({
             className="bg-secondary-800/90 backdrop-blur-xl rounded-2xl border border-secondary-50/10 shadow-glass overflow-hidden"
           >
             {isRequestToBook ? (
-              <RequestToBookPanel venue={venue} />
+              <RequestToBookPanel venue={venue} venueAdminConfig={venueAdminConfig} />
             ) : loading ? (
               <div className="p-xl">
                 <div className="h-6 w-32 bg-secondary-50/10 rounded animate-pulse mb-s" />
@@ -590,7 +594,7 @@ export function VenueDesignEditorial({
 
           {/* FAQ Section (variant-controlled) */}
           {faqStyle !== 'none' && (
-            <VenueFaqSection venue={venue} style={faqStyle} />
+            <VenueFaqSection venue={venue} venueAdminConfig={venueAdminConfig} style={faqStyle} />
           )}
 
           {/* Lightbox */}

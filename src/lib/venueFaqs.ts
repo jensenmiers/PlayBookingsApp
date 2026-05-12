@@ -1,5 +1,6 @@
 import type { Venue } from '@/types'
 import { resolveVenueBookingMode } from '@/lib/booking-mode'
+import { buildVenuePlanningFact, type VenuePlanningPolicy } from '@/lib/venuePlanning'
 
 export interface VenueFaq {
   group: 'Booking' | 'Space' | 'Policies'
@@ -7,7 +8,10 @@ export interface VenueFaq {
   a: string
 }
 
-export function buildVenueFaqs(venue: Venue): VenueFaq[] {
+export function buildVenueFaqs(
+  venue: Venue,
+  venueAdminConfig?: Partial<VenuePlanningPolicy> | null
+): VenueFaq[] {
   const faqs: VenueFaq[] = []
   const bookingMode = resolveVenueBookingMode(venue)
 
@@ -47,10 +51,11 @@ export function buildVenueFaqs(venue: Venue): VenueFaq[] {
     })
   }
 
+  const planningFact = buildVenuePlanningFact({ bookingMode, policy: venueAdminConfig })
   faqs.push({
     group: 'Booking',
-    q: 'How far in advance can I book?',
-    a: `You can book up to ${venue.max_advance_booking_days} days in advance.`,
+    q: planningFact.value.includes('at least') ? 'How much notice do I need?' : 'How far in advance can I book?',
+    a: `${planningFact.value}. ${planningFact.detail}.`,
   })
 
   // --- Space ---

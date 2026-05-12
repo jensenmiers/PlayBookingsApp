@@ -8,6 +8,7 @@ import { useAuthModal } from '@/contexts/AuthModalContext'
 import { useCreateBooking } from '@/hooks/useBookings'
 import { useCurrentUser } from '@/hooks/useCurrentUser'
 import { useRequestToBookAuthResume } from '@/lib/auth/useAuthResume'
+import { getMinimumAdvanceDate, type VenuePlanningPolicy } from '@/lib/venuePlanning'
 import { formatTime, getDateStringInTimeZone } from '@/utils/dateHelpers'
 import type { Venue } from '@/types'
 import type { RequestToBookResumeState } from '@/lib/auth/authResume'
@@ -47,10 +48,17 @@ function isAuthenticationError(message: string): boolean {
     || normalizedMessage.includes('sign in')
 }
 
-export function RequestToBookPanel({ venue }: { venue: Venue }) {
+export function RequestToBookPanel({
+  venue,
+  venueAdminConfig = null,
+}: {
+  venue: Venue
+  venueAdminConfig?: Partial<VenuePlanningPolicy> | null
+}) {
   const today = getDateStringInTimeZone(new Date(), LOS_ANGELES_TIME_ZONE)
+  const minimumRequestDate = getMinimumAdvanceDate(today, venueAdminConfig)
   const [step, setStep] = useState<RequestPanelStep>('form')
-  const [date, setDate] = useState(today)
+  const [date, setDate] = useState(minimumRequestDate)
   const [startTime, setStartTime] = useState(DEFAULT_START_TIME)
   const [durationHours, setDurationHours] = useState('1')
   const [notes, setNotes] = useState('')
@@ -181,7 +189,7 @@ export function RequestToBookPanel({ venue }: { venue: Venue }) {
               <Input
                 id="request-date"
                 type="date"
-                min={today}
+                min={minimumRequestDate}
                 value={date}
                 onChange={(event) => setDate(event.target.value)}
               />

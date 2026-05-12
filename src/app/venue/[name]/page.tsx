@@ -3,7 +3,7 @@ import { JsonLd } from '@/components/seo/json-ld'
 import { getDateStringInTimeZone, addDaysToDateString } from '@/utils/dateHelpers'
 import { createPublicServerClient } from '@/lib/supabase/public-server'
 import { logPerformance, measureDurationMs, startMeasurement } from '@/lib/performance'
-import { findVenueBySlug, findVenueMetadataBySlug } from '@/lib/venuePage'
+import { findVenueAdminConfigByVenueId, findVenueBySlug, findVenueMetadataBySlug } from '@/lib/venuePage'
 import {
   buildVenueCanonicalPath,
   buildVenueSeoDescription,
@@ -91,6 +91,7 @@ export default async function VenuePage({ params }: PageProps) {
   const dateFrom = todayStr
   const dateTo = addDaysToDateString(todayStr, INITIAL_AVAILABILITY_DAYS - 1)
   const isRequestToBook = resolveVenueBookingMode(venue as Venue) === 'request_to_book'
+  const venueAdminConfig = await findVenueAdminConfigByVenueId(supabase, venue.id)
 
   const availabilityService = new AvailabilityService({
     getClient: async () => supabase,
@@ -138,6 +139,7 @@ export default async function VenuePage({ params }: PageProps) {
       <JsonLd id="venue-jsonld" data={jsonLd} />
       <VenueDesignEditorial
         venue={venue as Venue}
+        venueAdminConfig={venueAdminConfig}
         initialAvailability={initialAvailability}
         faqStyle="accordion"
         bottomGallery="strip"

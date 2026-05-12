@@ -3,15 +3,17 @@
 import { useMemo } from 'react'
 import { Tabs, TabsList, TabsTrigger, TabsContent } from '@/components/ui/tabs'
 import { buildVenueFaqs, type VenueFaq } from '@/lib/venueFaqs'
+import type { VenuePlanningPolicy } from '@/lib/venuePlanning'
 import type { Venue } from '@/types'
 
 interface VenueFaqSectionProps {
   venue: Venue
+  venueAdminConfig?: Partial<VenuePlanningPolicy> | null
   style: 'accordion' | 'tabs' | 'list'
 }
 
-export function VenueFaqSection({ venue, style }: VenueFaqSectionProps) {
-  const faqs = useMemo(() => buildVenueFaqs(venue), [venue])
+export function VenueFaqSection({ venue, venueAdminConfig = null, style }: VenueFaqSectionProps) {
+  const faqs = useMemo(() => buildVenueFaqs(venue, venueAdminConfig), [venue, venueAdminConfig])
 
   if (faqs.length === 0) return null
 

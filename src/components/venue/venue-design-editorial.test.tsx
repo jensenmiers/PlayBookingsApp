@@ -659,8 +659,58 @@ describe('VenueDesignEditorial coming-up pills', () => {
     expect(screen.getByText('$75/hr weekdays')).toBeInTheDocument()
     expect(screen.getByText('$95/hr weekends')).toBeInTheDocument()
     expect(screen.getAllByText('Host Approval').length).toBeGreaterThan(0)
-    expect(screen.getByText('Book up to 45 days ahead')).toBeInTheDocument()
+    expect(screen.getByText('Book future dates')).toBeInTheDocument()
+    expect(screen.getByText('Availability updates by date')).toBeInTheDocument()
     expect(screen.getAllByText('Insurance Required').length).toBeGreaterThan(0)
     expect(screen.getByText('Certificate of insurance required before confirmation')).toBeInTheDocument()
+  })
+
+  it('communicates minimum request lead time instead of max advance booking in planning facts', () => {
+    mockUseVenueAvailabilityRange.mockReturnValue({
+      data: [],
+      loading: false,
+      error: null,
+    })
+
+    render(
+      <VenueDesignEditorial
+        venue={createMockVenue({
+          booking_mode: 'request_to_book',
+          max_advance_booking_days: 30,
+        })}
+        venueAdminConfig={{
+          min_advance_booking_days: 0,
+          min_advance_lead_time_hours: 24,
+        }}
+      />
+    )
+
+    expect(screen.getByText('Request at least 24 hours ahead')).toBeInTheDocument()
+    expect(screen.getByText('Minimum notice before start time')).toBeInTheDocument()
+    expect(screen.queryByText('Book up to 30 days ahead')).not.toBeInTheDocument()
+  })
+
+  it('defaults request-to-book dates to the minimum advance date when configured', () => {
+    mockUseVenueAvailabilityRange.mockReturnValue({
+      data: [],
+      loading: false,
+      error: null,
+    })
+
+    render(
+      <VenueDesignEditorial
+        venue={createMockVenue({
+          booking_mode: 'request_to_book',
+        })}
+        venueAdminConfig={{
+          min_advance_booking_days: 2,
+          min_advance_lead_time_hours: 0,
+        }}
+      />
+    )
+
+    const dateInput = screen.getByLabelText('Date') as HTMLInputElement
+    expect(dateInput).toHaveAttribute('min', '2026-02-23')
+    expect(dateInput).toHaveValue('2026-02-23')
   })
 })

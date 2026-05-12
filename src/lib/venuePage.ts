@@ -7,7 +7,8 @@ import {
   type VenueWithOptionalMediaFields,
   VENUE_SELECT_WITH_MEDIA,
 } from '@/lib/venueMedia'
-import type { VenueMedia } from '@/types'
+import { normalizeVenueAdminConfig } from '@/lib/venueAdminConfig'
+import type { VenueAdminConfig, VenueMedia } from '@/types'
 
 export function slugifyVenueName(name: string): string {
   return name.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/(^-|-$)/g, '')
@@ -199,4 +200,36 @@ export async function findVenueBySlug(
   }
 
   return normalizeVenueCollectionWithMedia(rows).find((venue) => slugifyVenueName(venue.name) === slug) || null
+}
+
+export async function findVenueAdminConfigByVenueId(
+  supabase: Pick<SupabaseClient, 'from'>,
+  venueId: string
+): Promise<VenueAdminConfig> {
+  const query = supabase
+    .from('venue_admin_configs')
+    .select('*')
+    .eq('venue_id', venueId)
+
+  const maybeSingle = (
+    query as {
+      maybeSingle?: () => PromiseLike<{
+        data: Partial<VenueAdminConfig> | null
+        error: { code?: string; message?: string } | null
+      }>
+    }
+  ).maybeSingle
+
+  const { data, error } = maybeSingle
+    ? await maybeSingle.call(query)
+    : { data: null, error: null }
+
+  const isMissingConfigTable = error?.code === '42P01'
+    || error?.message?.toLowerCase().includes('venue_admin_configs')
+
+  if (error && !isMissingConfigTable) {
+    throw error
+  }
+
+  return normalizeVenueAdminConfig(venueId, isMissingConfigTable ? null : data)
 }
