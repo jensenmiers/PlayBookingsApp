@@ -91,7 +91,7 @@ export function PhotoLightbox({
     <Dialog modal open onOpenChange={(open) => !open && onClose()}>
       <DialogContent
         showCloseButton={false}
-        className="fixed inset-0 top-0 left-0 h-screen w-screen max-h-none max-w-none translate-x-0 translate-y-0 gap-0 rounded-none border-none bg-secondary-950/96 p-0 sm:max-w-none overflow-x-hidden overflow-y-hidden"
+        className="fixed inset-0 top-0 left-0 h-dvh w-screen max-h-none max-w-none translate-x-0 translate-y-0 gap-0 overflow-x-hidden overflow-y-hidden rounded-none border-none bg-secondary-950/96 p-0 sm:max-w-none"
       >
         <DialogTitle className="sr-only">{venueName} photo viewer</DialogTitle>
         <DialogDescription className="sr-only">
@@ -108,18 +108,18 @@ export function PhotoLightbox({
             paddingLeft: 'max(1rem, env(safe-area-inset-left))',
           }}
         >
-          <div className="flex min-h-12 w-full items-start justify-end">
+          <div className="flex min-h-4xl w-full items-start justify-end">
             <DialogClose asChild>
               <button
                 aria-label="Close"
-                className="z-10 flex h-11 w-11 items-center justify-center rounded-full bg-secondary-50/10 text-secondary-50 transition-colors hover:bg-secondary-50/20"
+                className="z-10 flex h-4xl w-4xl items-center justify-center rounded-full bg-secondary-50/10 text-secondary-50 transition-colors hover:bg-secondary-50/20"
               >
                 <FontAwesomeIcon icon={faXmark} />
               </button>
             </DialogClose>
           </div>
 
-          <div className="flex min-h-0 items-center justify-center pb-m sm:pb-l">
+          <div className="flex min-h-0 items-center justify-center pb-6xl sm:pb-l">
             <div
               data-testid="photo-lightbox-stage"
               className="relative h-[min(52dvh,24rem)] w-full max-w-5xl sm:h-[min(68vh,44rem)]"
@@ -141,20 +141,26 @@ export function PhotoLightbox({
 
           <div
             data-testid="photo-lightbox-footer"
-            className="flex min-h-12 w-full items-center justify-center"
+            className="fixed bottom-0 left-0 right-0 z-20 flex min-h-5xl w-full items-center justify-center px-l pt-m"
+            style={{
+              paddingBottom: 'max(1.5rem, calc(env(safe-area-inset-bottom) + 1rem))',
+            }}
           >
             {hasMultiplePhotos && (
-              <div className="flex items-center gap-l text-secondary-50/80">
+              <div
+                data-testid="photo-lightbox-controls"
+                className="flex items-center gap-l rounded-full bg-secondary-950/80 px-m py-s text-secondary-50/80 backdrop-blur-md"
+              >
                 <button
                   onClick={goPrev}
                   aria-label="Previous"
                   disabled={currentIndex === 0}
-                  className="flex h-10 w-10 items-center justify-center rounded-full bg-secondary-50/10 text-secondary-50 transition-colors hover:bg-secondary-50/20 disabled:cursor-default disabled:opacity-35"
+                  className="flex h-3xl w-3xl items-center justify-center rounded-full bg-secondary-50/10 text-secondary-50 transition-colors hover:bg-secondary-50/20 disabled:cursor-default disabled:opacity-35"
                 >
                   <FontAwesomeIcon icon={faChevronLeft} />
                 </button>
 
-                <div className="min-w-14 text-center text-sm text-secondary-50/70">
+                <div className="min-w-4xl text-center text-sm text-secondary-50/70">
                   {currentIndex + 1} / {photos.length}
                 </div>
 
@@ -162,7 +168,7 @@ export function PhotoLightbox({
                   onClick={goNext}
                   aria-label="Next"
                   disabled={currentIndex === photos.length - 1}
-                  className="flex h-10 w-10 items-center justify-center rounded-full bg-secondary-50/10 text-secondary-50 transition-colors hover:bg-secondary-50/20 disabled:cursor-default disabled:opacity-35"
+                  className="flex h-3xl w-3xl items-center justify-center rounded-full bg-secondary-50/10 text-secondary-50 transition-colors hover:bg-secondary-50/20 disabled:cursor-default disabled:opacity-35"
                 >
                   <FontAwesomeIcon icon={faChevronRight} />
                 </button>

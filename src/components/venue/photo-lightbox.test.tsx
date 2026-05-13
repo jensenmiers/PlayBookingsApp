@@ -1,4 +1,4 @@
-import { fireEvent, render, screen } from '@testing-library/react'
+import { fireEvent, render, screen, within } from '@testing-library/react'
 import { PhotoLightbox } from '@/components/venue/photo-lightbox'
 
 jest.mock('next/image', () => ({
@@ -33,6 +33,8 @@ describe('PhotoLightbox', () => {
       />
     )
 
+    expect(screen.getByRole('dialog')).toHaveClass('h-dvh')
+
     const shell = screen.getByTestId('photo-lightbox-shell')
     expect(shell).toHaveClass('grid')
     expect(shell).toHaveStyle({
@@ -48,6 +50,26 @@ describe('PhotoLightbox', () => {
     expect(counter.closest('[data-testid="photo-lightbox-footer"]')).toBeInTheDocument()
   })
 
+  it('renders visible mobile-safe navigation controls for multi-photo venues', () => {
+    render(
+      <PhotoLightbox
+        photos={photos}
+        venueName="Memorial Park"
+        currentIndex={0}
+        onIndexChange={jest.fn()}
+        onClose={jest.fn()}
+      />
+    )
+
+    const footer = screen.getByTestId('photo-lightbox-footer')
+    expect(footer).toHaveClass('fixed', 'bottom-0')
+
+    const controls = within(footer).getByTestId('photo-lightbox-controls')
+    expect(within(controls).getByRole('button', { name: /previous/i })).toBeInTheDocument()
+    expect(within(controls).getByRole('button', { name: /next/i })).toBeInTheDocument()
+    expect(within(controls).getByText('1 / 2')).toBeInTheDocument()
+  })
+
   it('hides the counter for single-photo venues', () => {
     render(
       <PhotoLightbox
@@ -60,6 +82,46 @@ describe('PhotoLightbox', () => {
     )
 
     expect(screen.queryByText('1 / 1')).not.toBeInTheDocument()
+    expect(screen.queryByTestId('photo-lightbox-controls')).not.toBeInTheDocument()
+    expect(screen.queryByRole('button', { name: /previous/i })).not.toBeInTheDocument()
+    expect(screen.queryByRole('button', { name: /next/i })).not.toBeInTheDocument()
+  })
+
+  it('navigates with control buttons while preserving edge disabled states', () => {
+    const onIndexChange = jest.fn()
+    const { rerender } = render(
+      <PhotoLightbox
+        photos={photos}
+        venueName="Memorial Park"
+        currentIndex={0}
+        onIndexChange={onIndexChange}
+        onClose={jest.fn()}
+      />
+    )
+
+    expect(screen.getByRole('button', { name: /previous/i })).toBeDisabled()
+    const nextButton = screen.getByRole('button', { name: /next/i })
+    expect(nextButton).toBeEnabled()
+
+    fireEvent.click(nextButton)
+    expect(onIndexChange).toHaveBeenCalledWith(1)
+
+    rerender(
+      <PhotoLightbox
+        photos={photos}
+        venueName="Memorial Park"
+        currentIndex={1}
+        onIndexChange={onIndexChange}
+        onClose={jest.fn()}
+      />
+    )
+
+    const previousButton = screen.getByRole('button', { name: /previous/i })
+    expect(previousButton).toBeEnabled()
+    expect(screen.getByRole('button', { name: /next/i })).toBeDisabled()
+
+    fireEvent.click(previousButton)
+    expect(onIndexChange).toHaveBeenCalledWith(0)
   })
 
   it('handles horizontal swipe gestures between photos for multi-photo venues', () => {

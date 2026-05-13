@@ -19,3 +19,4 @@ Read more: https://nextjs.org/docs/app/api-reference/components/image#loading @ 
 [   49208ms] [ERROR] WebSocket connection to 'ws://localhost:3000/_next/webpack-hmr?id=HyEb9qiTlmiRtNIlM5PVN' failed: Error in connection establishment: net::ERR_CONNECTION_REFUSED @ http://localhost:3000/_next/static/chunks/node_modules_next_dist_client_17643121._.js:10878
 [   54217ms] [ERROR] WebSocket connection to 'ws://localhost:3000/_next/webpack-hmr?id=HyEb9qiTlmiRtNIlM5PVN' failed: Error in connection establishment: net::ERR_CONNECTION_REFUSED @ http://localhost:3000/_next/static/chunks/node_modules_next_dist_client_17643121._.js:10878
 [   59223ms] [ERROR] WebSocket connection to 'ws://localhost:3000/_next/webpack-hmr?id=HyEb9qiTlmiRtNIlM5PVN' failed: Error in connection establishment: net::ERR_CONNECTION_REFUSED @ http://localhost:3000/_next/static/chunks/node_modules_next_dist_client_17643121._.js:10878
+[  364595ms] Identifier 'VueComponents' has already been declared
