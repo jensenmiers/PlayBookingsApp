@@ -160,7 +160,7 @@ export function Navigation() {
                       onClick={() => setDropdownOpen(false)}
                       className="block px-4 py-2 text-sm text-secondary-50/70 transition-colors hover:bg-secondary-50/10 hover:text-secondary-50"
                     >
-                      Discover Courts
+                      All Courts
                     </Link>
                     {!user.is_venue_owner && (
                       <Link
@@ -347,7 +347,7 @@ export function Navigation() {
                   onClick={() => setMobileMenuOpen(false)}
                   className="block rounded-lg px-4 py-3 text-base font-medium text-secondary-50/70 transition-colors hover:bg-secondary-50/10 hover:text-secondary-50"
                 >
-                  Discover Courts
+                  All Courts
                 </Link>
                 {!user.is_venue_owner && (
                   <Link
