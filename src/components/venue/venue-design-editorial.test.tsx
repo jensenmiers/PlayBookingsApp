@@ -512,6 +512,31 @@ describe('VenueDesignEditorial coming-up pills', () => {
     expect(screen.queryByRole('button', { name: /coming-up-day/i })).not.toBeInTheDocument()
   })
 
+  it('allows request-to-book form fields to shrink within the mobile card', () => {
+    mockUseVenueAvailabilityRange.mockReturnValue({
+      data: [],
+      loading: false,
+      error: null,
+    })
+
+    render(
+      <VenueDesignEditorial
+        venue={createMockVenue({
+          instant_booking: false,
+          booking_mode: 'request_to_book',
+        })}
+      />
+    )
+
+    const dateField = screen.getByText('Date', { selector: 'label' }).closest('div')
+    const startTimeField = screen.getByText('Start time', { selector: 'label' }).closest('div')
+    const durationField = screen.getByText('Duration', { selector: 'label' }).closest('div')
+
+    expect(dateField).toHaveClass('min-w-0')
+    expect(startTimeField).toHaveClass('min-w-0')
+    expect(durationField).toHaveClass('min-w-0')
+  })
+
   it('sends request-to-book details from the review step', async () => {
     mockUseVenueAvailabilityRange.mockReturnValue({
       data: [],

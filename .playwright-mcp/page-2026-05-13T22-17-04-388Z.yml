@@ -1,0 +1,277 @@
+- generic [active] [ref=e1]:
+  - generic [ref=e2]:
+    - generic [ref=e3]:
+      - generic [ref=e4]:
+        - img "First Presbyterian Church of Hollywood photo 1" [ref=e6]
+        - img "First Presbyterian Church of Hollywood photo 2" [ref=e8]
+        - img "First Presbyterian Church of Hollywood photo 3" [ref=e10]
+        - img "First Presbyterian Church of Hollywood photo 4" [ref=e12]
+        - img "First Presbyterian Church of Hollywood photo 5" [ref=e14]
+        - img "First Presbyterian Church of Hollywood photo 6" [ref=e16]
+        - img "First Presbyterian Church of Hollywood photo 7" [ref=e18]
+        - img "First Presbyterian Church of Hollywood photo 8" [ref=e20]
+        - img "First Presbyterian Church of Hollywood photo 9" [ref=e22]
+        - img "First Presbyterian Church of Hollywood photo 10" [ref=e24]
+        - img "First Presbyterian Church of Hollywood photo 11" [ref=e26]
+      - button "View all 11 venue photos" [ref=e28]:
+        - img [ref=e29]
+        - generic [ref=e31]: View all photos
+      - button [ref=e32]:
+        - img [ref=e33]
+      - generic:
+        - generic:
+          - heading "First Presbyterian Church of Hollywood" [level=1]
+          - paragraph: Hollywood, CA
+    - generic [ref=e35]:
+      - generic [ref=e38]:
+        - paragraph [ref=e40]: Request your preferred time
+        - generic [ref=e41]:
+          - generic [ref=e42]:
+            - generic [ref=e43]:
+              - text: Date
+              - textbox "Date" [ref=e44]: 2026-05-19
+            - generic [ref=e45]:
+              - text: Start time
+              - textbox "Start time" [ref=e46]: 18:00
+            - generic [ref=e47]:
+              - text: Duration
+              - generic [ref=e48]:
+                - spinbutton "Duration" [ref=e49]: "1"
+                - generic: hour(s)
+          - button "Review request" [ref=e50]
+      - generic [ref=e51]:
+        - generic [ref=e52]:
+          - heading "Good to know" [level=2] [ref=e53]
+          - generic [ref=e54]:
+            - generic [ref=e56]:
+              - img [ref=e58]
+              - generic [ref=e60]:
+                - generic [ref=e61]: Rate
+                - generic [ref=e62]: $100/hr
+                - generic [ref=e63]: Standard hourly rate
+            - generic [ref=e65]:
+              - img [ref=e67]
+              - generic [ref=e69]:
+                - generic [ref=e70]: Booking
+                - generic [ref=e71]: Request a time to book
+                - generic [ref=e72]: No published availability shown
+            - generic [ref=e74]:
+              - img [ref=e76]
+              - generic [ref=e78]:
+                - generic [ref=e79]: Planning
+                - generic [ref=e80]: Request at least 6 days ahead
+                - generic [ref=e81]: Minimum notice before the date
+            - generic [ref=e83]:
+              - img [ref=e85]
+              - generic [ref=e87]:
+                - generic [ref=e88]: Insurance
+                - generic [ref=e89]: Insurance Required
+                - generic [ref=e90]: Certificate of insurance required before confirmation
+        - generic [ref=e91]:
+          - heading "About" [level=2] [ref=e92]
+          - paragraph [ref=e93]: Large church campus in Hollywood with gymnasium facilities. Community-focused space available for basketball practices, training sessions, pickup runs, and basketball-specific activities. Historic venue with ample parking.
+        - generic [ref=e94]:
+          - heading "Amenities" [level=2] [ref=e95]
+          - generic [ref=e96]:
+            - generic [ref=e97]: Indoor Court
+            - generic [ref=e98]: Parking
+            - generic [ref=e99]: Bench seating
+        - generic [ref=e100]:
+          - img [ref=e101]
+          - generic [ref=e103]:
+            - generic [ref=e104]: Insurance Required
+            - generic [ref=e105]: Certificate of insurance must be verified before booking is confirmed
+        - generic [ref=e106]:
+          - heading "Take the Tour" [level=2] [ref=e107]
+          - generic [ref=e108]:
+            - button "First Presbyterian Church of Hollywood photo 1" [ref=e109]:
+              - img "First Presbyterian Church of Hollywood photo 1" [ref=e110]
+            - button "First Presbyterian Church of Hollywood photo 2" [ref=e112]:
+              - img "First Presbyterian Church of Hollywood photo 2" [ref=e113]
+            - button "First Presbyterian Church of Hollywood photo 3" [ref=e115]:
+              - img "First Presbyterian Church of Hollywood photo 3" [ref=e116]
+            - button "First Presbyterian Church of Hollywood photo 4" [ref=e118]:
+              - img "First Presbyterian Church of Hollywood photo 4" [ref=e119]
+            - button "First Presbyterian Church of Hollywood photo 5" [ref=e121]:
+              - img "First Presbyterian Church of Hollywood photo 5" [ref=e122]
+            - button "First Presbyterian Church of Hollywood photo 6" [ref=e124]:
+              - img "First Presbyterian Church of Hollywood photo 6" [ref=e125]
+            - button "+5" [ref=e127]:
+              - img [ref=e128]
+              - generic [ref=e130]: "+5"
+        - generic [ref=e131]:
+          - heading "Frequently Asked Questions" [level=2] [ref=e132]
+          - generic [ref=e133]:
+            - group [ref=e134]:
+              - generic "How do I reserve this space? ▼" [ref=e135] [cursor=pointer]:
+                - generic [ref=e136]: How do I reserve this space?
+                - generic [ref=e137]: ▼
+            - group [ref=e138]:
+              - generic "What does it cost? ▼" [ref=e139] [cursor=pointer]:
+                - generic [ref=e140]: What does it cost?
+                - generic [ref=e141]: ▼
+            - group [ref=e142]:
+              - generic "How much notice do I need? ▼" [ref=e143] [cursor=pointer]:
+                - generic [ref=e144]: How much notice do I need?
+                - generic [ref=e145]: ▼
+            - group [ref=e146]:
+              - generic "Where is this venue located? ▼" [ref=e147] [cursor=pointer]:
+                - generic [ref=e148]: Where is this venue located?
+                - generic [ref=e149]: ▼
+            - group [ref=e150]:
+              - generic "What amenities are included? ▼" [ref=e151] [cursor=pointer]:
+                - generic [ref=e152]: What amenities are included?
+                - generic [ref=e153]: ▼
+            - group [ref=e154]:
+              - generic "What type of space is this? ▼" [ref=e155] [cursor=pointer]:
+                - generic [ref=e156]: What type of space is this?
+                - generic [ref=e157]: ▼
+            - group [ref=e158]:
+              - generic "Is insurance required? ▼" [ref=e159] [cursor=pointer]:
+                - generic [ref=e160]: Is insurance required?
+                - generic [ref=e161]: ▼
+            - group [ref=e162]:
+              - generic "What is the cancellation policy? ▼" [ref=e163] [cursor=pointer]:
+                - generic [ref=e164]: What is the cancellation policy?
+                - generic [ref=e165]: ▼
+        - generic [ref=e166]:
+          - heading "Map" [level=2] [ref=e167]
+          - generic [ref=e168]:
+            - generic [ref=e169]:
+              - generic:
+                - region "Map" [ref=e170]
+                - img "Map marker" [ref=e171]:
+                  - img [ref=e173]
+              - generic:
+                - generic [ref=e175]:
+                  - button "Zoom in" [ref=e176] [cursor=pointer]
+                  - button "Zoom out" [ref=e178] [cursor=pointer]
+                  - button "Reset bearing to north" [ref=e180]
+                - link "Mapbox homepage" [ref=e183] [cursor=pointer]:
+                  - /url: https://www.mapbox.com/
+            - generic [ref=e185]: First Presbyterian Church of Hollywood
+        - generic [ref=e186]:
+          - heading "Location" [level=2] [ref=e187]
+          - button "Open 1760 N Gower St, Hollywood, CA 90028 in Google Maps" [ref=e188] [cursor=pointer]:
+            - img [ref=e189]
+            - generic [ref=e191]: 1760 N Gower St, Hollywood, CA 90028
+            - img [ref=e192]
+  - region "Notifications (F8)":
+    - list
+  - button "Open Next.js Dev Tools" [ref=e199] [cursor=pointer]:
+    - img [ref=e200]
+  - alert [ref=e203]
+  - button "/agentation v2.2.1 Output Detail Standard React Components Marker Colour Purple Blue Cyan Green Yellow Orange Red Clear on copy/send Block page interactions Manage MCP & Webhooks Manage MCP & Webhooks MCP Connection MCP connection allows agents to receive and act on annotations. Learn more Webhooks Auto-Send The webhook URL will receive live annotation changes and annotation data." [ref=e204] [cursor=pointer]:
+    - img [ref=e206]
+    - generic:
+      - generic:
+        - button:
+          - img
+      - generic:
+        - button [disabled]:
+          - img
+      - generic:
+        - button [disabled]:
+          - img
+      - generic:
+        - button [disabled]:
+          - img
+      - generic:
+        - button [disabled]:
+          - img
+      - generic:
+        - button:
+          - img
+      - generic:
+        - button:
+          - img
+    - generic:
+      - generic:
+        - generic:
+          - generic:
+            - generic: /agentation
+            - generic: v2.2.1
+            - button "Switch to light mode":
+              - generic:
+                - generic:
+                  - img
+          - generic:
+            - generic:
+              - generic:
+                - text: Output Detail
+                - generic:
+                  - generic:
+                    - img
+              - button "Standard":
+                - generic: Standard
+            - generic:
+              - generic:
+                - text: React Components
+                - generic:
+                  - generic:
+                    - img
+              - generic:
+                - checkbox [checked]
+          - generic:
+            - generic: Marker Colour
+            - generic:
+              - button "Purple":
+                - generic "Purple"
+              - button "Blue":
+                - generic "Blue"
+              - button "Cyan":
+                - generic "Cyan"
+              - button "Green":
+                - generic "Green"
+              - button "Yellow":
+                - generic "Yellow"
+              - button "Orange":
+                - generic "Orange"
+              - button "Red":
+                - generic "Red"
+          - generic:
+            - generic:
+              - checkbox "Clear on copy/send"
+              - generic:
+                - text: Clear on copy/send
+                - generic:
+                  - generic:
+                    - img
+            - generic:
+              - checkbox "Block page interactions" [checked]
+              - generic:
+                - img
+              - generic: Block page interactions
+          - generic:
+            - button "Manage MCP & Webhooks":
+              - generic: Manage MCP & Webhooks
+              - generic:
+                - img
+        - generic:
+          - button "Manage MCP & Webhooks":
+            - img
+            - generic: Manage MCP & Webhooks
+          - generic:
+            - generic:
+              - generic:
+                - text: MCP Connection
+                - generic:
+                  - generic:
+                    - img
+            - paragraph:
+              - text: MCP connection allows agents to receive and act on annotations.
+              - link "Learn more":
+                - /url: https://agentation.dev/mcp
+          - generic:
+            - generic:
+              - generic:
+                - text: Webhooks
+                - generic:
+                  - generic:
+                    - img
+              - generic:
+                - generic: Auto-Send
+                - generic:
+                  - checkbox [checked] [disabled]
+            - paragraph: The webhook URL will receive live annotation changes and annotation data.
+            - textbox "Webhook URL"

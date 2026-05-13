@@ -182,7 +182,7 @@ export function RequestToBookPanel({
       {step === 'form' ? (
         <div className="mt-l space-y-l">
           <div className="grid gap-m sm:grid-cols-3">
-            <div className="space-y-xs">
+            <div className="min-w-0 space-y-xs">
               <label htmlFor="request-date" className="text-xs font-medium text-secondary-50/70">
                 Date
               </label>
@@ -195,7 +195,7 @@ export function RequestToBookPanel({
               />
             </div>
 
-            <div className="space-y-xs">
+            <div className="min-w-0 space-y-xs">
               <label htmlFor="request-start-time" className="text-xs font-medium text-secondary-50/70">
                 Start time
               </label>
@@ -208,7 +208,7 @@ export function RequestToBookPanel({
               />
             </div>
 
-            <div className="space-y-xs">
+            <div className="min-w-0 space-y-xs">
               <label htmlFor="request-duration" className="text-xs font-medium text-secondary-50/70">
                 Duration
               </label>
