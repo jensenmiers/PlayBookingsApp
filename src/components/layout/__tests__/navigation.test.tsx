@@ -88,6 +88,55 @@ describe('Navigation', () => {
     expect(forRentersLink.className).not.toContain('bg-secondary-50/10')
   })
 
+  it('shows All Courts in the signed-out desktop navbar', () => {
+    render(<Navigation />)
+
+    const allCourtsLinks = screen.getAllByRole('link', { name: 'All Courts' })
+
+    expect(allCourtsLinks).toHaveLength(1)
+    expect(allCourtsLinks[0]).toHaveAttribute('href', '/venues')
+  })
+
+  it('shows All Courts in the signed-out guest dropdown', () => {
+    render(<Navigation />)
+
+    fireEvent.click(screen.getByRole('button', { name: 'Join / Sign in' }))
+
+    const allCourtsLinks = screen.getAllByRole('link', { name: 'All Courts' })
+
+    expect(allCourtsLinks).toHaveLength(2)
+    expect(allCourtsLinks.every((link) => link.getAttribute('href') === '/venues')).toBe(true)
+  })
+
+  it('shows All Courts in the signed-out mobile menu', () => {
+    render(<Navigation />)
+
+    const mobileMenuButton = screen
+      .getAllByRole('button')
+      .find((button) => button.className.includes('md:hidden'))
+    if (!mobileMenuButton) {
+      throw new Error('Expected mobile menu button to render')
+    }
+
+    fireEvent.click(mobileMenuButton)
+
+    const allCourtsLinks = screen.getAllByRole('link', { name: 'All Courts' })
+
+    expect(allCourtsLinks).toHaveLength(2)
+    expect(allCourtsLinks.every((link) => link.getAttribute('href') === '/venues')).toBe(true)
+  })
+
+  it('shows All Courts in the signed-out host landing navbar', () => {
+    mockPathname = '/become-a-host'
+
+    render(<Navigation />)
+
+    const allCourtsLinks = screen.getAllByRole('link', { name: 'All Courts' })
+
+    expect(allCourtsLinks).toHaveLength(1)
+    expect(allCourtsLinks[0]).toHaveAttribute('href', '/venues')
+  })
+
   it('shows upcoming notice instead of opening host auth from host landing nav CTA', () => {
     mockPathname = '/become-a-host'
 

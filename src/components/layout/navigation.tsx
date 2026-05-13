@@ -213,6 +213,12 @@ export function Navigation() {
               >
                 For Renters
               </Link>
+              <Link
+                href="/venues"
+                className={linkClass('/venues')}
+              >
+                All Courts
+              </Link>
               <Button
                 size="lg"
                 className="px-10 py-3 text-base"
@@ -233,6 +239,12 @@ export function Navigation() {
                 className={linkClass('/search')}
               >
                 Next Availability
+              </Link>
+              <Link
+                href="/venues"
+                className={linkClass('/venues')}
+              >
+                All Courts
               </Link>
               <div className="relative" ref={guestDropdownRef}>
                 <button
@@ -277,6 +289,13 @@ export function Navigation() {
                         className="block px-4 py-2 text-sm text-secondary-50/70 transition-colors hover:bg-secondary-50/10 hover:text-secondary-50"
                       >
                         Next Availability
+                      </Link>
+                      <Link
+                        href="/venues"
+                        onClick={() => setGuestDropdownOpen(false)}
+                        className="block px-4 py-2 text-sm text-secondary-50/70 transition-colors hover:bg-secondary-50/10 hover:text-secondary-50"
+                      >
+                        All Courts
                       </Link>
                       <Link
                         href="/become-a-host"
@@ -393,6 +412,13 @@ export function Navigation() {
                   className="block rounded-lg px-4 py-3 text-base font-medium text-secondary-50/70 transition-colors hover:bg-secondary-50/10 hover:text-secondary-50"
                 >
                   Next Availability
+                </Link>
+                <Link
+                  href="/venues"
+                  onClick={() => setMobileMenuOpen(false)}
+                  className="block rounded-lg px-4 py-3 text-base font-medium text-secondary-50/70 transition-colors hover:bg-secondary-50/10 hover:text-secondary-50"
+                >
+                  All Courts
                 </Link>
                 <Link
                   href="/become-a-host"
