@@ -186,33 +186,39 @@ export function RequestToBookPanel({
               <label htmlFor="request-date" className="text-xs font-medium text-secondary-50/70">
                 Date
               </label>
-              <Input
-                id="request-date"
-                type="date"
-                min={minimumRequestDate}
-                value={date}
-                onChange={(event) => setDate(event.target.value)}
-              />
+              <div className="relative max-w-full overflow-hidden rounded-xl">
+                <Input
+                  id="request-date"
+                  type="date"
+                  min={minimumRequestDate}
+                  value={date}
+                  onChange={(event) => setDate(event.target.value)}
+                  className="block max-w-full appearance-none overflow-hidden"
+                />
+              </div>
             </div>
 
             <div className="min-w-0 space-y-xs">
               <label htmlFor="request-start-time" className="text-xs font-medium text-secondary-50/70">
                 Start time
               </label>
-              <Input
-                id="request-start-time"
-                type="time"
-                step="3600"
-                value={startTime}
-                onChange={(event) => setStartTime(event.target.value)}
-              />
+              <div className="relative max-w-full overflow-hidden rounded-xl">
+                <Input
+                  id="request-start-time"
+                  type="time"
+                  step="3600"
+                  value={startTime}
+                  onChange={(event) => setStartTime(event.target.value)}
+                  className="block max-w-full appearance-none overflow-hidden"
+                />
+              </div>
             </div>
 
             <div className="min-w-0 space-y-xs">
               <label htmlFor="request-duration" className="text-xs font-medium text-secondary-50/70">
                 Duration
               </label>
-              <div className="relative">
+              <div className="relative max-w-full overflow-hidden rounded-xl">
                 <Input
                   id="request-duration"
                   type="number"
@@ -221,7 +227,7 @@ export function RequestToBookPanel({
                   value={durationHours}
                   onChange={(event) => setDurationHours(event.target.value)}
                   aria-describedby="request-duration-unit"
-                  className="pr-4xl"
+                  className="max-w-full pr-4xl"
                 />
                 <span
                   id="request-duration-unit"
