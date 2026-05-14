@@ -315,7 +315,7 @@ export function VenueDesignEditorial({
       {/* Content Container - constrained width for desktop */}
       <div className="max-w-2xl mx-auto">
         {/* Floating Booking Card */}
-        <div className="relative -mt-2xl mx-l z-20">
+        <div className="relative -mt-2xl z-20 mx-l min-w-0 max-w-full">
           <div
             data-testid="venue-booking-card"
             className="bg-secondary-800/90 backdrop-blur-xl rounded-2xl border border-secondary-50/10 shadow-glass overflow-hidden"

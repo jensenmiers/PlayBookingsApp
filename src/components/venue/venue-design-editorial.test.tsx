@@ -541,11 +541,13 @@ describe('VenueDesignEditorial coming-up pills', () => {
     expect(dateField).toHaveClass('min-w-0')
     expect(startTimeField).toHaveClass('min-w-0')
     expect(durationField).toHaveClass('min-w-0')
-    expect(dateControl).toHaveClass('relative', 'max-w-full', 'overflow-hidden', 'rounded-xl')
-    expect(startTimeControl).toHaveClass('relative', 'max-w-full', 'overflow-hidden', 'rounded-xl')
-    expect(durationControl).toHaveClass('relative', 'max-w-full', 'overflow-hidden', 'rounded-xl')
-    expect(dateInput).toHaveClass('block', 'max-w-full', 'appearance-none', 'overflow-hidden')
-    expect(startTimeInput).toHaveClass('block', 'max-w-full', 'appearance-none', 'overflow-hidden')
+    const formGrid = dateField?.parentElement
+    expect(formGrid?.className).toContain('minmax(0,1fr)')
+    expect(dateControl).toHaveClass('relative', 'w-full', 'min-w-0', 'max-w-full', 'overflow-hidden', 'rounded-xl')
+    expect(startTimeControl).toHaveClass('relative', 'w-full', 'min-w-0', 'max-w-full', 'overflow-hidden', 'rounded-xl')
+    expect(durationControl).toHaveClass('relative', 'w-full', 'min-w-0', 'max-w-full', 'overflow-hidden', 'rounded-xl')
+    expect(dateInput).toHaveClass('block', 'w-full', 'min-w-0', 'max-w-full', 'appearance-none', 'overflow-hidden')
+    expect(startTimeInput).toHaveClass('block', 'w-full', 'min-w-0', 'max-w-full', 'appearance-none', 'overflow-hidden')
     expect(durationInput).toHaveClass('max-w-full')
   })
 

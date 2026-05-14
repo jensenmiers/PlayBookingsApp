@@ -175,25 +175,26 @@ export function RequestToBookPanel({
 
   return (
     <div className="p-xl">
-      <div className="space-y-s">
-        <p className="font-serif text-2xl text-secondary-50">Request your preferred time</p>
+      <div className="min-w-0 space-y-s">
+        <p className="break-words font-serif text-2xl text-secondary-50">Request your preferred time</p>
       </div>
 
       {step === 'form' ? (
-        <div className="mt-l space-y-l">
-          <div className="grid gap-m sm:grid-cols-3">
+        <div className="mt-l min-w-0 space-y-l">
+          {/* minmax(0,1fr): default 1fr uses minmax(auto,1fr) so WebKit date/time min-content widens the column */}
+          <div className="grid w-full min-w-0 max-w-full grid-cols-[minmax(0,1fr)] gap-m sm:grid-cols-[repeat(3,minmax(0,1fr))]">
             <div className="min-w-0 space-y-xs">
               <label htmlFor="request-date" className="text-xs font-medium text-secondary-50/70">
                 Date
               </label>
-              <div className="relative max-w-full overflow-hidden rounded-xl">
+              <div className="relative w-full min-w-0 max-w-full overflow-hidden rounded-xl">
                 <Input
                   id="request-date"
                   type="date"
                   min={minimumRequestDate}
                   value={date}
                   onChange={(event) => setDate(event.target.value)}
-                  className="block max-w-full appearance-none overflow-hidden"
+                  className="box-border block w-full min-w-0 max-w-full appearance-none overflow-hidden"
                 />
               </div>
             </div>
@@ -202,14 +203,14 @@ export function RequestToBookPanel({
               <label htmlFor="request-start-time" className="text-xs font-medium text-secondary-50/70">
                 Start time
               </label>
-              <div className="relative max-w-full overflow-hidden rounded-xl">
+              <div className="relative w-full min-w-0 max-w-full overflow-hidden rounded-xl">
                 <Input
                   id="request-start-time"
                   type="time"
                   step="3600"
                   value={startTime}
                   onChange={(event) => setStartTime(event.target.value)}
-                  className="block max-w-full appearance-none overflow-hidden"
+                  className="box-border block w-full min-w-0 max-w-full appearance-none overflow-hidden"
                 />
               </div>
             </div>
@@ -218,7 +219,7 @@ export function RequestToBookPanel({
               <label htmlFor="request-duration" className="text-xs font-medium text-secondary-50/70">
                 Duration
               </label>
-              <div className="relative max-w-full overflow-hidden rounded-xl">
+              <div className="relative w-full min-w-0 max-w-full overflow-hidden rounded-xl">
                 <Input
                   id="request-duration"
                   type="number"
