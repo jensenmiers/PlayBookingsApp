@@ -3,8 +3,17 @@
  * Tests opt-in location behavior: no request on mount, requestLocation triggers getCurrentPosition
  */
 
-import { renderHook, act } from '@testing-library/react'
-import { useUserLocation } from '../useVenuesWithNextAvailable'
+import { renderHook, act, waitFor } from '@testing-library/react'
+
+const mockRpc = jest.fn()
+
+jest.mock('@/lib/supabase/client', () => ({
+  createClient: () => ({
+    rpc: mockRpc,
+  }),
+}))
+
+import { useUserLocation, useVenuesWithNextAvailable } from '../useVenuesWithNextAvailable'
 
 describe('useUserLocation', () => {
   let mockGetCurrentPosition: jest.Mock
@@ -138,5 +147,44 @@ describe('useUserLocation', () => {
 
     expect(result.current.error).toBe('Geolocation is not supported')
     expect(result.current.loading).toBe(false)
+  })
+})
+
+describe('useVenuesWithNextAvailable', () => {
+  beforeEach(() => {
+    jest.clearAllMocks()
+  })
+
+  it('uses compact weekday display text for next available slots', async () => {
+    mockRpc.mockResolvedValue({
+      data: [
+        {
+          venue_id: 'venue-1',
+          venue_name: 'Crosscourt',
+          venue_city: 'Los Angeles',
+          venue_state: 'CA',
+          venue_address: '123 Court St',
+          hourly_rate: 125,
+          instant_booking: true,
+          insurance_required: false,
+          latitude: 34.05,
+          longitude: -118.24,
+          distance_miles: null,
+          next_slot_id: 'slot-1',
+          next_slot_date: '2026-02-20',
+          next_slot_start_time: '18:00:00',
+          next_slot_end_time: '19:00:00',
+        },
+      ],
+      error: null,
+    })
+
+    const { result } = renderHook(() => useVenuesWithNextAvailable())
+
+    await waitFor(() => {
+      expect(result.current.loading).toBe(false)
+    })
+
+    expect(result.current.data?.[0].nextAvailable?.displayText).toBe('Fri 6:00 PM')
   })
 })

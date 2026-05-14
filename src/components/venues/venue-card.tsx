@@ -10,7 +10,7 @@ import { BookingModeChip } from '@/components/venue/shared'
 import { deriveVenuePhotos } from '@/lib/venueMedia'
 
 interface NextAvailableInfo {
-  displayText: string  // "Today 3:00 PM" or "Tomorrow 9:00 AM"
+  displayText: string  // "Fri 6:00 PM"
   slotId?: string
 }
 

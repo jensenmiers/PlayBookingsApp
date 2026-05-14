@@ -1,4 +1,5 @@
-import { buildFeaturedCourts, formatFeaturedAvailability } from '../home-featured-courts'
+import { buildFeaturedCourts } from '../home-featured-courts'
+import { formatCompactNextAvailable } from '@/lib/nextAvailableDisplay'
 import type { Venue } from '@/types'
 import type { MapVenue } from '@/hooks/useVenuesWithNextAvailable'
 
@@ -44,7 +45,7 @@ function createMapVenue(overrides: Partial<MapVenue> = {}): MapVenue {
       date: '2026-02-20',
       startTime: '18:00:00',
       endTime: '19:00:00',
-      displayText: 'Tomorrow 6:00 PM',
+      displayText: 'Fri 6:00 PM',
     },
     ...overrides,
   }
@@ -52,7 +53,7 @@ function createMapVenue(overrides: Partial<MapVenue> = {}): MapVenue {
 
 describe('home featured courts mapping', () => {
   it('formats availability with weekday and time', () => {
-    expect(formatFeaturedAvailability('2026-02-20', '18:00:00')).toBe('Fri 6:00 PM')
+    expect(formatCompactNextAvailable('2026-02-20', '18:00:00')).toBe('Fri 6:00 PM')
   })
 
   it('maps dynamic featured cards from venues and next availability', () => {
@@ -80,7 +81,7 @@ describe('home featured courts mapping', () => {
           date: '2026-02-20',
           startTime: '18:00:00',
           endTime: '19:00:00',
-          displayText: 'Tomorrow 6:00 PM',
+          displayText: 'Fri 6:00 PM',
         },
       }),
       createMapVenue({
@@ -91,7 +92,7 @@ describe('home featured courts mapping', () => {
           date: '2026-02-19',
           startTime: '16:00:00',
           endTime: '17:00:00',
-          displayText: 'Today 4:00 PM',
+          displayText: 'Thu 4:00 PM',
         },
       }),
     ]

@@ -188,6 +188,67 @@ describe('BookingService.createBooking - venue policy enforcement', () => {
     })
   })
 
+  it('rejects bookings before the exact elapsed minimum advance days threshold', async () => {
+    jest.setSystemTime(new Date('2026-05-14T04:13:00.000Z'))
+    ;(createClient as jest.Mock).mockResolvedValue(
+      makeSupabase({
+        adminConfig: {
+          venue_id: 'venue-123',
+          min_advance_booking_days: 2,
+          min_advance_lead_time_hours: 0,
+          blackout_dates: [],
+          holiday_dates: [],
+          operating_hours: [],
+        },
+      })
+    )
+
+    await expect(
+      bookingService.createBooking(
+        {
+          venue_id: 'venue-123',
+          date: '2026-05-15',
+          start_time: '18:00:00',
+          end_time: '19:00:00',
+        },
+        'user-123'
+      )
+    ).rejects.toMatchObject({
+      message: expect.stringContaining('minimum advance booking period'),
+      statusCode: 400,
+    })
+  })
+
+  it('allows bookings at the exact elapsed minimum advance days threshold', async () => {
+    jest.setSystemTime(new Date('2026-05-14T04:13:00.000Z'))
+    ;(createClient as jest.Mock).mockResolvedValue(
+      makeSupabase({
+        adminConfig: {
+          venue_id: 'venue-123',
+          min_advance_booking_days: 2,
+          min_advance_lead_time_hours: 0,
+          blackout_dates: [],
+          holiday_dates: [],
+          operating_hours: [],
+        },
+      })
+    )
+
+    await expect(
+      bookingService.createBooking(
+        {
+          venue_id: 'venue-123',
+          date: '2026-05-15',
+          start_time: '21:13:00',
+          end_time: '22:13:00',
+        },
+        'user-123'
+      )
+    ).resolves.toMatchObject({
+      id: 'booking-123',
+    })
+  })
+
   it('does not enforce legacy max_advance_booking_days from venue records', async () => {
     ;(createClient as jest.Mock).mockResolvedValue(
       makeSupabase({

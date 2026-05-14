@@ -128,11 +128,11 @@ describe('VenueCard', () => {
     render(
       <VenueCard
         venue={createVenue()}
-        nextAvailable={{ displayText: 'Today 3:00 PM' }}
+        nextAvailable={{ displayText: 'Fri 3:00 PM' }}
       />
     )
 
-    expect(screen.getByText(/Today 3:00 PM/)).toBeInTheDocument()
+    expect(screen.getByText(/Fri 3:00 PM/)).toBeInTheDocument()
   })
 
   it('does not show next available badge when not provided', () => {

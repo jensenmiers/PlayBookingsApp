@@ -16,8 +16,8 @@ It is intentionally not a column-by-column reference.
 ## Automated Snapshot (Generated)
 
 <!-- AUTO-SNAPSHOT:DB:START -->
-- Generated at: 2026-05-13 (America/Los_Angeles)
-- Latest migration in repo: `20260512000200_deactivate_hidden_venues.sql` (49 total)
+- Generated at: 2026-05-14 (America/Los_Angeles)
+- Latest migration in repo: `20260514000100_exact_minimum_advance_policy.sql` (50 total)
 - Distinct tables referenced in app code via `.from()`: 21
 - App tables referenced in app code: `audit_logs`, `auth_oauth_states`, `availability`, `bookings`, `drop_in_template_sync_queue`, `external_availability_blocks`, `payments`, `recurring_bookings`, `regular_template_sync_queue`, `slot_instances`, `slot_interactions`, `slot_modal_content`, `slot_templates`, `users`, `venue_admin_configs`, `venue_availability_publish_states`, `venue_calendar_integrations`, `venue_calendar_oauth_states`, `venue_calendar_tokens`, `venue_media`, `venues`
 - Live key-table check: 19/19 tables available
@@ -69,6 +69,7 @@ It is intentionally not a column-by-column reference.
 
 1. Policy control moved to `venue_admin_configs`:
    - Minimum advance controls are now `min_advance_booking_days` + `min_advance_lead_time_hours`.
+   - Minimum advance days are exact elapsed 24-hour periods, not date-only gates.
    - Same-day cutoff was removed.
    - Policy evaluation is anchored to `America/Los_Angeles`.
 2. Regular schedule source is now template-driven platform-wide:

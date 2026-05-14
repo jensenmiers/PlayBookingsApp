@@ -282,9 +282,8 @@ function formatPreviewWindowLabel(startTime: string, endTime: string): string {
 
 function formatPolicyPreview(minDays: number, minLeadHours: number): string {
   const now = new Date()
-  const earliest = new Date(now)
-  earliest.setDate(earliest.getDate() + minDays)
-  earliest.setHours(earliest.getHours() + minLeadHours)
+  const minimumNoticeMs = (minDays * 24 + minLeadHours) * 60 * 60 * 1000
+  const earliest = new Date(now.getTime() + minimumNoticeMs)
 
   const label = earliest.toLocaleString('en-US', {
     timeZone: PLATFORM_TIME_ZONE,

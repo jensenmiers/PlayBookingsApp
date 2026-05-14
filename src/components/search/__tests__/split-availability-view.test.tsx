@@ -42,7 +42,7 @@ const mockVenue = {
     date: '2026-02-10',
     startTime: '14:00:00',
     endTime: '15:00:00',
-    displayText: 'Today 2:00 PM',
+    displayText: 'Tue 2:00 PM',
   },
 }
 

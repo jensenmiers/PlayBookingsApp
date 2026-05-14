@@ -86,6 +86,74 @@ describe('venue admin policy enforcement', () => {
     })
   })
 
+  it('treats minimum advance booking days as exact elapsed 24-hour periods', () => {
+    const config = normalizeVenueAdminConfig('venue-1', {
+      min_advance_booking_days: 2,
+      min_advance_lead_time_hours: 0,
+      blackout_dates: [],
+      holiday_dates: [],
+      operating_hours: [],
+    })
+
+    const now = new Date('2026-05-14T04:13:00.000Z')
+
+    expect(getBookingPolicyViolation(
+      {
+        date: '2026-05-15',
+        start_time: '18:00:00',
+        end_time: '19:00:00',
+      },
+      config,
+      now
+    )).toMatchObject({
+      code: 'min_advance_days',
+    })
+
+    expect(getBookingPolicyViolation(
+      {
+        date: '2026-05-15',
+        start_time: '21:13:00',
+        end_time: '22:13:00',
+      },
+      config,
+      now
+    )).toBeNull()
+  })
+
+  it('adds minimum lead time hours on top of exact minimum advance days', () => {
+    const config = normalizeVenueAdminConfig('venue-1', {
+      min_advance_booking_days: 2,
+      min_advance_lead_time_hours: 3,
+      blackout_dates: [],
+      holiday_dates: [],
+      operating_hours: [],
+    })
+
+    const now = new Date('2026-05-14T04:13:00.000Z')
+
+    expect(getBookingPolicyViolation(
+      {
+        date: '2026-05-15',
+        start_time: '23:59:00',
+        end_time: '23:59:59',
+      },
+      config,
+      now
+    )).toMatchObject({
+      code: 'min_advance_days',
+    })
+
+    expect(getBookingPolicyViolation(
+      {
+        date: '2026-05-16',
+        start_time: '00:13:00',
+        end_time: '01:13:00',
+      },
+      config,
+      now
+    )).toBeNull()
+  })
+
   it('does not block bookings based on operating_hours windows', () => {
     const config = normalizeVenueAdminConfig('venue-1', {
       min_advance_booking_days: 0,

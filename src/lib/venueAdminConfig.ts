@@ -13,27 +13,6 @@ export interface BookingPolicyViolation {
 export const DEFAULT_REVIEW_CADENCE_DAYS = 30
 export const PLATFORM_TIME_ZONE = 'America/Los_Angeles'
 
-function getDatePartsInTimeZone(date: Date, timeZone: string): { year: number; month: number; day: number } {
-  const parts = new Intl.DateTimeFormat('en-US', {
-    timeZone,
-    year: 'numeric',
-    month: '2-digit',
-    day: '2-digit',
-  }).formatToParts(date)
-  const get = (type: 'year' | 'month' | 'day') => Number(parts.find((part) => part.type === type)?.value || '0')
-
-  return {
-    year: get('year'),
-    month: get('month'),
-    day: get('day'),
-  }
-}
-
-function toDateStringInTimeZone(date: Date, timeZone: string): string {
-  const { year, month, day } = getDatePartsInTimeZone(date, timeZone)
-  return `${year}-${String(month).padStart(2, '0')}-${String(day).padStart(2, '0')}`
-}
-
 function parseDateString(value: string): { year: number; month: number; day: number } {
   const [year, month, day] = value.split('-').map(Number)
   return { year, month, day }
@@ -75,13 +54,6 @@ function zonedDateTimeToDate(dateValue: string, timeValue: string, timeZone: str
   }
 
   return new Date(utcMs)
-}
-
-function addDays(dateValue: string, days: number): string {
-  const { year, month, day } = parseDateString(dateValue)
-  const next = new Date(year, month - 1, day)
-  next.setDate(next.getDate() + days)
-  return `${next.getFullYear()}-${String(next.getMonth() + 1).padStart(2, '0')}-${String(next.getDate()).padStart(2, '0')}`
 }
 
 function normalizeTime(value: string): string {
@@ -206,25 +178,22 @@ export function getBookingPolicyViolation(
   now: Date = new Date()
 ): BookingPolicyViolation | null {
   const bookingDate = args.date
-  const today = toDateStringInTimeZone(now, PLATFORM_TIME_ZONE)
+  const bookingStart = zonedDateTimeToDate(args.date, args.start_time, PLATFORM_TIME_ZONE)
 
   const minAdvanceDays = Math.max(0, config.min_advance_booking_days || 0)
-  if (minAdvanceDays > 0) {
-    const earliestAllowedDate = addDays(today, minAdvanceDays)
-    if (bookingDate < earliestAllowedDate) {
-      return {
-        code: 'min_advance_days',
-        message: `Booking does not meet minimum advance booking period of ${minAdvanceDays} day(s)`,
-      }
-    }
-  }
-
-  const bookingStart = zonedDateTimeToDate(args.date, args.start_time, PLATFORM_TIME_ZONE)
   const minLeadHours = Math.max(0, config.min_advance_lead_time_hours || 0)
-  if (minLeadHours > 0) {
+  const requiredHours = minAdvanceDays * 24 + minLeadHours
+  if (requiredHours > 0) {
     const diffMs = bookingStart.getTime() - now.getTime()
-    const requiredMs = minLeadHours * 60 * 60 * 1000
+    const requiredMs = requiredHours * 60 * 60 * 1000
     if (diffMs < requiredMs) {
+      if (minAdvanceDays > 0) {
+        return {
+          code: 'min_advance_days',
+          message: `Booking does not meet minimum advance booking period of ${minAdvanceDays} day(s)`,
+        }
+      }
+
       return {
         code: 'min_lead_time',
         message: `Booking does not meet minimum lead time of ${minLeadHours} hour(s)`,

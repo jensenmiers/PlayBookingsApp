@@ -7,6 +7,7 @@
 
 import { useState, useEffect, useCallback } from 'react'
 import { createClient } from '@/lib/supabase/client'
+import { formatCompactNextAvailable } from '@/lib/nextAvailableDisplay'
 
 /**
  * Venue data with next available slot for map display
@@ -31,7 +32,7 @@ export interface NextAvailableSlot {
   date: string        // ISO date string (YYYY-MM-DD)
   startTime: string   // HH:MM:SS
   endTime: string     // HH:MM:SS
-  displayText: string // "Today 3:00 PM" or "Tomorrow 9:00 AM" or "Jan 25 2:00 PM"
+  displayText: string // "Fri 6:00 PM"
 }
 
 interface UseVenuesOptions {
@@ -50,48 +51,6 @@ interface UseVenuesResult {
   loading: boolean
   error: string | null
   refetch: () => Promise<void>
-}
-
-/**
- * Format the next available slot for display
- * Returns "Today 3:00 PM", "Tomorrow 9:00 AM", or "Jan 25 2:00 PM"
- */
-function formatNextAvailable(dateStr: string, timeStr: string): string {
-  // Parse date as local date (not UTC)
-  const [year, month, day] = dateStr.split('-').map(Number)
-  const slotDate = new Date(year, month - 1, day)
-  
-  const today = new Date()
-  today.setHours(0, 0, 0, 0)
-  
-  const tomorrow = new Date(today)
-  tomorrow.setDate(tomorrow.getDate() + 1)
-
-  // Format time (handle both HH:MM:SS and HH:MM formats)
-  const timeParts = timeStr.split(':')
-  const hours = parseInt(timeParts[0], 10)
-  const minutes = parseInt(timeParts[1], 10)
-  
-  const timeDate = new Date()
-  timeDate.setHours(hours, minutes, 0, 0)
-  const formattedTime = timeDate.toLocaleTimeString('en-US', { 
-    hour: 'numeric', 
-    minute: '2-digit',
-    hour12: true 
-  })
-
-  // Format date portion
-  if (slotDate.getTime() === today.getTime()) {
-    return `Today ${formattedTime}`
-  } else if (slotDate.getTime() === tomorrow.getTime()) {
-    return `Tomorrow ${formattedTime}`
-  } else {
-    const formattedDate = slotDate.toLocaleDateString('en-US', { 
-      month: 'short', 
-      day: 'numeric' 
-    })
-    return `${formattedDate} ${formattedTime}`
-  }
 }
 
 /**
@@ -169,7 +128,7 @@ export function useVenuesWithNextAvailable(options: UseVenuesOptions = {}): UseV
           date: row.next_slot_date,
           startTime: row.next_slot_start_time,
           endTime: row.next_slot_end_time || '',
-          displayText: formatNextAvailable(row.next_slot_date, row.next_slot_start_time),
+          displayText: formatCompactNextAvailable(row.next_slot_date, row.next_slot_start_time),
         } : null,
       }))
 

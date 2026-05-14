@@ -64,7 +64,7 @@ const mockAvailabilityVenues: MapVenue[] = [
       date: '2026-03-25',
       startTime: '18:00:00',
       endTime: '19:00:00',
-      displayText: 'Mar 25 6:00 PM',
+      displayText: 'Wed 6:00 PM',
     },
   },
   {
@@ -84,7 +84,7 @@ const mockAvailabilityVenues: MapVenue[] = [
       date: '2026-03-26',
       startTime: '19:00:00',
       endTime: '20:00:00',
-      displayText: 'Mar 26 7:00 PM',
+      displayText: 'Thu 7:00 PM',
     },
   },
 ]

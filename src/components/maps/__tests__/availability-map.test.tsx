@@ -49,7 +49,7 @@ const mockVenue = {
     date: '2026-02-20',
     startTime: '18:00:00',
     endTime: '19:00:00',
-    displayText: 'Tomorrow 6:00 PM',
+    displayText: 'Fri 6:00 PM',
   },
 }
 
@@ -69,7 +69,7 @@ const mockVenueTwo = {
     date: '2026-02-20',
     startTime: '20:00:00',
     endTime: '21:00:00',
-    displayText: 'Today 8:00 PM',
+    displayText: 'Thu 8:00 PM',
   },
 }
 
@@ -108,7 +108,7 @@ describe('AvailabilityMap popup readability', () => {
   it('renders available markers above unavailable markers on initial load', () => {
     render(<AvailabilityMap venues={[mockUnavailableVenue, mockVenue]} />)
 
-    const availableBadge = screen.getByText('Tomorrow 6:00 PM')
+    const availableBadge = screen.getByText('Fri 6:00 PM')
     const availableMarker = availableBadge.closest('[data-testid="mock-marker"]')
     const unavailableMarker = screen.getAllByTestId('mock-marker').find((marker) => marker !== availableMarker)
 
@@ -141,10 +141,10 @@ describe('AvailabilityMap popup readability', () => {
     )
 
     const selectedAvailableMarker = screen
-      .getByText('Today 8:00 PM')
+      .getByText('Thu 8:00 PM')
       .closest('[data-testid="mock-marker"]')
     const unselectedAvailableMarker = screen
-      .getByText('Tomorrow 6:00 PM')
+      .getByText('Fri 6:00 PM')
       .closest('[data-testid="mock-marker"]')
 
     expect(selectedAvailableMarker).not.toBeNull()

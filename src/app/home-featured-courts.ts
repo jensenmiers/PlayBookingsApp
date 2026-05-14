@@ -2,6 +2,7 @@ import { slugify } from '@/lib/utils'
 import type { MapVenue } from '@/hooks/useVenuesWithNextAvailable'
 import type { Venue } from '@/types'
 import { deriveVenuePhotos } from '@/lib/venueMedia'
+import { formatCompactNextAvailable } from '@/lib/nextAvailableDisplay'
 
 export interface FeaturedCourt {
   id: string
@@ -18,29 +19,11 @@ function parseLocalDate(dateStr: string): Date {
   return new Date(year, month - 1, day)
 }
 
-function parseLocalTime(timeStr: string): Date {
-  const [hours, minutes] = timeStr.split(':').map(Number)
-  const date = new Date()
-  date.setHours(hours, minutes, 0, 0)
-  return date
-}
-
 function getSortTimestamp(dateStr: string, timeStr: string): number {
   const slotDate = parseLocalDate(dateStr)
   const [hours, minutes] = timeStr.split(':').map(Number)
   slotDate.setHours(hours, minutes, 0, 0)
   return slotDate.getTime()
-}
-
-export function formatFeaturedAvailability(dateStr: string, timeStr: string): string {
-  const dayLabel = parseLocalDate(dateStr).toLocaleDateString('en-US', { weekday: 'short' })
-  const timeLabel = parseLocalTime(timeStr).toLocaleTimeString('en-US', {
-    hour: 'numeric',
-    minute: '2-digit',
-    hour12: true,
-  })
-
-  return `${dayLabel} ${timeLabel}`
 }
 
 export function buildFeaturedCourts(
@@ -73,7 +56,7 @@ export function buildFeaturedCourts(
         name: venue.name,
         type: venue.venue_type || 'Sports Facility',
         hourlyRate: venue.hourly_rate,
-        nextAvailable: formatFeaturedAvailability(nextSlot.date, nextSlot.startTime),
+        nextAvailable: formatCompactNextAvailable(nextSlot.date, nextSlot.startTime),
         image: deriveVenuePhotos(venue)[0] || null,
         href: `/venue/${slugify(venue.name)}`,
         sortTime: getSortTimestamp(nextSlot.date, nextSlot.startTime),

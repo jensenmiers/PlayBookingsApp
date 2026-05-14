@@ -933,6 +933,17 @@ describe('SuperAdminVenueConfigPage', () => {
     })
   })
 
+  it('previews minimum advance booking days as exact elapsed 24-hour periods', async () => {
+    jest.setSystemTime(new Date('2026-05-14T04:13:00.000Z'))
+
+    render(<SuperAdminVenueConfigPage />)
+
+    const minAdvanceDaysInput = await screen.findByLabelText(/minimum advance booking days/i)
+    fireEvent.change(minAdvanceDaysInput, { target: { value: '2' } })
+
+    expect(await screen.findByText(/earliest allowed start is Fri, May 15, 9:13 PM PT/i)).toBeInTheDocument()
+  })
+
   it('saves operating hours when base availability cards are filled', async () => {
     mockPatchAdminVenueConfig.mockResolvedValue({})
 

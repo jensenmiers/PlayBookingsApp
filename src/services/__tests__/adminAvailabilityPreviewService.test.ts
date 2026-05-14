@@ -137,6 +137,33 @@ describe('adminAvailabilityPreviewService', () => {
     ])
   })
 
+  it('filters draft slots before exact elapsed minimum advance days', () => {
+    const days = buildDraftAvailabilityPreviewDays({
+      dateRange: ['2026-05-15'],
+      request: {
+        ...baseRequest,
+        operating_hours: [
+          { day_of_week: 5, start_time: '18:00:00', end_time: '19:00:00' },
+          { day_of_week: 5, start_time: '21:13:00', end_time: '22:13:00' },
+        ],
+        min_advance_booking_days: 2,
+      },
+      now: new Date('2026-05-14T04:13:00.000Z'),
+      bookings: [],
+      recurringBookings: [],
+      externalBlocks: [],
+    })
+
+    expect(days).toEqual([
+      {
+        date: '2026-05-15',
+        private_booking: [{ start_time: '21:13:00', end_time: '22:13:00' }],
+        drop_in: [],
+        reason_chips: ['advance_notice'],
+      },
+    ])
+  })
+
   it('adds concise reason chips for Google blocks and fully booked days', () => {
     const days = buildDraftAvailabilityPreviewDays({
       dateRange: ['2026-03-10'],
