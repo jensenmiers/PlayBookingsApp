@@ -343,7 +343,10 @@ function MapVenueCard({
   isSelected: boolean
   onClick: () => void 
 }) {
-  const bookingMode = getBookingModeDisplay(venue.instantBooking, 'compact')
+  const bookingMode = getBookingModeDisplay(
+    { booking_mode: venue.bookingMode, instant_booking: venue.instantBooking },
+    'compact'
+  )
 
   return (
     <div 

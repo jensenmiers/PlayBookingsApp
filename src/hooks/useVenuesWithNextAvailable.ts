@@ -8,6 +8,7 @@
 import { useState, useEffect, useCallback } from 'react'
 import { createClient } from '@/lib/supabase/client'
 import { formatCompactNextAvailable } from '@/lib/nextAvailableDisplay'
+import type { BookingMode } from '@/types'
 
 /**
  * Venue data with next available slot for map display
@@ -20,6 +21,7 @@ export interface MapVenue {
   address: string
   hourlyRate: number
   instantBooking: boolean
+  bookingMode: BookingMode | null
   insuranceRequired: boolean
   latitude: number
   longitude: number
@@ -103,6 +105,7 @@ export function useVenuesWithNextAvailable(options: UseVenuesOptions = {}): UseV
         venue_address: string
         hourly_rate: number
         instant_booking: boolean
+        booking_mode: BookingMode | null
         insurance_required: boolean
         latitude: number
         longitude: number
@@ -119,6 +122,7 @@ export function useVenuesWithNextAvailable(options: UseVenuesOptions = {}): UseV
         address: row.venue_address,
         hourlyRate: Number(row.hourly_rate),
         instantBooking: row.instant_booking,
+        bookingMode: row.booking_mode,
         insuranceRequired: row.insurance_required,
         latitude: Number(row.latitude),
         longitude: Number(row.longitude),

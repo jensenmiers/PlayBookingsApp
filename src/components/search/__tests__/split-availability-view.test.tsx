@@ -33,6 +33,7 @@ const mockVenue = {
   address: '123 Test St',
   hourlyRate: 50,
   instantBooking: true,
+  bookingMode: 'instant_slots',
   insuranceRequired: false,
   latitude: 34.05,
   longitude: -118.24,
@@ -51,6 +52,15 @@ const mockNonInstantVenue = {
   id: 'venue-2',
   name: 'Request Court',
   instantBooking: false,
+  bookingMode: 'approval_slots',
+}
+
+const mockRequestToBookVenue = {
+  ...mockVenue,
+  id: 'venue-3',
+  name: 'Request A Time Court',
+  instantBooking: false,
+  bookingMode: 'request_to_book',
 }
 
 describe('SplitAvailabilityView - Location button', () => {
@@ -171,5 +181,19 @@ describe('SplitAvailabilityView - Location button', () => {
     render(<SplitAvailabilityView />)
 
     expect(screen.getByText('Host Approval')).toBeInTheDocument()
+  })
+
+  it('shows Request a time badge for request-to-book venues in the list panel', () => {
+    ;(useVenuesWithNextAvailable as jest.Mock).mockReturnValue({
+      data: [mockRequestToBookVenue],
+      loading: false,
+      error: null,
+      refetch: jest.fn(),
+    })
+
+    render(<SplitAvailabilityView />)
+
+    expect(screen.getByText('Request a time')).toBeInTheDocument()
+    expect(screen.queryByText('Instant')).not.toBeInTheDocument()
   })
 })

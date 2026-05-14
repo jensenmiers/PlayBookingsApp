@@ -25,6 +25,8 @@ dotenv.config({ path: resolve(process.cwd(), '.env') })
 
 const STORAGE_BUCKET = 'venue-photos'
 
+type BookingMode = 'instant_slots' | 'approval_slots' | 'request_to_book'
+
 interface VenueSeed {
   name: string
   description: string
@@ -38,6 +40,7 @@ interface VenueSeed {
   hourly_rate: number
   weekend_rate: number
   instant_booking: boolean
+  booking_mode: BookingMode
   insurance_required: boolean
   max_advance_booking_days: number
   photos: string[]
@@ -71,6 +74,7 @@ const VENUES: VenueSeed[] = [
     hourly_rate: 80,
     weekend_rate: 100,
     instant_booking: false,
+    booking_mode: 'approval_slots',
     insurance_required: true,
     max_advance_booking_days: 90,
     photos: [], // Will be populated when images are uploaded
@@ -90,6 +94,7 @@ const VENUES: VenueSeed[] = [
     hourly_rate: 60,
     weekend_rate: 75,
     instant_booking: true,
+    booking_mode: 'instant_slots',
     insurance_required: false,
     max_advance_booking_days: 30,
     photos: [],
@@ -109,6 +114,7 @@ const VENUES: VenueSeed[] = [
     hourly_rate: 120,
     weekend_rate: 150,
     instant_booking: true,
+    booking_mode: 'instant_slots',
     insurance_required: false,
     max_advance_booking_days: 60,
     photos: [],
@@ -128,6 +134,7 @@ const VENUES: VenueSeed[] = [
     hourly_rate: 75,
     weekend_rate: 95,
     instant_booking: false,
+    booking_mode: 'approval_slots',
     insurance_required: false,
     max_advance_booking_days: 30,
     photos: [],
@@ -147,6 +154,7 @@ const VENUES: VenueSeed[] = [
     hourly_rate: 90,
     weekend_rate: 115,
     instant_booking: false,
+    booking_mode: 'approval_slots',
     insurance_required: true,
     max_advance_booking_days: 60,
     photos: [],
@@ -165,7 +173,8 @@ const VENUES: VenueSeed[] = [
     longitude: -118.4123853,
     hourly_rate: 85,
     weekend_rate: 105,
-    instant_booking: true,
+    instant_booking: false,
+    booking_mode: 'request_to_book',
     insurance_required: false,
     max_advance_booking_days: 45,
     photos: [],
@@ -185,6 +194,7 @@ const VENUES: VenueSeed[] = [
     hourly_rate: 100,
     weekend_rate: 100,
     instant_booking: false,
+    booking_mode: 'request_to_book',
     insurance_required: true,
     max_advance_booking_days: 30,
     photos: [],
@@ -203,7 +213,8 @@ const VENUES: VenueSeed[] = [
     longitude: -118.2445363,
     hourly_rate: 100,
     weekend_rate: 125,
-    instant_booking: true,
+    instant_booking: false,
+    booking_mode: 'request_to_book',
     insurance_required: false,
     max_advance_booking_days: 60,
     photos: [],
