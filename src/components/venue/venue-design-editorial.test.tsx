@@ -361,7 +361,7 @@ describe('VenueDesignEditorial coming-up pills', () => {
       />
     )
 
-    expect(screen.getByText(/Today\s*·\s*12:00 PM - 1:00 PM/)).toBeInTheDocument()
+    expect(screen.getByText(/Today Feb 21\s*·\s*12:00 PM - 1:00 PM/)).toBeInTheDocument()
     expect(document.querySelector('.animate-pulse')).not.toBeInTheDocument()
     expect(mockUseVenueAvailabilityRange).toHaveBeenCalledWith(
       'venue-1',
@@ -392,6 +392,8 @@ describe('VenueDesignEditorial coming-up pills', () => {
 
     // Exactly 7 day pills
     expect(screen.getAllByRole('button', { name: /coming-up-day/i })).toHaveLength(7)
+    expect(screen.getByText('Today Feb 21')).toBeInTheDocument()
+    expect(screen.getByText('Mon Feb 23')).toBeInTheDocument()
 
     // More dates buttons exist (mobile + desktop variants)
     const moreDatesButtons = screen.getAllByRole('button', { name: /more dates/i })
@@ -431,7 +433,7 @@ describe('VenueDesignEditorial coming-up pills', () => {
 
     render(<VenueDesignEditorial venue={createMockVenue()} />)
 
-    expect(screen.getByText(/Today\s*·\s*12:00 PM - 1:00 PM/)).toBeInTheDocument()
+    expect(screen.getByText(/Today Feb 21\s*·\s*12:00 PM - 1:00 PM/)).toBeInTheDocument()
   })
 
   it('does not apply an extra client-side top-of-hour cutoff to same-day slots', () => {
@@ -445,7 +447,7 @@ describe('VenueDesignEditorial coming-up pills', () => {
 
     render(<VenueDesignEditorial venue={createMockVenue()} />)
 
-    expect(screen.getByText(/Today\s*·\s*11:00 AM - 12:00 PM/)).toBeInTheDocument()
+    expect(screen.getByText(/Today Feb 21\s*·\s*11:00 AM - 12:00 PM/)).toBeInTheDocument()
   })
 
   it('shows Host Approval with a clock icon for request slots', () => {

@@ -34,7 +34,7 @@ export interface NextAvailableSlot {
   date: string        // ISO date string (YYYY-MM-DD)
   startTime: string   // HH:MM:SS
   endTime: string     // HH:MM:SS
-  displayText: string // "Fri 6:00 PM"
+  displayText: string // "Fri Feb 20, 6 PM"
 }
 
 interface UseVenuesOptions {

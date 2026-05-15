@@ -206,15 +206,15 @@ export function VenueDesignEditorial({
   ]
 
   const getDateDisplay = (dateStr: string) => {
-    if (dateStr === todayStr) return 'Today'
     const date = parseLocalDate(dateStr)
-    return format(date, 'EEEE')
+    if (dateStr === todayStr) return `Today ${format(date, 'MMM d')}`
+    return format(date, 'EEEE MMM d')
   }
 
   const getShortDateDisplay = (dateStr: string) => {
-    if (dateStr === todayStr) return 'Today'
     const date = parseLocalDate(dateStr)
-    return format(date, 'EEE')
+    if (dateStr === todayStr) return `Today ${format(date, 'MMM d')}`
+    return format(date, 'EEE MMM d')
   }
 
   const handleDateClick = (date: string) => {

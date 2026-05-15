@@ -45,15 +45,15 @@ function createMapVenue(overrides: Partial<MapVenue> = {}): MapVenue {
       date: '2026-02-20',
       startTime: '18:00:00',
       endTime: '19:00:00',
-      displayText: 'Fri 6:00 PM',
+      displayText: 'Fri Feb 20, 6 PM',
     },
     ...overrides,
   }
 }
 
 describe('home featured courts mapping', () => {
-  it('formats availability with weekday and time', () => {
-    expect(formatCompactNextAvailable('2026-02-20', '18:00:00')).toBe('Fri 6:00 PM')
+  it('formats availability with weekday, date, and compact time', () => {
+    expect(formatCompactNextAvailable('2026-02-20', '18:00:00')).toBe('Fri Feb 20, 6 PM')
   })
 
   it('maps dynamic featured cards from venues and next availability', () => {
@@ -81,7 +81,7 @@ describe('home featured courts mapping', () => {
           date: '2026-02-20',
           startTime: '18:00:00',
           endTime: '19:00:00',
-          displayText: 'Fri 6:00 PM',
+          displayText: 'Fri Feb 20, 6 PM',
         },
       }),
       createMapVenue({
@@ -92,7 +92,7 @@ describe('home featured courts mapping', () => {
           date: '2026-02-19',
           startTime: '16:00:00',
           endTime: '17:00:00',
-          displayText: 'Thu 4:00 PM',
+          displayText: 'Thu Feb 19, 4 PM',
         },
       }),
     ]
@@ -105,7 +105,7 @@ describe('home featured courts mapping', () => {
       name: 'Crossroads School',
       type: 'School Gymnasium',
       hourlyRate: 90,
-      nextAvailable: 'Thu 4:00 PM',
+      nextAvailable: 'Thu Feb 19, 4 PM',
       href: '/venue/crossroads-school',
     })
     expect(featured[1]).toMatchObject({
@@ -113,7 +113,7 @@ describe('home featured courts mapping', () => {
       name: 'Memorial Park',
       type: 'Recreation Center',
       hourlyRate: 75,
-      nextAvailable: 'Fri 6:00 PM',
+      nextAvailable: 'Fri Feb 20, 6 PM',
       href: '/venue/memorial-park',
     })
   })

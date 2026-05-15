@@ -11,12 +11,15 @@ function parseLocalTime(timeStr: string): Date {
 }
 
 export function formatCompactNextAvailable(dateStr: string, timeStr: string): string {
-  const dayLabel = parseLocalDate(dateStr).toLocaleDateString('en-US', { weekday: 'short' })
+  const date = parseLocalDate(dateStr)
+  const dayLabel = date.toLocaleDateString('en-US', { weekday: 'short' })
+  const dateLabel = date.toLocaleDateString('en-US', { month: 'short', day: 'numeric' })
+  const [, minutes = 0] = timeStr.split(':').map(Number)
   const timeLabel = parseLocalTime(timeStr).toLocaleTimeString('en-US', {
     hour: 'numeric',
-    minute: '2-digit',
+    minute: minutes === 0 ? undefined : '2-digit',
     hour12: true,
   })
 
-  return `${dayLabel} ${timeLabel}`
+  return `${dayLabel} ${dateLabel}, ${timeLabel}`
 }

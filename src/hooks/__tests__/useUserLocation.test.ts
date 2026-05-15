@@ -155,7 +155,7 @@ describe('useVenuesWithNextAvailable', () => {
     jest.clearAllMocks()
   })
 
-  it('uses compact weekday display text for next available slots', async () => {
+  it('uses compact weekday and date display text for next available slots', async () => {
     mockRpc.mockResolvedValue({
       data: [
         {
@@ -185,6 +185,6 @@ describe('useVenuesWithNextAvailable', () => {
       expect(result.current.loading).toBe(false)
     })
 
-    expect(result.current.data?.[0].nextAvailable?.displayText).toBe('Fri 6:00 PM')
+    expect(result.current.data?.[0].nextAvailable?.displayText).toBe('Fri Feb 20, 6 PM')
   })
 })
