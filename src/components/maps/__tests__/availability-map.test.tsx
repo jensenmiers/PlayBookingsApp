@@ -69,7 +69,7 @@ const mockVenueTwo = {
     date: '2026-02-20',
     startTime: '20:00:00',
     endTime: '21:00:00',
-    displayText: 'Thu Feb 20, 8 PM',
+    displayText: 'Fri Feb 20, 8 PM',
   },
 }
 
@@ -141,7 +141,7 @@ describe('AvailabilityMap popup readability', () => {
     )
 
     const selectedAvailableMarker = screen
-      .getByText('Thu Feb 20, 8 PM')
+      .getByText('Fri Feb 20, 8 PM')
       .closest('[data-testid="mock-marker"]')
     const unselectedAvailableMarker = screen
       .getByText('Fri Feb 20, 6 PM')
