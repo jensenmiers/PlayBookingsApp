@@ -135,6 +135,19 @@ describe('PaymentService', () => {
 
       expect(result).toBe(false)
     })
+
+    it('should return false for request-to-book even after insurance approval', () => {
+      const booking = createBooking({ insurance_approved: true })
+      const venue = createVenue({
+        instant_booking: false,
+        insurance_required: true,
+        booking_mode: 'request_to_book',
+      })
+
+      const result = paymentService.isBookingReadyForPayment(booking, venue)
+
+      expect(result).toBe(false)
+    })
   })
 
   describe('requiresImmediatePayment', () => {

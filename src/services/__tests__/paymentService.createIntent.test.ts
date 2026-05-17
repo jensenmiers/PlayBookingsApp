@@ -347,4 +347,25 @@ describe('PaymentService.createPaymentIntent', () => {
       statusCode: 400,
     })
   })
+
+  it('should throw generic readiness error for request-to-book when insurance is unapproved', async () => {
+    const booking = createBooking({ insurance_approved: false })
+    const venue = createVenue({
+      instant_booking: false,
+      insurance_required: true,
+      booking_mode: 'request_to_book',
+    })
+
+    mockBookingRepo.findById = jest.fn().mockResolvedValue(booking)
+    mockPaymentRepo.findByBookingId = jest.fn().mockResolvedValue(null)
+    mockSupabaseLookups({ venue })
+
+    await expect(
+      paymentService.createPaymentIntent('booking-123', 'user-123')
+    ).rejects.toMatchObject({
+      message: 'Booking is not ready for payment',
+      statusCode: 400,
+    })
+    expect(stripe.paymentIntents.create).not.toHaveBeenCalled()
+  })
 })

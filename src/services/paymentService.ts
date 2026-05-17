@@ -6,6 +6,7 @@ import { stripe } from '@/lib/stripe'
 import { PaymentRepository } from '@/repositories/paymentRepository'
 import { BookingRepository } from '@/repositories/bookingRepository'
 import { createClient } from '@/lib/supabase/server'
+import { resolveVenueBookingMode } from '@/lib/booking-mode'
 import { badRequest, notFound } from '@/utils/errorHandling'
 import type { Booking, Venue, Payment } from '@/types'
 
@@ -89,6 +90,12 @@ export class PaymentService {
    * Check if a booking is ready for payment based on venue settings
    */
   isBookingReadyForPayment(booking: Booking, venue: Venue): boolean {
+    const bookingMode = resolveVenueBookingMode(venue)
+
+    if (bookingMode === 'request_to_book') {
+      return false
+    }
+
     // Instant booking without insurance requirement - ready immediately
     if (venue.instant_booking && !venue.insurance_required) {
       return true
@@ -110,6 +117,22 @@ export class PaymentService {
     }
 
     return false
+  }
+
+  private assertBookingReadyForPayment(booking: Booking, venue: Venue): void {
+    if (this.isBookingReadyForPayment(booking, venue)) {
+      return
+    }
+
+    if (
+      resolveVenueBookingMode(venue) !== 'request_to_book'
+      && venue.insurance_required
+      && !booking.insurance_approved
+    ) {
+      throw badRequest('Insurance must be approved before payment')
+    }
+
+    throw badRequest('Booking is not ready for payment')
   }
 
   /**
@@ -154,12 +177,7 @@ export class PaymentService {
     }
 
     // Check if booking is ready for payment
-    if (!this.isBookingReadyForPayment(booking, venue)) {
-      if (venue.insurance_required && !booking.insurance_approved) {
-        throw badRequest('Insurance must be approved before payment')
-      }
-      throw badRequest('Booking is not ready for payment')
-    }
+    this.assertBookingReadyForPayment(booking, venue)
 
     // Calculate amounts (0% platform fee for MVP)
     const amount = booking.total_amount
@@ -253,12 +271,7 @@ export class PaymentService {
     }
 
     // Check if booking is ready for payment
-    if (!this.isBookingReadyForPayment(booking, venue)) {
-      if (venue.insurance_required && !booking.insurance_approved) {
-        throw badRequest('Insurance must be approved before payment')
-      }
-      throw badRequest('Booking is not ready for payment')
-    }
+    this.assertBookingReadyForPayment(booking, venue)
 
     // Calculate amounts (0% platform fee for MVP)
     const amount = booking.total_amount
@@ -341,6 +354,9 @@ export class PaymentService {
     if (existingPayment?.status === 'authorized') {
       throw badRequest('Payment has already been authorized for this booking')
     }
+
+    // Check if booking is ready for deferred payment authorization
+    this.assertBookingReadyForPayment(booking, venue)
 
     // Calculate amounts (0% platform fee for MVP)
     const amount = booking.total_amount
