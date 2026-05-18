@@ -9,6 +9,11 @@ import { useVenuesWithNextAvailable } from '@/hooks/useVenuesWithNextAvailable'
 import { buildFeaturedCourts, type FeaturedCourt } from './home-featured-courts'
 
 const FEATURED_COURT_LIMIT = 3
+const DEMO_FEATURED_VENUE_NAMES = [
+  'Crosscourt',
+  'First Presbyterian Church of Hollywood',
+  'Memorial Park',
+]
 
 function CourtCard({ 
   court, 
@@ -202,7 +207,10 @@ export default function Home() {
   const { data: venues, loading: venuesLoading } = useVenues()
   const { data: availabilityVenues, loading: availabilityLoading } = useVenuesWithNextAvailable()
   const featuredCourts = useMemo(
-    () => buildFeaturedCourts(venues || [], availabilityVenues || [], FEATURED_COURT_LIMIT),
+    () => buildFeaturedCourts(venues || [], availabilityVenues || [], FEATURED_COURT_LIMIT, {
+      preferredVenueNames: DEMO_FEATURED_VENUE_NAMES,
+      fallbackAvailabilityLabel: 'by request',
+    }),
     [venues, availabilityVenues]
   )
   const featuredLoading = venuesLoading || availabilityLoading

@@ -134,4 +134,66 @@ describe('home featured courts mapping', () => {
     expect(featured).toHaveLength(1)
     expect(featured[0].id).toBe('venue-1')
   })
+
+  it('can pin demo venues in an explicit order even when one has no next slot', () => {
+    const venues: Venue[] = [
+      createVenue({ id: 'venue-1', name: 'Memorial Park' }),
+      createVenue({ id: 'venue-2', name: 'Crosscourt' }),
+      createVenue({ id: 'venue-3', name: 'First Presbyterian Church of Hollywood' }),
+      createVenue({ id: 'venue-4', name: 'Soonest Dynamic Court' }),
+    ]
+
+    const mapVenues: MapVenue[] = [
+      createMapVenue({
+        id: 'venue-1',
+        name: 'Memorial Park',
+        nextAvailable: {
+          slotId: 'slot-1',
+          date: '2026-02-22',
+          startTime: '18:00:00',
+          endTime: '19:00:00',
+          displayText: 'Sun Feb 22, 6 PM',
+        },
+      }),
+      createMapVenue({
+        id: 'venue-2',
+        name: 'Crosscourt',
+        nextAvailable: {
+          slotId: 'slot-2',
+          date: '2026-02-21',
+          startTime: '16:00:00',
+          endTime: '17:00:00',
+          displayText: 'Sat Feb 21, 4 PM',
+        },
+      }),
+      createMapVenue({ id: 'venue-3', name: 'First Presbyterian Church of Hollywood', nextAvailable: null }),
+      createMapVenue({
+        id: 'venue-4',
+        name: 'Soonest Dynamic Court',
+        nextAvailable: {
+          slotId: 'slot-4',
+          date: '2026-02-19',
+          startTime: '12:00:00',
+          endTime: '13:00:00',
+          displayText: 'Thu Feb 19, 12 PM',
+        },
+      }),
+    ]
+
+    const featured = buildFeaturedCourts(venues, mapVenues, 3, {
+      preferredVenueNames: [
+        'Crosscourt',
+        'First Presbyterian Church of Hollywood',
+        'Memorial Park',
+      ],
+      fallbackAvailabilityLabel: 'by request',
+    })
+
+    expect(featured.map((court) => court.name)).toEqual([
+      'Crosscourt',
+      'First Presbyterian Church of Hollywood',
+      'Memorial Park',
+    ])
+    expect(featured[1].nextAvailable).toBe('by request')
+  })
 })
