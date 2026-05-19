@@ -4,7 +4,7 @@
 
 'use client'
 
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useRef } from 'react'
 import type { PostgrestError } from '@supabase/supabase-js'
 import { createClient } from '@/lib/supabase/client'
 import type { User } from '@/types'
@@ -21,11 +21,17 @@ export function useCurrentUser() {
     loading: true,
     error: null,
   })
+  const stateRef = useRef(state)
+
+  useEffect(() => {
+    stateRef.current = state
+  }, [state])
 
   useEffect(() => {
     const supabase = createClient()
     let mounted = true
     let lastRequestedUserId: string | null = null
+    const scheduledProfileFetches = new Set<ReturnType<typeof setTimeout>>()
 
     const fetchUserProfileWithClient = async (client: ReturnType<typeof createClient>, userId: string, avatarUrl?: string) => {
       try {
@@ -89,58 +95,57 @@ export function useCurrentUser() {
       }
     }
 
+    const scheduleUserProfileFetch = (userId: string, avatarUrl?: string) => {
+      const timeoutId = setTimeout(() => {
+        scheduledProfileFetches.delete(timeoutId)
+
+        if (!mounted) return
+
+        const fresh = createClient()
+        void fetchUserProfileWithClient(fresh, userId, avatarUrl).catch((err) => {
+          console.error('Error fetching user profile after auth change:', err)
+        })
+      }, 0)
+
+      scheduledProfileFetches.add(timeoutId)
+    }
+
     const {
       data: { subscription },
-    } = supabase.auth.onAuthStateChange(async (_event, session) => {
+    } = supabase.auth.onAuthStateChange((_event, session) => {
       if (!mounted) return
 
       if (session?.user) {
-        try {
-          const userId = session.user.id
-          if (lastRequestedUserId === userId && state.loading === false && state.user?.id === userId) {
-            return
-          }
-          lastRequestedUserId = userId
-
-          // Extract avatar URL from session user metadata
-          const avatarUrl = session.user.user_metadata?.avatar_url || 
-                          session.user.user_metadata?.picture ||
-                          session.user.user_metadata?.avatar ||
-                          undefined
-
-          if (_event === 'SIGNED_IN') {
-            queueMicrotask(() => {
-              ;(async () => {
-                if (!mounted) return
-                const fresh = createClient()
-                await fetchUserProfileWithClient(fresh, userId, avatarUrl)
-              })().catch((err) => {
-                console.error('Error in microtask profile fetch:', err)
-              })
-            })
-          } else {
-            const client = createClient()
-            await fetchUserProfileWithClient(client, userId, avatarUrl)
-          }
-        } catch (error) {
-          console.error('Error in auth state change callback:', error)
-          if (mounted) {
-            setState({ user: null, loading: false, error: 'Failed to fetch user profile' })
-          }
+        const userId = session.user.id
+        if (
+          lastRequestedUserId === userId
+          && stateRef.current.loading === false
+          && stateRef.current.user?.id === userId
+        ) {
+          return
         }
+        lastRequestedUserId = userId
+
+        // Extract avatar URL from session user metadata
+        const avatarUrl = session.user.user_metadata?.avatar_url ||
+                        session.user.user_metadata?.picture ||
+                        session.user.user_metadata?.avatar ||
+                        undefined
+
+        scheduleUserProfileFetch(userId, avatarUrl)
       } else {
+        lastRequestedUserId = null
         setState({ user: null, loading: false, error: null })
       }
     })
 
     return () => {
       mounted = false
+      scheduledProfileFetches.forEach((timeoutId) => clearTimeout(timeoutId))
+      scheduledProfileFetches.clear()
       subscription.unsubscribe()
     }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [])
 
   return state
 }
-
-

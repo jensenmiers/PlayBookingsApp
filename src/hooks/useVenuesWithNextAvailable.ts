@@ -5,10 +5,29 @@
 
 'use client'
 
-import { useState, useEffect, useCallback } from 'react'
+import { useState, useEffect, useCallback, useRef } from 'react'
 import { createClient } from '@/lib/supabase/client'
 import { formatCompactNextAvailable } from '@/lib/nextAvailableDisplay'
 import type { BookingMode } from '@/types'
+
+const VENUE_DISCOVERY_TIMEOUT_MS = 12_000
+const VENUE_DISCOVERY_TIMEOUT_MESSAGE = 'Timed out loading venues. Please try again.'
+
+function withVenueDiscoveryTimeout<T>(promise: PromiseLike<T>): Promise<T> {
+  let timeoutId: ReturnType<typeof setTimeout> | undefined
+
+  const timeout = new Promise<never>((_, reject) => {
+    timeoutId = setTimeout(() => {
+      reject(new Error(VENUE_DISCOVERY_TIMEOUT_MESSAGE))
+    }, VENUE_DISCOVERY_TIMEOUT_MS)
+  })
+
+  return Promise.race([Promise.resolve(promise), timeout]).finally(() => {
+    if (timeoutId) {
+      clearTimeout(timeoutId)
+    }
+  })
+}
 
 /**
  * Venue data with next available slot for map display
@@ -72,24 +91,40 @@ export function useVenuesWithNextAvailable(options: UseVenuesOptions = {}): UseV
   const [data, setData] = useState<MapVenue[] | null>(null)
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
+  const latestRequestIdRef = useRef(0)
+  const dataRef = useRef<MapVenue[] | null>(null)
+  const loadingRef = useRef(loading)
+
+  useEffect(() => {
+    loadingRef.current = loading
+  }, [loading])
 
   const fetchVenues = useCallback(async () => {
-    setLoading(true)
+    const requestId = latestRequestIdRef.current + 1
+    latestRequestIdRef.current = requestId
+
+    setLoading(dataRef.current === null)
     setError(null)
 
     try {
       const supabase = createClient()
       
       // Call the RPC function with parameters
-      const { data: result, error: rpcError } = await supabase.rpc(
-        'get_venues_with_next_available',
-        {
-          p_date_filter: options.dateFilter || null,
-          p_user_lat: options.userLat || null,
-          p_user_lng: options.userLng || null,
-          p_radius_miles: options.radiusMiles || null,
-        }
+      const { data: result, error: rpcError } = await withVenueDiscoveryTimeout(
+        supabase.rpc(
+          'get_venues_with_next_available',
+          {
+            p_date_filter: options.dateFilter || null,
+            p_user_lat: options.userLat || null,
+            p_user_lng: options.userLng || null,
+            p_radius_miles: options.radiusMiles || null,
+          }
+        )
       )
+
+      if (latestRequestIdRef.current !== requestId) {
+        return
+      }
 
       if (rpcError) {
         console.error('RPC error:', rpcError)
@@ -136,19 +171,62 @@ export function useVenuesWithNextAvailable(options: UseVenuesOptions = {}): UseV
         } : null,
       }))
 
+      dataRef.current = venues
       setData(venues)
+      setError(null)
     } catch (err) {
+      if (latestRequestIdRef.current !== requestId) {
+        return
+      }
+
       console.error('Failed to fetch venues with availability:', err)
       const message = err instanceof Error ? err.message : 'Failed to fetch venues'
-      setError(message)
-      setData(null)
+      const previousData = dataRef.current
+
+      if (previousData !== null) {
+        setData(previousData)
+        setError(null)
+      } else {
+        setError(message)
+        setData(null)
+      }
     } finally {
-      setLoading(false)
+      if (latestRequestIdRef.current === requestId) {
+        setLoading(false)
+      }
     }
   }, [options.dateFilter, options.userLat, options.userLng, options.radiusMiles])
 
   useEffect(() => {
     fetchVenues()
+  }, [fetchVenues])
+
+  useEffect(() => {
+    return () => {
+      latestRequestIdRef.current += 1
+    }
+  }, [])
+
+  useEffect(() => {
+    const handlePageShow = (event: PageTransitionEvent) => {
+      if (event.persisted || (dataRef.current === null && loadingRef.current)) {
+        void fetchVenues()
+      }
+    }
+
+    const handleVisibilityChange = () => {
+      if (document.visibilityState === 'visible' && dataRef.current === null && loadingRef.current) {
+        void fetchVenues()
+      }
+    }
+
+    window.addEventListener('pageshow', handlePageShow)
+    document.addEventListener('visibilitychange', handleVisibilityChange)
+
+    return () => {
+      window.removeEventListener('pageshow', handlePageShow)
+      document.removeEventListener('visibilitychange', handleVisibilityChange)
+    }
   }, [fetchVenues])
 
   return { data, loading, error, refetch: fetchVenues }

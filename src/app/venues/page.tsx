@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useEffect, Suspense } from 'react'
+import { useState, useEffect, Suspense, useRef } from 'react'
 import { useSearchParams, useRouter } from 'next/navigation'
 import { Navigation } from '@/components/layout/navigation'
 import { PublicSiteFooter } from '@/components/layout/public-site-footer'
@@ -22,28 +22,50 @@ interface NextAvailableInfo {
   slotId: string
 }
 
+const VENUE_DIRECTORY_TIMEOUT_MS = 12_000
+const VENUE_DIRECTORY_TIMEOUT_MESSAGE = 'Timed out loading venues. Please try again.'
+
 function VenuesContent() {
   const router = useRouter()
   const searchParams = useSearchParams()
+  const searchParamSearch = searchParams.get('search') || ''
+  const parsedSearchParamPage = parseInt(searchParams.get('page') || '1', 10)
+  const searchParamPage = Number.isFinite(parsedSearchParamPage) ? Math.max(1, parsedSearchParamPage) : 1
   const [venues, setVenues] = useState<Venue[]>([])
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
-  const [searchQuery, setSearchQuery] = useState(searchParams.get('search') || '')
-  const [currentPage, setCurrentPage] = useState(parseInt(searchParams.get('page') || '1', 10))
+  const [searchQuery, setSearchQuery] = useState(searchParamSearch)
+  const [currentPage, setCurrentPage] = useState(searchParamPage)
   const [pagination, setPagination] = useState<{
     page: number
     limit: number
     total: number
     total_pages: number
   } | null>(null)
+  const venuesRef = useRef<Venue[]>([])
   
   // Store next available info keyed by venue ID
   const [nextAvailableMap, setNextAvailableMap] = useState<Record<string, NextAvailableInfo>>({})
 
+  useEffect(() => {
+    venuesRef.current = venues
+  }, [venues])
+
+  useEffect(() => {
+    setSearchQuery(searchParamSearch)
+    setCurrentPage(searchParamPage)
+  }, [searchParamSearch, searchParamPage])
+
   // Fetch venues from API
   useEffect(() => {
+    let active = true
+    const controller = new AbortController()
+    const timeoutId = setTimeout(() => {
+      controller.abort()
+    }, VENUE_DIRECTORY_TIMEOUT_MS)
+
     const fetchVenues = async () => {
-      setLoading(true)
+      setLoading(venuesRef.current.length === 0)
       setError(null)
 
       try {
@@ -54,25 +76,52 @@ function VenuesContent() {
           params.set('search', searchQuery.trim())
         }
 
-        const response = await fetch(`/api/venues?${params.toString()}`)
+        const response = await fetch(`/api/venues?${params.toString()}`, {
+          cache: 'no-store',
+          signal: controller.signal,
+        })
         const data: PaginatedResponse<Venue> = await response.json()
 
         if (!response.ok || !data.success) {
           throw new Error('Failed to fetch venues')
         }
 
-        setVenues(data.data)
+        if (!active) return
+
+        const nextVenues = data.data
+        venuesRef.current = nextVenues
+        setVenues(nextVenues)
         setPagination(data.pagination)
+        setError(null)
       } catch (err) {
+        if (!active) return
+
+        const isAbortError = err instanceof Error && err.name === 'AbortError'
         const message = err instanceof Error ? err.message : 'Failed to load venues'
-        setError(message)
-        setVenues([])
+        const previousVenues = venuesRef.current
+
+        if (previousVenues.length > 0) {
+          setVenues(previousVenues)
+          setError(null)
+        } else {
+          setError(isAbortError ? VENUE_DIRECTORY_TIMEOUT_MESSAGE : message)
+          setVenues([])
+        }
       } finally {
-        setLoading(false)
+        if (active) {
+          clearTimeout(timeoutId)
+          setLoading(false)
+        }
       }
     }
 
     fetchVenues()
+
+    return () => {
+      active = false
+      clearTimeout(timeoutId)
+      controller.abort()
+    }
   }, [currentPage, searchQuery])
 
   // Fetch next available times for all venues

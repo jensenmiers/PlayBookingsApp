@@ -151,8 +151,16 @@ describe('useUserLocation', () => {
 })
 
 describe('useVenuesWithNextAvailable', () => {
+  let consoleErrorSpy: jest.SpyInstance
+
   beforeEach(() => {
     jest.clearAllMocks()
+    consoleErrorSpy = jest.spyOn(console, 'error').mockImplementation(() => {})
+  })
+
+  afterEach(() => {
+    consoleErrorSpy.mockRestore()
+    jest.useRealTimers()
   })
 
   it('uses compact weekday and date display text for next available slots', async () => {
@@ -186,5 +194,123 @@ describe('useVenuesWithNextAvailable', () => {
     })
 
     expect(result.current.data?.[0].nextAvailable?.displayText).toBe('Fri Feb 20, 6 PM')
+  })
+
+  it('keeps previously loaded venues when a refetch fails', async () => {
+    const loadedVenue = {
+      venue_id: 'venue-1',
+      venue_name: 'Crosscourt',
+      venue_city: 'Los Angeles',
+      venue_state: 'CA',
+      venue_address: '123 Court St',
+      hourly_rate: 125,
+      instant_booking: true,
+      insurance_required: false,
+      latitude: 34.05,
+      longitude: -118.24,
+      distance_miles: null,
+      next_slot_id: 'slot-1',
+      next_slot_date: '2026-02-20',
+      next_slot_start_time: '18:00:00',
+      next_slot_end_time: '19:00:00',
+    }
+
+    mockRpc
+      .mockResolvedValueOnce({ data: [loadedVenue], error: null })
+      .mockRejectedValueOnce(new Error('Network error'))
+
+    const { result } = renderHook(() => useVenuesWithNextAvailable())
+
+    await waitFor(() => {
+      expect(result.current.data?.[0].id).toBe('venue-1')
+    })
+
+    await act(async () => {
+      await result.current.refetch()
+    })
+
+    expect(result.current.data?.[0].id).toBe('venue-1')
+    expect(result.current.error).toBeNull()
+    expect(result.current.loading).toBe(false)
+  })
+
+  it('ignores stale venue responses after options change', async () => {
+    let resolveFirstRequest: (value: unknown) => void = () => {}
+    let resolveSecondRequest: (value: unknown) => void = () => {}
+
+    mockRpc
+      .mockImplementationOnce(() => new Promise((resolve) => {
+        resolveFirstRequest = resolve
+      }))
+      .mockImplementationOnce(() => new Promise((resolve) => {
+        resolveSecondRequest = resolve
+      }))
+
+    const firstVenue = {
+      venue_id: 'venue-1',
+      venue_name: 'Old Result',
+      venue_city: 'Los Angeles',
+      venue_state: 'CA',
+      venue_address: '123 Court St',
+      hourly_rate: 125,
+      instant_booking: true,
+      insurance_required: false,
+      latitude: 34.05,
+      longitude: -118.24,
+      distance_miles: null,
+      next_slot_id: null,
+      next_slot_date: null,
+      next_slot_start_time: null,
+      next_slot_end_time: null,
+    }
+
+    const secondVenue = {
+      ...firstVenue,
+      venue_id: 'venue-2',
+      venue_name: 'Current Result',
+    }
+
+    const { result, rerender } = renderHook(
+      ({ dateFilter }: { dateFilter?: string }) => useVenuesWithNextAvailable({ dateFilter }),
+      { initialProps: { dateFilter: undefined } }
+    )
+
+    rerender({ dateFilter: '2026-02-20' })
+
+    await waitFor(() => {
+      expect(mockRpc).toHaveBeenCalledTimes(2)
+    })
+
+    await act(async () => {
+      resolveSecondRequest({ data: [secondVenue], error: null })
+      await Promise.resolve()
+    })
+
+    expect(result.current.data?.[0].name).toBe('Current Result')
+
+    await act(async () => {
+      resolveFirstRequest({ data: [firstVenue], error: null })
+      await Promise.resolve()
+    })
+
+    expect(result.current.data?.[0].name).toBe('Current Result')
+    expect(result.current.loading).toBe(false)
+  })
+
+  it('times out an unresponsive venue request instead of loading forever', async () => {
+    jest.useFakeTimers()
+    mockRpc.mockReturnValue(new Promise(() => {}))
+
+    const { result } = renderHook(() => useVenuesWithNextAvailable())
+
+    expect(result.current.loading).toBe(true)
+
+    await act(async () => {
+      jest.advanceTimersByTime(12_000)
+      await Promise.resolve()
+    })
+
+    expect(result.current.loading).toBe(false)
+    expect(result.current.error).toBe('Timed out loading venues. Please try again.')
   })
 })
