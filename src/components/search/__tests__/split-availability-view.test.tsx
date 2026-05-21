@@ -196,4 +196,26 @@ describe('SplitAvailabilityView - Location button', () => {
     expect(screen.getByText('Request a time')).toBeInTheDocument()
     expect(screen.queryByText('Instant')).not.toBeInTheDocument()
   })
+
+  it('uses all courts wording for directory links', () => {
+    render(<SplitAvailabilityView />)
+
+    expect(screen.getByRole('link', { name: /explore all courts/i })).toHaveAttribute('href', '/venues')
+    expect(screen.queryByText(/all venues/i)).not.toBeInTheDocument()
+  })
+
+  it('uses all courts wording for the empty-state directory link', () => {
+    ;(useVenuesWithNextAvailable as jest.Mock).mockReturnValue({
+      data: [],
+      loading: false,
+      error: null,
+      refetch: jest.fn(),
+    })
+
+    render(<SplitAvailabilityView />)
+
+    expect(screen.getByRole('link', { name: /browse all courts/i })).toHaveAttribute('href', '/venues')
+    expect(screen.getByRole('link', { name: /explore all courts/i })).toHaveAttribute('href', '/venues')
+    expect(screen.queryByText(/all venues/i)).not.toBeInTheDocument()
+  })
 })

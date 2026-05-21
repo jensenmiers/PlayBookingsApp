@@ -153,7 +153,7 @@ export function AvailabilityView() {
               href="/venues" 
               className="inline-block mt-l text-secondary-50/70 hover:text-secondary-50 font-medium underline"
             >
-              Or browse all venues
+              Or browse all courts
             </a>
           </div>
         )}
@@ -161,6 +161,5 @@ export function AvailabilityView() {
     </div>
   )
 }
-
 
 

@@ -217,7 +217,7 @@ function VenuesContent() {
       <div className="mx-auto max-w-6xl px-l py-xl">
         {/* Header */}
         <div className="mb-xl">
-          <h1 className="text-3xl font-bold font-serif text-secondary-50 mb-s">All Venues</h1>
+          <h1 className="text-3xl font-bold font-serif text-secondary-50 mb-s">All Courts</h1>
           <p className="text-secondary-50/60">Discover basketball courts available for booking</p>
         </div>
 
@@ -344,7 +344,7 @@ function LoadingFallback() {
       <Navigation />
       <div className="mx-auto max-w-6xl px-l py-xl">
         <div className="mb-xl">
-          <h1 className="text-3xl font-bold font-serif text-secondary-50 mb-s">All Venues</h1>
+          <h1 className="text-3xl font-bold font-serif text-secondary-50 mb-s">All Courts</h1>
           <p className="text-secondary-50/60">Discover basketball courts available for booking</p>
         </div>
         <div className="grid grid-cols-1 gap-l md:grid-cols-2 lg:grid-cols-3">

@@ -315,13 +315,13 @@ export function SplitAvailabilityView() {
               />
             )}
 
-            {/* Explore All Venues Link */}
+            {/* Explore All Courts Link */}
             <div className="mt-xl pt-l border-t border-secondary-50/10 text-center">
               <Link 
                 href="/venues" 
                 className="text-secondary-50/60 hover:text-secondary-50 text-sm font-medium hover:underline"
               >
-                Explore all venues →
+                Explore all courts →
               </Link>
             </div>
           </div>
@@ -453,7 +453,7 @@ function EmptyState({
         href="/venues"
         className="inline-block bg-primary-400 hover:bg-primary-500 text-secondary-900 font-medium px-xl py-m rounded-xl transition-colors"
       >
-        Browse all venues
+        Browse all courts
       </Link>
     </div>
   )

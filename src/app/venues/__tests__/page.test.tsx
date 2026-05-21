@@ -98,6 +98,19 @@ describe('VenuesPage', () => {
     jest.useRealTimers()
   })
 
+  it('labels the directory as all courts', async () => {
+    mockFetch.mockResolvedValue(createVenueResponse([]))
+
+    render(<VenuesPage />)
+
+    expect(screen.getByRole('heading', { name: /all courts/i })).toBeInTheDocument()
+    expect(screen.queryByText(/all venues/i)).not.toBeInTheDocument()
+
+    await waitFor(() => {
+      expect(screen.queryAllByTestId('venue-card-skeleton')).toHaveLength(0)
+    })
+  })
+
   it('ignores stale venue list responses after search changes', async () => {
     let resolveFirstRequest: (value: Response) => void = () => {}
 

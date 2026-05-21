@@ -9,7 +9,7 @@ export default function VenueNotFound() {
         <h1 className="text-2xl font-bold text-secondary-50 mb-l">Venue Not Found</h1>
         <p className="text-secondary-50/60 mb-xl">The venue you are looking for does not exist.</p>
         <Link href="/venues" className="text-secondary-50/60 hover:underline">
-          Browse all venues
+          Browse all courts
         </Link>
       </div>
     </div>
