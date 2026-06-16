@@ -646,7 +646,7 @@ describe('VenueDesignEditorial coming-up pills', () => {
           venue_id: 'venue-1',
           action_type: 'info_only_open_gym',
           slot_pricing: {
-            amount_cents: 500,
+            amount_cents: 300,
             currency: 'USD',
             unit: 'person',
             payment_method: 'on_site',
@@ -659,7 +659,7 @@ describe('VenueDesignEditorial coming-up pills', () => {
 
     render(<VenueDesignEditorial venue={createMockVenue()} />)
 
-    expect(screen.getByText('$5/person')).toBeInTheDocument()
+    expect(screen.getByText('$3/person')).toBeInTheDocument()
     expect(screen.getByText('Pay on site')).toBeInTheDocument()
     const bookingCard = screen.getByTestId('venue-booking-card')
     expect(within(bookingCard).queryByText('$75/hr')).not.toBeInTheDocument()

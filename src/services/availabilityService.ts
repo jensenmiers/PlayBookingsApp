@@ -8,7 +8,7 @@ import { createClient } from '@/lib/supabase/server'
 import { measureDurationMs } from '@/lib/performance'
 import { timeStringToDate } from '@/utils/dateHelpers'
 import type { SlotActionType, SlotModalContent, SlotPricing } from '@/types'
-import { isSlotAllowedByVenueConfig, normalizeVenueAdminConfig } from '@/lib/venueAdminConfig'
+import { normalizeVenueAdminConfig } from '@/lib/venueAdminConfig'
 
 interface SlotInstanceRow {
   id: string
@@ -101,6 +101,13 @@ function overlapsExternalBlock(
   return slotStartMs < blockEndMs && slotEndMs > blockStartMs
 }
 
+function isInfoOnlySlotAllowedByVenueConfig(
+  slot: { date: string },
+  config: ReturnType<typeof normalizeVenueAdminConfig>
+): boolean {
+  return !config.blackout_dates.includes(slot.date) && !config.holiday_dates.includes(slot.date)
+}
+
 export class AvailabilityService {
   constructor(
     private readonly options: {
@@ -126,7 +133,6 @@ export class AvailabilityService {
     const totalStartTime = performance.now()
     const queryTimingsMs: AvailabilityQueryTimings = {}
     const supabase = await (this.options.getClient?.() || createClient())
-    const now = new Date()
 
     const captureQuery = async <T>(
       label: string,
@@ -294,9 +300,8 @@ export class AvailabilityService {
       modal_content: modalContentByAction.get(slot.action_type) || null,
       slot_pricing: dropInSlotPricing,
     }))
-      .filter((slot) => timeStringToDate(slot.date, slot.start_time) >= now)
       .filter((slot) => !externalBlocks.some((block) => overlapsExternalBlock(slot, block)))
-      .filter((slot) => isSlotAllowedByVenueConfig(slot, adminConfig))
+      .filter((slot) => isInfoOnlySlotAllowedByVenueConfig(slot, adminConfig))
 
     const result = sortSlots([...regularSlots, ...infoOnlySlots])
     const slowestTimingEntry = Object.entries(queryTimingsMs).sort((left, right) => right[1] - left[1])[0]
