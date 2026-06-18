@@ -127,6 +127,92 @@ function CourtCardsScroll({ courts, mounted }: { courts: FeaturedCourt[]; mounte
   )
 }
 
+const FAQ_ITEMS = [
+  {
+    question: 'How do I book a court?',
+    answer:
+      'Browse available courts on the search page, pick a time that works for you, and book it in a couple of taps. Most facilities support instant booking — no phone calls or waiting required.',
+  },
+  {
+    question: 'How far in advance can I reserve?',
+    answer:
+      'Booking windows vary by venue. Some courts open up weeks ahead, others within a few days. Each court page shows the exact advance window and live availability.',
+  },
+  {
+    question: 'What does it cost to play?',
+    answer:
+      'Hourly rates are set by the facility and displayed clearly on each court card before you book. You only pay for the time you reserve — no membership fees or hidden charges.',
+  },
+  {
+    question: 'Can I cancel or reschedule?',
+    answer:
+      'Yes. Cancellation policies are listed on each court page. In most cases you can cancel from your dashboard up to a set window before your booking start time.',
+  },
+  {
+    question: 'I manage a facility — how do I list it?',
+    answer:
+      'Head to the Become a Host page to get in touch. We help schools, churches, and rec centers turn unused court time into community access.',
+  },
+]
+
+function FAQItem({
+  item,
+  index,
+  isOpen,
+  onToggle,
+  mounted,
+}: {
+  item: { question: string; answer: string }
+  index: number
+  isOpen: boolean
+  onToggle: () => void
+  mounted: boolean
+}) {
+  return (
+    <div
+      className={`transform transition-all duration-700 ${
+        mounted ? 'translate-y-0 opacity-100' : 'translate-y-6 opacity-0'
+      }`}
+      style={{ transitionDelay: `${200 + index * 80}ms` }}
+    >
+      <button
+        type="button"
+        onClick={onToggle}
+        aria-expanded={isOpen}
+        className={`w-full text-left flex items-start justify-between gap-6 py-6 sm:py-7 border-t border-secondary-50/10 transition-colors group ${
+          isOpen ? 'text-secondary-50' : 'text-secondary-50/90 hover:text-secondary-50'
+        }`}
+      >
+        <span className="font-serif text-lg sm:text-xl md:text-2xl leading-snug">
+          {item.question}
+        </span>
+        <span
+          className={`mt-1 sm:mt-2 flex-shrink-0 w-8 h-8 rounded-full border border-secondary-50/20 flex items-center justify-center transition-all duration-300 ${
+            isOpen
+              ? 'bg-primary-400 border-primary-400 text-secondary-900 rotate-45'
+              : 'text-secondary-50/60 group-hover:border-primary-400/50 group-hover:text-primary-400'
+          }`}
+        >
+          <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 5v14M5 12h14" />
+          </svg>
+        </span>
+      </button>
+      <div
+        className={`grid transition-all duration-500 ease-out ${
+          isOpen ? 'grid-rows-[1fr] opacity-100 pb-6 sm:pb-7' : 'grid-rows-[0fr] opacity-0'
+        }`}
+      >
+        <div className="overflow-hidden">
+          <p className="text-secondary-50/60 text-sm sm:text-base leading-relaxed max-w-2xl">
+            {item.answer}
+          </p>
+        </div>
+      </div>
+    </div>
+  )
+}
+
 function VerticalCompactCourtCard({
   court,
   index,
@@ -204,6 +290,7 @@ function VerticalCompactCourtCard({
 
 export default function Home() {
   const [mounted, setMounted] = useState(false)
+  const [openFaqIndex, setOpenFaqIndex] = useState<number | null>(0)
   const { data: venues, loading: venuesLoading } = useVenues()
   const { data: availabilityVenues, loading: availabilityLoading } = useVenuesWithNextAvailable()
   const featuredCourts = useMemo(
@@ -399,6 +486,38 @@ export default function Home() {
                 <p className="text-secondary-50/50 text-sm max-w-sm">
                   No phone calls, no back-and-forth. Just you and the court.
                 </p>
+              </div>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <section className="relative px-6 py-20 sm:px-10 sm:py-28">
+        <div className="max-w-5xl mx-auto">
+          <div className="grid grid-cols-1 lg:grid-cols-12 gap-10 lg:gap-16 mb-12 sm:mb-16">
+            <div className="lg:col-span-5">
+              <span className="text-accent-400 text-xs tracking-[0.3em] uppercase mb-4 block">
+                FAQ
+              </span>
+              <h2 className="font-serif text-3xl sm:text-4xl md:text-5xl leading-tight">
+                Questions, <span className="italic text-primary-400">answered</span>
+              </h2>
+              <p className="mt-5 text-secondary-50/50 text-sm sm:text-base max-w-sm">
+                Everything you need to know before you book your next run.
+              </p>
+            </div>
+            <div className="lg:col-span-7">
+              <div className="border-b border-secondary-50/10">
+                {FAQ_ITEMS.map((item, i) => (
+                  <FAQItem
+                    key={item.question}
+                    item={item}
+                    index={i}
+                    isOpen={openFaqIndex === i}
+                    onToggle={() => setOpenFaqIndex(openFaqIndex === i ? null : i)}
+                    mounted={mounted}
+                  />
+                ))}
               </div>
             </div>
           </div>
