@@ -4,8 +4,7 @@ import Link from 'next/link'
 import { Navigation } from '@/components/layout/navigation'
 import { PublicSiteFooter } from '@/components/layout/public-site-footer'
 import { useState, useEffect, useRef, useMemo } from 'react'
-import { useVenues } from '@/hooks/useVenues'
-import { useVenuesWithNextAvailable } from '@/hooks/useVenuesWithNextAvailable'
+import { useHomeInitialData } from '@/hooks/useHomeInitialData'
 import { buildFeaturedCourts, type FeaturedCourt } from './home-featured-courts'
 
 const FEATURED_COURT_LIMIT = 3
@@ -204,8 +203,7 @@ function VerticalCompactCourtCard({
 
 export default function Home() {
   const [mounted, setMounted] = useState(false)
-  const { data: venues, loading: venuesLoading } = useVenues()
-  const { data: availabilityVenues, loading: availabilityLoading } = useVenuesWithNextAvailable()
+  const { venues, availabilityVenues, loading: featuredLoading } = useHomeInitialData()
   const featuredCourts = useMemo(
     () => buildFeaturedCourts(venues || [], availabilityVenues || [], FEATURED_COURT_LIMIT, {
       preferredVenueNames: DEMO_FEATURED_VENUE_NAMES,
@@ -213,7 +211,6 @@ export default function Home() {
     }),
     [venues, availabilityVenues]
   )
-  const featuredLoading = venuesLoading || availabilityLoading
   
   useEffect(() => {
     setMounted(true)
