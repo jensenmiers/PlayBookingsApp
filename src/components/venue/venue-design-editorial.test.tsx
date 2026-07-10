@@ -4,7 +4,7 @@ import { VenueDesignEditorial } from '@/components/venue/venue-design-editorial'
 
 const mockBack = jest.fn()
 const mockUseVenueAvailabilityRange = jest.fn()
-const mockCreateBookingMutate = jest.fn()
+const mockCreateBooking = jest.fn()
 const mockOpenAuthModal = jest.fn()
 let mockCurrentUser: { id: string; email: string } | null = {
   id: 'user-1',
@@ -38,7 +38,7 @@ jest.mock('@/hooks/useVenues', () => ({
 
 jest.mock('@/hooks/useBookings', () => ({
   useCreateBooking: () => ({
-    mutate: mockCreateBookingMutate,
+    createBooking: mockCreateBooking,
     loading: false,
   }),
 }))
@@ -136,7 +136,7 @@ describe('VenueDesignEditorial photo carousel and lightbox', () => {
       loading: false,
       error: null,
     })
-    mockCreateBookingMutate.mockResolvedValue({ data: { id: 'booking-1' }, error: null })
+    mockCreateBooking.mockResolvedValue({ data: { id: 'booking-1' }, error: null })
   })
 
   afterEach(() => {
@@ -330,7 +330,7 @@ describe('VenueDesignEditorial coming-up pills', () => {
     jest.clearAllMocks()
     jest.useFakeTimers()
     jest.setSystemTime(new Date('2026-02-21T20:00:00.000Z'))
-    mockCreateBookingMutate.mockResolvedValue({ data: { id: 'booking-1' }, error: null })
+    mockCreateBooking.mockResolvedValue({ data: { id: 'booking-1' }, error: null })
   })
 
   afterEach(() => {
@@ -582,7 +582,7 @@ describe('VenueDesignEditorial coming-up pills', () => {
     fireEvent.click(screen.getByRole('button', { name: 'Send request' }))
 
     await waitFor(() => {
-      expect(mockCreateBookingMutate).toHaveBeenCalledWith({
+      expect(mockCreateBooking).toHaveBeenCalledWith({
         venue_id: 'venue-1',
         date: '2026-02-21',
         start_time: '19:00:00',
@@ -633,7 +633,7 @@ describe('VenueDesignEditorial coming-up pills', () => {
         },
       })
     })
-    expect(mockCreateBookingMutate).not.toHaveBeenCalled()
+    expect(mockCreateBooking).not.toHaveBeenCalled()
   })
 
   it('shows drop-in person pricing for info-only slots instead of venue hourly rate', () => {
