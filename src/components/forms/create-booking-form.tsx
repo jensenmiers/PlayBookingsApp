@@ -200,7 +200,7 @@ export function CreateBookingForm({
       return
     }
 
-    const result = await createBooking.mutate(data)
+    const result = await createBooking.createBooking(data)
     if (result.data) {
       if (result.data.requiresPayment === false) {
         onSuccess?.(result.data.id)

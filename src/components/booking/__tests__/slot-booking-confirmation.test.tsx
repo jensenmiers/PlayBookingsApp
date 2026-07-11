@@ -7,7 +7,7 @@ import { render, screen, fireEvent, waitFor } from '@testing-library/react'
 import { SlotBookingConfirmation } from '../slot-booking-confirmation'
 import type { Venue } from '@/types'
 
-const mockMutate = jest.fn()
+const mockCreateBooking = jest.fn()
 const mockOpenAuthModal = jest.fn()
 const mockToast = jest.fn()
 const mockCreateIntent = jest.fn()
@@ -17,7 +17,7 @@ const mockFetch = jest.fn()
 
 jest.mock('@/hooks/useBookings', () => ({
   useCreateBooking: () => ({
-    mutate: mockMutate,
+    createBooking: mockCreateBooking,
     loading: false,
     error: null,
     reset: jest.fn(),
@@ -156,14 +156,14 @@ describe('SlotBookingConfirmation', () => {
     expect(screen.getByRole('button', { name: /continue to payment/i })).toBeInTheDocument()
   })
 
-  it('calls createBooking.mutate when Continue to Payment is clicked', async () => {
-    mockMutate.mockResolvedValueOnce({ data: createBookingResponse, error: null })
+  it('calls createBooking.createBooking when Continue to Payment is clicked', async () => {
+    mockCreateBooking.mockResolvedValueOnce({ data: createBookingResponse, error: null })
 
     render(<SlotBookingConfirmation {...defaultProps} />)
     fireEvent.click(screen.getByRole('button', { name: /continue to payment/i }))
 
     await waitFor(() => {
-      expect(mockMutate).toHaveBeenCalledWith({
+      expect(mockCreateBooking).toHaveBeenCalledWith({
         venue_id: 'venue-123',
         date: '2026-02-10',
         start_time: '19:00:00',
@@ -190,7 +190,7 @@ describe('SlotBookingConfirmation', () => {
   })
 
   it('shows host-approval request wording on setup-intent payment step', async () => {
-    mockMutate.mockResolvedValueOnce({ data: createBookingResponse, error: null })
+    mockCreateBooking.mockResolvedValueOnce({ data: createBookingResponse, error: null })
     mockCreateSetupIntent.mockResolvedValueOnce({
       data: { clientSecret: 'seti_123_secret_abc' },
       error: null,
@@ -226,7 +226,7 @@ describe('SlotBookingConfirmation', () => {
         slotModalContent: null,
       },
     })
-    expect(mockMutate).not.toHaveBeenCalled()
+    expect(mockCreateBooking).not.toHaveBeenCalled()
   })
 
   it('closes dialog when Cancel is clicked', () => {
@@ -236,13 +236,13 @@ describe('SlotBookingConfirmation', () => {
   })
 
   it('does not show success toast when booking creation fails', async () => {
-    mockMutate.mockResolvedValueOnce({ data: null, error: 'Booking failed' })
+    mockCreateBooking.mockResolvedValueOnce({ data: null, error: 'Booking failed' })
 
     render(<SlotBookingConfirmation {...defaultProps} />)
     fireEvent.click(screen.getByRole('button', { name: /continue to payment/i }))
 
     await waitFor(() => {
-      expect(mockMutate).toHaveBeenCalled()
+      expect(mockCreateBooking).toHaveBeenCalled()
     })
 
     expect(mockToast).not.toHaveBeenCalled()

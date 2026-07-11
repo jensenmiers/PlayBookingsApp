@@ -460,7 +460,7 @@ export function BookingPaymentFlow({
     }
 
     // Create the booking
-    const result = await createBooking.mutate({
+    const result = await createBooking.createBooking({
       venue_id: venue.id,
       date,
       start_time: startTime,

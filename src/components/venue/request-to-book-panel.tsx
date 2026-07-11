@@ -126,7 +126,7 @@ export function RequestToBookPanel({
       return
     }
 
-    const result = await createBooking.mutate({
+    const result = await createBooking.createBooking({
       venue_id: venue.id,
       date,
       start_time: toApiTime(startTime),
