@@ -1,14 +1,14 @@
 /**
- * Hook for fetching venues with their next available time slot
- * Uses the get_venues_with_next_available RPC function for efficient querying
+ * Hook for fetching venues with their next available time slot.
+ * Uses GET /api/venues/next-available (classic API style).
  */
 
 'use client'
 
 import { useState, useEffect, useCallback, useRef } from 'react'
-import { createClient } from '@/lib/supabase/client'
-import { formatCompactNextAvailable } from '@/lib/nextAvailableDisplay'
-import type { BookingMode } from '@/types'
+import type { MapVenue } from '@/lib/venueDiscovery'
+
+export type { MapVenue, NextAvailableSlot } from '@/lib/venueDiscovery'
 
 const VENUE_DISCOVERY_TIMEOUT_MS = 12_000
 const VENUE_DISCOVERY_TIMEOUT_MESSAGE = 'Timed out loading venues. Please try again.'
@@ -29,33 +29,6 @@ function withVenueDiscoveryTimeout<T>(promise: PromiseLike<T>): Promise<T> {
   })
 }
 
-/**
- * Venue data with next available slot for map display
- */
-export interface MapVenue {
-  id: string
-  name: string
-  city: string
-  state: string
-  address: string
-  hourlyRate: number
-  instantBooking: boolean
-  bookingMode: BookingMode | null
-  insuranceRequired: boolean
-  latitude: number
-  longitude: number
-  distanceMiles: number | null
-  nextAvailable: NextAvailableSlot | null
-}
-
-export interface NextAvailableSlot {
-  slotId: string
-  date: string        // ISO date string (YYYY-MM-DD)
-  startTime: string   // HH:MM:SS
-  endTime: string     // HH:MM:SS
-  displayText: string // "Fri Feb 20, 6 PM"
-}
-
 interface UseVenuesOptions {
   /** Filter to a specific date (YYYY-MM-DD format) */
   dateFilter?: string
@@ -74,9 +47,27 @@ interface UseVenuesResult {
   refetch: () => Promise<void>
 }
 
+function buildNextAvailableUrl(options: UseVenuesOptions): string {
+  const params = new URLSearchParams()
+  if (options.dateFilter) {
+    params.set('date', options.dateFilter)
+  }
+  if (options.userLat != null) {
+    params.set('lat', String(options.userLat))
+  }
+  if (options.userLng != null) {
+    params.set('lng', String(options.userLng))
+  }
+  if (options.radiusMiles != null) {
+    params.set('radiusMiles', String(options.radiusMiles))
+  }
+  const query = params.toString()
+  return query ? `/api/venues/next-available?${query}` : '/api/venues/next-available'
+}
+
 /**
  * Hook to fetch venues with their next available time slot
- * 
+ *
  * @example
  * ```tsx
  * const { data, loading, error } = useVenuesWithNextAvailable({
@@ -107,70 +98,25 @@ export function useVenuesWithNextAvailable(options: UseVenuesOptions = {}): UseV
     setError(null)
 
     try {
-      const supabase = createClient()
-      
-      // Call the RPC function with parameters
-      const { data: result, error: rpcError } = await withVenueDiscoveryTimeout(
-        supabase.rpc(
-          'get_venues_with_next_available',
-          {
-            p_date_filter: options.dateFilter || null,
-            p_user_lat: options.userLat || null,
-            p_user_lng: options.userLng || null,
-            p_radius_miles: options.radiusMiles || null,
-          }
-        )
+      const response = await withVenueDiscoveryTimeout(
+        fetch(buildNextAvailableUrl(options), { cache: 'no-store' })
       )
 
       if (latestRequestIdRef.current !== requestId) {
         return
       }
 
-      if (rpcError) {
-        console.error('RPC error:', rpcError)
-        throw new Error(rpcError.message)
+      const body = await response.json().catch(() => null)
+
+      if (!response.ok || !body?.success) {
+        const message =
+          body?.error?.message ||
+          (typeof body?.error === 'string' ? body.error : null) ||
+          'Failed to fetch venues'
+        throw new Error(message)
       }
 
-      // Transform database response to MapVenue format
-      const venues: MapVenue[] = (result || []).map((row: {
-        venue_id: string
-        venue_name: string
-        venue_city: string
-        venue_state: string
-        venue_address: string
-        hourly_rate: number
-        instant_booking: boolean
-        booking_mode: BookingMode | null
-        insurance_required: boolean
-        latitude: number
-        longitude: number
-        distance_miles: number | null
-        next_slot_id: string | null
-        next_slot_date: string | null
-        next_slot_start_time: string | null
-        next_slot_end_time: string | null
-      }) => ({
-        id: row.venue_id,
-        name: row.venue_name,
-        city: row.venue_city,
-        state: row.venue_state,
-        address: row.venue_address,
-        hourlyRate: Number(row.hourly_rate),
-        instantBooking: row.instant_booking,
-        bookingMode: row.booking_mode,
-        insuranceRequired: row.insurance_required,
-        latitude: Number(row.latitude),
-        longitude: Number(row.longitude),
-        distanceMiles: row.distance_miles,
-        nextAvailable: row.next_slot_id && row.next_slot_date && row.next_slot_start_time ? {
-          slotId: row.next_slot_id,
-          date: row.next_slot_date,
-          startTime: row.next_slot_start_time,
-          endTime: row.next_slot_end_time || '',
-          displayText: formatCompactNextAvailable(row.next_slot_date, row.next_slot_start_time),
-        } : null,
-      }))
-
+      const venues = (body.data || []) as MapVenue[]
       dataRef.current = venues
       setData(venues)
       setError(null)

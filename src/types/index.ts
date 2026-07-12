@@ -494,4 +494,4 @@ export const PAYMENT_STATUS_TRANSITIONS: Record<PaymentStatus, PaymentStatus[]> 
 }
 
 // Re-export map-related types from the hook for convenience
-export type { MapVenue, NextAvailableSlot } from '@/hooks/useVenuesWithNextAvailable'
+export type { MapVenue, NextAvailableSlot } from '@/lib/venueDiscovery'

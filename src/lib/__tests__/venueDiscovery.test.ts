@@ -1,0 +1,75 @@
+import { buildMapVenuesFromDiscovery } from '../venueDiscovery'
+
+describe('buildMapVenuesFromDiscovery', () => {
+  it('maps rpc rows and enriches photo + venue type', () => {
+    const venues = buildMapVenuesFromDiscovery(
+      [
+        {
+          venue_id: 'venue-1',
+          venue_name: 'Crosscourt',
+          venue_city: 'Los Angeles',
+          venue_state: 'CA',
+          venue_address: '123 Court St',
+          hourly_rate: 125,
+          instant_booking: true,
+          booking_mode: 'instant_slots',
+          insurance_required: false,
+          latitude: 34.05,
+          longitude: -118.24,
+          distance_miles: 2.5,
+          next_slot_id: 'slot-1',
+          next_slot_date: '2026-02-20',
+          next_slot_start_time: '18:00:00',
+          next_slot_end_time: '19:00:00',
+        },
+      ],
+      [
+        {
+          id: 'venue-1',
+          venue_type: 'Indoor Court',
+          photos: ['https://example.com/crosscourt.jpg'],
+        },
+      ]
+    )
+
+    expect(venues).toHaveLength(1)
+    expect(venues[0]).toMatchObject({
+      id: 'venue-1',
+      name: 'Crosscourt',
+      venueType: 'Indoor Court',
+      photo: 'https://example.com/crosscourt.jpg',
+      hourlyRate: 125,
+      nextAvailable: {
+        slotId: 'slot-1',
+        displayText: 'Fri Feb 20, 6 PM',
+      },
+    })
+  })
+
+  it('defaults type and photo when enrichment is missing', () => {
+    const venues = buildMapVenuesFromDiscovery([
+      {
+        venue_id: 'venue-2',
+        venue_name: 'Memorial Park',
+        venue_city: 'Santa Monica',
+        venue_state: 'CA',
+        venue_address: '1401 Olympic Blvd',
+        hourly_rate: 75,
+        instant_booking: false,
+        booking_mode: null,
+        insurance_required: false,
+        latitude: 34.02,
+        longitude: -118.47,
+        distance_miles: null,
+        next_slot_id: null,
+        next_slot_date: null,
+        next_slot_start_time: null,
+        next_slot_end_time: null,
+      },
+    ])
+
+    expect(venues[0].venueType).toBe('Sports Facility')
+    expect(venues[0].photo).toBeNull()
+    expect(venues[0].nextAvailable).toBeNull()
+  })
+})

@@ -1,7 +1,5 @@
 import { slugify } from '@/lib/utils'
-import type { MapVenue } from '@/hooks/useVenuesWithNextAvailable'
-import type { Venue } from '@/types'
-import { deriveVenuePhotos } from '@/lib/venueMedia'
+import type { MapVenue } from '@/lib/venueDiscovery'
 import { formatCompactNextAvailable } from '@/lib/nextAvailableDisplay'
 
 export interface FeaturedCourt {
@@ -36,21 +34,23 @@ function normalizeVenueName(name: string): string {
 }
 
 function mapVenueToFeaturedCourt(
-  venue: Venue,
-  nextSlot: { date: string; startTime: string } | undefined,
+  venue: MapVenue,
   fallbackAvailabilityLabel: string
 ): FeaturedCourt & { sortTime: number } {
+  const nextSlot = venue.nextAvailable
   return {
     id: venue.id,
     name: venue.name,
-    type: venue.venue_type || 'Sports Facility',
-    hourlyRate: venue.hourly_rate,
+    type: venue.venueType || 'Sports Facility',
+    hourlyRate: venue.hourlyRate,
     nextAvailable: nextSlot
       ? formatCompactNextAvailable(nextSlot.date, nextSlot.startTime)
       : fallbackAvailabilityLabel,
-    image: deriveVenuePhotos(venue)[0] || null,
+    image: venue.photo,
     href: `/venue/${slugify(venue.name)}`,
-    sortTime: nextSlot ? getSortTimestamp(nextSlot.date, nextSlot.startTime) : Number.MAX_SAFE_INTEGER,
+    sortTime: nextSlot
+      ? getSortTimestamp(nextSlot.date, nextSlot.startTime)
+      : Number.MAX_SAFE_INTEGER,
   }
 }
 
@@ -67,38 +67,28 @@ function stripSortTime(court: FeaturedCourt & { sortTime: number }): FeaturedCou
 }
 
 export function buildFeaturedCourts(
-  venues: Venue[],
-  availabilityVenues: MapVenue[],
+  venues: MapVenue[],
   limit: number,
   options: BuildFeaturedCourtsOptions = {}
 ): FeaturedCourt[] {
-  const nextByVenue = new Map<string, { date: string; startTime: string }>()
   const fallbackAvailabilityLabel = options.fallbackAvailabilityLabel || 'by request'
 
-  for (const venue of availabilityVenues) {
-    if (!venue.nextAvailable) {
-      continue
-    }
-    nextByVenue.set(venue.id, {
-      date: venue.nextAvailable.date,
-      startTime: venue.nextAvailable.startTime,
-    })
-  }
-
   const dynamicCourts = venues
-    .filter((venue) => nextByVenue.has(venue.id))
-    .map((venue) => mapVenueToFeaturedCourt(venue, nextByVenue.get(venue.id), fallbackAvailabilityLabel))
+    .filter((venue) => venue.nextAvailable !== null)
+    .map((venue) => mapVenueToFeaturedCourt(venue, fallbackAvailabilityLabel))
     .sort((a, b) => a.sortTime - b.sortTime)
 
   if (!options.preferredVenueNames?.length) {
     return dynamicCourts.slice(0, limit).map(stripSortTime)
   }
 
-  const venuesByName = new Map(venues.map((venue) => [normalizeVenueName(venue.name), venue]))
+  const venuesByName = new Map(
+    venues.map((venue) => [normalizeVenueName(venue.name), venue])
+  )
   const preferredCourts = options.preferredVenueNames
     .map((venueName) => venuesByName.get(normalizeVenueName(venueName)))
-    .filter((venue): venue is Venue => Boolean(venue))
-    .map((venue) => mapVenueToFeaturedCourt(venue, nextByVenue.get(venue.id), fallbackAvailabilityLabel))
+    .filter((venue): venue is MapVenue => Boolean(venue))
+    .map((venue) => mapVenueToFeaturedCourt(venue, fallbackAvailabilityLabel))
 
   const preferredIds = new Set(preferredCourts.map((court) => court.id))
   const remainingCourts = dynamicCourts.filter((court) => !preferredIds.has(court.id))
