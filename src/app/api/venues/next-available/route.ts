@@ -9,6 +9,7 @@ import type { ApiResponse } from '@/types/api'
 import {
   buildMapVenuesFromDiscovery,
   type MapVenue,
+  type VenueDiscoveryEnrichmentRow,
   type VenueDiscoveryRpcRow,
 } from '@/lib/venueDiscovery'
 import {
@@ -50,31 +51,30 @@ export async function GET(request: Request) {
     const discoveryRows = (rpcRows || []) as VenueDiscoveryRpcRow[]
     const venueIds = discoveryRows.map((row) => row.venue_id)
 
-    let enrichmentRows: Array<{
-      id: string
-      venue_type?: string | null
-      photos?: string[] | null
-      venue_media?: unknown
-    }> = []
+    let enrichmentRows: VenueDiscoveryEnrichmentRow[] = []
 
     if (venueIds.length > 0) {
-      let { data, error } = await supabase
+      const mediaQuery = await supabase
         .from('venues')
         .select(VENUE_SELECT_WITH_MEDIA)
         .in('id', venueIds)
 
-      if (error && isMissingVenueMediaQueryError(error)) {
-        ;({ data, error } = await supabase
+      if (mediaQuery.error && isMissingVenueMediaQueryError(mediaQuery.error)) {
+        const fallbackQuery = await supabase
           .from('venues')
           .select('id, venue_type, photos')
-          .in('id', venueIds))
-      }
+          .in('id', venueIds)
 
-      if (error) {
-        throw error
-      }
+        if (fallbackQuery.error) {
+          throw fallbackQuery.error
+        }
 
-      enrichmentRows = data || []
+        enrichmentRows = (fallbackQuery.data || []) as unknown as VenueDiscoveryEnrichmentRow[]
+      } else if (mediaQuery.error) {
+        throw mediaQuery.error
+      } else {
+        enrichmentRows = (mediaQuery.data || []) as unknown as VenueDiscoveryEnrichmentRow[]
+      }
     }
 
     const venues = buildMapVenuesFromDiscovery(discoveryRows, enrichmentRows)
