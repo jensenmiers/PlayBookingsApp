@@ -1,15 +1,14 @@
 'use client'
 
 import { useState, useMemo } from 'react'
-import { format, addDays, subDays } from 'date-fns'
+import { format, addDays, subDays, startOfDay, parse } from 'date-fns'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
+import { Calendar } from '@/components/ui/calendar'
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome'
 import {
   faSearch,
   faCalendarDays,
-  faClock,
-  faSliders,
   faChevronDown,
   faChevronLeft,
   faChevronRight,
@@ -34,8 +33,9 @@ type ViewMode = 'map' | 'list'
  */
 export function SplitAvailabilityView() {
   const today = new Date()
-  const [selectedDate, setSelectedDate] = useState<string | null>(null) // null = any date (show absolute next)
-  const [selectedTime] = useState<string>('Any time')
+  const todayKey = format(today, 'yyyy-MM-dd')
+  const [selectedDate, setSelectedDate] = useState(todayKey)
+  const [showDatePicker, setShowDatePicker] = useState(false)
   const [viewMode, setViewMode] = useState<ViewMode>('map')
   const [selectedVenueId, setSelectedVenueId] = useState<string | null>(null)
   const [searchQuery, setSearchQuery] = useState('')
@@ -46,7 +46,7 @@ export function SplitAvailabilityView() {
 
   // Fetch venues with next available slots
   const { data: venues, loading, error, refetch } = useVenuesWithNextAvailable({
-    dateFilter: selectedDate || undefined,
+    dateFilter: selectedDate,
     userLat: userLat || undefined,
     userLng: userLng || undefined,
   })
@@ -69,39 +69,21 @@ export function SplitAvailabilityView() {
     return filteredVenues.filter(v => v.nextAvailable !== null)
   }, [filteredVenues])
 
-  const handleDateChange = (direction: 'prev' | 'next') => {
-    if (selectedDate) {
-      const [y, m, d] = selectedDate.split('-').map(Number)
-      const currentDate = new Date(y, m - 1, d)
-      const newDate = direction === 'prev' ? subDays(currentDate, 1) : addDays(currentDate, 1)
-      setSelectedDate(format(newDate, 'yyyy-MM-dd'))
-    } else {
-      // If no date selected, start from today
-      const newDate = direction === 'next' ? addDays(today, 1) : today
-      setSelectedDate(format(newDate, 'yyyy-MM-dd'))
-    }
-  }
+  const selectedDateObject = parse(selectedDate, 'yyyy-MM-dd', new Date())
 
-  const handleTodayClick = () => {
-    if (selectedDate === format(today, 'yyyy-MM-dd')) {
-      // If already on today, toggle to "any date" mode
-      setSelectedDate(null)
-    } else {
-      setSelectedDate(format(today, 'yyyy-MM-dd'))
-    }
+  const handleDateChange = (direction: 'prev' | 'next') => {
+    const newDate = direction === 'prev' ? subDays(selectedDateObject, 1) : addDays(selectedDateObject, 1)
+    if (direction === 'prev' && newDate < startOfDay(today)) return
+    setSelectedDate(format(newDate, 'yyyy-MM-dd'))
+    setShowDatePicker(false)
   }
 
   const handleVenueSelect = (venue: MapVenue) => {
     setSelectedVenueId(venue.id)
   }
 
-  // Format date for display
   const getDateDisplay = () => {
-    if (!selectedDate) return 'Any Date'
-    const [year, month, day] = selectedDate.split('-').map(Number)
-    const date = new Date(year, month - 1, day)
-    const isToday = selectedDate === format(today, 'yyyy-MM-dd')
-    return isToday ? 'Today' : format(date, 'EEE, MMM d')
+    return selectedDate === todayKey ? 'Today' : format(selectedDateObject, 'EEE, MMM d')
   }
 
   return (
@@ -155,22 +137,22 @@ export function SplitAvailabilityView() {
           </div>
 
           {/* Date Filter */}
-          <div className="flex-shrink-0 flex items-center gap-xs">
+          <div className="relative flex-shrink-0 flex items-center gap-xs">
             <Button
               variant="ghost"
               size="icon"
               onClick={() => handleDateChange('prev')}
+              disabled={selectedDate === todayKey}
+              aria-label="Previous day"
               className="h-9 w-9 rounded-lg bg-secondary-50/5 text-secondary-50/70 hover:bg-secondary-50/10"
             >
               <FontAwesomeIcon icon={faChevronLeft} className="text-xs" />
             </Button>
             <Button
-              onClick={handleTodayClick}
-              className={`flex items-center gap-s rounded-lg px-m py-s text-sm whitespace-nowrap ${
-                selectedDate 
-                  ? 'bg-primary-400/15 text-primary-400 hover:bg-primary-400/25' 
-                  : 'bg-secondary-50/5 text-secondary-50/70 hover:bg-secondary-50/10'
-              }`}
+              onClick={() => setShowDatePicker((open) => !open)}
+              aria-expanded={showDatePicker}
+              aria-haspopup="dialog"
+              className="flex items-center gap-s rounded-lg px-m py-s text-sm whitespace-nowrap bg-primary-400/15 text-primary-400 hover:bg-primary-400/25"
             >
               <FontAwesomeIcon icon={faCalendarDays} className="text-xs" />
               <span>{getDateDisplay()}</span>
@@ -180,10 +162,25 @@ export function SplitAvailabilityView() {
               variant="ghost"
               size="icon"
               onClick={() => handleDateChange('next')}
+              aria-label="Next day"
               className="h-9 w-9 rounded-lg bg-secondary-50/5 text-secondary-50/70 hover:bg-secondary-50/10"
             >
               <FontAwesomeIcon icon={faChevronRight} className="text-xs" />
             </Button>
+            {showDatePicker && (
+              <div className="absolute left-0 top-full z-50 mt-xs rounded-xl border border-secondary-50/10 bg-secondary-800 p-s shadow-lg">
+                <Calendar
+                  mode="single"
+                  selected={selectedDateObject}
+                  onSelect={(date) => {
+                    if (!date) return
+                    setSelectedDate(format(date, 'yyyy-MM-dd'))
+                    setShowDatePicker(false)
+                  }}
+                  disabled={(date) => date < startOfDay(today)}
+                />
+              </div>
+            )}
           </div>
 
           {/* Location (opt-in): sort by distance when enabled */}
@@ -205,19 +202,6 @@ export function SplitAvailabilityView() {
             ) : (
               <FontAwesomeIcon icon={faLocationDot} className="text-sm" />
             )}
-          </Button>
-
-          {/* Time Filter */}
-          <Button className="flex-shrink-0 flex items-center gap-s bg-secondary-50/5 rounded-lg px-m py-s text-sm text-secondary-50/70 hover:bg-secondary-50/10">
-            <FontAwesomeIcon icon={faClock} className="text-xs" />
-            <span className="whitespace-nowrap">{selectedTime}</span>
-            <FontAwesomeIcon icon={faChevronDown} className="text-xs" />
-          </Button>
-
-          {/* Filters Button */}
-          <Button className="flex-shrink-0 flex items-center gap-s bg-secondary-50/5 rounded-lg px-m py-s text-sm text-secondary-50/70 hover:bg-secondary-50/10">
-            <FontAwesomeIcon icon={faSliders} className="text-xs" />
-            <span className="whitespace-nowrap">Filters</span>
           </Button>
 
         </div>
@@ -264,7 +248,7 @@ export function SplitAvailabilityView() {
             {/* Results Header */}
             <div className="mb-l">
               <h2 className="text-lg font-semibold text-secondary-50">
-                {selectedDate ? 'Available Slots' : 'Next Available Times'}
+                Available Slots
               </h2>
               <p className="text-sm text-secondary-50/60">
                 {loading 
@@ -309,10 +293,7 @@ export function SplitAvailabilityView() {
 
             {/* Empty State */}
             {!loading && !error && venuesWithAvailability.length === 0 && (
-              <EmptyState 
-                hasVenues={filteredVenues.length > 0}
-                dateFilter={selectedDate}
-              />
+              <EmptyState hasVenues={filteredVenues.length > 0} />
             )}
 
             {/* Explore All Courts Link */}
@@ -426,10 +407,8 @@ function MapVenueCard({
  */
 function EmptyState({ 
   hasVenues, 
-  dateFilter 
 }: { 
   hasVenues: boolean
-  dateFilter: string | null 
 }) {
   return (
     <div className="text-center py-2xl">
@@ -441,10 +420,7 @@ function EmptyState({
         <>
           <p className="text-secondary-50 font-medium mb-s">No availability found</p>
           <p className="text-secondary-50/60 text-sm mb-l">
-            {dateFilter 
-              ? 'No slots available for this date. Try a different day.'
-              : 'No upcoming availability at this time.'
-            }
+            No slots available for this date. Try a different day.
           </p>
         </>
       ) : (

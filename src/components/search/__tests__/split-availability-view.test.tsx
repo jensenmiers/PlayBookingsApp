@@ -1,9 +1,10 @@
 /**
  * Unit tests for SplitAvailabilityView
- * Focuses on the opt-in location button behavior
+ * Focuses on date filter defaults, day picker, and location button behavior
  */
 
 import { render, screen, fireEvent } from '@testing-library/react'
+import { format } from 'date-fns'
 import { SplitAvailabilityView } from '../split-availability-view'
 
 const mockRequestLocation = jest.fn()
@@ -20,6 +21,20 @@ jest.mock('@/hooks/useVenuesWithNextAvailable', () => ({
 
 jest.mock('@/components/maps/availability-map', () => ({
   AvailabilityMap: () => <div data-testid="availability-map">Map</div>,
+}))
+
+jest.mock('@/components/ui/calendar', () => ({
+  Calendar: ({
+    onSelect,
+  }: {
+    onSelect?: (date: Date | undefined) => void
+  }) => (
+    <div data-testid="date-picker-calendar">
+      <button type="button" onClick={() => onSelect?.(new Date(2026, 6, 20))}>
+        Select July 20
+      </button>
+    </div>
+  ),
 }))
 
 const useVenuesWithNextAvailable = jest.requireMock('@/hooks/useVenuesWithNextAvailable').useVenuesWithNextAvailable
@@ -160,9 +175,41 @@ describe('SplitAvailabilityView - Location button', () => {
     render(<SplitAvailabilityView />)
 
     const mapToggleButton = screen.getByRole('button', { name: /^map$/i })
-    const anyDateButton = screen.getByRole('button', { name: /any date/i })
+    const todayButton = screen.getByRole('button', { name: /today/i })
 
-    expect(mapToggleButton.compareDocumentPosition(anyDateButton) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy()
+    expect(mapToggleButton.compareDocumentPosition(todayButton) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy()
+  })
+
+  it('defaults the date filter to today and fetches with that dateFilter', () => {
+    render(<SplitAvailabilityView />)
+
+    const today = format(new Date(), 'yyyy-MM-dd')
+    expect(screen.getByRole('button', { name: /today/i })).toBeInTheDocument()
+    expect(useVenuesWithNextAvailable).toHaveBeenCalledWith(
+      expect.objectContaining({ dateFilter: today })
+    )
+  })
+
+  it('opens a day picker from the date control and updates the search date on select', () => {
+    render(<SplitAvailabilityView />)
+
+    fireEvent.click(screen.getByRole('button', { name: /today/i }))
+    expect(screen.getByTestId('date-picker-calendar')).toBeInTheDocument()
+
+    fireEvent.click(screen.getByRole('button', { name: /select july 20/i }))
+
+    expect(screen.queryByTestId('date-picker-calendar')).not.toBeInTheDocument()
+    expect(screen.getByRole('button', { name: /mon, jul 20/i })).toBeInTheDocument()
+    expect(useVenuesWithNextAvailable).toHaveBeenCalledWith(
+      expect.objectContaining({ dateFilter: '2026-07-20' })
+    )
+  })
+
+  it('does not render unimplemented Any time or Filters controls', () => {
+    render(<SplitAvailabilityView />)
+
+    expect(screen.queryByText(/any time/i)).not.toBeInTheDocument()
+    expect(screen.queryByRole('button', { name: /filters/i })).not.toBeInTheDocument()
   })
 
   it('adds desktop horizontal gutters to the split view shell', () => {
