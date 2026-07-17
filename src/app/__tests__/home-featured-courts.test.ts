@@ -1,6 +1,31 @@
 import { buildFeaturedCourts } from '../home-featured-courts'
 import { formatCompactNextAvailable } from '@/lib/nextAvailableDisplay'
+import type { Venue } from '@/types'
 import type { MapVenue } from '@/lib/venueDiscovery'
+
+function createVenue(overrides: Partial<Venue> = {}): Venue {
+  return {
+    id: 'venue-1',
+    name: 'Memorial Park',
+    description: 'Community basketball gym.',
+    address: '1401 Olympic Blvd',
+    city: 'Santa Monica',
+    state: 'CA',
+    zip_code: '90404',
+    owner_id: 'owner-1',
+    hourly_rate: 75,
+    weekend_rate: 95,
+    instant_booking: false,
+    insurance_required: false,
+    max_advance_booking_days: 30,
+    photos: ['https://example.com/memorial.jpg'],
+    amenities: ['Indoor Court'],
+    is_active: true,
+    created_at: '2026-02-01T00:00:00.000Z',
+    updated_at: '2026-02-01T00:00:00.000Z',
+    ...overrides,
+  }
+}
 
 function createMapVenue(overrides: Partial<MapVenue> = {}): MapVenue {
   return {
@@ -34,27 +59,26 @@ describe('home featured courts mapping', () => {
     expect(formatCompactNextAvailable('2026-02-20', '18:00:00')).toBe('Fri Feb 20, 6 PM')
   })
 
-  it('maps dynamic featured cards from a single discovery payload', () => {
-    const venues: MapVenue[] = [
-      createMapVenue({
+  it('maps dynamic featured cards from venues and next availability', () => {
+    const venues: Venue[] = [
+      createVenue({
         id: 'venue-2',
         name: 'Crossroads School',
-        hourlyRate: 90,
-        venueType: 'School Gymnasium',
-        photo: 'https://example.com/crossroads.jpg',
-        nextAvailable: {
-          slotId: 'slot-2',
-          date: '2026-02-19',
-          startTime: '16:00:00',
-          endTime: '17:00:00',
-          displayText: 'Thu Feb 19, 4 PM',
-        },
+        hourly_rate: 90,
+        venue_type: 'School Gymnasium',
       }),
+      createVenue({
+        id: 'venue-1',
+        name: 'Memorial Park',
+        hourly_rate: 75,
+        venue_type: 'Recreation Center',
+      }),
+    ]
+
+    const mapVenues: MapVenue[] = [
       createMapVenue({
         id: 'venue-1',
         name: 'Memorial Park',
-        hourlyRate: 75,
-        venueType: 'Recreation Center',
         nextAvailable: {
           slotId: 'slot-1',
           date: '2026-02-20',
@@ -63,9 +87,20 @@ describe('home featured courts mapping', () => {
           displayText: 'Fri Feb 20, 6 PM',
         },
       }),
+      createMapVenue({
+        id: 'venue-2',
+        name: 'Crossroads School',
+        nextAvailable: {
+          slotId: 'slot-2',
+          date: '2026-02-19',
+          startTime: '16:00:00',
+          endTime: '17:00:00',
+          displayText: 'Thu Feb 19, 4 PM',
+        },
+      }),
     ]
 
-    const featured = buildFeaturedCourts(venues, 3)
+    const featured = buildFeaturedCourts(venues, mapVenues, 3)
 
     expect(featured).toHaveLength(2)
     expect(featured[0]).toMatchObject({
@@ -74,7 +109,6 @@ describe('home featured courts mapping', () => {
       type: 'School Gymnasium',
       hourlyRate: 90,
       nextAvailable: 'Thu Feb 19, 4 PM',
-      image: 'https://example.com/crossroads.jpg',
       href: '/venue/crossroads-school',
     })
     expect(featured[1]).toMatchObject({
@@ -88,19 +122,31 @@ describe('home featured courts mapping', () => {
   })
 
   it('ignores venues without future availability', () => {
-    const venues: MapVenue[] = [
-      createMapVenue({ id: 'venue-1', name: 'Memorial Park' }),
-      createMapVenue({ id: 'venue-2', name: 'Crosscourt', nextAvailable: null }),
+    const venues: Venue[] = [
+      createVenue({ id: 'venue-1', name: 'Memorial Park' }),
+      createVenue({ id: 'venue-2', name: 'Crosscourt' }),
     ]
 
-    const featured = buildFeaturedCourts(venues, 3)
+    const mapVenues: MapVenue[] = [
+      createMapVenue({ id: 'venue-1' }),
+      createMapVenue({ id: 'venue-2', nextAvailable: null }),
+    ]
+
+    const featured = buildFeaturedCourts(venues, mapVenues, 3)
 
     expect(featured).toHaveLength(1)
     expect(featured[0].id).toBe('venue-1')
   })
 
   it('can pin demo venues in an explicit order even when one has no next slot', () => {
-    const venues: MapVenue[] = [
+    const venues: Venue[] = [
+      createVenue({ id: 'venue-1', name: 'Memorial Park' }),
+      createVenue({ id: 'venue-2', name: 'Crosscourt' }),
+      createVenue({ id: 'venue-3', name: 'First Presbyterian Church of Hollywood' }),
+      createVenue({ id: 'venue-4', name: 'Soonest Dynamic Court' }),
+    ]
+
+    const mapVenues: MapVenue[] = [
       createMapVenue({
         id: 'venue-1',
         name: 'Memorial Park',
@@ -115,8 +161,6 @@ describe('home featured courts mapping', () => {
       createMapVenue({
         id: 'venue-2',
         name: 'Crosscourt',
-        venueType: 'Indoor Court',
-        photo: 'https://example.com/crosscourt.jpg',
         nextAvailable: {
           slotId: 'slot-2',
           date: '2026-02-21',
@@ -143,7 +187,7 @@ describe('home featured courts mapping', () => {
       }),
     ]
 
-    const featured = buildFeaturedCourts(venues, 3, {
+    const featured = buildFeaturedCourts(venues, mapVenues, 3, {
       preferredVenueNames: [
         'Crosscourt',
         'First Presbyterian Church of Hollywood',
@@ -158,5 +202,33 @@ describe('home featured courts mapping', () => {
       'Memorial Park',
     ])
     expect(featured[1].nextAvailable).toBe('by request')
+  })
+
+  it('still pins demo venues from the active catalog when discovery availability is empty', () => {
+    const venues: Venue[] = [
+      createVenue({ id: 'venue-1', name: 'Memorial Park', venue_type: 'Recreation Center' }),
+      createVenue({ id: 'venue-2', name: 'Crosscourt', venue_type: 'Indoor Court' }),
+      createVenue({
+        id: 'venue-3',
+        name: 'First Presbyterian Church of Hollywood',
+        venue_type: 'Church Gym',
+      }),
+    ]
+
+    const featured = buildFeaturedCourts(venues, [], 3, {
+      preferredVenueNames: [
+        'Crosscourt',
+        'First Presbyterian Church of Hollywood',
+        'Memorial Park',
+      ],
+      fallbackAvailabilityLabel: 'by request',
+    })
+
+    expect(featured.map((court) => court.name)).toEqual([
+      'Crosscourt',
+      'First Presbyterian Church of Hollywood',
+      'Memorial Park',
+    ])
+    expect(featured.every((court) => court.nextAvailable === 'by request')).toBe(true)
   })
 })

@@ -27,6 +27,13 @@ jest.mock('@/components/ui/error-message', () => ({
   ErrorMessage: ({ error }: { error: string }) => <div>{error}</div>,
 }))
 
+jest.mock('@/hooks/useVenues', () => ({
+  useVenues: () => ({
+    data: [],
+    loading: false,
+  }),
+}))
+
 jest.mock('@/hooks/useVenuesWithNextAvailable', () => ({
   useVenuesWithNextAvailable: () => ({
     data: [],
