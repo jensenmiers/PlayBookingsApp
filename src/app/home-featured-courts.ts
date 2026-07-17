@@ -1,5 +1,5 @@
 import { slugify } from '@/lib/utils'
-import type { MapVenue } from '@/hooks/useVenuesWithNextAvailable'
+import type { MapVenue } from '@/lib/venueDiscovery'
 import type { Venue } from '@/types'
 import { deriveVenuePhotos } from '@/lib/venueMedia'
 import { formatCompactNextAvailable } from '@/lib/nextAvailableDisplay'
@@ -66,6 +66,14 @@ function stripSortTime(court: FeaturedCourt & { sortTime: number }): FeaturedCou
   }
 }
 
+/**
+ * Build featured courts for the homepage.
+ *
+ * Preferred pins are resolved from the active venue catalog (`venues`), not the
+ * discovery list. Discovery (`get_venues_with_next_available`) omits active
+ * venues without a geocoded `location`, so preferred names must come from
+ * `useVenues` (or equivalent) to avoid disappearing after discovery-only refactors.
+ */
 export function buildFeaturedCourts(
   venues: Venue[],
   availabilityVenues: MapVenue[],

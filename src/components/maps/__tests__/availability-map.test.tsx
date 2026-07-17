@@ -42,8 +42,11 @@ const mockVenue = {
   longitude: -118.2437,
   hourlyRate: 120,
   instantBooking: true,
+  bookingMode: 'instant_slots' as const,
   insuranceRequired: false,
   distanceMiles: null,
+  venueType: 'Indoor Court',
+  photo: 'https://example.com/crosscourt.jpg',
   nextAvailable: {
     slotId: 'slot-1',
     date: '2026-02-20',

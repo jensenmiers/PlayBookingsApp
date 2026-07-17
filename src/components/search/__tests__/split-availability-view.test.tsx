@@ -38,6 +38,8 @@ const mockVenue = {
   latitude: 34.05,
   longitude: -118.24,
   distanceMiles: null as number | null,
+  venueType: 'Sports Facility',
+  photo: null as string | null,
   nextAvailable: {
     slotId: 'slot-1',
     date: '2026-02-10',

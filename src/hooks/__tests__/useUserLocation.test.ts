@@ -4,16 +4,17 @@
  */
 
 import { renderHook, act, waitFor } from '@testing-library/react'
-
-const mockRpc = jest.fn()
-
-jest.mock('@/lib/supabase/client', () => ({
-  createClient: () => ({
-    rpc: mockRpc,
-  }),
-}))
-
 import { useUserLocation, useVenuesWithNextAvailable } from '../useVenuesWithNextAvailable'
+
+function createMockResponse(body: unknown, init: { ok?: boolean; status?: number } = {}) {
+  const status = init.status ?? (init.ok === false ? 500 : 200)
+  const ok = init.ok ?? (status >= 200 && status < 300)
+  return {
+    ok,
+    status,
+    json: async () => body,
+  } as Response
+}
 
 describe('useUserLocation', () => {
   let mockGetCurrentPosition: jest.Mock
@@ -152,10 +153,13 @@ describe('useUserLocation', () => {
 
 describe('useVenuesWithNextAvailable', () => {
   let consoleErrorSpy: jest.SpyInstance
+  let mockFetch: jest.Mock
 
   beforeEach(() => {
     jest.clearAllMocks()
     consoleErrorSpy = jest.spyOn(console, 'error').mockImplementation(() => {})
+    mockFetch = jest.fn()
+    global.fetch = mockFetch as unknown as typeof fetch
   })
 
   afterEach(() => {
@@ -163,29 +167,37 @@ describe('useVenuesWithNextAvailable', () => {
     jest.useRealTimers()
   })
 
-  it('uses compact weekday and date display text for next available slots', async () => {
-    mockRpc.mockResolvedValue({
-      data: [
-        {
-          venue_id: 'venue-1',
-          venue_name: 'Crosscourt',
-          venue_city: 'Los Angeles',
-          venue_state: 'CA',
-          venue_address: '123 Court St',
-          hourly_rate: 125,
-          instant_booking: true,
-          insurance_required: false,
-          latitude: 34.05,
-          longitude: -118.24,
-          distance_miles: null,
-          next_slot_id: 'slot-1',
-          next_slot_date: '2026-02-20',
-          next_slot_start_time: '18:00:00',
-          next_slot_end_time: '19:00:00',
-        },
-      ],
-      error: null,
-    })
+  it('loads discovery venues from /api/venues/next-available', async () => {
+    mockFetch.mockResolvedValue(
+      createMockResponse({
+        success: true,
+        data: [
+          {
+            id: 'venue-1',
+            name: 'Crosscourt',
+            city: 'Los Angeles',
+            state: 'CA',
+            address: '123 Court St',
+            hourlyRate: 125,
+            instantBooking: true,
+            bookingMode: 'instant_slots',
+            insuranceRequired: false,
+            latitude: 34.05,
+            longitude: -118.24,
+            distanceMiles: null,
+            venueType: 'Indoor Court',
+            photo: 'https://example.com/crosscourt.jpg',
+            nextAvailable: {
+              slotId: 'slot-1',
+              date: '2026-02-20',
+              startTime: '18:00:00',
+              endTime: '19:00:00',
+              displayText: 'Fri Feb 20, 6 PM',
+            },
+          },
+        ],
+      })
+    )
 
     const { result } = renderHook(() => useVenuesWithNextAvailable())
 
@@ -193,30 +205,39 @@ describe('useVenuesWithNextAvailable', () => {
       expect(result.current.loading).toBe(false)
     })
 
+    expect(mockFetch).toHaveBeenCalledWith('/api/venues/next-available', { cache: 'no-store' })
     expect(result.current.data?.[0].nextAvailable?.displayText).toBe('Fri Feb 20, 6 PM')
+    expect(result.current.data?.[0].photo).toBe('https://example.com/crosscourt.jpg')
+    expect(result.current.data?.[0].venueType).toBe('Indoor Court')
   })
 
   it('keeps previously loaded venues when a refetch fails', async () => {
     const loadedVenue = {
-      venue_id: 'venue-1',
-      venue_name: 'Crosscourt',
-      venue_city: 'Los Angeles',
-      venue_state: 'CA',
-      venue_address: '123 Court St',
-      hourly_rate: 125,
-      instant_booking: true,
-      insurance_required: false,
+      id: 'venue-1',
+      name: 'Crosscourt',
+      city: 'Los Angeles',
+      state: 'CA',
+      address: '123 Court St',
+      hourlyRate: 125,
+      instantBooking: true,
+      bookingMode: 'instant_slots',
+      insuranceRequired: false,
       latitude: 34.05,
       longitude: -118.24,
-      distance_miles: null,
-      next_slot_id: 'slot-1',
-      next_slot_date: '2026-02-20',
-      next_slot_start_time: '18:00:00',
-      next_slot_end_time: '19:00:00',
+      distanceMiles: null,
+      venueType: 'Indoor Court',
+      photo: null,
+      nextAvailable: {
+        slotId: 'slot-1',
+        date: '2026-02-20',
+        startTime: '18:00:00',
+        endTime: '19:00:00',
+        displayText: 'Fri Feb 20, 6 PM',
+      },
     }
 
-    mockRpc
-      .mockResolvedValueOnce({ data: [loadedVenue], error: null })
+    mockFetch
+      .mockResolvedValueOnce(createMockResponse({ success: true, data: [loadedVenue] }))
       .mockRejectedValueOnce(new Error('Network error'))
 
     const { result } = renderHook(() => useVenuesWithNextAvailable())
@@ -238,7 +259,7 @@ describe('useVenuesWithNextAvailable', () => {
     let resolveFirstRequest: (value: unknown) => void = () => {}
     let resolveSecondRequest: (value: unknown) => void = () => {}
 
-    mockRpc
+    mockFetch
       .mockImplementationOnce(() => new Promise((resolve) => {
         resolveFirstRequest = resolve
       }))
@@ -247,27 +268,27 @@ describe('useVenuesWithNextAvailable', () => {
       }))
 
     const firstVenue = {
-      venue_id: 'venue-1',
-      venue_name: 'Old Result',
-      venue_city: 'Los Angeles',
-      venue_state: 'CA',
-      venue_address: '123 Court St',
-      hourly_rate: 125,
-      instant_booking: true,
-      insurance_required: false,
+      id: 'venue-1',
+      name: 'Old Result',
+      city: 'Los Angeles',
+      state: 'CA',
+      address: '123 Court St',
+      hourlyRate: 125,
+      instantBooking: true,
+      bookingMode: null,
+      insuranceRequired: false,
       latitude: 34.05,
       longitude: -118.24,
-      distance_miles: null,
-      next_slot_id: null,
-      next_slot_date: null,
-      next_slot_start_time: null,
-      next_slot_end_time: null,
+      distanceMiles: null,
+      venueType: 'Sports Facility',
+      photo: null,
+      nextAvailable: null,
     }
 
     const secondVenue = {
       ...firstVenue,
-      venue_id: 'venue-2',
-      venue_name: 'Current Result',
+      id: 'venue-2',
+      name: 'Current Result',
     }
 
     const { result, rerender } = renderHook(
@@ -278,18 +299,18 @@ describe('useVenuesWithNextAvailable', () => {
     rerender({ dateFilter: '2026-02-20' })
 
     await waitFor(() => {
-      expect(mockRpc).toHaveBeenCalledTimes(2)
+      expect(mockFetch).toHaveBeenCalledTimes(2)
     })
 
     await act(async () => {
-      resolveSecondRequest({ data: [secondVenue], error: null })
+      resolveSecondRequest(createMockResponse({ success: true, data: [secondVenue] }))
       await Promise.resolve()
     })
 
     expect(result.current.data?.[0].name).toBe('Current Result')
 
     await act(async () => {
-      resolveFirstRequest({ data: [firstVenue], error: null })
+      resolveFirstRequest(createMockResponse({ success: true, data: [firstVenue] }))
       await Promise.resolve()
     })
 
@@ -299,7 +320,7 @@ describe('useVenuesWithNextAvailable', () => {
 
   it('times out an unresponsive venue request instead of loading forever', async () => {
     jest.useFakeTimers()
-    mockRpc.mockReturnValue(new Promise(() => {}))
+    mockFetch.mockReturnValue(new Promise(() => {}))
 
     const { result } = renderHook(() => useVenuesWithNextAvailable())
 
@@ -312,5 +333,27 @@ describe('useVenuesWithNextAvailable', () => {
 
     expect(result.current.loading).toBe(false)
     expect(result.current.error).toBe('Timed out loading venues. Please try again.')
+  })
+
+  it('forwards filter options as query params', async () => {
+    mockFetch.mockResolvedValue(createMockResponse({ success: true, data: [] }))
+
+    const { result } = renderHook(() =>
+      useVenuesWithNextAvailable({
+        dateFilter: '2026-02-20',
+        userLat: 34.05,
+        userLng: -118.24,
+        radiusMiles: 10,
+      })
+    )
+
+    await waitFor(() => {
+      expect(result.current.loading).toBe(false)
+    })
+
+    expect(mockFetch).toHaveBeenCalledWith(
+      '/api/venues/next-available?date=2026-02-20&lat=34.05&lng=-118.24&radiusMiles=10',
+      { cache: 'no-store' }
+    )
   })
 })
