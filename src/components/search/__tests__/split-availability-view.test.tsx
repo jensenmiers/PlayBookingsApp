@@ -5,9 +5,11 @@
 
 import { render, screen, fireEvent } from '@testing-library/react'
 import { format } from 'date-fns'
+import { getDateStringInTimeZone } from '@/utils/dateHelpers'
 import { SplitAvailabilityView } from '../split-availability-view'
 
 const mockRequestLocation = jest.fn()
+const PLATFORM_TIME_ZONE = 'America/Los_Angeles'
 
 jest.mock('@/hooks/useVenuesWithNextAvailable', () => ({
   useVenuesWithNextAvailable: jest.fn(),
@@ -26,13 +28,21 @@ jest.mock('@/components/maps/availability-map', () => ({
 jest.mock('@/components/ui/calendar', () => ({
   Calendar: ({
     onSelect,
+    disabled,
   }: {
     onSelect?: (date: Date | undefined) => void
+    disabled?: (date: Date) => boolean
   }) => (
     <div data-testid="date-picker-calendar">
       <button type="button" onClick={() => onSelect?.(new Date(2026, 6, 20))}>
         Select July 20
       </button>
+      <span data-testid="calendar-disabled-la-today">
+        {String(Boolean(disabled?.(new Date(2026, 6, 16))))}
+      </span>
+      <span data-testid="calendar-disabled-day-before-la-today">
+        {String(Boolean(disabled?.(new Date(2026, 6, 15))))}
+      </span>
     </div>
   ),
 }))
@@ -83,6 +93,9 @@ const mockRequestToBookVenue = {
 describe('SplitAvailabilityView - Location button', () => {
   beforeEach(() => {
     jest.clearAllMocks()
+    // 2026-07-17 06:00 UTC is still 2026-07-16 evening in America/Los_Angeles
+    jest.useFakeTimers()
+    jest.setSystemTime(new Date('2026-07-17T06:00:00.000Z'))
     ;(useVenuesWithNextAvailable as jest.Mock).mockReturnValue({
       data: [mockVenue],
       loading: false,
@@ -95,6 +108,10 @@ describe('SplitAvailabilityView - Location button', () => {
       loading: false,
       requestLocation: mockRequestLocation,
     })
+  })
+
+  afterEach(() => {
+    jest.useRealTimers()
   })
 
   it('renders location button with aria-label', () => {
@@ -180,14 +197,52 @@ describe('SplitAvailabilityView - Location button', () => {
     expect(mapToggleButton.compareDocumentPosition(todayButton) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy()
   })
 
-  it('defaults the date filter to today and fetches with that dateFilter', () => {
+  it('defaults the date filter to America/Los_Angeles today, not the browser-local date', () => {
+    const localToday = format(new Date(), 'yyyy-MM-dd')
+    const laToday = getDateStringInTimeZone(new Date(), PLATFORM_TIME_ZONE)
+
+    expect(localToday).toBe('2026-07-17')
+    expect(laToday).toBe('2026-07-16')
+
     render(<SplitAvailabilityView />)
 
-    const today = format(new Date(), 'yyyy-MM-dd')
     expect(screen.getByRole('button', { name: /today/i })).toBeInTheDocument()
     expect(useVenuesWithNextAvailable).toHaveBeenCalledWith(
-      expect.objectContaining({ dateFilter: today })
+      expect.objectContaining({ dateFilter: laToday })
     )
+    expect(useVenuesWithNextAvailable).not.toHaveBeenCalledWith(
+      expect.objectContaining({ dateFilter: localToday })
+    )
+  })
+
+  it('anchors previous-day navigation to America/Los_Angeles today', () => {
+    render(<SplitAvailabilityView />)
+
+    expect(useVenuesWithNextAvailable).toHaveBeenCalledWith(
+      expect.objectContaining({ dateFilter: '2026-07-16' })
+    )
+    expect(screen.getByRole('button', { name: /previous day/i })).toBeDisabled()
+
+    fireEvent.click(screen.getByRole('button', { name: /next day/i }))
+    expect(useVenuesWithNextAvailable).toHaveBeenCalledWith(
+      expect.objectContaining({ dateFilter: '2026-07-17' })
+    )
+    expect(screen.getByRole('button', { name: /previous day/i })).not.toBeDisabled()
+
+    fireEvent.click(screen.getByRole('button', { name: /previous day/i }))
+    expect(useVenuesWithNextAvailable).toHaveBeenLastCalledWith(
+      expect.objectContaining({ dateFilter: '2026-07-16' })
+    )
+    expect(screen.getByRole('button', { name: /previous day/i })).toBeDisabled()
+  })
+
+  it('keeps America/Los_Angeles today selectable in the calendar and disables days before it', () => {
+    render(<SplitAvailabilityView />)
+
+    fireEvent.click(screen.getByRole('button', { name: /today/i }))
+
+    expect(screen.getByTestId('calendar-disabled-la-today')).toHaveTextContent('false')
+    expect(screen.getByTestId('calendar-disabled-day-before-la-today')).toHaveTextContent('true')
   })
 
   it('opens a day picker from the date control and updates the search date on select', () => {

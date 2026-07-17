@@ -1,7 +1,7 @@
 'use client'
 
 import { useState, useMemo } from 'react'
-import { format, addDays, subDays, startOfDay, parse } from 'date-fns'
+import { format } from 'date-fns'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Calendar } from '@/components/ui/calendar'
@@ -23,8 +23,16 @@ import { ErrorMessage } from '@/components/ui/error-message'
 import Link from 'next/link'
 import { getBookingModeDisplay } from '@/lib/booking-mode'
 import { slugify } from '@/lib/utils'
+import { addDaysToDateString, getDateStringInTimeZone } from '@/utils/dateHelpers'
 
 type ViewMode = 'map' | 'list'
+
+const PLATFORM_TIME_ZONE = 'America/Los_Angeles'
+
+function parseLocalDate(dateStr: string): Date {
+  const [year, month, day] = dateStr.split('-').map(Number)
+  return new Date(year, month - 1, day)
+}
 
 /**
  * Split view component combining map and availability list
@@ -32,8 +40,8 @@ type ViewMode = 'map' | 'list'
  * Mobile: Toggle between map and list views
  */
 export function SplitAvailabilityView() {
-  const today = new Date()
-  const todayKey = format(today, 'yyyy-MM-dd')
+  const todayKey = getDateStringInTimeZone(new Date(), PLATFORM_TIME_ZONE)
+  const todayDate = parseLocalDate(todayKey)
   const [selectedDate, setSelectedDate] = useState(todayKey)
   const [showDatePicker, setShowDatePicker] = useState(false)
   const [viewMode, setViewMode] = useState<ViewMode>('map')
@@ -69,12 +77,12 @@ export function SplitAvailabilityView() {
     return filteredVenues.filter(v => v.nextAvailable !== null)
   }, [filteredVenues])
 
-  const selectedDateObject = parse(selectedDate, 'yyyy-MM-dd', new Date())
+  const selectedDateObject = parseLocalDate(selectedDate)
 
   const handleDateChange = (direction: 'prev' | 'next') => {
-    const newDate = direction === 'prev' ? subDays(selectedDateObject, 1) : addDays(selectedDateObject, 1)
-    if (direction === 'prev' && newDate < startOfDay(today)) return
-    setSelectedDate(format(newDate, 'yyyy-MM-dd'))
+    const newDateKey = addDaysToDateString(selectedDate, direction === 'prev' ? -1 : 1)
+    if (direction === 'prev' && newDateKey < todayKey) return
+    setSelectedDate(newDateKey)
     setShowDatePicker(false)
   }
 
@@ -177,7 +185,7 @@ export function SplitAvailabilityView() {
                     setSelectedDate(format(date, 'yyyy-MM-dd'))
                     setShowDatePicker(false)
                   }}
-                  disabled={(date) => date < startOfDay(today)}
+                  disabled={(date) => date < todayDate}
                 />
               </div>
             )}
