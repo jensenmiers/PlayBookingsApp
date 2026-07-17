@@ -66,12 +66,18 @@ export async function GET(request: Request) {
           .in('id', venueIds)
 
         if (fallbackQuery.error) {
-          throw fallbackQuery.error
+          console.error(
+            'Venue enrichment fallback failed; returning discovery rows with defaults:',
+            fallbackQuery.error
+          )
+        } else {
+          enrichmentRows = (fallbackQuery.data || []) as unknown as VenueDiscoveryEnrichmentRow[]
         }
-
-        enrichmentRows = (fallbackQuery.data || []) as unknown as VenueDiscoveryEnrichmentRow[]
       } else if (mediaQuery.error) {
-        throw mediaQuery.error
+        console.error(
+          'Venue enrichment failed; returning discovery rows with defaults:',
+          mediaQuery.error
+        )
       } else {
         enrichmentRows = (mediaQuery.data || []) as unknown as VenueDiscoveryEnrichmentRow[]
       }

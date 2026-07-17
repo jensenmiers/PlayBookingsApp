@@ -98,15 +98,17 @@ export function useVenuesWithNextAvailable(options: UseVenuesOptions = {}): UseV
     setError(null)
 
     try {
-      const response = await withVenueDiscoveryTimeout(
-        fetch(buildNextAvailableUrl(options), { cache: 'no-store' })
+      const { response, body } = await withVenueDiscoveryTimeout(
+        (async () => {
+          const response = await fetch(buildNextAvailableUrl(options), { cache: 'no-store' })
+          const body = await response.json().catch(() => null)
+          return { response, body }
+        })()
       )
 
       if (latestRequestIdRef.current !== requestId) {
         return
       }
-
-      const body = await response.json().catch(() => null)
 
       if (!response.ok || !body?.success) {
         const message =

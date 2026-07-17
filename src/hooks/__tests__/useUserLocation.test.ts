@@ -335,6 +335,105 @@ describe('useVenuesWithNextAvailable', () => {
     expect(result.current.error).toBe('Timed out loading venues. Please try again.')
   })
 
+  it('times out a stalled response body instead of loading forever', async () => {
+    jest.useFakeTimers()
+    mockFetch.mockResolvedValue({
+      ok: true,
+      status: 200,
+      json: () => new Promise(() => {}),
+    } as Response)
+
+    const { result } = renderHook(() => useVenuesWithNextAvailable())
+
+    expect(result.current.loading).toBe(true)
+
+    await act(async () => {
+      jest.advanceTimersByTime(12_000)
+      await Promise.resolve()
+    })
+
+    expect(result.current.loading).toBe(false)
+    expect(result.current.error).toBe('Timed out loading venues. Please try again.')
+  })
+
+  it('ignores stale venue responses that finish parsing after a newer request', async () => {
+    let resolveFirstFetch: (value: unknown) => void = () => {}
+    let resolveFirstJson: (value: unknown) => void = () => {}
+
+    const firstVenue = {
+      id: 'venue-1',
+      name: 'Old Result',
+      city: 'Los Angeles',
+      state: 'CA',
+      address: '123 Court St',
+      hourlyRate: 125,
+      instantBooking: true,
+      bookingMode: null,
+      insuranceRequired: false,
+      latitude: 34.05,
+      longitude: -118.24,
+      distanceMiles: null,
+      venueType: 'Sports Facility',
+      photo: null,
+      nextAvailable: null,
+    }
+
+    const secondVenue = {
+      ...firstVenue,
+      id: 'venue-2',
+      name: 'Current Result',
+    }
+
+    mockFetch
+      .mockImplementationOnce(
+        () =>
+          new Promise((resolve) => {
+            resolveFirstFetch = resolve
+          })
+      )
+      .mockResolvedValueOnce(
+        createMockResponse({ success: true, data: [secondVenue] })
+      )
+
+    const { result, rerender } = renderHook(
+      ({ dateFilter }: { dateFilter?: string }) => useVenuesWithNextAvailable({ dateFilter }),
+      { initialProps: { dateFilter: undefined } }
+    )
+
+    await waitFor(() => {
+      expect(mockFetch).toHaveBeenCalledTimes(1)
+    })
+
+    // First Response arrives and passes the pre-json stale check, but body parsing is deferred.
+    await act(async () => {
+      resolveFirstFetch({
+        ok: true,
+        status: 200,
+        json: () =>
+          new Promise((resolve) => {
+            resolveFirstJson = resolve
+          }),
+      })
+      await Promise.resolve()
+    })
+
+    // Newer request starts while the older body is still parsing.
+    rerender({ dateFilter: '2026-02-20' })
+
+    await waitFor(() => {
+      expect(mockFetch).toHaveBeenCalledTimes(2)
+      expect(result.current.data?.[0].name).toBe('Current Result')
+    })
+
+    await act(async () => {
+      resolveFirstJson({ success: true, data: [firstVenue] })
+      await Promise.resolve()
+    })
+
+    expect(result.current.data?.[0].name).toBe('Current Result')
+    expect(result.current.loading).toBe(false)
+  })
+
   it('forwards filter options as query params', async () => {
     mockFetch.mockResolvedValue(createMockResponse({ success: true, data: [] }))
 
