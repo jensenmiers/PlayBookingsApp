@@ -379,35 +379,42 @@ function MapVenueCard({
         </div>
       </div>
 
-      {/* Next Available */}
+      {/* Next Available — two-row meta strip for consistent mobile chip sizing */}
       {venue.nextAvailable && (
-        <div className="mt-m flex items-center justify-between">
-          <div className="flex items-center gap-s">
-            <span className="bg-primary-400/15 text-primary-400 text-sm font-medium px-m py-xs rounded-lg">
+        <div className="mt-m space-y-s">
+          <div data-testid="venue-meta-datetime-row">
+            <span className="inline-flex max-w-full bg-primary-400/15 text-primary-400 text-sm font-medium px-m py-xs rounded-lg whitespace-nowrap">
               {venue.nextAvailable.displayText}
             </span>
-            <span
-              className={`text-xs px-s py-xxs rounded-full ${
-                bookingMode.mode === 'instant'
-                  ? 'bg-accent-400/15 text-accent-400'
-                  : 'bg-secondary-50/10 text-secondary-50/70'
-              }`}
-            >
-              {bookingMode.label}
-            </span>
-            {venue.insuranceRequired && (
-              <span className="bg-secondary-50/10 text-secondary-50/70 text-xs px-s py-xxs rounded-full">
-                Insurance
-              </span>
-            )}
           </div>
-          <Link
-            href={`/venue/${slugify(venue.name)}`}
-            className="text-sm font-medium text-secondary-50/60 hover:text-secondary-50"
-            onClick={(e) => e.stopPropagation()}
+          <div
+            data-testid="venue-meta-chips-row"
+            className="flex items-center justify-between gap-s"
           >
-            Book →
-          </Link>
+            <div className="flex min-w-0 flex-wrap items-center gap-s">
+              <span
+                className={`whitespace-nowrap text-xs px-s py-xxs rounded-full ${
+                  bookingMode.mode === 'instant'
+                    ? 'bg-accent-400/15 text-accent-400'
+                    : 'bg-secondary-50/10 text-secondary-50/70'
+                }`}
+              >
+                {bookingMode.label}
+              </span>
+              {venue.insuranceRequired && (
+                <span className="whitespace-nowrap bg-secondary-50/10 text-secondary-50/70 text-xs px-s py-xxs rounded-full">
+                  Insurance
+                </span>
+              )}
+            </div>
+            <Link
+              href={`/venue/${slugify(venue.name)}`}
+              className="flex-shrink-0 text-sm font-medium text-secondary-50/60 hover:text-secondary-50"
+              onClick={(e) => e.stopPropagation()}
+            >
+              Book →
+            </Link>
+          </div>
         </div>
       )}
     </div>

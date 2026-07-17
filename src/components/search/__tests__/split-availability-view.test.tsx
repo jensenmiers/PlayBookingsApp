@@ -197,6 +197,35 @@ describe('SplitAvailabilityView - Location button', () => {
     expect(screen.queryByText('Instant')).not.toBeInTheDocument()
   })
 
+  it('renders next-available datetime on its own meta row above mode chips', () => {
+    ;(useVenuesWithNextAvailable as jest.Mock).mockReturnValue({
+      data: [{ ...mockVenue, insuranceRequired: true }],
+      loading: false,
+      error: null,
+      refetch: jest.fn(),
+    })
+
+    render(<SplitAvailabilityView />)
+
+    const datetimeRow = screen.getByTestId('venue-meta-datetime-row')
+    const chipsRow = screen.getByTestId('venue-meta-chips-row')
+
+    expect(datetimeRow).toHaveTextContent('Tue Feb 10, 2 PM')
+    expect(datetimeRow).not.toHaveTextContent('Instant')
+    expect(datetimeRow).not.toHaveTextContent('Insurance')
+    expect(chipsRow).toHaveTextContent('Instant')
+    expect(chipsRow).toHaveTextContent('Insurance')
+    expect(chipsRow).toHaveTextContent('Book →')
+    expect(datetimeRow.compareDocumentPosition(chipsRow) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy()
+  })
+
+  it('keeps next-available datetime on one line', () => {
+    render(<SplitAvailabilityView />)
+
+    const datetimePill = screen.getByTestId('venue-meta-datetime-row').querySelector('span')
+    expect(datetimePill).toHaveClass('whitespace-nowrap')
+  })
+
   it('uses all courts wording for directory links', () => {
     render(<SplitAvailabilityView />)
 
