@@ -204,6 +204,8 @@ function VerticalCompactCourtCard({
 
 export default function Home() {
   const [mounted, setMounted] = useState(false)
+  // Preferred pins resolve from the active catalog (includes ungeocoded venues).
+  // Discovery omits venues without location, so it alone cannot resolve demo pins.
   const { data: venues, loading: venuesLoading } = useVenues()
   const { data: availabilityVenues, loading: availabilityLoading } = useVenuesWithNextAvailable()
   const featuredCourts = useMemo(

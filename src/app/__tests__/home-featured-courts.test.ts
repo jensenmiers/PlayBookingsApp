@@ -66,6 +66,7 @@ describe('home featured courts mapping', () => {
         name: 'Crossroads School',
         hourly_rate: 90,
         venue_type: 'School Gymnasium',
+        photos: ['https://example.com/crossroads.jpg'],
       }),
       createVenue({
         id: 'venue-1',
@@ -90,6 +91,9 @@ describe('home featured courts mapping', () => {
       createMapVenue({
         id: 'venue-2',
         name: 'Crossroads School',
+        hourlyRate: 90,
+        venueType: 'School Gymnasium',
+        photo: 'https://example.com/crossroads.jpg',
         nextAvailable: {
           slotId: 'slot-2',
           date: '2026-02-19',
@@ -109,6 +113,7 @@ describe('home featured courts mapping', () => {
       type: 'School Gymnasium',
       hourlyRate: 90,
       nextAvailable: 'Thu Feb 19, 4 PM',
+      image: 'https://example.com/crossroads.jpg',
       href: '/venue/crossroads-school',
     })
     expect(featured[1]).toMatchObject({
@@ -141,7 +146,12 @@ describe('home featured courts mapping', () => {
   it('can pin demo venues in an explicit order even when one has no next slot', () => {
     const venues: Venue[] = [
       createVenue({ id: 'venue-1', name: 'Memorial Park' }),
-      createVenue({ id: 'venue-2', name: 'Crosscourt' }),
+      createVenue({
+        id: 'venue-2',
+        name: 'Crosscourt',
+        venue_type: 'Indoor Court',
+        photos: ['https://example.com/crosscourt.jpg'],
+      }),
       createVenue({ id: 'venue-3', name: 'First Presbyterian Church of Hollywood' }),
       createVenue({ id: 'venue-4', name: 'Soonest Dynamic Court' }),
     ]
@@ -161,6 +171,8 @@ describe('home featured courts mapping', () => {
       createMapVenue({
         id: 'venue-2',
         name: 'Crosscourt',
+        venueType: 'Indoor Court',
+        photo: 'https://example.com/crosscourt.jpg',
         nextAvailable: {
           slotId: 'slot-2',
           date: '2026-02-21',
@@ -230,5 +242,87 @@ describe('home featured courts mapping', () => {
       'Memorial Park',
     ])
     expect(featured.every((court) => court.nextAvailable === 'by request')).toBe(true)
+  })
+
+  it('pins preferred venues from the active catalog even when discovery omits ungeocoded venues', () => {
+    const venues: Venue[] = [
+      createVenue({
+        id: 'venue-ungeocoded',
+        name: 'First Presbyterian Church of Hollywood',
+        venue_type: 'Church Gym',
+        photos: ['https://example.com/presbyterian.jpg'],
+        latitude: undefined,
+        longitude: undefined,
+      }),
+      createVenue({
+        id: 'venue-2',
+        name: 'Crosscourt',
+        venue_type: 'Indoor Court',
+        photos: ['https://example.com/crosscourt.jpg'],
+      }),
+      createVenue({ id: 'venue-1', name: 'Memorial Park' }),
+      createVenue({ id: 'venue-4', name: 'Soonest Dynamic Court' }),
+    ]
+
+    // Discovery RPC requires location IS NOT NULL, so the ungeocoded preferred venue is absent.
+    const discoveryVenues: MapVenue[] = [
+      createMapVenue({
+        id: 'venue-2',
+        name: 'Crosscourt',
+        venueType: 'Indoor Court',
+        photo: 'https://example.com/crosscourt.jpg',
+        nextAvailable: {
+          slotId: 'slot-2',
+          date: '2026-02-21',
+          startTime: '16:00:00',
+          endTime: '17:00:00',
+          displayText: 'Sat Feb 21, 4 PM',
+        },
+      }),
+      createMapVenue({
+        id: 'venue-1',
+        name: 'Memorial Park',
+        nextAvailable: {
+          slotId: 'slot-1',
+          date: '2026-02-22',
+          startTime: '18:00:00',
+          endTime: '19:00:00',
+          displayText: 'Sun Feb 22, 6 PM',
+        },
+      }),
+      createMapVenue({
+        id: 'venue-4',
+        name: 'Soonest Dynamic Court',
+        nextAvailable: {
+          slotId: 'slot-4',
+          date: '2026-02-19',
+          startTime: '12:00:00',
+          endTime: '13:00:00',
+          displayText: 'Thu Feb 19, 12 PM',
+        },
+      }),
+    ]
+
+    const featured = buildFeaturedCourts(venues, discoveryVenues, 3, {
+      preferredVenueNames: [
+        'Crosscourt',
+        'First Presbyterian Church of Hollywood',
+        'Memorial Park',
+      ],
+      fallbackAvailabilityLabel: 'by request',
+    })
+
+    expect(featured.map((court) => court.name)).toEqual([
+      'Crosscourt',
+      'First Presbyterian Church of Hollywood',
+      'Memorial Park',
+    ])
+    expect(featured[1]).toMatchObject({
+      id: 'venue-ungeocoded',
+      type: 'Church Gym',
+      nextAvailable: 'by request',
+      image: 'https://example.com/presbyterian.jpg',
+      href: '/venue/first-presbyterian-church-of-hollywood',
+    })
   })
 })
