@@ -81,3 +81,13 @@ Done means:
 - Be concise and concrete.
 - Report what changed, why, and how it was verified.
 - Surface tradeoffs and residual risk clearly.
+
+## Cursor Cloud specific instructions
+
+This is a single Next.js 16 (App Router, Turbopack) app; there is no separate backend service. Standard commands live in `package.json` (`dev`, `build`, `lint`, `test`) and `README.md`.
+
+- Env: `.env.local` is pre-provisioned in the cloud VM with real secrets (Supabase, Stripe, Google OAuth, Mapbox). The dev server talks to the live Supabase project, so `npm run dev` shows real venue data with no extra setup. Do not commit `.env.local`.
+- Node: `package.json` pins `engines.node` to `20.x`, but the VM runs Node 22. Everything (install/lint/test/build/dev) works on Node 22; `npm ci`/`npm install` just prints a harmless `EBADENGINE` warning. Do not "fix" this by pinning Node unless asked.
+- Run: `npm run dev` serves on http://localhost:3000. Booking discovery + instant-book flow (search → venue → slot → confirmation modal) works end to end against live data.
+- Tests: `npm test` currently has 3 pre-existing failing suites at this commit, unrelated to environment setup: `bookingService.slotGate.test.ts`, `bookingService.policies.test.ts`, `slot-booking-confirmation.test.tsx` (~637 pass). Treat these as the known baseline, not a setup regression.
+- Git hooks (husky): pre-commit runs `lint:design-system:staged`; pre-push runs `npm run build` only when the push targets `main` (skipped for feature branches).
