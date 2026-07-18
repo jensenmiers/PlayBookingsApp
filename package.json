@@ -34,6 +34,7 @@
     "backfill:venue-neighborhoods": "tsx scripts/backfill-venue-neighborhoods.ts"
   },
   "dependencies": {
+    "@calcom/cal-sans-ui": "^1.3.0",
     "@fortawesome/fontawesome-svg-core": "^6.6.0",
     "@fortawesome/free-regular-svg-icons": "^6.6.0",
     "@fortawesome/free-solid-svg-icons": "^6.6.0",

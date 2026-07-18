@@ -1,6 +1,6 @@
 import type { Metadata } from "next";
-import { DM_Sans, DM_Serif_Display } from "next/font/google";
-import { Geist_Mono } from "next/font/google";
+import { CalSansUI } from "@calcom/cal-sans-ui/ui";
+import { CalSansGeo } from "@calcom/cal-sans-ui/geo";
 import { config } from "@fortawesome/fontawesome-svg-core";
 import "@fortawesome/fontawesome-svg-core/styles.css";
 import { Analytics } from "@vercel/analytics/next";
@@ -9,23 +9,6 @@ import { AgentationProvider } from "@/components/providers/agentation-provider";
 import "./globals.css";
 
 config.autoAddCss = false;
-
-const dmSans = DM_Sans({
-  variable: "--font-dm-sans",
-  subsets: ["latin"],
-  weight: ["400", "500", "600", "700"],
-});
-
-const dmSerif = DM_Serif_Display({
-  variable: "--font-dm-serif",
-  subsets: ["latin"],
-  weight: ["400"],
-});
-
-const geistMono = Geist_Mono({
-  variable: "--font-geist-mono",
-  subsets: ["latin"],
-});
 
 const SHARE_PREVIEW_TEXT = "Community courts, unlocked. Find a court. Book it. Go play.";
 const OG_IMAGE_PATH = "/og-default-v3.jpg";
@@ -76,8 +59,11 @@ export default function RootLayout({
   children: React.ReactNode;
 }>) {
   return (
-    <html lang="en">
-      <body className={`${dmSans.variable} ${dmSerif.variable} ${geistMono.variable} antialiased`}>
+    <html
+      lang="en"
+      className={`${CalSansUI.variable} ${CalSansGeo.variable}`}
+    >
+      <body className={`${CalSansUI.className} antialiased`}>
         <Providers>
           {children}
         </Providers>

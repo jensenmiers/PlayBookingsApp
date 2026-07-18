@@ -116,7 +116,6 @@ export function VenueDesignScoreboard({ venue }: VenueDesignScoreboardProps) {
               <span
                 className="text-6xl sm:text-7xl font-bold tracking-tight"
                 style={{
-                  fontFamily: 'ui-monospace, monospace',
                   textShadow:
                     '0 0 40px color-mix(in oklch, var(--primary-400) 40%, transparent)',
                 }}

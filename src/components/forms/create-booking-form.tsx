@@ -32,6 +32,10 @@ import { useCreatePaymentIntent, useCreateSetupIntent, useDeleteUnpaidBooking } 
 import { useVenues, useVenue } from '@/hooks/useVenues'
 import { loadStripe } from '@stripe/stripe-js'
 import { Elements, PaymentElement, useStripe, useElements } from '@stripe/react-stripe-js'
+import {
+  getStripeElementsAppearance,
+  getStripeElementsFonts,
+} from '@/lib/stripeAppearance'
 import { faCheck, faCreditCard, faCalendarCheck, faArrowLeft } from '@fortawesome/free-solid-svg-icons'
 
 const stripePromise = loadStripe(process.env.NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY!)
@@ -357,14 +361,10 @@ export function CreateBookingForm({
               stripe={stripePromise}
               options={{
                 clientSecret,
-                appearance: {
-                theme: 'stripe',
-                variables: {
-                    colorPrimary: 'var(--primary-600)',
-                    fontFamily: 'system-ui, sans-serif',
-                    borderRadius: '8px',
-                  },
-                },
+                fonts: getStripeElementsFonts(),
+                appearance: getStripeElementsAppearance({
+                  colorPrimary: 'var(--primary-600)',
+                }),
               }}
             >
               <WizardPaymentForm

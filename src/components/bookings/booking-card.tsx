@@ -102,7 +102,7 @@ export function BookingCard({ booking, onPayClick }: BookingCardProps) {
             </p>
             <p
               className={cn(
-                'font-mono text-sm mt-xs',
+                'text-sm mt-xs',
                 ticketState.showAmount === 'prominent'
                   ? 'text-primary-400 font-semibold'
                   : 'text-secondary-50/40'
@@ -110,7 +110,7 @@ export function BookingCard({ booking, onPayClick }: BookingCardProps) {
             >
               ${booking.total_amount.toFixed(2)}
               {ticketState.showAmount === 'subdued' && (
-                <span className="font-sans ml-xs">paid</span>
+                <span className="ml-xs">paid</span>
               )}
             </p>
           </div>

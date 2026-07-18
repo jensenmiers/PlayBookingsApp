@@ -97,7 +97,7 @@ export default function TestSupabasePage() {
       )}
 
       {testResults.length > 0 && (
-        <div className="bg-gray-900 text-green-400 p-4 rounded-lg font-mono text-sm overflow-x-auto">
+        <div className="bg-gray-900 text-green-400 p-4 rounded-lg text-sm overflow-x-auto">
           <div className="mb-2 text-gray-300">Test Output:</div>
           {testResults.map((log, index) => (
             <div key={index} className="whitespace-pre-wrap">{log}</div>

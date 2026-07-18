@@ -30,6 +30,10 @@ import { useAuthModal } from '@/contexts/AuthModalContext'
 import { useToast } from '@/components/ui/use-toast'
 import { formatTime } from '@/utils/dateHelpers'
 import { BOOKING_APPROVAL_COPY } from '@/lib/booking-mode'
+import {
+  getStripeElementsAppearance,
+  getStripeElementsFonts,
+} from '@/lib/stripeAppearance'
 import type { Venue, BookingWithPaymentInfo, SlotActionType, SlotModalContent } from '@/types'
 
 const stripePromise = loadStripe(process.env.NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY!)
@@ -601,14 +605,10 @@ export function BookingPaymentFlow({
             stripe={stripePromise}
             options={{
               clientSecret,
-              appearance: {
-                theme: 'stripe',
-                variables: {
-                  colorPrimary: 'var(--primary-600)',
-                  fontFamily: 'system-ui, sans-serif',
-                  borderRadius: '8px',
-                },
-              },
+              fonts: getStripeElementsFonts(),
+              appearance: getStripeElementsAppearance({
+                colorPrimary: 'var(--primary-600)',
+              }),
             }}
           >
             <StripePaymentForm

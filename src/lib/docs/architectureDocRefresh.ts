@@ -100,13 +100,16 @@ export function extractSupabaseTables(source: string): string[] {
 }
 
 export function parseFontVariables(source: string): string[] {
-  const regex = /variable:\s*['"](--font-[^'"]+)['"]/g
+  const nextFontPattern = /variable:\s*['"](--font-[^'"]+)['"]/g
+  const cssVarPattern = /var\((--font-[a-z0-9-]+)\)/g
   const variables = new Set<string>()
-  let match = regex.exec(source)
 
-  while (match) {
-    variables.add(match[1])
-    match = regex.exec(source)
+  for (const pattern of [nextFontPattern, cssVarPattern]) {
+    let match = pattern.exec(source)
+    while (match) {
+      variables.add(match[1])
+      match = pattern.exec(source)
+    }
   }
 
   return Array.from(variables).sort()

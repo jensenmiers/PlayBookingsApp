@@ -1,6 +1,7 @@
 import type { NextConfig } from "next";
 
 const nextConfig: NextConfig = {
+  transpilePackages: ["@calcom/cal-sans-ui"],
   turbopack: {
     root: process.cwd(),
   },

@@ -21,7 +21,7 @@ It is intentionally concise and avoids per-component class inventories.
 - CSS files in `src`: 1 (`src/app/globals.css`)
 - UI primitive files in `src/components/ui`: 16
 - Files using `cva()`: 2 (`src/components/ui/button.tsx`, `src/components/ui/toast.tsx`)
-- Font variables from layout: `--font-dm-sans`, `--font-dm-serif`, `--font-geist-mono`
+- Font variables from layout/theme: `--font-cal-sans-ui`, `--font-cal-sans-geo`
 - Globals include dark variant: yes
 - Globals include Mapbox popup overrides: yes
 <!-- AUTO-SNAPSHOT:CSS:END -->
@@ -58,11 +58,12 @@ Current direction:
 
 ## Typography System
 
-Configured in `src/app/layout.tsx` using `next/font/google`:
+Configured in `src/app/layout.tsx` using `@calcom/cal-sans-ui` (Next local font helpers):
 
-- DM Sans (`--font-dm-sans`) for default UI/body.
-- DM Serif Display (`--font-dm-serif`) for display/headline emphasis.
-- Geist Mono (`--font-geist-mono`) for monospaced needs.
+- Cal Sans UI (`--font-cal-sans-ui`) for default UI/body (`font-sans`).
+- Cal Sans Geo (`--font-cal-sans-geo`) for display/headline emphasis (`font-serif`, `GEOM` 100).
+- No separate mono face; `--font-mono` also maps to Cal Sans UI.
+- Stripe Payment Element loads the same Cal Sans UI files from `public/fonts/` via `src/lib/stripeAppearance.ts`.
 
 These map to theme fonts in `globals.css` (`--font-sans`, `--font-serif`, `--font-mono`).
 

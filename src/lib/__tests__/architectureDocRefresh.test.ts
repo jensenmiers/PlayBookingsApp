@@ -57,13 +57,25 @@ describe('architecture doc refresh helpers', () => {
     expect(extractSupabaseTables(source)).toEqual(['users', 'venues'])
   })
 
-  it('parses configured font variable names from layout source', () => {
-    const source = `
-      const dmSans = DM_Sans({ variable: "--font-dm-sans" })
-      const dmSerif = DM_Serif_Display({ variable: '--font-dm-serif' })
+  it('parses configured font variable names from layout and theme source', () => {
+    const layoutSource = `
+      const calSansUI = localFont({ variable: "--font-cal-sans-ui" })
+      const calSansGeo = localFont({ variable: '--font-cal-sans-geo' })
+    `
+    const themeSource = `
+      --font-sans: var(--font-cal-sans-ui);
+      --font-serif: var(--font-cal-sans-geo);
+      --font-mono: var(--font-cal-sans-ui);
     `
 
-    expect(parseFontVariables(source)).toEqual(['--font-dm-sans', '--font-dm-serif'])
+    expect(parseFontVariables(layoutSource)).toEqual([
+      '--font-cal-sans-geo',
+      '--font-cal-sans-ui',
+    ])
+    expect(parseFontVariables(themeSource)).toEqual([
+      '--font-cal-sans-geo',
+      '--font-cal-sans-ui',
+    ])
   })
 
   it('ignores generated-at churn when summarizing snapshot changes', () => {

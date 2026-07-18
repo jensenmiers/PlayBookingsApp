@@ -7,6 +7,10 @@
 import { loadStripe } from '@stripe/stripe-js'
 import { Elements } from '@stripe/react-stripe-js'
 import type { StripeElementsOptions } from '@stripe/stripe-js'
+import {
+  getStripeElementsAppearance,
+  getStripeElementsFonts,
+} from '@/lib/stripeAppearance'
 
 const stripePromise = loadStripe(process.env.NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY!)
 
@@ -18,14 +22,8 @@ interface StripeProviderProps {
 export function StripeProvider({ children, clientSecret }: StripeProviderProps) {
   const options: StripeElementsOptions = {
     clientSecret,
-    appearance: {
-      theme: 'stripe',
-      variables: {
-        colorPrimary: '#0066cc',
-        fontFamily: 'system-ui, sans-serif',
-        borderRadius: '8px',
-      },
-    },
+    fonts: getStripeElementsFonts(),
+    appearance: getStripeElementsAppearance(),
   }
 
   if (!clientSecret) {
