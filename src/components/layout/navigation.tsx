@@ -89,8 +89,15 @@ export function Navigation() {
   return (
     <nav className="relative z-40 border-b border-secondary-50/10 bg-secondary-900/90 backdrop-blur supports-[backdrop-filter]:bg-secondary-900/70">
       <div className="mx-auto flex h-16 max-w-7xl items-center justify-between px-4 sm:px-10">
-        <Link href="/" className="text-xl font-bold tracking-tight text-secondary-50/90">
-          Play Bookings
+        <Link href="/" className="inline-flex items-center" aria-label="Play Bookings home">
+          <Image
+            src="/play_bookings_logo.svg"
+            alt="Play Bookings"
+            width={195}
+            height={36}
+            className="h-8 w-auto"
+            priority
+          />
         </Link>
 
         <div className="hidden md:flex md:items-center md:space-x-6">

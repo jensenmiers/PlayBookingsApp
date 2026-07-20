@@ -66,6 +66,14 @@ describe('Navigation', () => {
     })
   })
 
+  it('renders the logo home link with accessible name', () => {
+    render(<Navigation />)
+
+    const homeLink = screen.getByRole('link', { name: 'Play Bookings home' })
+    expect(homeLink).toHaveAttribute('href', '/')
+    expect(screen.getByLabelText('Play Bookings')).toBeInTheDocument()
+  })
+
   it('applies active pill styling to Next Availability when pathname is /search', () => {
     mockPathname = '/search'
 
