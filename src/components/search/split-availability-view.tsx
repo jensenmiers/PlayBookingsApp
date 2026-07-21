@@ -406,9 +406,11 @@ function MapVenueCard({
 
         {/* Right: Price */}
         <div className="text-right flex-shrink-0">
-          <span className="font-bold text-secondary-50 text-sm">
-            {priceLine || `$${venue.hourlyRate}/hr`}
-          </span>
+          {priceLine ? (
+            <span className="font-bold text-secondary-50 text-sm">
+              {priceLine}
+            </span>
+          ) : null}
         </div>
       </div>
 

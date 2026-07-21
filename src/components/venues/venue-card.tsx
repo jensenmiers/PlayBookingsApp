@@ -81,7 +81,7 @@ export function VenueCard({
 
         <div className="flex items-center justify-between gap-s pt-xs">
           <span className="text-secondary-50 font-semibold text-sm sm:text-base">
-            {priceLine || `$${venue.hourly_rate}/hr`}
+            {priceLine}
           </span>
 
           {showNextAvailable && nextAvailable && (

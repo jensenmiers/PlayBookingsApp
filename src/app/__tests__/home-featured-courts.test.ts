@@ -149,6 +149,32 @@ describe('home featured courts mapping', () => {
     expect(featured[0].priceLabel).toBe('$3 drop-in · $75/hr')
   })
 
+  it('does not fall back to private rental hourly rate for open-gym-only venues without drop-in price', () => {
+    const venues: Venue[] = [
+      createVenue({
+        id: 'venue-1',
+        name: 'Memorial Park',
+        hourly_rate: 100,
+        offers_open_gym: true,
+        offers_private_rental: false,
+        drop_in_price: null,
+      }),
+    ]
+    const mapVenues: MapVenue[] = [
+      createMapVenue({
+        id: 'venue-1',
+        offersOpenGym: true,
+        offersPrivateRental: false,
+        dropInPrice: null,
+      }),
+    ]
+
+    const featured = buildFeaturedCourts(venues, mapVenues, 1)
+
+    expect(featured[0].priceLabel).toBe('')
+    expect(featured[0].priceLabel).not.toContain('/hr')
+  })
+
   it('ignores venues without future availability', () => {
     const venues: Venue[] = [
       createVenue({ id: 'venue-1', name: 'Memorial Park' }),

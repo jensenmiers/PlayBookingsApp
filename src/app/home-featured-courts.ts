@@ -42,8 +42,7 @@ function mapVenueToFeaturedCourt(
   nextSlot: { date: string; startTime: string } | undefined,
   fallbackAvailabilityLabel: string
 ): FeaturedCourt & { sortTime: number } {
-  const priceLabel =
-    formatVenueCardPriceLine(venue) || `$${venue.hourly_rate}/hr`
+  const priceLabel = formatVenueCardPriceLine(venue)
 
   return {
     id: venue.id,

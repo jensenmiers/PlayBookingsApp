@@ -414,4 +414,27 @@ describe('SplitAvailabilityView - Location button', () => {
     expect(screen.getByText('Memorial Park')).toBeInTheDocument()
     expect(screen.getByText('$3 drop-in · $50/hr')).toBeInTheDocument()
   })
+
+  it('does not fall back to private rental hourly rate for open-gym-only venues without drop-in price', () => {
+    ;(useVenuesWithNextAvailable as jest.Mock).mockReturnValue({
+      data: [
+        {
+          ...mockHybridOpenGymVenue,
+          offersPrivateRental: false,
+          dropInPrice: null,
+          hourlyRate: 100,
+        },
+      ],
+      loading: false,
+      error: null,
+      refetch: jest.fn(),
+    })
+
+    render(<SplitAvailabilityView />)
+
+    fireEvent.click(screen.getByRole('button', { name: 'Open Gym' }))
+    expect(screen.getByText('Memorial Park')).toBeInTheDocument()
+    expect(screen.queryByText('$100/hr')).not.toBeInTheDocument()
+    expect(screen.queryByText(/\/hr/)).not.toBeInTheDocument()
+  })
 })

@@ -161,6 +161,22 @@ describe('VenueCard', () => {
     expect(screen.getByText('$5 drop-in')).toBeInTheDocument()
   })
 
+  it('does not fall back to private rental hourly rate for open-gym-only venues without drop-in price', () => {
+    render(
+      <VenueCard
+        venue={createVenue({
+          offers_open_gym: true,
+          offers_private_rental: false,
+          drop_in_price: null,
+          hourly_rate: 100,
+        })}
+      />
+    )
+
+    expect(screen.queryByText('$100/hr')).not.toBeInTheDocument()
+    expect(screen.queryByText(/\/hr/)).not.toBeInTheDocument()
+  })
+
   it('shows next available badge when provided outside open-gym segment', () => {
     render(
       <VenueCard
