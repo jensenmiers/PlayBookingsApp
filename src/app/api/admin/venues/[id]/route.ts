@@ -486,6 +486,11 @@ export async function PATCH(request: NextRequest, context: RouteContext): Promis
     // Keep discovery capability flags in sync with drop-in operational config.
     if (body.drop_in_enabled !== undefined) {
       venueUpdates.offers_open_gym = Boolean(body.drop_in_enabled)
+      // Clear denormalized discovery price when open gym is turned off unless
+      // the PATCH also sets drop_in_price explicitly.
+      if (!Boolean(body.drop_in_enabled) && body.drop_in_price === undefined) {
+        venueUpdates.drop_in_price = null
+      }
     }
     if (body.drop_in_price !== undefined) {
       venueUpdates.drop_in_price = body.drop_in_price
