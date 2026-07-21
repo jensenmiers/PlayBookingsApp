@@ -49,6 +49,9 @@ function createVenue(overrides: Partial<Venue> = {}): Venue {
     owner_id: 'owner-1',
     hourly_rate: 75,
     instant_booking: false,
+    offers_open_gym: false,
+    offers_private_rental: true,
+    drop_in_price: null,
     insurance_required: false,
     max_advance_booking_days: 30,
     photos: [],
@@ -108,23 +111,73 @@ describe('VenueCard', () => {
     expect(screen.getByText('Test Court')).toBeInTheDocument()
     expect(screen.getByText('Los Angeles, CA')).toBeInTheDocument()
     expect(screen.getByText('$75/hr')).toBeInTheDocument()
+    expect(screen.getByText('Private Rental')).toBeInTheDocument()
   })
 
-  it('shows Instant chip for instant-booking venues', () => {
+  it('shows dual pricing and access chips for hybrid venues', () => {
+    render(
+      <VenueCard
+        venue={createVenue({
+          offers_open_gym: true,
+          offers_private_rental: true,
+          drop_in_price: 3,
+          hourly_rate: 120,
+        })}
+      />
+    )
+
+    expect(screen.getByText('Open Gym')).toBeInTheDocument()
+    expect(screen.getByText('Private Rental')).toBeInTheDocument()
+    expect(screen.getByText('$3 drop-in · $120/hr')).toBeInTheDocument()
+  })
+
+  it('shows Instant chip for instant-booking rental venues', () => {
     render(<VenueCard venue={createVenue({ instant_booking: true })} />)
 
     expect(screen.getByText('Instant')).toBeInTheDocument()
     expect(screen.queryByText('Host Approval')).not.toBeInTheDocument()
   })
 
-  it('shows Host Approval chip for non-instant venues', () => {
+  it('shows Host Approval chip for non-instant rental venues', () => {
     render(<VenueCard venue={createVenue({ instant_booking: false })} />)
 
     expect(screen.getByText('Host Approval')).toBeInTheDocument()
     expect(screen.queryByText('Instant')).not.toBeInTheDocument()
   })
 
-  it('shows next available badge when provided', () => {
+  it('hides booking-mode chip for open-gym-only venues', () => {
+    render(
+      <VenueCard
+        venue={createVenue({
+          offers_open_gym: true,
+          offers_private_rental: false,
+          drop_in_price: 5,
+        })}
+      />
+    )
+
+    expect(screen.queryByText('Instant')).not.toBeInTheDocument()
+    expect(screen.queryByText('Host Approval')).not.toBeInTheDocument()
+    expect(screen.getByText('$5 drop-in')).toBeInTheDocument()
+  })
+
+  it('does not fall back to private rental hourly rate for open-gym-only venues without drop-in price', () => {
+    render(
+      <VenueCard
+        venue={createVenue({
+          offers_open_gym: true,
+          offers_private_rental: false,
+          drop_in_price: null,
+          hourly_rate: 100,
+        })}
+      />
+    )
+
+    expect(screen.queryByText('$100/hr')).not.toBeInTheDocument()
+    expect(screen.queryByText(/\/hr/)).not.toBeInTheDocument()
+  })
+
+  it('shows next available badge when provided outside open-gym segment', () => {
     render(
       <VenueCard
         venue={createVenue()}
@@ -133,6 +186,18 @@ describe('VenueCard', () => {
     )
 
     expect(screen.getByText(/Fri Feb 20, 3 PM/)).toBeInTheDocument()
+  })
+
+  it('hides next available badge in open-gym access segment', () => {
+    render(
+      <VenueCard
+        venue={createVenue({ offers_open_gym: true, drop_in_price: 3 })}
+        nextAvailable={{ displayText: 'Fri Feb 20, 3 PM' }}
+        accessFilter="open_gym"
+      />
+    )
+
+    expect(screen.queryByText(/Next:/)).not.toBeInTheDocument()
   })
 
   it('does not show next available badge when not provided', () => {

@@ -34,6 +34,9 @@ describe('GET /api/venues/next-available', () => {
           instant_booking: true,
           booking_mode: 'instant_slots',
           insurance_required: false,
+          offers_open_gym: false,
+          offers_private_rental: true,
+          drop_in_price: null,
           latitude: 34.05,
           longitude: -118.24,
           distance_miles: null,
@@ -75,6 +78,8 @@ describe('GET /api/venues/next-available', () => {
       name: 'Crosscourt',
       venueType: 'Indoor Court',
       photo: 'https://example.com/crosscourt.jpg',
+      offersOpenGym: false,
+      offersPrivateRental: true,
       nextAvailable: {
         displayText: 'Fri Feb 20, 6 PM',
       },
@@ -85,6 +90,75 @@ describe('GET /api/venues/next-available', () => {
       p_user_lng: null,
       p_radius_miles: null,
     })
+  })
+
+  it('filters discovery venues by access=open_gym', async () => {
+    const rpc = jest.fn().mockResolvedValue({
+      data: [
+        {
+          venue_id: 'venue-1',
+          venue_name: 'Crosscourt',
+          venue_city: 'Los Angeles',
+          venue_state: 'CA',
+          venue_address: '123 Court St',
+          hourly_rate: 125,
+          instant_booking: true,
+          booking_mode: 'instant_slots',
+          insurance_required: false,
+          offers_open_gym: false,
+          offers_private_rental: true,
+          drop_in_price: null,
+          latitude: 34.05,
+          longitude: -118.24,
+          distance_miles: null,
+          next_slot_id: 'slot-1',
+          next_slot_date: '2026-02-20',
+          next_slot_start_time: '18:00:00',
+          next_slot_end_time: '19:00:00',
+        },
+        {
+          venue_id: 'venue-2',
+          venue_name: 'Memorial Park',
+          venue_city: 'Santa Monica',
+          venue_state: 'CA',
+          venue_address: '1401 Olympic Blvd',
+          hourly_rate: 75,
+          instant_booking: false,
+          booking_mode: 'request_to_book',
+          insurance_required: false,
+          offers_open_gym: true,
+          offers_private_rental: true,
+          drop_in_price: 3,
+          latitude: 34.02,
+          longitude: -118.47,
+          distance_miles: null,
+          next_slot_id: null,
+          next_slot_date: null,
+          next_slot_start_time: null,
+          next_slot_end_time: null,
+        },
+      ],
+      error: null,
+    })
+
+    mockCreateClient.mockResolvedValue({
+      rpc,
+      from: jest.fn(() => ({
+        select: jest.fn(() => ({
+          in: jest.fn().mockResolvedValue({ data: [], error: null }),
+        })),
+      })),
+    })
+
+    const response = await GET(
+      new Request('http://localhost/api/venues/next-available?access=open_gym')
+    )
+    const body = await response.json()
+
+    expect(response.status).toBe(200)
+    expect(body.data).toHaveLength(1)
+    expect(body.data[0].id).toBe('venue-2')
+    expect(body.data[0].offersOpenGym).toBe(true)
   })
 
   it('forwards optional query filters to the discovery function', async () => {

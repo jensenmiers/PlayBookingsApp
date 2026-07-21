@@ -3,12 +3,14 @@ import type { MapVenue } from '@/lib/venueDiscovery'
 import type { Venue } from '@/types'
 import { deriveVenuePhotos } from '@/lib/venueMedia'
 import { formatCompactNextAvailable } from '@/lib/nextAvailableDisplay'
+import { formatVenueCardPriceLine } from '@/lib/venueAccess'
 
 export interface FeaturedCourt {
   id: string
   name: string
   type: string
   hourlyRate: number
+  priceLabel: string
   nextAvailable: string
   image: string | null
   href: string
@@ -40,11 +42,14 @@ function mapVenueToFeaturedCourt(
   nextSlot: { date: string; startTime: string } | undefined,
   fallbackAvailabilityLabel: string
 ): FeaturedCourt & { sortTime: number } {
+  const priceLabel = formatVenueCardPriceLine(venue)
+
   return {
     id: venue.id,
     name: venue.name,
     type: venue.venue_type || 'Sports Facility',
     hourlyRate: venue.hourly_rate,
+    priceLabel,
     nextAvailable: nextSlot
       ? formatCompactNextAvailable(nextSlot.date, nextSlot.startTime)
       : fallbackAvailabilityLabel,
@@ -60,6 +65,7 @@ function stripSortTime(court: FeaturedCourt & { sortTime: number }): FeaturedCou
     name: court.name,
     type: court.type,
     hourlyRate: court.hourlyRate,
+    priceLabel: court.priceLabel,
     nextAvailable: court.nextAvailable,
     image: court.image,
     href: court.href,

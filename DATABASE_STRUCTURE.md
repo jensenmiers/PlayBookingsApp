@@ -17,7 +17,7 @@ It is intentionally not a column-by-column reference.
 
 <!-- AUTO-SNAPSHOT:DB:START -->
 - Generated at: 2026-06-16 (America/Los_Angeles)
-- Latest migration in repo: `20260616000100_update_memorial_open_gym_drop_in_price.sql` (53 total)
+- Latest migration in repo: `20260721000100_add_venue_access_capability_flags.sql` (54 total)
 - Distinct tables referenced in app code via `.from()`: 21
 - App tables referenced in app code: `audit_logs`, `auth_oauth_states`, `availability`, `bookings`, `drop_in_template_sync_queue`, `external_availability_blocks`, `payments`, `recurring_bookings`, `regular_template_sync_queue`, `slot_instances`, `slot_interactions`, `slot_modal_content`, `slot_templates`, `users`, `venue_admin_configs`, `venue_availability_publish_states`, `venue_calendar_integrations`, `venue_calendar_oauth_states`, `venue_calendar_tokens`, `venue_media`, `venues`
 - Live key-table check: 19/19 tables available
@@ -92,7 +92,7 @@ It is intentionally not a column-by-column reference.
 8. Regular availability parity is SQL-core-driven:
    - `get_regular_available_slot_instances` is the canonical regular eligibility function used by both venue availability regular reads and next-available discovery.
    - `get_venues_with_next_available` now derives next slots from that shared eligibility core.
-   - Discovery surfaces (`/search`, `/venues`, home featured) stay regular-only; drop-in info-only slots remain venue-page-only.
+   - Discovery next-available stays regular-only (`instant_book` / `request_private`); drop-in `info_only_open_gym` slots remain venue-page calendar content.
 9. Google Calendar OAuth callbacks are now fixed-path:
    - Venue-specific callback URLs were removed.
    - Short-lived `venue_calendar_oauth_states` records now map the static callback back to the initiating venue/admin.
@@ -100,6 +100,11 @@ It is intentionally not a column-by-column reference.
    - `venues.booking_mode` distinguishes `instant_slots`, `approval_slots`, and `request_to_book`.
    - Request-to-book venues can accept precise pending booking requests without published slot inventory.
    - `venues.instant_booking` remains present for legacy compatibility while runtime behavior moves toward `booking_mode`.
+11. Open Gym vs Private Rental discovery capabilities:
+   - `venues.offers_open_gym`, `venues.offers_private_rental`, and denormalized `venues.drop_in_price` power All / Open Gym / Private Rentals filters on `/venues` and `/search`.
+   - Hybrid venues match both Open Gym and Private Rentals segments.
+   - `offers_open_gym` / `drop_in_price` sync from `venue_admin_configs.drop_in_enabled` / `drop_in_price` on admin save.
+   - Slot `action_type = info_only_open_gym` remains per-slot UX (info modal, no in-app booking), not a venue category.
 
 ## Operational Notes
 
