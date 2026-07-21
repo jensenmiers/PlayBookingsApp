@@ -603,6 +603,13 @@ describe('SuperAdminVenueConfigPage', () => {
     ).toBeInTheDocument()
   })
 
+  it('renders offers private rental control for discovery capability', async () => {
+    render(<SuperAdminVenueConfigPage />)
+
+    expect(await screen.findByText('Offers Private Rental')).toBeInTheDocument()
+    expect(screen.getByRole('checkbox', { name: /offers private rental/i })).toBeChecked()
+  })
+
   it('renders two booking mode toggles and removes legacy insurance controls', async () => {
     render(<SuperAdminVenueConfigPage />)
 

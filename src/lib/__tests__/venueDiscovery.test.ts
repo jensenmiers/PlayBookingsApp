@@ -14,6 +14,9 @@ describe('buildMapVenuesFromDiscovery', () => {
           instant_booking: true,
           booking_mode: 'instant_slots',
           insurance_required: false,
+          offers_open_gym: false,
+          offers_private_rental: true,
+          drop_in_price: null,
           latitude: 34.05,
           longitude: -118.24,
           distance_miles: 2.5,
@@ -39,6 +42,9 @@ describe('buildMapVenuesFromDiscovery', () => {
       venueType: 'Indoor Court',
       photo: 'https://example.com/crosscourt.jpg',
       hourlyRate: 125,
+      offersOpenGym: false,
+      offersPrivateRental: true,
+      dropInPrice: null,
       nextAvailable: {
         slotId: 'slot-1',
         displayText: 'Fri Feb 20, 6 PM',
@@ -58,6 +64,9 @@ describe('buildMapVenuesFromDiscovery', () => {
         instant_booking: false,
         booking_mode: null,
         insurance_required: false,
+        offers_open_gym: true,
+        offers_private_rental: true,
+        drop_in_price: 3,
         latitude: 34.02,
         longitude: -118.47,
         distance_miles: null,
@@ -71,5 +80,8 @@ describe('buildMapVenuesFromDiscovery', () => {
     expect(venues[0].venueType).toBe('Sports Facility')
     expect(venues[0].photo).toBeNull()
     expect(venues[0].nextAvailable).toBeNull()
+    expect(venues[0].offersOpenGym).toBe(true)
+    expect(venues[0].offersPrivateRental).toBe(true)
+    expect(venues[0].dropInPrice).toBe(3)
   })
 })

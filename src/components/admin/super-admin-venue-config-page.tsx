@@ -65,6 +65,7 @@ type VenueConfigDraft = {
   drop_in_price: string
   instant_booking: boolean
   insurance_required: boolean
+  offers_private_rental: boolean
   min_advance_booking_days: string
   min_advance_lead_time_hours: string
   blackout_dates: string
@@ -200,6 +201,7 @@ function createDraft(item: AdminVenueConfigItem): VenueConfigDraft {
     drop_in_price: item.config.drop_in_price === null ? '' : String(item.config.drop_in_price),
     instant_booking: item.venue.instant_booking,
     insurance_required: item.venue.insurance_required,
+    offers_private_rental: item.venue.offers_private_rental !== false,
     min_advance_booking_days: String(item.config.min_advance_booking_days),
     min_advance_lead_time_hours: String(item.config.min_advance_lead_time_hours),
     blackout_dates: item.config.blackout_dates.join(', '),
@@ -480,6 +482,11 @@ function buildPatchFromDraft(
 
   if (draft.insurance_required !== item.venue.insurance_required) {
     patch.insurance_required = draft.insurance_required
+  }
+
+  const currentOffersPrivateRental = item.venue.offers_private_rental !== false
+  if (draft.offers_private_rental !== currentOffersPrivateRental) {
+    patch.offers_private_rental = draft.offers_private_rental
   }
 
   const minAdvanceDays = parseNonNegativeInteger(draft.min_advance_booking_days)
@@ -2003,6 +2010,25 @@ export function SuperAdminVenueConfigPage() {
                         updateDraft((previous) => ({ ...previous, hourly_rate: event.target.value }))
                       }}
                     />
+                  </ConfigRow>
+
+                  <ConfigRow
+                    title="Offers Private Rental"
+                    description="Show this venue in Private Rentals discovery. Turn off for open-gym-only venues."
+                  >
+                    <label className="inline-flex items-center gap-s text-sm text-secondary-50/80">
+                      <input
+                        type="checkbox"
+                        checked={draft.offers_private_rental}
+                        onChange={(event) => {
+                          updateDraft((previous) => ({
+                            ...previous,
+                            offers_private_rental: event.target.checked,
+                          }))
+                        }}
+                      />
+                      Offers private rental
+                    </label>
                   </ConfigRow>
 
                   <ConfigRow

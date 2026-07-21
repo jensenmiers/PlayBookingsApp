@@ -473,6 +473,7 @@ export async function PATCH(request: NextRequest, context: RouteContext): Promis
       'booking_mode',
       'instant_booking',
       'insurance_required',
+      'offers_private_rental',
       'amenities',
       'is_active',
     ] as const
@@ -480,6 +481,14 @@ export async function PATCH(request: NextRequest, context: RouteContext): Promis
       if (body[field] !== undefined) {
         venueUpdates[field] = body[field]
       }
+    }
+
+    // Keep discovery capability flags in sync with drop-in operational config.
+    if (body.drop_in_enabled !== undefined) {
+      venueUpdates.offers_open_gym = Boolean(body.drop_in_enabled)
+    }
+    if (body.drop_in_price !== undefined) {
+      venueUpdates.drop_in_price = body.drop_in_price
     }
 
     const configUpdates: Record<string, unknown> = {}

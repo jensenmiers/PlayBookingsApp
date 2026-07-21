@@ -6,6 +6,7 @@ import { Navigation } from '@/components/layout/navigation'
 import { PublicSiteFooter } from '@/components/layout/public-site-footer'
 import { VenueCard } from '@/components/venues/venue-card'
 import { VenueCardGridSkeleton } from '@/components/venues/venue-card-grid-skeleton'
+import { VenueAccessSegment } from '@/components/venues/venue-access-segment'
 import { Input } from '@/components/ui/input'
 import { Button } from '@/components/ui/button'
 import { ErrorMessage } from '@/components/ui/error-message'
@@ -13,6 +14,7 @@ import { FontAwesomeIcon } from '@fortawesome/react-fontawesome'
 import { faSearch } from '@fortawesome/free-solid-svg-icons'
 import { createClient } from '@/lib/supabase/client'
 import { formatCompactNextAvailable } from '@/lib/nextAvailableDisplay'
+import { parseVenueAccessFilter, type VenueAccessFilter } from '@/lib/venueAccess'
 import type { Venue } from '@/types'
 import type { PaginatedResponse } from '@/types/api'
 
@@ -31,11 +33,13 @@ function VenuesContent() {
   const searchParamSearch = searchParams.get('search') || ''
   const parsedSearchParamPage = parseInt(searchParams.get('page') || '1', 10)
   const searchParamPage = Number.isFinite(parsedSearchParamPage) ? Math.max(1, parsedSearchParamPage) : 1
+  const searchParamAccess = parseVenueAccessFilter(searchParams.get('access') || 'all')
   const [venues, setVenues] = useState<Venue[]>([])
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
   const [searchQuery, setSearchQuery] = useState(searchParamSearch)
   const [currentPage, setCurrentPage] = useState(searchParamPage)
+  const [accessFilter, setAccessFilter] = useState<VenueAccessFilter>(searchParamAccess)
   const [pagination, setPagination] = useState<{
     page: number
     limit: number
@@ -54,7 +58,8 @@ function VenuesContent() {
   useEffect(() => {
     setSearchQuery(searchParamSearch)
     setCurrentPage(searchParamPage)
-  }, [searchParamSearch, searchParamPage])
+    setAccessFilter(searchParamAccess)
+  }, [searchParamSearch, searchParamPage, searchParamAccess])
 
   // Fetch venues from API
   useEffect(() => {
@@ -74,6 +79,9 @@ function VenuesContent() {
         params.set('limit', '12')
         if (searchQuery.trim()) {
           params.set('search', searchQuery.trim())
+        }
+        if (accessFilter !== 'all') {
+          params.set('access', accessFilter)
         }
 
         const response = await fetch(`/api/venues?${params.toString()}`, {
@@ -122,7 +130,7 @@ function VenuesContent() {
       clearTimeout(timeoutId)
       controller.abort()
     }
-  }, [currentPage, searchQuery])
+  }, [currentPage, searchQuery, accessFilter])
 
   // Fetch next available times for all venues
   useEffect(() => {
@@ -170,18 +178,28 @@ function VenuesContent() {
   const handleSearchChange = (value: string) => {
     setSearchQuery(value)
     setCurrentPage(1) // Reset to first page on new search
-    updateURL({ search: value, page: 1 })
+    updateURL({ search: value, page: 1, access: accessFilter })
   }
 
   // Handle search submit
   const handleSearchSubmit = (e: React.FormEvent) => {
     e.preventDefault()
-    updateURL({ search: searchQuery, page: 1 })
+    updateURL({ search: searchQuery, page: 1, access: accessFilter })
     setCurrentPage(1)
   }
 
+  const handleAccessChange = (value: VenueAccessFilter) => {
+    setAccessFilter(value)
+    setCurrentPage(1)
+    updateURL({ search: searchQuery, page: 1, access: value })
+  }
+
   // Update URL without navigation
-  const updateURL = (params: { search?: string; page?: number }) => {
+  const updateURL = (params: {
+    search?: string
+    page?: number
+    access?: VenueAccessFilter
+  }) => {
     const newParams = new URLSearchParams(searchParams.toString())
     
     if (params.search !== undefined) {
@@ -200,13 +218,21 @@ function VenuesContent() {
       }
     }
 
+    if (params.access !== undefined) {
+      if (params.access === 'all') {
+        newParams.delete('access')
+      } else {
+        newParams.set('access', params.access)
+      }
+    }
+
     router.push(`/venues?${newParams.toString()}`, { scroll: false })
   }
 
   // Handle pagination
   const handlePageChange = (newPage: number) => {
     setCurrentPage(newPage)
-    updateURL({ page: newPage })
+    updateURL({ page: newPage, access: accessFilter })
     window.scrollTo({ top: 0, behavior: 'smooth' })
   }
 
@@ -222,7 +248,7 @@ function VenuesContent() {
         </div>
 
         {/* Search Section */}
-        <form onSubmit={handleSearchSubmit} className="mb-xl">
+        <form onSubmit={handleSearchSubmit} className="mb-l">
           <div className="relative">
             <div className="absolute inset-y-0 left-0 pl-l flex items-center pointer-events-none">
               <FontAwesomeIcon icon={faSearch} className="text-secondary-50/50" />
@@ -236,6 +262,10 @@ function VenuesContent() {
             />
           </div>
         </form>
+
+        <div className="mb-xl">
+          <VenueAccessSegment value={accessFilter} onChange={handleAccessChange} />
+        </div>
 
         {/* Results Count */}
         {pagination && !loading && (
@@ -290,6 +320,7 @@ function VenuesContent() {
                 key={venue.id} 
                 venue={venue} 
                 nextAvailable={nextAvailableMap[venue.id] || null}
+                accessFilter={accessFilter}
               />
             ))}
           </div>

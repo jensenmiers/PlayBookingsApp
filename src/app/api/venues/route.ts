@@ -13,6 +13,7 @@ import {
   normalizeVenueCollectionWithMedia,
   VENUE_SELECT_WITH_MEDIA,
 } from '@/lib/venueMedia'
+import { parseVenueAccessFilter } from '@/lib/venueAccess'
 
 export async function GET(request: NextRequest) {
   try {
@@ -21,6 +22,7 @@ export async function GET(request: NextRequest) {
     const page = Math.max(1, parseInt(searchParams.get('page') || '1', 10))
     const limit = Math.max(1, Math.min(100, parseInt(searchParams.get('limit') || '10', 10)))
     const search = searchParams.get('search')?.trim() || null
+    const access = parseVenueAccessFilter(searchParams.get('access') || 'all')
 
     const applySearch = (query: any) => {
       let nextQuery = query
@@ -29,6 +31,12 @@ export async function GET(request: NextRequest) {
         nextQuery = nextQuery.or(
           `name.ilike.%${search}%,city.ilike.%${search}%,address.ilike.%${search}%`
         )
+      }
+
+      if (access === 'open_gym') {
+        nextQuery = nextQuery.eq('offers_open_gym', true)
+      } else if (access === 'private_rental') {
+        nextQuery = nextQuery.eq('offers_private_rental', true)
       }
 
       return nextQuery

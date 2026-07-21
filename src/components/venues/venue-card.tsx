@@ -8,6 +8,12 @@ import { slugify } from '@/lib/utils'
 import { PhotoCarousel } from '@/components/venue/photo-carousel'
 import { BookingModeChip } from '@/components/venue/shared'
 import { deriveVenuePhotos } from '@/lib/venueMedia'
+import {
+  formatVenueCardPriceLine,
+  resolveVenueAccess,
+  type VenueAccessFilter,
+} from '@/lib/venueAccess'
+import { VenueAccessChips } from '@/components/venues/venue-access-chips'
 
 interface NextAvailableInfo {
   displayText: string  // "Fri Feb 20, 6 PM"
@@ -18,11 +24,20 @@ interface VenueCardProps {
   venue: Venue
   /** Optional next available slot info to display as a badge */
   nextAvailable?: NextAvailableInfo | null
+  /** Current discovery access segment; controls next-available badge visibility */
+  accessFilter?: VenueAccessFilter
 }
 
-export function VenueCard({ venue, nextAvailable }: VenueCardProps) {
+export function VenueCard({
+  venue,
+  nextAvailable,
+  accessFilter = 'all',
+}: VenueCardProps) {
   const venueSlug = slugify(venue.name)
   const photos = deriveVenuePhotos(venue)
+  const { offersPrivateRental } = resolveVenueAccess(venue)
+  const priceLine = formatVenueCardPriceLine(venue)
+  const showNextAvailable = Boolean(nextAvailable) && accessFilter !== 'open_gym'
 
   return (
     <Link
@@ -39,11 +54,9 @@ export function VenueCard({ venue, nextAvailable }: VenueCardProps) {
           />
         </div>
 
-        {/* Booking mode badge overlay */}
-        <BookingModeChip
-          instantBooking={venue.instant_booking}
-          bookingMode={venue.booking_mode}
-          className="absolute right-s top-s z-10"
+        <VenueAccessChips
+          venue={venue}
+          className="absolute right-s top-s z-10 justify-end"
         />
       </div>
 
@@ -58,13 +71,21 @@ export function VenueCard({ venue, nextAvailable }: VenueCardProps) {
           {venue.city}, {venue.state}
         </p>
 
-        <div className="flex items-center justify-between pt-xs">
-          <span className="text-secondary-50 font-semibold">
-            ${venue.hourly_rate}/hr
+        {offersPrivateRental && (
+          <BookingModeChip
+            instantBooking={venue.instant_booking}
+            bookingMode={venue.booking_mode}
+            className="w-fit"
+          />
+        )}
+
+        <div className="flex items-center justify-between gap-s pt-xs">
+          <span className="text-secondary-50 font-semibold text-sm sm:text-base">
+            {priceLine || `$${venue.hourly_rate}/hr`}
           </span>
 
-          {nextAvailable && (
-            <span className="inline-flex items-center gap-xs bg-primary-100 text-primary-700 text-xs font-medium px-s py-xxs rounded-full">
+          {showNextAvailable && nextAvailable && (
+            <span className="inline-flex items-center gap-xs bg-primary-100 text-primary-700 text-xs font-medium px-s py-xxs rounded-full shrink-0">
               <FontAwesomeIcon icon={faClock} className="text-[10px]" />
               Next: {nextAvailable.displayText}
             </span>

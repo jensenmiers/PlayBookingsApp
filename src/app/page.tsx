@@ -67,9 +67,8 @@ function CourtCard({
             <h3 className="font-serif text-lg sm:text-xl text-secondary-50 leading-tight truncate">
               {court.name}
             </h3>
-            <span className="text-base font-medium text-secondary-50 whitespace-nowrap">
-              ${court.hourlyRate}
-              <span className="text-sm text-secondary-50/40">/hr</span>
+            <span className="text-sm font-medium text-secondary-50 whitespace-nowrap">
+              {court.priceLabel}
             </span>
           </div>
           
@@ -181,9 +180,8 @@ function VerticalCompactCourtCard({
             <h3 className="font-serif text-lg text-secondary-50 leading-tight truncate">
               {court.name}
             </h3>
-            <span className="text-base font-medium text-secondary-50 whitespace-nowrap">
-              ${court.hourlyRate}
-              <span className="text-xs text-secondary-50/40">/hr</span>
+            <span className="text-sm font-medium text-secondary-50 whitespace-nowrap">
+              {court.priceLabel}
             </span>
           </div>
 

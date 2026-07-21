@@ -16,6 +16,9 @@ export interface MapVenue {
   instantBooking: boolean
   bookingMode: BookingMode | null
   insuranceRequired: boolean
+  offersOpenGym: boolean
+  offersPrivateRental: boolean
+  dropInPrice: number | null
   latitude: number
   longitude: number
   distanceMiles: number | null
@@ -43,6 +46,9 @@ export interface VenueDiscoveryRpcRow {
   instant_booking: boolean
   booking_mode: BookingMode | null
   insurance_required: boolean
+  offers_open_gym?: boolean | null
+  offers_private_rental?: boolean | null
+  drop_in_price?: number | null
   latitude: number
   longitude: number
   distance_miles: number | null
@@ -71,6 +77,11 @@ export function buildMapVenuesFromDiscovery(
     const enrichment = enrichmentById.get(row.venue_id)
     const photos = enrichment ? deriveVenuePhotos(enrichment) : []
 
+    const dropInPrice =
+      row.drop_in_price == null || row.drop_in_price === undefined
+        ? null
+        : Number(row.drop_in_price)
+
     return {
       id: row.venue_id,
       name: row.venue_name,
@@ -81,6 +92,9 @@ export function buildMapVenuesFromDiscovery(
       instantBooking: row.instant_booking,
       bookingMode: row.booking_mode,
       insuranceRequired: row.insurance_required,
+      offersOpenGym: Boolean(row.offers_open_gym),
+      offersPrivateRental: row.offers_private_rental !== false,
+      dropInPrice: Number.isFinite(dropInPrice as number) ? dropInPrice : null,
       latitude: Number(row.latitude),
       longitude: Number(row.longitude),
       distanceMiles: row.distance_miles,

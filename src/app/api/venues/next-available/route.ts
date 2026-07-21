@@ -16,6 +16,7 @@ import {
   isMissingVenueMediaQueryError,
   VENUE_SELECT_WITH_MEDIA,
 } from '@/lib/venueMedia'
+import { matchesAccessFilter, parseVenueAccessFilter } from '@/lib/venueAccess'
 
 function parseOptionalNumber(value: string | null): number | null {
   if (value == null || value.trim() === '') {
@@ -33,6 +34,7 @@ export async function GET(request: Request) {
     const userLat = parseOptionalNumber(searchParams.get('lat'))
     const userLng = parseOptionalNumber(searchParams.get('lng'))
     const radiusMiles = parseOptionalNumber(searchParams.get('radiusMiles'))
+    const access = parseVenueAccessFilter(searchParams.get('access') || 'all')
 
     const { data: rpcRows, error: rpcError } = await supabase.rpc(
       'get_venues_with_next_available',
@@ -83,7 +85,15 @@ export async function GET(request: Request) {
       }
     }
 
-    const venues = buildMapVenuesFromDiscovery(discoveryRows, enrichmentRows)
+    const venues = buildMapVenuesFromDiscovery(discoveryRows, enrichmentRows).filter((venue) =>
+      matchesAccessFilter(
+        {
+          offers_open_gym: venue.offersOpenGym,
+          offers_private_rental: venue.offersPrivateRental,
+        },
+        access
+      )
+    )
     const response: ApiResponse<MapVenue[]> = {
       success: true,
       data: venues,

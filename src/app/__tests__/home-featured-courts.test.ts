@@ -38,6 +38,9 @@ function createMapVenue(overrides: Partial<MapVenue> = {}): MapVenue {
     instantBooking: false,
     bookingMode: null,
     insuranceRequired: false,
+    offersOpenGym: true,
+    offersPrivateRental: true,
+    dropInPrice: 3,
     latitude: 34.0244,
     longitude: -118.4725,
     distanceMiles: null,
@@ -112,6 +115,7 @@ describe('home featured courts mapping', () => {
       name: 'Crossroads School',
       type: 'School Gymnasium',
       hourlyRate: 90,
+      priceLabel: '$90/hr',
       nextAvailable: 'Thu Feb 19, 4 PM',
       image: 'https://example.com/crossroads.jpg',
       href: '/venue/crossroads-school',
@@ -121,9 +125,28 @@ describe('home featured courts mapping', () => {
       name: 'Memorial Park',
       type: 'Recreation Center',
       hourlyRate: 75,
+      priceLabel: '$75/hr',
       nextAvailable: 'Fri Feb 20, 6 PM',
       href: '/venue/memorial-park',
     })
+  })
+
+  it('uses dual open-gym pricing on featured cards when venue offers both', () => {
+    const venues: Venue[] = [
+      createVenue({
+        id: 'venue-1',
+        name: 'Memorial Park',
+        hourly_rate: 75,
+        offers_open_gym: true,
+        offers_private_rental: true,
+        drop_in_price: 3,
+      }),
+    ]
+    const mapVenues: MapVenue[] = [createMapVenue({ id: 'venue-1' })]
+
+    const featured = buildFeaturedCourts(venues, mapVenues, 1)
+
+    expect(featured[0].priceLabel).toBe('$3 drop-in · $75/hr')
   })
 
   it('ignores venues without future availability', () => {
