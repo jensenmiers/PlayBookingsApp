@@ -286,7 +286,7 @@ export function SplitAvailabilityView() {
             </div>
           ) : (
             <AvailabilityMap
-              venues={filteredVenues}
+              venues={venuesWithAvailability}
               selectedVenueId={selectedVenueId}
               onVenueSelect={handleVenueSelect}
               className="w-full h-full"

@@ -31,7 +31,16 @@ jest.mock('@/hooks/useVenuesWithNextAvailable', () => ({
 }))
 
 jest.mock('@/components/maps/availability-map', () => ({
-  AvailabilityMap: () => <div data-testid="availability-map">Map</div>,
+  AvailabilityMap: ({ venues }: { venues: Array<{ id: string; name: string }> }) => (
+    <div data-testid="availability-map">
+      <span data-testid="map-venue-count">{venues.length}</span>
+      {venues.map((venue) => (
+        <span key={venue.id} data-testid={`map-venue-${venue.id}`}>
+          {venue.name}
+        </span>
+      ))}
+    </div>
+  ),
 }))
 
 jest.mock('@/components/ui/calendar', () => ({
@@ -400,12 +409,12 @@ describe('SplitAvailabilityView - Location button', () => {
     render(<SplitAvailabilityView />)
 
     fireEvent.click(screen.getByRole('button', { name: 'Open Gym' }))
-    expect(screen.getByText('Memorial Park')).toBeInTheDocument()
-    expect(screen.queryByText('Test Venue')).not.toBeInTheDocument()
+    expect(screen.getByRole('heading', { name: 'Memorial Park' })).toBeInTheDocument()
+    expect(screen.queryByRole('heading', { name: 'Test Venue' })).not.toBeInTheDocument()
 
     fireEvent.click(screen.getByRole('button', { name: 'Private Rentals' }))
-    expect(screen.getByText('Memorial Park')).toBeInTheDocument()
-    expect(screen.getByText('Test Venue')).toBeInTheDocument()
+    expect(screen.getByRole('heading', { name: 'Memorial Park' })).toBeInTheDocument()
+    expect(screen.getByRole('heading', { name: 'Test Venue' })).toBeInTheDocument()
   })
 
   it('shows open-gym venues without a regular next slot in the Open Gym segment', () => {
@@ -418,10 +427,10 @@ describe('SplitAvailabilityView - Location button', () => {
 
     render(<SplitAvailabilityView />)
 
-    expect(screen.queryByText('Memorial Park')).not.toBeInTheDocument()
+    expect(screen.queryByRole('heading', { name: 'Memorial Park' })).not.toBeInTheDocument()
 
     fireEvent.click(screen.getByRole('button', { name: 'Open Gym' }))
-    expect(screen.getByText('Memorial Park')).toBeInTheDocument()
+    expect(screen.getByRole('heading', { name: 'Memorial Park' })).toBeInTheDocument()
     expect(screen.getByText('$3 drop-in · $50/hr')).toBeInTheDocument()
   })
 
@@ -465,7 +474,7 @@ describe('SplitAvailabilityView - Location button', () => {
     render(<SplitAvailabilityView />)
 
     fireEvent.click(screen.getByRole('button', { name: 'Open Gym' }))
-    expect(screen.getByText('Memorial Park')).toBeInTheDocument()
+    expect(screen.getByRole('heading', { name: 'Memorial Park' })).toBeInTheDocument()
     expect(screen.queryByText('$100/hr')).not.toBeInTheDocument()
     expect(screen.queryByText(/\/hr/)).not.toBeInTheDocument()
   })
@@ -496,8 +505,42 @@ describe('SplitAvailabilityView - Location button', () => {
     render(<SplitAvailabilityView />)
 
     expect(screen.getByRole('button', { name: 'Open Gym' })).toHaveAttribute('aria-pressed', 'true')
-    expect(screen.getByText('Memorial Park')).toBeInTheDocument()
-    expect(screen.queryByText('Test Venue')).not.toBeInTheDocument()
+    expect(screen.getByRole('heading', { name: 'Memorial Park' })).toBeInTheDocument()
+    expect(screen.queryByRole('heading', { name: 'Test Venue' })).not.toBeInTheDocument()
     expect(screen.getByRole('heading', { name: 'Open Gym Venues' })).toBeInTheDocument()
+  })
+
+  it('keeps Private Rentals map pins aligned with list rows that have nextAvailable', () => {
+    ;(useVenuesWithNextAvailable as jest.Mock).mockReturnValue({
+      data: [
+        mockVenue,
+        {
+          ...mockVenue,
+          id: 'venue-no-slot',
+          name: 'No Slot Private Court',
+          nextAvailable: null,
+        },
+        mockHybridOpenGymVenue,
+      ],
+      loading: false,
+      error: null,
+      refetch: jest.fn(),
+    })
+
+    render(<SplitAvailabilityView />)
+
+    fireEvent.click(screen.getByRole('button', { name: 'Private Rentals' }))
+
+    // List shows only venues with a regular next slot.
+    expect(screen.getByRole('heading', { name: 'Test Venue' })).toBeInTheDocument()
+    expect(screen.queryByRole('heading', { name: 'No Slot Private Court' })).not.toBeInTheDocument()
+    expect(screen.queryByRole('heading', { name: 'Memorial Park' })).not.toBeInTheDocument()
+    expect(screen.getByText('1 venue with availability')).toBeInTheDocument()
+
+    // Map must use the same availability-filtered set (not all private-rental-capable venues).
+    expect(screen.getByTestId('map-venue-count')).toHaveTextContent('1')
+    expect(screen.getByTestId('map-venue-venue-1')).toHaveTextContent('Test Venue')
+    expect(screen.queryByTestId('map-venue-venue-no-slot')).not.toBeInTheDocument()
+    expect(screen.queryByTestId('map-venue-venue-4')).not.toBeInTheDocument()
   })
 })
