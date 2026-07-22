@@ -426,6 +426,14 @@ function buildPatchFromDraft(
   if (dropInPrice !== item.config.drop_in_price) {
     patch.drop_in_price = dropInPrice
   }
+  // Re-enabling must always send drop_in_price: backend validation requires it, and
+  // venues.drop_in_price may have been cleared on the prior disable.
+  if (patch.drop_in_enabled === true && patch.drop_in_price === undefined) {
+    if (dropInPrice === null) {
+      return { patch: {}, error: 'Drop-in price is required when drop-in is enabled.' }
+    }
+    patch.drop_in_price = dropInPrice
+  }
 
   for (const window of draft.operating_hours) {
     if (!window.start_time || !window.end_time) {
