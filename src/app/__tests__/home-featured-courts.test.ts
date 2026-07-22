@@ -293,7 +293,7 @@ describe('home featured courts mapping', () => {
     expect(featured.every((court) => court.nextAvailable === 'by request')).toBe(true)
   })
 
-  it('pins preferred venues from the active catalog even when discovery omits ungeocoded venues', () => {
+  it('pins preferred venues from the active catalog even when discovery omits them', () => {
     const venues: Venue[] = [
       createVenue({
         id: 'venue-ungeocoded',
@@ -313,7 +313,7 @@ describe('home featured courts mapping', () => {
       createVenue({ id: 'venue-4', name: 'Soonest Dynamic Court' }),
     ]
 
-    // Discovery RPC requires location IS NOT NULL, so the ungeocoded preferred venue is absent.
+    // Preferred pin must still resolve from the catalog when discovery omits it.
     const discoveryVenues: MapVenue[] = [
       createMapVenue({
         id: 'venue-2',
