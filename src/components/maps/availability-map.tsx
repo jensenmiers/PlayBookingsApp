@@ -6,6 +6,7 @@ import { FontAwesomeIcon } from '@fortawesome/react-fontawesome'
 import { faLocationDot, faBolt, faClock } from '@fortawesome/free-solid-svg-icons'
 import { Button } from '@/components/ui/button'
 import type { MapVenue } from '@/hooks/useVenuesWithNextAvailable'
+import { formatDiscoveryPrice, isOpenGymDiscovery } from '@/lib/discoveryPresentation'
 import Link from 'next/link'
 import { slugify } from '@/lib/utils'
 
@@ -230,6 +231,8 @@ function VenueMarker({ venue, isSelected }: { venue: MapVenue; isSelected: boole
  */
 function VenuePopupContent({ venue }: { venue: MapVenue }) {
   const venueSlug = slugify(venue.name)
+  const isOpenGym = isOpenGymDiscovery(venue.nextAvailable)
+  const priceLabel = formatDiscoveryPrice(venue.nextAvailable, venue.hourlyRate)
 
   return (
     <div className="p-xs min-w-[220px]">
@@ -238,10 +241,10 @@ function VenuePopupContent({ venue }: { venue: MapVenue }) {
         <h3 className="font-semibold text-secondary-900 text-sm leading-tight">
           {venue.name}
         </h3>
-        {venue.instantBooking && (
+        {(isOpenGym || venue.instantBooking) && (
           <span className="flex items-center gap-xs bg-accent-400/15 text-accent-400 text-xs px-s py-xxs rounded-full flex-shrink-0">
             <FontAwesomeIcon icon={faBolt} className="text-[10px]" />
-            <span>Instant</span>
+            <span>{isOpenGym ? 'Open Gym' : 'Instant'}</span>
           </span>
         )}
       </div>
@@ -271,11 +274,11 @@ function VenuePopupContent({ venue }: { venue: MapVenue }) {
       {/* Price and CTA */}
       <div className="flex items-center justify-between gap-s">
         <span className="text-secondary-900 font-semibold">
-          ${venue.hourlyRate}<span className="text-xs font-normal text-secondary-600">/hr</span>
+          {priceLabel}
         </span>
         <Button asChild size="sm" className="rounded-lg text-xs px-m py-xs h-7">
           <Link href={`/venue/${venueSlug}`}>
-            View & Book
+            {isOpenGym ? 'View details' : 'View & Book'}
           </Link>
         </Button>
       </div>

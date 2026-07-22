@@ -1,4 +1,4 @@
-import type { BookingMode } from '@/types'
+import type { BookingMode, SlotActionType, SlotPaymentMethod, SlotPricing, SlotPricingUnit } from '@/types'
 import { formatCompactNextAvailable } from '@/lib/nextAvailableDisplay'
 import { deriveVenuePhotos, type VenueWithOptionalMediaFields } from '@/lib/venueMedia'
 
@@ -29,6 +29,8 @@ export interface NextAvailableSlot {
   date: string
   startTime: string
   endTime: string
+  actionType: SlotActionType
+  pricing: SlotPricing | null
   displayText: string
 }
 
@@ -50,6 +52,11 @@ export interface VenueDiscoveryRpcRow {
   next_slot_date: string | null
   next_slot_start_time: string | null
   next_slot_end_time: string | null
+  next_slot_action_type?: SlotActionType | null
+  next_slot_price_amount_cents?: number | null
+  next_slot_price_currency?: string | null
+  next_slot_price_unit?: SlotPricingUnit | null
+  next_slot_payment_method?: SlotPaymentMethod | null
 }
 
 export type VenueDiscoveryEnrichmentRow = VenueWithOptionalMediaFields & {
@@ -70,6 +77,18 @@ export function buildMapVenuesFromDiscovery(
   return (rpcRows || []).map((row) => {
     const enrichment = enrichmentById.get(row.venue_id)
     const photos = enrichment ? deriveVenuePhotos(enrichment) : []
+    const nextSlotPricing =
+      row.next_slot_price_amount_cents != null
+      && row.next_slot_price_currency
+      && row.next_slot_price_unit
+      && row.next_slot_payment_method
+        ? {
+            amount_cents: Number(row.next_slot_price_amount_cents),
+            currency: row.next_slot_price_currency,
+            unit: row.next_slot_price_unit,
+            payment_method: row.next_slot_payment_method,
+          } satisfies SlotPricing
+        : null
 
     return {
       id: row.venue_id,
@@ -93,6 +112,9 @@ export function buildMapVenuesFromDiscovery(
               date: row.next_slot_date,
               startTime: row.next_slot_start_time,
               endTime: row.next_slot_end_time || '',
+              actionType: row.next_slot_action_type
+                || (row.instant_booking ? 'instant_book' : 'request_private'),
+              pricing: nextSlotPricing,
               displayText: formatCompactNextAvailable(
                 row.next_slot_date,
                 row.next_slot_start_time

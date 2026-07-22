@@ -1,14 +1,17 @@
 import { slugify } from '@/lib/utils'
-import type { MapVenue } from '@/lib/venueDiscovery'
+import type { MapVenue, NextAvailableSlot } from '@/lib/venueDiscovery'
 import type { Venue } from '@/types'
 import { deriveVenuePhotos } from '@/lib/venueMedia'
 import { formatCompactNextAvailable } from '@/lib/nextAvailableDisplay'
+import { formatDiscoveryPrice, isOpenGymDiscovery } from '@/lib/discoveryPresentation'
 
 export interface FeaturedCourt {
   id: string
   name: string
   type: string
   hourlyRate: number
+  priceLabel: string
+  isOpenGym: boolean
   nextAvailable: string
   image: string | null
   href: string
@@ -37,7 +40,7 @@ function normalizeVenueName(name: string): string {
 
 function mapVenueToFeaturedCourt(
   venue: Venue,
-  nextSlot: { date: string; startTime: string } | undefined,
+  nextSlot: NextAvailableSlot | undefined,
   fallbackAvailabilityLabel: string
 ): FeaturedCourt & { sortTime: number } {
   return {
@@ -45,6 +48,8 @@ function mapVenueToFeaturedCourt(
     name: venue.name,
     type: venue.venue_type || 'Sports Facility',
     hourlyRate: venue.hourly_rate,
+    priceLabel: formatDiscoveryPrice(nextSlot || null, venue.hourly_rate),
+    isOpenGym: isOpenGymDiscovery(nextSlot || null),
     nextAvailable: nextSlot
       ? formatCompactNextAvailable(nextSlot.date, nextSlot.startTime)
       : fallbackAvailabilityLabel,
@@ -60,6 +65,8 @@ function stripSortTime(court: FeaturedCourt & { sortTime: number }): FeaturedCou
     name: court.name,
     type: court.type,
     hourlyRate: court.hourlyRate,
+    priceLabel: court.priceLabel,
+    isOpenGym: court.isOpenGym,
     nextAvailable: court.nextAvailable,
     image: court.image,
     href: court.href,
@@ -80,17 +87,14 @@ export function buildFeaturedCourts(
   limit: number,
   options: BuildFeaturedCourtsOptions = {}
 ): FeaturedCourt[] {
-  const nextByVenue = new Map<string, { date: string; startTime: string }>()
+  const nextByVenue = new Map<string, NextAvailableSlot>()
   const fallbackAvailabilityLabel = options.fallbackAvailabilityLabel || 'by request'
 
   for (const venue of availabilityVenues) {
     if (!venue.nextAvailable) {
       continue
     }
-    nextByVenue.set(venue.id, {
-      date: venue.nextAvailable.date,
-      startTime: venue.nextAvailable.startTime,
-    })
+    nextByVenue.set(venue.id, venue.nextAvailable)
   }
 
   const dynamicCourts = venues

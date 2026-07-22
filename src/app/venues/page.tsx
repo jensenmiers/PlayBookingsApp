@@ -14,14 +14,10 @@ import { faSearch } from '@fortawesome/free-solid-svg-icons'
 import { createClient } from '@/lib/supabase/client'
 import { formatCompactNextAvailable } from '@/lib/nextAvailableDisplay'
 import type { Venue } from '@/types'
+import type { NextAvailableSlot } from '@/lib/venueDiscovery'
 import type { PaginatedResponse } from '@/types/api'
 
 // Type for next available slot info
-interface NextAvailableInfo {
-  displayText: string
-  slotId: string
-}
-
 const VENUE_DIRECTORY_TIMEOUT_MS = 12_000
 const VENUE_DIRECTORY_TIMEOUT_MESSAGE = 'Timed out loading venues. Please try again.'
 
@@ -45,7 +41,7 @@ function VenuesContent() {
   const venuesRef = useRef<Venue[]>([])
   
   // Store next available info keyed by venue ID
-  const [nextAvailableMap, setNextAvailableMap] = useState<Record<string, NextAvailableInfo>>({})
+  const [nextAvailableMap, setNextAvailableMap] = useState<Record<string, NextAvailableSlot>>({})
 
   useEffect(() => {
     venuesRef.current = venues
@@ -147,12 +143,29 @@ function VenuesContent() {
         }
 
         // Build a map of venue_id -> next available info
-        const availabilityMap: Record<string, NextAvailableInfo> = {}
+        const availabilityMap: Record<string, NextAvailableSlot> = {}
         for (const row of data || []) {
           if (row.next_slot_id && row.next_slot_date && row.next_slot_start_time) {
             availabilityMap[row.venue_id] = {
               displayText: formatCompactNextAvailable(row.next_slot_date, row.next_slot_start_time),
               slotId: row.next_slot_id,
+              date: row.next_slot_date,
+              startTime: row.next_slot_start_time,
+              endTime: row.next_slot_end_time || '',
+              actionType: row.next_slot_action_type
+                || (row.instant_booking ? 'instant_book' : 'request_private'),
+              pricing:
+                row.next_slot_price_amount_cents != null
+                && row.next_slot_price_currency
+                && row.next_slot_price_unit
+                && row.next_slot_payment_method
+                  ? {
+                      amount_cents: Number(row.next_slot_price_amount_cents),
+                      currency: row.next_slot_price_currency,
+                      unit: row.next_slot_price_unit,
+                      payment_method: row.next_slot_payment_method,
+                    }
+                  : null,
             }
           }
         }

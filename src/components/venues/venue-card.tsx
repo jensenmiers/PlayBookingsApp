@@ -8,21 +8,20 @@ import { slugify } from '@/lib/utils'
 import { PhotoCarousel } from '@/components/venue/photo-carousel'
 import { BookingModeChip } from '@/components/venue/shared'
 import { deriveVenuePhotos } from '@/lib/venueMedia'
-
-interface NextAvailableInfo {
-  displayText: string  // "Fri Feb 20, 6 PM"
-  slotId?: string
-}
+import type { NextAvailableSlot } from '@/lib/venueDiscovery'
+import { formatDiscoveryPrice, isOpenGymDiscovery } from '@/lib/discoveryPresentation'
 
 interface VenueCardProps {
   venue: Venue
   /** Optional next available slot info to display as a badge */
-  nextAvailable?: NextAvailableInfo | null
+  nextAvailable?: NextAvailableSlot | null
 }
 
 export function VenueCard({ venue, nextAvailable }: VenueCardProps) {
   const venueSlug = slugify(venue.name)
   const photos = deriveVenuePhotos(venue)
+  const isOpenGym = isOpenGymDiscovery(nextAvailable || null)
+  const priceLabel = formatDiscoveryPrice(nextAvailable || null, venue.hourly_rate)
 
   return (
     <Link
@@ -40,11 +39,17 @@ export function VenueCard({ venue, nextAvailable }: VenueCardProps) {
         </div>
 
         {/* Booking mode badge overlay */}
-        <BookingModeChip
-          instantBooking={venue.instant_booking}
-          bookingMode={venue.booking_mode}
-          className="absolute right-s top-s z-10"
-        />
+        {isOpenGym ? (
+          <span className="absolute right-s top-s z-10 rounded-full border border-accent-400/30 bg-accent-400/15 px-s py-xs text-xs font-medium text-accent-400">
+            Open Gym
+          </span>
+        ) : (
+          <BookingModeChip
+            instantBooking={venue.instant_booking}
+            bookingMode={venue.booking_mode}
+            className="absolute right-s top-s z-10"
+          />
+        )}
       </div>
 
       {/* Content area */}
@@ -60,13 +65,13 @@ export function VenueCard({ venue, nextAvailable }: VenueCardProps) {
 
         <div className="flex items-center justify-between pt-xs">
           <span className="text-secondary-50 font-semibold">
-            ${venue.hourly_rate}/hr
+            {priceLabel}
           </span>
 
           {nextAvailable && (
             <span className="inline-flex items-center gap-xs bg-primary-100 text-primary-700 text-xs font-medium px-s py-xxs rounded-full">
               <FontAwesomeIcon icon={faClock} className="text-[10px]" />
-              Next: {nextAvailable.displayText}
+              {isOpenGym ? 'Open Gym' : 'Next'}: {nextAvailable.displayText}
             </span>
           )}
         </div>

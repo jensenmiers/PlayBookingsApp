@@ -3,26 +3,27 @@
 import { createClient } from '@supabase/supabase-js'
 import * as dotenv from 'dotenv'
 import { resolve } from 'path'
+import { AvailabilityService } from '@/services/availabilityService'
+import { addDaysToDateString, getDateStringInTimeZone } from '@/utils/dateHelpers'
+import type { SlotActionType } from '@/types'
 
 dotenv.config({ path: resolve(process.cwd(), '.env.local') })
 dotenv.config({ path: resolve(process.cwd(), '.env') })
+
+const PLATFORM_TIME_ZONE = 'America/Los_Angeles'
 
 type NextAvailableRow = {
   venue_id: string
   venue_name: string
   next_slot_id: string | null
-  next_slot_date: string | null
-  next_slot_start_time: string | null
-  next_slot_end_time: string | null
+  next_slot_action_type: SlotActionType | null
 }
 
-type RegularAvailableSlotRow = {
-  venue_id: string
-  slot_id: string
-  slot_date: string
-  start_time: string
-  end_time: string
-}
+type MismatchReason =
+  | 'rpc_has_next_but_combined_empty'
+  | 'rpc_missing_next_but_combined_has_slot'
+  | 'slot_id_mismatch'
+  | 'action_type_mismatch'
 
 function getRequiredEnv(name: 'NEXT_PUBLIC_SUPABASE_URL' | 'SUPABASE_SERVICE_ROLE_KEY'): string {
   const value = process.env[name]
@@ -32,13 +33,16 @@ function getRequiredEnv(name: 'NEXT_PUBLIC_SUPABASE_URL' | 'SUPABASE_SERVICE_ROL
   return value
 }
 
-function sortRegularSlots(rows: RegularAvailableSlotRow[]): RegularAvailableSlotRow[] {
-  return [...rows].sort((left, right) => {
-    if (left.slot_date !== right.slot_date) {
-      return left.slot_date.localeCompare(right.slot_date)
-    }
-    return left.start_time.localeCompare(right.start_time)
-  })
+function getTimeStringInTimeZone(date: Date, timeZone: string): string {
+  const parts = new Intl.DateTimeFormat('en-US', {
+    timeZone,
+    hour: '2-digit',
+    minute: '2-digit',
+    second: '2-digit',
+    hourCycle: 'h23',
+  }).formatToParts(date)
+  const byType = new Map(parts.map((part) => [part.type, part.value]))
+  return `${byType.get('hour')}:${byType.get('minute')}:${byType.get('second')}`
 }
 
 async function main() {
@@ -47,6 +51,11 @@ async function main() {
     getRequiredEnv('SUPABASE_SERVICE_ROLE_KEY'),
     { auth: { persistSession: false } }
   )
+  const availabilityService = new AvailabilityService({ getClient: async () => supabase })
+  const now = new Date()
+  const today = getDateStringInTimeZone(now, PLATFORM_TIME_ZONE)
+  const nowTime = getTimeStringInTimeZone(now, PLATFORM_TIME_ZONE)
+  const dateTo = addDaysToDateString(today, 365)
 
   const { data: nextRows, error: nextRowsError } = await supabase.rpc('get_venues_with_next_available', {
     p_date_filter: null,
@@ -60,51 +69,47 @@ async function main() {
   }
 
   const allRows = (nextRows || []) as NextAvailableRow[]
-  const rowsWithNextSlot = allRows.filter((row) => Boolean(row.next_slot_id))
-
-  console.log(`Venues returned by RPC: ${allRows.length}`)
-  console.log(`Venues with next_slot_id: ${rowsWithNextSlot.length}`)
-
   const mismatches: Array<{
     venue_id: string
     venue_name: string
-    reason:
-      | 'rpc_has_next_but_regular_empty'
-      | 'rpc_missing_next_but_regular_has_slot'
-      | 'slot_id_mismatch'
+    reason: MismatchReason
     rpc_next_slot_id: string | null
-    regular_first_slot_id: string | null
+    combined_first_slot_id: string | null
   }> = []
 
+  console.log(`Venues returned by RPC: ${allRows.length}`)
+  console.log(`Venues with next_slot_id: ${allRows.filter((row) => Boolean(row.next_slot_id)).length}`)
+
   for (const row of allRows) {
-    const { data: regularRows, error: regularRowsError } = await supabase.rpc(
-      'get_regular_available_slot_instances',
-      {
-        p_venue_id: row.venue_id,
-        p_date_from: null,
-        p_date_to: null,
-        p_date_filter: null,
-      }
-    )
+    const availableSlots = await availabilityService.getAvailableSlots(row.venue_id, today, dateTo)
+    const eligibleSlots = availableSlots
+      .filter((slot) => (
+        slot.action_type !== 'info_only_open_gym'
+        || slot.date > today
+        || (slot.date === today && slot.start_time >= nowTime)
+      ))
+      .sort((left, right) => {
+        const timeComparison = `${left.date}-${left.start_time}`.localeCompare(`${right.date}-${right.start_time}`)
+        if (timeComparison !== 0) return timeComparison
+        if (left.action_type === right.action_type) {
+          return (left.slot_instance_id || '').localeCompare(right.slot_instance_id || '')
+        }
+        return left.action_type === 'info_only_open_gym' ? 1 : -1
+      })
 
-    if (regularRowsError) {
-      throw new Error(
-        `Failed to fetch regular available slots for venue ${row.venue_id}: ${regularRowsError.message}`
-      )
-    }
-
-    const sortedRegularRows = sortRegularSlots((regularRows || []) as RegularAvailableSlotRow[])
-    const firstRegular = sortedRegularRows[0] || null
+    const firstEligible = eligibleSlots[0] || null
     const rpcNextSlotId = row.next_slot_id || null
-    const regularFirstSlotId = firstRegular?.slot_id || null
-    let reason: 'rpc_has_next_but_regular_empty' | 'rpc_missing_next_but_regular_has_slot' | 'slot_id_mismatch' | null = null
+    const combinedFirstSlotId = firstEligible?.slot_instance_id || null
+    let reason: MismatchReason | null = null
 
-    if (rpcNextSlotId && !regularFirstSlotId) {
-      reason = 'rpc_has_next_but_regular_empty'
-    } else if (!rpcNextSlotId && regularFirstSlotId) {
-      reason = 'rpc_missing_next_but_regular_has_slot'
-    } else if (rpcNextSlotId && regularFirstSlotId && rpcNextSlotId !== regularFirstSlotId) {
+    if (rpcNextSlotId && !combinedFirstSlotId) {
+      reason = 'rpc_has_next_but_combined_empty'
+    } else if (!rpcNextSlotId && combinedFirstSlotId) {
+      reason = 'rpc_missing_next_but_combined_has_slot'
+    } else if (rpcNextSlotId && combinedFirstSlotId && rpcNextSlotId !== combinedFirstSlotId) {
       reason = 'slot_id_mismatch'
+    } else if (rpcNextSlotId && row.next_slot_action_type !== firstEligible?.action_type) {
+      reason = 'action_type_mismatch'
     }
 
     if (reason) {
@@ -113,7 +118,7 @@ async function main() {
         venue_name: row.venue_name,
         reason,
         rpc_next_slot_id: rpcNextSlotId,
-        regular_first_slot_id: regularFirstSlotId,
+        combined_first_slot_id: combinedFirstSlotId,
       })
     }
   }
@@ -122,13 +127,13 @@ async function main() {
     console.log(`Parity mismatches found: ${mismatches.length}`)
     for (const mismatch of mismatches) {
       console.log(
-        `- ${mismatch.venue_name} (${mismatch.venue_id}) reason=${mismatch.reason} rpc=${mismatch.rpc_next_slot_id} regular_first=${mismatch.regular_first_slot_id}`
+        `- ${mismatch.venue_name} (${mismatch.venue_id}) reason=${mismatch.reason} rpc=${mismatch.rpc_next_slot_id} combined_first=${mismatch.combined_first_slot_id}`
       )
     }
     process.exit(1)
   }
 
-  console.log('Parity check passed: each next-available slot matches first regular available slot.')
+  console.log('Parity check passed: every next-available result matches combined rental/open-gym availability.')
 }
 
 main().catch((error) => {

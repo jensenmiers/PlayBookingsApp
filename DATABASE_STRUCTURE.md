@@ -89,10 +89,11 @@ It is intentionally not a column-by-column reference.
 7. Insurance policy controls were simplified:
    - `venues.insurance_required` is now the only venue-level insurance gate.
    - `venue_admin_configs.insurance_requires_manual_approval` and `venue_admin_configs.insurance_document_types` were removed.
-8. Regular availability parity is SQL-core-driven:
+8. Next-available discovery combines canonical rentals with future open-gym sessions:
    - `get_regular_available_slot_instances` is the canonical regular eligibility function used by both venue availability regular reads and next-available discovery.
-   - `get_venues_with_next_available` now derives next slots from that shared eligibility core.
-   - Discovery surfaces (`/search`, `/venues`, home featured) stay regular-only; drop-in info-only slots remain venue-page-only.
+   - `get_venues_with_next_available` unions that regular eligibility core with active `info_only_open_gym` instances for venues with drop-in enabled.
+   - Open-gym discovery excludes past starts, blackout/holiday dates, and external availability blocks, but does not apply rental minimum-notice policy.
+   - Search, map, `/venues`, and home featured surfaces receive the selected slot action type and normalized per-instance pricing.
 9. Google Calendar OAuth callbacks are now fixed-path:
    - Venue-specific callback URLs were removed.
    - Short-lived `venue_calendar_oauth_states` records now map the static callback back to the initiating venue/admin.
@@ -108,6 +109,7 @@ It is intentionally not a column-by-column reference.
   - `slot_templates` + `venue_admin_configs`.
 - Canonical regular slot eligibility is computed by SQL function:
   - `get_regular_available_slot_instances`.
+- Canonical next-available discovery is computed by `get_venues_with_next_available`, which selects each venue's earliest eligible regular or open-gym slot and sorts available venues chronologically.
 - `availability` remains physically present for rollback/audit and legacy tooling, but is deprecated from runtime booking/discovery.
 - Queue processing currently depends on scripts:
   - `scripts/process-drop-in-template-sync-queue.ts`

@@ -27,4 +27,34 @@ describe('exact minimum advance policy migration', () => {
     expect(migrationSource).toContain('FROM public.get_regular_available_slot_instances(')
     expect(migrationSource).not.toContain('si.date >= (now_pt.ts::date + COALESCE(vac.min_advance_booking_days, 0))')
   })
+
+  it('adds open-gym sessions and chronological ordering to discovery', () => {
+    const migrationSource = readFileSync(
+      join(process.cwd(), 'supabase/migrations/20260721000100_include_open_gym_in_next_available.sql'),
+      'utf8'
+    )
+
+    expect(migrationSource).toContain("si.action_type = 'info_only_open_gym'")
+    expect(migrationSource).toContain('COALESCE(vac.drop_in_enabled, false) = true')
+    expect(migrationSource).toContain('(si.date + si.start_time) >= now_pt.ts')
+    expect(migrationSource).toContain('vac.blackout_dates')
+    expect(migrationSource).toContain('vac.holiday_dates')
+    expect(migrationSource).toContain('external_availability_blocks')
+    expect(migrationSource).toContain('next_slot_action_type')
+    expect(migrationSource).toContain('next_slot_price_amount_cents')
+    expect(migrationSource).toContain('ns.slot_date ASC NULLS LAST')
+    expect(migrationSource).toContain('ns.start_time ASC NULLS LAST')
+  })
+
+  it('validates discovery against combined regular and open-gym availability', () => {
+    const validatorSource = readFileSync(
+      join(process.cwd(), 'scripts/validate-next-available-parity.ts'),
+      'utf8'
+    )
+
+    expect(validatorSource).toContain('new AvailabilityService')
+    expect(validatorSource).toContain("slot.action_type !== 'info_only_open_gym'")
+    expect(validatorSource).toContain('next_slot_action_type')
+    expect(validatorSource).toContain('action_type_mismatch')
+  })
 })

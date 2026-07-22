@@ -128,7 +128,15 @@ describe('VenueCard', () => {
     render(
       <VenueCard
         venue={createVenue()}
-        nextAvailable={{ displayText: 'Fri Feb 20, 3 PM' }}
+        nextAvailable={{
+          slotId: 'slot-1',
+          date: '2026-02-20',
+          startTime: '15:00:00',
+          endTime: '16:00:00',
+          actionType: 'instant_book',
+          pricing: null,
+          displayText: 'Fri Feb 20, 3 PM',
+        }}
       />
     )
 
@@ -139,6 +147,32 @@ describe('VenueCard', () => {
     render(<VenueCard venue={createVenue()} />)
 
     expect(screen.queryByText(/Next:/)).not.toBeInTheDocument()
+  })
+
+  it('shows open-gym type and per-person price instead of rental metadata', () => {
+    render(
+      <VenueCard
+        venue={createVenue({ name: 'Memorial Park', hourly_rate: 75 })}
+        nextAvailable={{
+          slotId: 'slot-open-gym',
+          date: '2026-02-20',
+          startTime: '15:00:00',
+          endTime: '16:00:00',
+          actionType: 'info_only_open_gym',
+          pricing: {
+            amount_cents: 300,
+            currency: 'USD',
+            unit: 'person',
+            payment_method: 'on_site',
+          },
+          displayText: 'Fri Feb 20, 3 PM',
+        }}
+      />
+    )
+
+    expect(screen.getAllByText('Open Gym').length).toBeGreaterThan(0)
+    expect(screen.getByText('$3/person')).toBeInTheDocument()
+    expect(screen.queryByText('$75/hr')).not.toBeInTheDocument()
   })
 
   it('renders PhotoCarousel component', () => {

@@ -4,7 +4,6 @@
  */
 
 import { render, screen, fireEvent } from '@testing-library/react'
-import { format } from 'date-fns'
 import { getDateStringInTimeZone } from '@/utils/dateHelpers'
 import { SplitAvailabilityView } from '../split-availability-view'
 
@@ -70,6 +69,8 @@ const mockVenue = {
     date: '2026-02-10',
     startTime: '14:00:00',
     endTime: '15:00:00',
+    actionType: 'instant_book' as const,
+    pricing: null,
     displayText: 'Tue Feb 10, 2 PM',
   },
 }
@@ -192,64 +193,61 @@ describe('SplitAvailabilityView - Location button', () => {
     render(<SplitAvailabilityView />)
 
     const mapToggleButton = screen.getByRole('button', { name: /^map$/i })
-    const todayButton = screen.getByRole('button', { name: /today/i })
+    const dateButton = screen.getByRole('button', { name: /next available/i })
 
-    expect(mapToggleButton.compareDocumentPosition(todayButton) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy()
+    expect(mapToggleButton.compareDocumentPosition(dateButton) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy()
   })
 
-  it('defaults the date filter to America/Los_Angeles today, not the browser-local date', () => {
-    const localToday = format(new Date(), 'yyyy-MM-dd')
+  it('defaults to chronological next availability without a date filter', () => {
     const laToday = getDateStringInTimeZone(new Date(), PLATFORM_TIME_ZONE)
 
-    expect(localToday).toBe('2026-07-17')
     expect(laToday).toBe('2026-07-16')
 
     render(<SplitAvailabilityView />)
 
-    expect(screen.getByRole('button', { name: /today/i })).toBeInTheDocument()
+    expect(screen.getByRole('button', { name: /next available/i })).toBeInTheDocument()
     expect(useVenuesWithNextAvailable).toHaveBeenCalledWith(
-      expect.objectContaining({ dateFilter: laToday })
+      expect.objectContaining({ dateFilter: undefined })
     )
-    expect(useVenuesWithNextAvailable).not.toHaveBeenCalledWith(
-      expect.objectContaining({ dateFilter: localToday })
-    )
+    expect(screen.queryByRole('button', { name: /previous day/i })).not.toBeInTheDocument()
+    expect(screen.queryByRole('button', { name: /next day/i })).not.toBeInTheDocument()
   })
 
-  it('anchors previous-day navigation to America/Los_Angeles today', () => {
+  it('shows day navigation after a date is selected', () => {
     render(<SplitAvailabilityView />)
 
-    expect(useVenuesWithNextAvailable).toHaveBeenCalledWith(
-      expect.objectContaining({ dateFilter: '2026-07-16' })
-    )
-    expect(screen.getByRole('button', { name: /previous day/i })).toBeDisabled()
+    fireEvent.click(screen.getByRole('button', { name: /next available/i }))
+    fireEvent.click(screen.getByRole('button', { name: /select july 20/i }))
 
     fireEvent.click(screen.getByRole('button', { name: /next day/i }))
     expect(useVenuesWithNextAvailable).toHaveBeenCalledWith(
-      expect.objectContaining({ dateFilter: '2026-07-17' })
+      expect.objectContaining({ dateFilter: '2026-07-21' })
     )
     expect(screen.getByRole('button', { name: /previous day/i })).not.toBeDisabled()
 
     fireEvent.click(screen.getByRole('button', { name: /previous day/i }))
     expect(useVenuesWithNextAvailable).toHaveBeenLastCalledWith(
-      expect.objectContaining({ dateFilter: '2026-07-16' })
+      expect.objectContaining({ dateFilter: '2026-07-20' })
     )
-    expect(screen.getByRole('button', { name: /previous day/i })).toBeDisabled()
   })
 
   it('keeps America/Los_Angeles today selectable in the calendar and disables days before it', () => {
     render(<SplitAvailabilityView />)
 
-    fireEvent.click(screen.getByRole('button', { name: /today/i }))
+    fireEvent.click(screen.getByRole('button', { name: /next available/i }))
 
     expect(screen.getByTestId('calendar-disabled-la-today')).toHaveTextContent('false')
     expect(screen.getByTestId('calendar-disabled-day-before-la-today')).toHaveTextContent('true')
   })
 
   it('opens a day picker from the date control and updates the search date on select', () => {
-    render(<SplitAvailabilityView />)
+    const { container } = render(<SplitAvailabilityView />)
 
-    fireEvent.click(screen.getByRole('button', { name: /today/i }))
-    expect(screen.getByTestId('date-picker-calendar')).toBeInTheDocument()
+    fireEvent.click(screen.getByRole('button', { name: /next available/i }))
+    const calendar = screen.getByTestId('date-picker-calendar')
+    expect(calendar).toBeInTheDocument()
+    expect(calendar.closest('[data-date-picker-overlay]')).toBeInTheDocument()
+    expect(container).not.toContainElement(calendar)
 
     fireEvent.click(screen.getByRole('button', { name: /select july 20/i }))
 
@@ -258,6 +256,70 @@ describe('SplitAvailabilityView - Location button', () => {
     expect(useVenuesWithNextAvailable).toHaveBeenCalledWith(
       expect.objectContaining({ dateFilter: '2026-07-20' })
     )
+  })
+
+  it('resets a selected date back to chronological next availability from the picker', () => {
+    render(<SplitAvailabilityView />)
+
+    fireEvent.click(screen.getByRole('button', { name: /next available/i }))
+    fireEvent.click(screen.getByRole('button', { name: /select july 20/i }))
+    fireEvent.click(screen.getByRole('button', { name: /mon, jul 20/i }))
+    fireEvent.click(screen.getByRole('button', { name: /^next available$/i }))
+
+    expect(screen.getByRole('button', { name: /next available/i })).toBeInTheDocument()
+    expect(useVenuesWithNextAvailable).toHaveBeenLastCalledWith(
+      expect.objectContaining({ dateFilter: undefined })
+    )
+  })
+
+  it('shows 12 results initially and reveals 12 more', () => {
+    ;(useVenuesWithNextAvailable as jest.Mock).mockReturnValue({
+      data: Array.from({ length: 13 }, (_, index) => ({
+        ...mockVenue,
+        id: `venue-${index + 1}`,
+        name: `Venue ${index + 1}`,
+      })),
+      loading: false,
+      error: null,
+      refetch: jest.fn(),
+    })
+
+    render(<SplitAvailabilityView />)
+
+    expect(screen.getByText('Venue 12')).toBeInTheDocument()
+    expect(screen.queryByText('Venue 13')).not.toBeInTheDocument()
+    fireEvent.click(screen.getByRole('button', { name: /show more/i }))
+    expect(screen.getByText('Venue 13')).toBeInTheDocument()
+  })
+
+  it('shows open-gym pricing and a details action instead of rental pricing', () => {
+    ;(useVenuesWithNextAvailable as jest.Mock).mockReturnValue({
+      data: [{
+        ...mockVenue,
+        name: 'Memorial Park',
+        hourlyRate: 75,
+        nextAvailable: {
+          ...mockVenue.nextAvailable,
+          actionType: 'info_only_open_gym',
+          pricing: {
+            amount_cents: 300,
+            currency: 'USD',
+            unit: 'person',
+            payment_method: 'on_site',
+          },
+        },
+      }],
+      loading: false,
+      error: null,
+      refetch: jest.fn(),
+    })
+
+    render(<SplitAvailabilityView />)
+
+    expect(screen.getByText('Open Gym')).toBeInTheDocument()
+    expect(screen.getByText('$3/person')).toBeInTheDocument()
+    expect(screen.getByRole('link', { name: /view details/i })).toHaveAttribute('href', '/venue/memorial-park')
+    expect(screen.queryByText('$75/hr')).not.toBeInTheDocument()
   })
 
   it('does not render unimplemented Any time or Filters controls', () => {
@@ -339,7 +401,7 @@ describe('SplitAvailabilityView - Location button', () => {
 
   it('uses all courts wording for the empty-state directory link', () => {
     ;(useVenuesWithNextAvailable as jest.Mock).mockReturnValue({
-      data: [],
+      data: [{ ...mockVenue, nextAvailable: null }],
       loading: false,
       error: null,
       refetch: jest.fn(),
@@ -350,5 +412,19 @@ describe('SplitAvailabilityView - Location button', () => {
     expect(screen.getByRole('link', { name: /browse all courts/i })).toHaveAttribute('href', '/venues')
     expect(screen.getByRole('link', { name: /explore all courts/i })).toHaveAttribute('href', '/venues')
     expect(screen.queryByText(/all venues/i)).not.toBeInTheDocument()
+  })
+
+  it('uses an upcoming-availability empty state in the default mode', () => {
+    ;(useVenuesWithNextAvailable as jest.Mock).mockReturnValue({
+      data: [{ ...mockVenue, nextAvailable: null }],
+      loading: false,
+      error: null,
+      refetch: jest.fn(),
+    })
+
+    render(<SplitAvailabilityView />)
+
+    expect(screen.getByText('No upcoming availability found')).toBeInTheDocument()
+    expect(screen.queryByText(/try a different day/i)).not.toBeInTheDocument()
   })
 })

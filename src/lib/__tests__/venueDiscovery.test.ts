@@ -21,6 +21,11 @@ describe('buildMapVenuesFromDiscovery', () => {
           next_slot_date: '2026-02-20',
           next_slot_start_time: '18:00:00',
           next_slot_end_time: '19:00:00',
+          next_slot_action_type: 'info_only_open_gym',
+          next_slot_price_amount_cents: 300,
+          next_slot_price_currency: 'USD',
+          next_slot_price_unit: 'person',
+          next_slot_payment_method: 'on_site',
         },
       ],
       [
@@ -41,6 +46,13 @@ describe('buildMapVenuesFromDiscovery', () => {
       hourlyRate: 125,
       nextAvailable: {
         slotId: 'slot-1',
+        actionType: 'info_only_open_gym',
+        pricing: {
+          amount_cents: 300,
+          currency: 'USD',
+          unit: 'person',
+          payment_method: 'on_site',
+        },
         displayText: 'Fri Feb 20, 6 PM',
       },
     })
@@ -65,6 +77,11 @@ describe('buildMapVenuesFromDiscovery', () => {
         next_slot_date: null,
         next_slot_start_time: null,
         next_slot_end_time: null,
+        next_slot_action_type: null,
+        next_slot_price_amount_cents: null,
+        next_slot_price_currency: null,
+        next_slot_price_unit: null,
+        next_slot_payment_method: null,
       },
     ])
 
