@@ -9,7 +9,16 @@ import { getDateStringInTimeZone } from '@/utils/dateHelpers'
 import { SplitAvailabilityView } from '../split-availability-view'
 
 const mockRequestLocation = jest.fn()
+const mockPush = jest.fn()
 const PLATFORM_TIME_ZONE = 'America/Los_Angeles'
+let mockSearchParams = ''
+
+jest.mock('next/navigation', () => ({
+  useRouter: () => ({
+    push: mockPush,
+  }),
+  useSearchParams: () => new URLSearchParams(mockSearchParams),
+}))
 
 jest.mock('@/hooks/useVenuesWithNextAvailable', () => ({
   useVenuesWithNextAvailable: jest.fn(),
@@ -108,6 +117,7 @@ const mockHybridOpenGymVenue = {
 describe('SplitAvailabilityView - Location button', () => {
   beforeEach(() => {
     jest.clearAllMocks()
+    mockSearchParams = ''
     // 2026-07-17 06:00 UTC is still 2026-07-16 evening in America/Los_Angeles
     jest.useFakeTimers()
     jest.setSystemTime(new Date('2026-07-17T06:00:00.000Z'))
@@ -458,5 +468,36 @@ describe('SplitAvailabilityView - Location button', () => {
     expect(screen.getByText('Memorial Park')).toBeInTheDocument()
     expect(screen.queryByText('$100/hr')).not.toBeInTheDocument()
     expect(screen.queryByText(/\/hr/)).not.toBeInTheDocument()
+  })
+
+  it('persists the access segment to the /search URL like /venues', () => {
+    render(<SplitAvailabilityView />)
+
+    fireEvent.click(screen.getByRole('button', { name: 'Open Gym' }))
+
+    expect(mockPush).toHaveBeenCalledWith('/search?access=open_gym', { scroll: false })
+
+    fireEvent.click(screen.getByRole('button', { name: 'Private Rentals' }))
+    expect(mockPush).toHaveBeenCalledWith('/search?access=private_rental', { scroll: false })
+
+    fireEvent.click(screen.getByRole('button', { name: 'All' }))
+    expect(mockPush).toHaveBeenCalledWith('/search', { scroll: false })
+  })
+
+  it('initializes the access segment from ?access= on load', () => {
+    mockSearchParams = 'access=open_gym'
+    ;(useVenuesWithNextAvailable as jest.Mock).mockReturnValue({
+      data: [mockVenue, mockHybridOpenGymVenue],
+      loading: false,
+      error: null,
+      refetch: jest.fn(),
+    })
+
+    render(<SplitAvailabilityView />)
+
+    expect(screen.getByRole('button', { name: 'Open Gym' })).toHaveAttribute('aria-pressed', 'true')
+    expect(screen.getByText('Memorial Park')).toBeInTheDocument()
+    expect(screen.queryByText('Test Venue')).not.toBeInTheDocument()
+    expect(screen.getByRole('heading', { name: 'Open Gym Venues' })).toBeInTheDocument()
   })
 })
