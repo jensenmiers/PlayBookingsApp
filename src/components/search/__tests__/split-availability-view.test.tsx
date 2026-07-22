@@ -415,6 +415,28 @@ describe('SplitAvailabilityView - Location button', () => {
     expect(screen.getByText('$3 drop-in · $50/hr')).toBeInTheDocument()
   })
 
+  it('does not claim slot availability in the Open Gym list header', () => {
+    ;(useVenuesWithNextAvailable as jest.Mock).mockReturnValue({
+      data: [mockHybridOpenGymVenue],
+      loading: false,
+      error: null,
+      refetch: jest.fn(),
+    })
+
+    render(<SplitAvailabilityView />)
+
+    expect(screen.getByRole('heading', { name: 'Available Slots' })).toBeInTheDocument()
+    expect(screen.getByText('0 venues with availability')).toBeInTheDocument()
+
+    fireEvent.click(screen.getByRole('button', { name: 'Open Gym' }))
+
+    expect(screen.getByRole('heading', { name: 'Open Gym Venues' })).toBeInTheDocument()
+    expect(screen.queryByRole('heading', { name: 'Available Slots' })).not.toBeInTheDocument()
+    expect(screen.getByText('1 venue')).toBeInTheDocument()
+    expect(screen.queryByText(/with availability/i)).not.toBeInTheDocument()
+  })
+
+
   it('does not fall back to private rental hourly rate for open-gym-only venues without drop-in price', () => {
     ;(useVenuesWithNextAvailable as jest.Mock).mockReturnValue({
       data: [

@@ -284,12 +284,14 @@ export function SplitAvailabilityView() {
             {/* Results Header */}
             <div className="mb-l">
               <h2 className="text-lg font-semibold text-secondary-50">
-                Available Slots
+                {accessFilter === 'open_gym' ? 'Open Gym Venues' : 'Available Slots'}
               </h2>
               <p className="text-sm text-secondary-50/60">
-                {loading 
-                  ? 'Loading...' 
-                  : `${venuesWithAvailability.length} venue${venuesWithAvailability.length !== 1 ? 's' : ''} with availability`
+                {loading
+                  ? 'Loading...'
+                  : accessFilter === 'open_gym'
+                    ? `${venuesWithAvailability.length} venue${venuesWithAvailability.length !== 1 ? 's' : ''}`
+                    : `${venuesWithAvailability.length} venue${venuesWithAvailability.length !== 1 ? 's' : ''} with availability`
                 }
               </p>
             </div>
