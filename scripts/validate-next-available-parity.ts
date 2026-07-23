@@ -4,8 +4,9 @@ import { createClient } from '@supabase/supabase-js'
 import * as dotenv from 'dotenv'
 import { resolve } from 'path'
 import { AvailabilityService } from '@/services/availabilityService'
-import { addDaysToDateString, getDateStringInTimeZone } from '@/utils/dateHelpers'
+import { getDateStringInTimeZone } from '@/utils/dateHelpers'
 import type { SlotActionType } from '@/types'
+import { resolveParityComparisonDateTo } from './lib/nextAvailableParity'
 
 dotenv.config({ path: resolve(process.cwd(), '.env.local') })
 dotenv.config({ path: resolve(process.cwd(), '.env') })
@@ -16,6 +17,7 @@ type NextAvailableRow = {
   venue_id: string
   venue_name: string
   next_slot_id: string | null
+  next_slot_date: string | null
   next_slot_action_type: SlotActionType | null
 }
 
@@ -55,7 +57,6 @@ async function main() {
   const now = new Date()
   const today = getDateStringInTimeZone(now, PLATFORM_TIME_ZONE)
   const nowTime = getTimeStringInTimeZone(now, PLATFORM_TIME_ZONE)
-  const dateTo = addDaysToDateString(today, 365)
 
   const { data: nextRows, error: nextRowsError } = await supabase.rpc('get_venues_with_next_available', {
     p_date_filter: null,
@@ -81,6 +82,7 @@ async function main() {
   console.log(`Venues with next_slot_id: ${allRows.filter((row) => Boolean(row.next_slot_id)).length}`)
 
   for (const row of allRows) {
+    const dateTo = resolveParityComparisonDateTo(today, row.next_slot_date)
     const availableSlots = await availabilityService.getAvailableSlots(row.venue_id, today, dateTo)
     const eligibleSlots = availableSlots
       .filter((slot) => (
