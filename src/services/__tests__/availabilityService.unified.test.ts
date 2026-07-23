@@ -112,6 +112,9 @@ describe('AvailabilityService (template-only slots)', () => {
         if (table === 'external_availability_blocks') {
           return createQuery({ data: [], error: null })
         }
+        if (table === 'slot_instance_pricing') {
+          return createQuery({ data: [], error: null })
+        }
         throw new Error(`Unexpected table query: ${table}`)
       })
 
@@ -276,6 +279,9 @@ describe('AvailabilityService (template-only slots)', () => {
         if (table === 'external_availability_blocks') {
           return createQuery({ data: [], error: null })
         }
+        if (table === 'slot_instance_pricing') {
+          return createQuery({ data: [], error: null })
+        }
         throw new Error(`Unexpected table query: ${table}`)
       })
 
@@ -369,6 +375,9 @@ describe('AvailabilityService (template-only slots)', () => {
       if (table === 'external_availability_blocks') {
         return createQuery({ data: [], error: null })
       }
+      if (table === 'slot_instance_pricing') {
+        return createQuery({ data: [], error: null })
+      }
       throw new Error(`Unexpected table query: ${table}`)
     })
 
@@ -455,6 +464,9 @@ describe('AvailabilityService (template-only slots)', () => {
       if (table === 'external_availability_blocks') {
         return createQuery({ data: [], error: null })
       }
+      if (table === 'slot_instance_pricing') {
+        return createQuery({ data: [], error: null })
+      }
       throw new Error(`Unexpected table query: ${table}`)
     })
 
@@ -538,6 +550,9 @@ describe('AvailabilityService (template-only slots)', () => {
             error: null,
           })
         }
+        if (table === 'slot_instance_pricing') {
+          return createQuery({ data: [], error: null })
+        }
         throw new Error(`Unexpected table query: ${table}`)
       })
 
@@ -568,5 +583,205 @@ describe('AvailabilityService (template-only slots)', () => {
     } finally {
       jest.useRealTimers()
     }
+  })
+
+  it('applies slot_instance_pricing to regular and open-gym slots', async () => {
+    jest.useFakeTimers()
+    jest.setSystemTime(new Date('2026-02-22T10:00:00.000-08:00'))
+
+    try {
+      const rpc = jest.fn(async () => ({
+        data: [
+          {
+            venue_id: 'venue-1',
+            slot_id: 'slot-regular',
+            slot_date: '2026-02-23',
+            start_time: '17:00:00',
+            end_time: '18:00:00',
+            action_type: 'instant_book',
+          },
+        ],
+        error: null,
+      }))
+
+      const from = jest.fn((table: string) => {
+        if (table === 'venues') {
+          return createQuery({
+            data: { instant_booking: true },
+            error: null,
+          })
+        }
+        if (table === 'venue_admin_configs') {
+          return createQuery({
+            data: {
+              venue_id: 'venue-1',
+              drop_in_enabled: true,
+              drop_in_price: 7,
+              regular_schedule_mode: 'template',
+            },
+            error: null,
+          })
+        }
+        if (table === 'slot_instances') {
+          return createQuery({
+            data: [
+              {
+                id: 'slot-drop-in',
+                venue_id: 'venue-1',
+                date: '2026-02-23',
+                start_time: '12:00:00',
+                end_time: '13:00:00',
+                action_type: 'info_only_open_gym',
+                blocks_inventory: true,
+              },
+            ],
+            error: null,
+          })
+        }
+        if (table === 'slot_modal_content') {
+          return createQuery({ data: [], error: null })
+        }
+        if (table === 'external_availability_blocks') {
+          return createQuery({ data: [], error: null })
+        }
+        if (table === 'slot_instance_pricing') {
+          return createQuery({
+            data: [
+              {
+                slot_instance_id: 'slot-regular',
+                amount_cents: 12500,
+                currency: 'USD',
+                unit: 'hour',
+                payment_method: 'in_app',
+              },
+              {
+                slot_instance_id: 'slot-drop-in',
+                amount_cents: 300,
+                currency: 'USD',
+                unit: 'person',
+                payment_method: 'on_site',
+              },
+            ],
+            error: null,
+          })
+        }
+        throw new Error(`Unexpected table query: ${table}`)
+      })
+
+      mockCreateClient.mockResolvedValue({ from, rpc })
+
+      const service = new AvailabilityService()
+      const result = await service.getAvailableSlots('venue-1', '2026-02-23', '2026-02-23')
+
+      expect(result).toEqual([
+        {
+          date: '2026-02-23',
+          start_time: '12:00:00',
+          end_time: '13:00:00',
+          venue_id: 'venue-1',
+          availability_id: null,
+          slot_instance_id: 'slot-drop-in',
+          action_type: 'info_only_open_gym',
+          modal_content: null,
+          slot_pricing: {
+            amount_cents: 300,
+            currency: 'USD',
+            unit: 'person',
+            payment_method: 'on_site',
+          },
+        },
+        {
+          date: '2026-02-23',
+          start_time: '17:00:00',
+          end_time: '18:00:00',
+          venue_id: 'venue-1',
+          availability_id: null,
+          slot_instance_id: 'slot-regular',
+          action_type: 'instant_book',
+          modal_content: null,
+          slot_pricing: {
+            amount_cents: 12500,
+            currency: 'USD',
+            unit: 'hour',
+            payment_method: 'in_app',
+          },
+        },
+      ])
+      expect(from).toHaveBeenCalledWith('slot_instance_pricing')
+    } finally {
+      jest.useRealTimers()
+    }
+  })
+
+  it('uses injected now for open-gym past-start filtering', async () => {
+    const rpc = jest.fn(async () => ({
+      data: [],
+      error: null,
+    }))
+
+    const from = jest.fn((table: string) => {
+      if (table === 'venues') {
+        return createQuery({
+          data: { instant_booking: true },
+          error: null,
+        })
+      }
+      if (table === 'venue_admin_configs') {
+        return createQuery({
+          data: {
+            venue_id: 'venue-1',
+            drop_in_enabled: true,
+            drop_in_price: 7,
+            regular_schedule_mode: 'template',
+          },
+          error: null,
+        })
+      }
+      if (table === 'slot_instances') {
+        return createQuery({
+          data: [
+            {
+              id: 'slot-drop-in-boundary',
+              venue_id: 'venue-1',
+              date: '2026-02-23',
+              start_time: '16:00:00',
+              end_time: '17:00:00',
+              action_type: 'info_only_open_gym',
+              blocks_inventory: true,
+            },
+          ],
+          error: null,
+        })
+      }
+      if (table === 'slot_modal_content') {
+        return createQuery({ data: [], error: null })
+      }
+      if (table === 'external_availability_blocks') {
+        return createQuery({ data: [], error: null })
+      }
+      if (table === 'slot_instance_pricing') {
+        return createQuery({ data: [], error: null })
+      }
+      throw new Error(`Unexpected table query: ${table}`)
+    })
+
+    mockCreateClient.mockResolvedValue({ from, rpc })
+
+    const service = new AvailabilityService()
+    const included = await service.getAvailableSlots(
+      'venue-1',
+      '2026-02-23',
+      '2026-02-23',
+      new Date('2026-02-23T15:59:00.000-08:00')
+    )
+    const excluded = await service.getAvailableSlots(
+      'venue-1',
+      '2026-02-23',
+      '2026-02-23',
+      new Date('2026-02-23T16:01:00.000-08:00')
+    )
+
+    expect(included.map((slot) => slot.slot_instance_id)).toEqual(['slot-drop-in-boundary'])
+    expect(excluded).toEqual([])
   })
 })

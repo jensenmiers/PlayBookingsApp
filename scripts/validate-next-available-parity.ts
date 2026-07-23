@@ -6,7 +6,10 @@ import { resolve } from 'path'
 import { AvailabilityService } from '@/services/availabilityService'
 import { getDateStringInTimeZone } from '@/utils/dateHelpers'
 import type { SlotActionType } from '@/types'
-import { resolveParityComparisonDateTo } from './lib/nextAvailableParity'
+import {
+  compareNextAvailableParitySlots,
+  resolveParityComparisonDateTo,
+} from './lib/nextAvailableParity'
 
 dotenv.config({ path: resolve(process.cwd(), '.env.local') })
 dotenv.config({ path: resolve(process.cwd(), '.env') })
@@ -83,21 +86,19 @@ async function main() {
 
   for (const row of allRows) {
     const dateTo = resolveParityComparisonDateTo(today, row.next_slot_date)
-    const availableSlots = await availabilityService.getAvailableSlots(row.venue_id, today, dateTo)
+    const availableSlots = await availabilityService.getAvailableSlots(
+      row.venue_id,
+      today,
+      dateTo,
+      now
+    )
     const eligibleSlots = availableSlots
       .filter((slot) => (
         slot.action_type !== 'info_only_open_gym'
         || slot.date > today
         || (slot.date === today && slot.start_time >= nowTime)
       ))
-      .sort((left, right) => {
-        const timeComparison = `${left.date}-${left.start_time}`.localeCompare(`${right.date}-${right.start_time}`)
-        if (timeComparison !== 0) return timeComparison
-        if (left.action_type === right.action_type) {
-          return (left.slot_instance_id || '').localeCompare(right.slot_instance_id || '')
-        }
-        return left.action_type === 'info_only_open_gym' ? 1 : -1
-      })
+      .sort(compareNextAvailableParitySlots)
 
     const firstEligible = eligibleSlots[0] || null
     const rpcNextSlotId = row.next_slot_id || null
