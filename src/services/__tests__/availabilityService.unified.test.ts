@@ -542,8 +542,9 @@ describe('AvailabilityService (template-only slots)', () => {
                 venue_id: 'venue-1',
                 source: 'google_calendar',
                 source_event_id: 'event-1',
-                start_at: '2026-02-23T12:15:00',
-                end_at: '2026-02-23T12:45:00',
+                // 12:15–12:45 America/Los_Angeles on 2026-02-23
+                start_at: '2026-02-23T12:15:00-08:00',
+                end_at: '2026-02-23T12:45:00-08:00',
                 status: 'active',
               },
             ],
@@ -783,5 +784,178 @@ describe('AvailabilityService (template-only slots)', () => {
 
     expect(included.map((slot) => slot.slot_instance_id)).toEqual(['slot-drop-in-boundary'])
     expect(excluded).toEqual([])
+  })
+
+  it('interprets open-gym external blocks in America/Los_Angeles, not host local time', async () => {
+    jest.useFakeTimers()
+    jest.setSystemTime(new Date('2026-02-23T10:00:00.000-08:00'))
+
+    try {
+      const rpc = jest.fn(async () => ({
+        data: [],
+        error: null,
+      }))
+
+      const from = jest.fn((table: string) => {
+        if (table === 'venues') {
+          return createQuery({
+            data: { instant_booking: true },
+            error: null,
+          })
+        }
+        if (table === 'venue_admin_configs') {
+          return createQuery({
+            data: {
+              venue_id: 'venue-1',
+              drop_in_enabled: true,
+              drop_in_price: null,
+              regular_schedule_mode: 'template',
+            },
+            error: null,
+          })
+        }
+        if (table === 'slot_instances') {
+          return createQuery({
+            data: [
+              {
+                id: 'slot-pt-blocked',
+                venue_id: 'venue-1',
+                date: '2026-02-23',
+                start_time: '12:00:00',
+                end_time: '13:00:00',
+                action_type: 'info_only_open_gym',
+                blocks_inventory: true,
+              },
+              {
+                id: 'slot-utc-local-false-positive',
+                venue_id: 'venue-1',
+                date: '2026-02-23',
+                start_time: '14:00:00',
+                end_time: '15:00:00',
+                action_type: 'info_only_open_gym',
+                blocks_inventory: true,
+              },
+            ],
+            error: null,
+          })
+        }
+        if (table === 'slot_modal_content') {
+          return createQuery({ data: [], error: null })
+        }
+        if (table === 'external_availability_blocks') {
+          return createQuery({
+            data: [
+              {
+                id: 'block-pt-overlap',
+                venue_id: 'venue-1',
+                source: 'google_calendar',
+                source_event_id: 'event-pt',
+                start_at: '2026-02-23T20:15:00.000Z',
+                end_at: '2026-02-23T20:45:00.000Z',
+                status: 'active',
+              },
+              {
+                id: 'block-utc-noon',
+                venue_id: 'venue-1',
+                source: 'google_calendar',
+                source_event_id: 'event-utc',
+                // Overlaps 14:00–15:00 only if slot walls are wrongly treated as UTC/local on UTC hosts.
+                start_at: '2026-02-23T14:15:00.000Z',
+                end_at: '2026-02-23T14:45:00.000Z',
+                status: 'active',
+              },
+            ],
+            error: null,
+          })
+        }
+        if (table === 'slot_instance_pricing') {
+          return createQuery({ data: [], error: null })
+        }
+        throw new Error(`Unexpected table query: ${table}`)
+      })
+
+      mockCreateClient.mockResolvedValue({ from, rpc })
+
+      const service = new AvailabilityService()
+      const result = await service.getAvailableSlots('venue-1', '2026-02-23', '2026-02-23')
+
+      expect(result.map((slot) => slot.slot_instance_id)).toEqual([
+        'slot-utc-local-false-positive',
+      ])
+    } finally {
+      jest.useRealTimers()
+    }
+  })
+
+  it('excludes open-gym slots whose start is already past within the same PT second', async () => {
+    const rpc = jest.fn(async () => ({
+      data: [],
+      error: null,
+    }))
+
+    const from = jest.fn((table: string) => {
+      if (table === 'venues') {
+        return createQuery({
+          data: { instant_booking: true },
+          error: null,
+        })
+      }
+      if (table === 'venue_admin_configs') {
+        return createQuery({
+          data: {
+            venue_id: 'venue-1',
+            drop_in_enabled: true,
+            drop_in_price: 7,
+            regular_schedule_mode: 'template',
+          },
+          error: null,
+        })
+      }
+      if (table === 'slot_instances') {
+        return createQuery({
+          data: [
+            {
+              id: 'slot-same-second',
+              venue_id: 'venue-1',
+              date: '2026-02-23',
+              start_time: '16:00:00',
+              end_time: '17:00:00',
+              action_type: 'info_only_open_gym',
+              blocks_inventory: true,
+            },
+          ],
+          error: null,
+        })
+      }
+      if (table === 'slot_modal_content') {
+        return createQuery({ data: [], error: null })
+      }
+      if (table === 'external_availability_blocks') {
+        return createQuery({ data: [], error: null })
+      }
+      if (table === 'slot_instance_pricing') {
+        return createQuery({ data: [], error: null })
+      }
+      throw new Error(`Unexpected table query: ${table}`)
+    })
+
+    mockCreateClient.mockResolvedValue({ from, rpc })
+
+    const service = new AvailabilityService()
+    const atExactStart = await service.getAvailableSlots(
+      'venue-1',
+      '2026-02-23',
+      '2026-02-23',
+      new Date('2026-02-23T16:00:00.000-08:00')
+    )
+    const midSecond = await service.getAvailableSlots(
+      'venue-1',
+      '2026-02-23',
+      '2026-02-23',
+      new Date('2026-02-23T16:00:00.500-08:00')
+    )
+
+    expect(atExactStart.map((slot) => slot.slot_instance_id)).toEqual(['slot-same-second'])
+    expect(midSecond).toEqual([])
   })
 })

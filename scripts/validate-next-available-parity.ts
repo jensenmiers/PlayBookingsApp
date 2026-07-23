@@ -4,7 +4,7 @@ import { createClient } from '@supabase/supabase-js'
 import * as dotenv from 'dotenv'
 import { resolve } from 'path'
 import { AvailabilityService } from '@/services/availabilityService'
-import { getDateStringInTimeZone } from '@/utils/dateHelpers'
+import { getDateStringInTimeZone, zonedDateTimeToDate } from '@/utils/dateHelpers'
 import type { SlotActionType } from '@/types'
 import {
   compareNextAvailableParitySlots,
@@ -38,18 +38,6 @@ function getRequiredEnv(name: 'NEXT_PUBLIC_SUPABASE_URL' | 'SUPABASE_SERVICE_ROL
   return value
 }
 
-function getTimeStringInTimeZone(date: Date, timeZone: string): string {
-  const parts = new Intl.DateTimeFormat('en-US', {
-    timeZone,
-    hour: '2-digit',
-    minute: '2-digit',
-    second: '2-digit',
-    hourCycle: 'h23',
-  }).formatToParts(date)
-  const byType = new Map(parts.map((part) => [part.type, part.value]))
-  return `${byType.get('hour')}:${byType.get('minute')}:${byType.get('second')}`
-}
-
 async function main() {
   const supabase = createClient(
     getRequiredEnv('NEXT_PUBLIC_SUPABASE_URL'),
@@ -59,7 +47,7 @@ async function main() {
   const availabilityService = new AvailabilityService({ getClient: async () => supabase })
   const now = new Date()
   const today = getDateStringInTimeZone(now, PLATFORM_TIME_ZONE)
-  const nowTime = getTimeStringInTimeZone(now, PLATFORM_TIME_ZONE)
+  const nowMs = now.getTime()
 
   const { data: nextRows, error: nextRowsError } = await supabase.rpc('get_venues_with_next_available', {
     p_date_filter: null,
@@ -95,8 +83,7 @@ async function main() {
     const eligibleSlots = availableSlots
       .filter((slot) => (
         slot.action_type !== 'info_only_open_gym'
-        || slot.date > today
-        || (slot.date === today && slot.start_time >= nowTime)
+        || zonedDateTimeToDate(slot.date, slot.start_time, PLATFORM_TIME_ZONE).getTime() >= nowMs
       ))
       .sort(compareNextAvailableParitySlots)
 

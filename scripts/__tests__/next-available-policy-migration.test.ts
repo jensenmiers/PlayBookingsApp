@@ -54,10 +54,12 @@ describe('exact minimum advance policy migration', () => {
 
     expect(validatorSource).toContain('new AvailabilityService')
     expect(validatorSource).toContain("slot.action_type !== 'info_only_open_gym'")
+    expect(validatorSource).toContain('zonedDateTimeToDate')
     expect(validatorSource).toContain('next_slot_action_type')
     expect(validatorSource).toContain('next_slot_date')
     expect(validatorSource).toContain('resolveParityComparisonDateTo')
     expect(validatorSource).toContain('action_type_mismatch')
     expect(validatorSource).not.toContain('addDaysToDateString(today, 365)')
+    expect(validatorSource).not.toContain('slot.start_time >= nowTime')
   })
 })

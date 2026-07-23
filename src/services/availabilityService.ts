@@ -6,7 +6,7 @@
 import type { SupabaseClient } from '@supabase/supabase-js'
 import { createClient } from '@/lib/supabase/server'
 import { measureDurationMs } from '@/lib/performance'
-import { getDateStringInTimeZone, timeStringToDate } from '@/utils/dateHelpers'
+import { zonedDateTimeToDate } from '@/utils/dateHelpers'
 import type {
   SlotActionType,
   SlotModalContent,
@@ -107,8 +107,9 @@ function overlapsExternalBlock(
   slot: { date: string; start_time: string; end_time: string },
   block: ExternalAvailabilityBlockRow
 ): boolean {
-  const slotStartMs = timeStringToDate(slot.date, slot.start_time).getTime()
-  const slotEndMs = timeStringToDate(slot.date, slot.end_time).getTime()
+  // Match discovery RPC: interpret slot walls in America/Los_Angeles, not host local time.
+  const slotStartMs = zonedDateTimeToDate(slot.date, slot.start_time, PLATFORM_TIME_ZONE).getTime()
+  const slotEndMs = zonedDateTimeToDate(slot.date, slot.end_time, PLATFORM_TIME_ZONE).getTime()
   const blockStartMs = new Date(block.start_at).getTime()
   const blockEndMs = new Date(block.end_at).getTime()
 
@@ -122,28 +123,12 @@ function isInfoOnlySlotAllowedByVenueConfig(
   return !config.blackout_dates.includes(slot.date) && !config.holiday_dates.includes(slot.date)
 }
 
-function getTimeStringInTimeZone(date: Date, timeZone: string): string {
-  const parts = new Intl.DateTimeFormat('en-US', {
-    timeZone,
-    hour: '2-digit',
-    minute: '2-digit',
-    second: '2-digit',
-    hourCycle: 'h23',
-  }).formatToParts(date)
-  const byType = new Map(parts.map((part) => [part.type, part.value]))
-  return `${byType.get('hour')}:${byType.get('minute')}:${byType.get('second')}`
-}
-
 /** Match discovery RPC: keep open gym when (si.date + si.start_time) >= now in America/Los_Angeles */
 function isOpenGymStartInPast(
   slot: { date: string; start_time: string },
   now: Date = new Date()
 ): boolean {
-  const today = getDateStringInTimeZone(now, PLATFORM_TIME_ZONE)
-  if (slot.date < today) return true
-  if (slot.date > today) return false
-  const nowTime = getTimeStringInTimeZone(now, PLATFORM_TIME_ZONE)
-  return slot.start_time < nowTime
+  return zonedDateTimeToDate(slot.date, slot.start_time, PLATFORM_TIME_ZONE).getTime() < now.getTime()
 }
 
 export class AvailabilityService {
