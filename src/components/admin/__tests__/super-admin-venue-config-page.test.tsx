@@ -753,6 +753,9 @@ describe('SuperAdminVenueConfigPage', () => {
     // Enable drop-in first (schedule is only visible when enabled)
     const dropInCheckbox = await screen.findByLabelText(/drop-in enabled/i)
     fireEvent.click(dropInCheckbox)
+    fireEvent.change(screen.getByPlaceholderText('Drop-in price per person'), {
+      target: { value: '5' },
+    })
 
     fireEvent.click(await screen.findByRole('button', { name: /add drop-in window/i }))
     fireEvent.click(screen.getByRole('button', { name: /save & publish all changes/i }))
@@ -761,6 +764,8 @@ describe('SuperAdminVenueConfigPage', () => {
       expect(mockPatchAdminVenueConfig).toHaveBeenCalledWith(
         'venue-1',
         expect.objectContaining({
+          drop_in_enabled: true,
+          drop_in_price: 5,
           drop_in_templates: [
             expect.objectContaining({
               day_of_week: 1,
@@ -771,6 +776,70 @@ describe('SuperAdminVenueConfigPage', () => {
         })
       )
     })
+  })
+
+  it('includes drop_in_price when re-enabling drop-in without changing the price', async () => {
+    const data = buildMockAdminVenuesData()
+    // After a prior disable, config still keeps the price while venues.drop_in_price was cleared.
+    data[0].config.drop_in_enabled = false
+    data[0].config.drop_in_price = 3
+    data[0].drop_in_templates = [
+      { day_of_week: 1, start_time: '18:00:00', end_time: '20:00:00' },
+    ]
+
+    mockUseAdminVenues.mockReturnValue({
+      loading: false,
+      error: null,
+      refetch: mockRefetch,
+      data,
+    } as any)
+    mockPatchAdminVenueConfig.mockResolvedValue({})
+
+    render(<SuperAdminVenueConfigPage />)
+
+    const dropInCheckbox = await screen.findByLabelText(/drop-in enabled/i)
+    expect(dropInCheckbox).not.toBeChecked()
+    fireEvent.click(dropInCheckbox)
+    fireEvent.click(screen.getByRole('button', { name: /save & publish all changes/i }))
+
+    await waitFor(() => {
+      expect(mockPatchAdminVenueConfig).toHaveBeenCalledWith(
+        'venue-1',
+        expect.objectContaining({
+          drop_in_enabled: true,
+          drop_in_price: 3,
+        })
+      )
+    })
+  })
+
+  it('blocks re-enabling drop-in when the price field was cleared', async () => {
+    const data = buildMockAdminVenuesData()
+    data[0].config.drop_in_enabled = false
+    data[0].config.drop_in_price = 3
+    data[0].drop_in_templates = [
+      { day_of_week: 1, start_time: '18:00:00', end_time: '20:00:00' },
+    ]
+
+    mockUseAdminVenues.mockReturnValue({
+      loading: false,
+      error: null,
+      refetch: mockRefetch,
+      data,
+    } as any)
+
+    render(<SuperAdminVenueConfigPage />)
+
+    fireEvent.change(await screen.findByPlaceholderText('Drop-in price per person'), {
+      target: { value: '' },
+    })
+    const dropInCheckbox = screen.getByLabelText(/drop-in enabled/i)
+    expect(dropInCheckbox).not.toBeChecked()
+    fireEvent.click(dropInCheckbox)
+    fireEvent.click(screen.getByRole('button', { name: /save & publish all changes/i }))
+
+    expect(await screen.findByText('Drop-in price is required when drop-in is enabled.')).toBeInTheDocument()
+    expect(mockPatchAdminVenueConfig).not.toHaveBeenCalled()
   })
 
   it('renders 12-hour drop-in time labels and preserves legacy non-hour values', async () => {
@@ -808,6 +877,9 @@ describe('SuperAdminVenueConfigPage', () => {
     // Enable drop-in first (schedule is only visible when enabled)
     const dropInCheckbox = await screen.findByLabelText(/drop-in enabled/i)
     fireEvent.click(dropInCheckbox)
+    fireEvent.change(screen.getByPlaceholderText('Drop-in price per person'), {
+      target: { value: '5' },
+    })
 
     fireEvent.click(await screen.findByRole('button', { name: /add drop-in window/i }))
 

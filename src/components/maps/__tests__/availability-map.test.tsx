@@ -158,4 +158,22 @@ describe('AvailabilityMap popup readability', () => {
     expect(selectedAvailableMarker).toHaveStyle({ zIndex: 3 })
     expect(unselectedAvailableMarker).toHaveStyle({ zIndex: 2 })
   })
+
+  it('lists ungeocoded venues in the count but does not render map markers for them', () => {
+    const ungeocodedVenue = {
+      ...mockVenue,
+      id: 'venue-ungeocoded',
+      name: 'Ungeocoded Open Gym',
+      latitude: null as number | null,
+      longitude: null as number | null,
+      nextAvailable: null,
+      offersOpenGym: true,
+    }
+
+    render(<AvailabilityMap venues={[mockVenue, ungeocodedVenue]} />)
+
+    expect(screen.getByText('2 venues')).toBeInTheDocument()
+    expect(screen.getAllByTestId('mock-marker')).toHaveLength(1)
+    expect(screen.queryByText('Ungeocoded Open Gym')).not.toBeInTheDocument()
+  })
 })

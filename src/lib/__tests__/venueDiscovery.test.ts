@@ -84,4 +84,36 @@ describe('buildMapVenuesFromDiscovery', () => {
     expect(venues[0].offersPrivateRental).toBe(true)
     expect(venues[0].dropInPrice).toBe(3)
   })
+
+  it('preserves null coordinates for ungeocoded discovery venues', () => {
+    const venues = buildMapVenuesFromDiscovery([
+      {
+        venue_id: 'venue-ungeocoded',
+        venue_name: 'First Presbyterian Church of Hollywood',
+        venue_city: 'Los Angeles',
+        venue_state: 'CA',
+        venue_address: '1760 N Gower St',
+        hourly_rate: 90,
+        instant_booking: false,
+        booking_mode: 'request_to_book',
+        insurance_required: false,
+        offers_open_gym: true,
+        offers_private_rental: true,
+        drop_in_price: 5,
+        latitude: null,
+        longitude: null,
+        distance_miles: null,
+        next_slot_id: null,
+        next_slot_date: null,
+        next_slot_start_time: null,
+        next_slot_end_time: null,
+      },
+    ])
+
+    expect(venues).toHaveLength(1)
+    expect(venues[0].latitude).toBeNull()
+    expect(venues[0].longitude).toBeNull()
+    expect(venues[0].offersOpenGym).toBe(true)
+    expect(venues[0].dropInPrice).toBe(5)
+  })
 })

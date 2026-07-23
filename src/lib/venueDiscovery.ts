@@ -19,8 +19,8 @@ export interface MapVenue {
   offersOpenGym: boolean
   offersPrivateRental: boolean
   dropInPrice: number | null
-  latitude: number
-  longitude: number
+  latitude: number | null
+  longitude: number | null
   distanceMiles: number | null
   venueType: string
   photo: string | null
@@ -49,8 +49,8 @@ export interface VenueDiscoveryRpcRow {
   offers_open_gym?: boolean | null
   offers_private_rental?: boolean | null
   drop_in_price?: number | null
-  latitude: number
-  longitude: number
+  latitude: number | null
+  longitude: number | null
   distance_miles: number | null
   next_slot_id: string | null
   next_slot_date: string | null
@@ -81,6 +81,10 @@ export function buildMapVenuesFromDiscovery(
       row.drop_in_price == null || row.drop_in_price === undefined
         ? null
         : Number(row.drop_in_price)
+    const latitude =
+      row.latitude == null || row.latitude === undefined ? null : Number(row.latitude)
+    const longitude =
+      row.longitude == null || row.longitude === undefined ? null : Number(row.longitude)
 
     return {
       id: row.venue_id,
@@ -95,8 +99,8 @@ export function buildMapVenuesFromDiscovery(
       offersOpenGym: Boolean(row.offers_open_gym),
       offersPrivateRental: row.offers_private_rental !== false,
       dropInPrice: Number.isFinite(dropInPrice as number) ? dropInPrice : null,
-      latitude: Number(row.latitude),
-      longitude: Number(row.longitude),
+      latitude: Number.isFinite(latitude as number) ? latitude : null,
+      longitude: Number.isFinite(longitude as number) ? longitude : null,
       distanceMiles: row.distance_miles,
       venueType: enrichment?.venue_type?.trim() || DEFAULT_VENUE_TYPE,
       photo: photos[0] || null,

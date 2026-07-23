@@ -9,7 +9,16 @@ import { getDateStringInTimeZone } from '@/utils/dateHelpers'
 import { SplitAvailabilityView } from '../split-availability-view'
 
 const mockRequestLocation = jest.fn()
+const mockPush = jest.fn()
 const PLATFORM_TIME_ZONE = 'America/Los_Angeles'
+let mockSearchParams = ''
+
+jest.mock('next/navigation', () => ({
+  useRouter: () => ({
+    push: mockPush,
+  }),
+  useSearchParams: () => new URLSearchParams(mockSearchParams),
+}))
 
 jest.mock('@/hooks/useVenuesWithNextAvailable', () => ({
   useVenuesWithNextAvailable: jest.fn(),
@@ -22,7 +31,16 @@ jest.mock('@/hooks/useVenuesWithNextAvailable', () => ({
 }))
 
 jest.mock('@/components/maps/availability-map', () => ({
-  AvailabilityMap: () => <div data-testid="availability-map">Map</div>,
+  AvailabilityMap: ({ venues }: { venues: Array<{ id: string; name: string }> }) => (
+    <div data-testid="availability-map">
+      <span data-testid="map-venue-count">{venues.length}</span>
+      {venues.map((venue) => (
+        <span key={venue.id} data-testid={`map-venue-${venue.id}`}>
+          {venue.name}
+        </span>
+      ))}
+    </div>
+  ),
 }))
 
 jest.mock('@/components/ui/calendar', () => ({
@@ -108,6 +126,7 @@ const mockHybridOpenGymVenue = {
 describe('SplitAvailabilityView - Location button', () => {
   beforeEach(() => {
     jest.clearAllMocks()
+    mockSearchParams = ''
     // 2026-07-17 06:00 UTC is still 2026-07-16 evening in America/Los_Angeles
     jest.useFakeTimers()
     jest.setSystemTime(new Date('2026-07-17T06:00:00.000Z'))
@@ -390,12 +409,12 @@ describe('SplitAvailabilityView - Location button', () => {
     render(<SplitAvailabilityView />)
 
     fireEvent.click(screen.getByRole('button', { name: 'Open Gym' }))
-    expect(screen.getByText('Memorial Park')).toBeInTheDocument()
-    expect(screen.queryByText('Test Venue')).not.toBeInTheDocument()
+    expect(screen.getByRole('heading', { name: 'Memorial Park' })).toBeInTheDocument()
+    expect(screen.queryByRole('heading', { name: 'Test Venue' })).not.toBeInTheDocument()
 
     fireEvent.click(screen.getByRole('button', { name: 'Private Rentals' }))
-    expect(screen.getByText('Memorial Park')).toBeInTheDocument()
-    expect(screen.getByText('Test Venue')).toBeInTheDocument()
+    expect(screen.getByRole('heading', { name: 'Memorial Park' })).toBeInTheDocument()
+    expect(screen.getByRole('heading', { name: 'Test Venue' })).toBeInTheDocument()
   })
 
   it('shows open-gym venues without a regular next slot in the Open Gym segment', () => {
@@ -408,12 +427,34 @@ describe('SplitAvailabilityView - Location button', () => {
 
     render(<SplitAvailabilityView />)
 
-    expect(screen.queryByText('Memorial Park')).not.toBeInTheDocument()
+    expect(screen.queryByRole('heading', { name: 'Memorial Park' })).not.toBeInTheDocument()
 
     fireEvent.click(screen.getByRole('button', { name: 'Open Gym' }))
-    expect(screen.getByText('Memorial Park')).toBeInTheDocument()
+    expect(screen.getByRole('heading', { name: 'Memorial Park' })).toBeInTheDocument()
     expect(screen.getByText('$3 drop-in · $50/hr')).toBeInTheDocument()
   })
+
+  it('does not claim slot availability in the Open Gym list header', () => {
+    ;(useVenuesWithNextAvailable as jest.Mock).mockReturnValue({
+      data: [mockHybridOpenGymVenue],
+      loading: false,
+      error: null,
+      refetch: jest.fn(),
+    })
+
+    render(<SplitAvailabilityView />)
+
+    expect(screen.getByRole('heading', { name: 'Available Slots' })).toBeInTheDocument()
+    expect(screen.getByText('0 venues with availability')).toBeInTheDocument()
+
+    fireEvent.click(screen.getByRole('button', { name: 'Open Gym' }))
+
+    expect(screen.getByRole('heading', { name: 'Open Gym Venues' })).toBeInTheDocument()
+    expect(screen.queryByRole('heading', { name: 'Available Slots' })).not.toBeInTheDocument()
+    expect(screen.getByText('1 venue')).toBeInTheDocument()
+    expect(screen.queryByText(/with availability/i)).not.toBeInTheDocument()
+  })
+
 
   it('does not fall back to private rental hourly rate for open-gym-only venues without drop-in price', () => {
     ;(useVenuesWithNextAvailable as jest.Mock).mockReturnValue({
@@ -433,8 +474,73 @@ describe('SplitAvailabilityView - Location button', () => {
     render(<SplitAvailabilityView />)
 
     fireEvent.click(screen.getByRole('button', { name: 'Open Gym' }))
-    expect(screen.getByText('Memorial Park')).toBeInTheDocument()
+    expect(screen.getByRole('heading', { name: 'Memorial Park' })).toBeInTheDocument()
     expect(screen.queryByText('$100/hr')).not.toBeInTheDocument()
     expect(screen.queryByText(/\/hr/)).not.toBeInTheDocument()
+  })
+
+  it('persists the access segment to the /search URL like /venues', () => {
+    render(<SplitAvailabilityView />)
+
+    fireEvent.click(screen.getByRole('button', { name: 'Open Gym' }))
+
+    expect(mockPush).toHaveBeenCalledWith('/search?access=open_gym', { scroll: false })
+
+    fireEvent.click(screen.getByRole('button', { name: 'Private Rentals' }))
+    expect(mockPush).toHaveBeenCalledWith('/search?access=private_rental', { scroll: false })
+
+    fireEvent.click(screen.getByRole('button', { name: 'All' }))
+    expect(mockPush).toHaveBeenCalledWith('/search', { scroll: false })
+  })
+
+  it('initializes the access segment from ?access= on load', () => {
+    mockSearchParams = 'access=open_gym'
+    ;(useVenuesWithNextAvailable as jest.Mock).mockReturnValue({
+      data: [mockVenue, mockHybridOpenGymVenue],
+      loading: false,
+      error: null,
+      refetch: jest.fn(),
+    })
+
+    render(<SplitAvailabilityView />)
+
+    expect(screen.getByRole('button', { name: 'Open Gym' })).toHaveAttribute('aria-pressed', 'true')
+    expect(screen.getByRole('heading', { name: 'Memorial Park' })).toBeInTheDocument()
+    expect(screen.queryByRole('heading', { name: 'Test Venue' })).not.toBeInTheDocument()
+    expect(screen.getByRole('heading', { name: 'Open Gym Venues' })).toBeInTheDocument()
+  })
+
+  it('keeps Private Rentals map pins aligned with list rows that have nextAvailable', () => {
+    ;(useVenuesWithNextAvailable as jest.Mock).mockReturnValue({
+      data: [
+        mockVenue,
+        {
+          ...mockVenue,
+          id: 'venue-no-slot',
+          name: 'No Slot Private Court',
+          nextAvailable: null,
+        },
+        mockHybridOpenGymVenue,
+      ],
+      loading: false,
+      error: null,
+      refetch: jest.fn(),
+    })
+
+    render(<SplitAvailabilityView />)
+
+    fireEvent.click(screen.getByRole('button', { name: 'Private Rentals' }))
+
+    // List shows only venues with a regular next slot.
+    expect(screen.getByRole('heading', { name: 'Test Venue' })).toBeInTheDocument()
+    expect(screen.queryByRole('heading', { name: 'No Slot Private Court' })).not.toBeInTheDocument()
+    expect(screen.queryByRole('heading', { name: 'Memorial Park' })).not.toBeInTheDocument()
+    expect(screen.getByText('1 venue with availability')).toBeInTheDocument()
+
+    // Map must use the same availability-filtered set (not all private-rental-capable venues).
+    expect(screen.getByTestId('map-venue-count')).toHaveTextContent('1')
+    expect(screen.getByTestId('map-venue-venue-1')).toHaveTextContent('Test Venue')
+    expect(screen.queryByTestId('map-venue-venue-no-slot')).not.toBeInTheDocument()
+    expect(screen.queryByTestId('map-venue-venue-4')).not.toBeInTheDocument()
   })
 })

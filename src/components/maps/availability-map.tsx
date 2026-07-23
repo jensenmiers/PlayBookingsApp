@@ -46,12 +46,20 @@ export function AvailabilityMap({
 
   const mapboxToken = process.env.NEXT_PUBLIC_MAPBOX_TOKEN
 
-  // Calculate bounds to fit all venues
+  const mappableVenues = useMemo(
+    () =>
+      venues.filter(
+        (venue) => Number.isFinite(venue.latitude) && Number.isFinite(venue.longitude)
+      ),
+    [venues]
+  )
+
+  // Calculate bounds to fit geocoded venues only
   const bounds = useMemo(() => {
-    if (venues.length === 0) return null
+    if (mappableVenues.length === 0) return null
     
-    const lats = venues.map(v => v.latitude)
-    const lngs = venues.map(v => v.longitude)
+    const lats = mappableVenues.map(v => v.latitude as number)
+    const lngs = mappableVenues.map(v => v.longitude as number)
     
     return {
       minLat: Math.min(...lats),
@@ -59,11 +67,11 @@ export function AvailabilityMap({
       minLng: Math.min(...lngs),
       maxLng: Math.max(...lngs),
     }
-  }, [venues])
+  }, [mappableVenues])
 
   // Set initial view based on venues
   useMemo(() => {
-    if (bounds && venues.length > 0) {
+    if (bounds && mappableVenues.length > 0) {
       const centerLat = (bounds.minLat + bounds.maxLat) / 2
       const centerLng = (bounds.minLng + bounds.maxLng) / 2
       
@@ -86,7 +94,7 @@ export function AvailabilityMap({
         zoom,
       })
     }
-  }, [bounds, venues.length])
+  }, [bounds, mappableVenues.length])
 
   const handleMarkerClick = useCallback((venue: MapVenue) => {
     setPopupVenue(venue)
@@ -124,8 +132,8 @@ export function AvailabilityMap({
       >
         <NavigationControl position="top-right" />
 
-        {/* Venue Markers */}
-        {venues.map((venue) => {
+        {/* Venue Markers — ungeocoded venues remain in list count but cannot be pinned */}
+        {mappableVenues.map((venue) => {
           const isSelected = selectedVenueId === venue.id || popupVenue?.id === venue.id
           const hasAvailability = venue.nextAvailable !== null
           const markerZIndex = isSelected ? 3 : hasAvailability ? 2 : 1
@@ -133,8 +141,8 @@ export function AvailabilityMap({
           return (
             <Marker
               key={venue.id}
-              latitude={venue.latitude}
-              longitude={venue.longitude}
+              latitude={venue.latitude as number}
+              longitude={venue.longitude as number}
               anchor="bottom"
               style={{ zIndex: markerZIndex }}
               onClick={(e) => {
@@ -151,10 +159,12 @@ export function AvailabilityMap({
         })}
 
         {/* Popup for selected venue */}
-        {popupVenue && (
+        {popupVenue
+          && Number.isFinite(popupVenue.latitude)
+          && Number.isFinite(popupVenue.longitude) && (
           <Popup
-            latitude={popupVenue.latitude}
-            longitude={popupVenue.longitude}
+            latitude={popupVenue.latitude as number}
+            longitude={popupVenue.longitude as number}
             anchor="bottom"
             onClose={handlePopupClose}
             closeOnClick={false}

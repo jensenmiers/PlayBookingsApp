@@ -1,6 +1,7 @@
 'use client'
 
-import { useState, useMemo } from 'react'
+import { useState, useMemo, useEffect } from 'react'
+import { useRouter, useSearchParams } from 'next/navigation'
 import { format } from 'date-fns'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
@@ -26,6 +27,7 @@ import { getBookingModeDisplay } from '@/lib/booking-mode'
 import {
   formatVenueCardPriceLine,
   matchesAccessFilter,
+  parseVenueAccessFilter,
   resolveVenueAccess,
   type VenueAccessFilter,
 } from '@/lib/venueAccess'
@@ -47,6 +49,9 @@ function parseLocalDate(dateStr: string): Date {
  * Mobile: Toggle between map and list views
  */
 export function SplitAvailabilityView() {
+  const router = useRouter()
+  const searchParams = useSearchParams()
+  const searchParamAccess = parseVenueAccessFilter(searchParams.get('access') || 'all')
   const todayKey = getDateStringInTimeZone(new Date(), PLATFORM_TIME_ZONE)
   const todayDate = parseLocalDate(todayKey)
   const [selectedDate, setSelectedDate] = useState(todayKey)
@@ -54,7 +59,11 @@ export function SplitAvailabilityView() {
   const [viewMode, setViewMode] = useState<ViewMode>('map')
   const [selectedVenueId, setSelectedVenueId] = useState<string | null>(null)
   const [searchQuery, setSearchQuery] = useState('')
-  const [accessFilter, setAccessFilter] = useState<VenueAccessFilter>('all')
+  const [accessFilter, setAccessFilter] = useState<VenueAccessFilter>(searchParamAccess)
+
+  useEffect(() => {
+    setAccessFilter(searchParamAccess)
+  }, [searchParamAccess])
 
   // Get user location for distance-based sorting (opt-in via location icon button)
   const { latitude: userLat, longitude: userLng, loading: locationLoading, requestLocation } = useUserLocation()
@@ -103,6 +112,18 @@ export function SplitAvailabilityView() {
 
   const selectedDateObject = parseLocalDate(selectedDate)
 
+  const handleAccessChange = (value: VenueAccessFilter) => {
+    setAccessFilter(value)
+    const nextParams = new URLSearchParams(searchParams.toString())
+    if (value === 'all') {
+      nextParams.delete('access')
+    } else {
+      nextParams.set('access', value)
+    }
+    const query = nextParams.toString()
+    router.push(query ? `/search?${query}` : '/search', { scroll: false })
+  }
+
   const handleDateChange = (direction: 'prev' | 'next') => {
     const newDateKey = addDaysToDateString(selectedDate, direction === 'prev' ? -1 : 1)
     if (direction === 'prev' && newDateKey < todayKey) return
@@ -137,7 +158,7 @@ export function SplitAvailabilityView() {
         </div>
 
         <div className="mb-m">
-          <VenueAccessSegment value={accessFilter} onChange={setAccessFilter} />
+          <VenueAccessSegment value={accessFilter} onChange={handleAccessChange} />
         </div>
 
         {/* Filter Row */}
@@ -265,7 +286,7 @@ export function SplitAvailabilityView() {
             </div>
           ) : (
             <AvailabilityMap
-              venues={filteredVenues}
+              venues={venuesWithAvailability}
               selectedVenueId={selectedVenueId}
               onVenueSelect={handleVenueSelect}
               className="w-full h-full"
@@ -284,12 +305,14 @@ export function SplitAvailabilityView() {
             {/* Results Header */}
             <div className="mb-l">
               <h2 className="text-lg font-semibold text-secondary-50">
-                Available Slots
+                {accessFilter === 'open_gym' ? 'Open Gym Venues' : 'Available Slots'}
               </h2>
               <p className="text-sm text-secondary-50/60">
-                {loading 
-                  ? 'Loading...' 
-                  : `${venuesWithAvailability.length} venue${venuesWithAvailability.length !== 1 ? 's' : ''} with availability`
+                {loading
+                  ? 'Loading...'
+                  : accessFilter === 'open_gym'
+                    ? `${venuesWithAvailability.length} venue${venuesWithAvailability.length !== 1 ? 's' : ''}`
+                    : `${venuesWithAvailability.length} venue${venuesWithAvailability.length !== 1 ? 's' : ''} with availability`
                 }
               </p>
             </div>
