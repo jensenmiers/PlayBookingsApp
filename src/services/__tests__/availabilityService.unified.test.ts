@@ -169,9 +169,9 @@ describe('AvailabilityService (template-only slots)', () => {
     }
   })
 
-  it('returns all same-day info-only slots regardless of current time and lead time', async () => {
+  it('excludes past-start open-gym slots in PT while ignoring lead-time gating', async () => {
     jest.useFakeTimers()
-    jest.setSystemTime(new Date('2026-02-23T21:00:00.000-08:00'))
+    jest.setSystemTime(new Date('2026-02-23T16:30:00.000-08:00'))
 
     try {
       const rpc = jest.fn(async () => ({
@@ -284,11 +284,7 @@ describe('AvailabilityService (template-only slots)', () => {
       const service = new AvailabilityService()
       const result = await service.getAvailableSlots('venue-1', '2026-02-23', '2026-02-23')
 
-      expect(result).toHaveLength(6)
       expect(result.map((slot) => slot.slot_instance_id)).toEqual([
-        'slot-drop-in-1',
-        'slot-drop-in-2',
-        'slot-drop-in-3',
         'slot-drop-in-4',
         'slot-drop-in-5',
         'slot-drop-in-6',
@@ -296,8 +292,8 @@ describe('AvailabilityService (template-only slots)', () => {
       expect(result.every((slot) => slot.action_type === 'info_only_open_gym')).toBe(true)
       expect(result[0]).toMatchObject({
         date: '2026-02-23',
-        start_time: '12:00:00',
-        end_time: '13:00:00',
+        start_time: '17:00:00',
+        end_time: '18:00:00',
         venue_id: 'venue-1',
         availability_id: null,
         modal_content: {
@@ -471,99 +467,106 @@ describe('AvailabilityService (template-only slots)', () => {
   })
 
   it('filters out info-only slots blocked by external availability blocks', async () => {
-    const rpc = jest.fn(async () => ({
-      data: [],
-      error: null,
-    }))
+    jest.useFakeTimers()
+    jest.setSystemTime(new Date('2026-02-23T10:00:00.000-08:00'))
 
-    const from = jest.fn((table: string) => {
-      if (table === 'venues') {
-        return createQuery({
-          data: { instant_booking: true },
-          error: null,
-        })
-      }
-      if (table === 'venue_admin_configs') {
-        return createQuery({
-          data: {
-            venue_id: 'venue-1',
-            drop_in_enabled: true,
-            drop_in_price: null,
-            regular_schedule_mode: 'template',
-          },
-          error: null,
-        })
-      }
-      if (table === 'slot_instances') {
-        return createQuery({
-          data: [
-            {
-              id: 'slot-drop-in-blocked',
+    try {
+      const rpc = jest.fn(async () => ({
+        data: [],
+        error: null,
+      }))
+
+      const from = jest.fn((table: string) => {
+        if (table === 'venues') {
+          return createQuery({
+            data: { instant_booking: true },
+            error: null,
+          })
+        }
+        if (table === 'venue_admin_configs') {
+          return createQuery({
+            data: {
               venue_id: 'venue-1',
-              date: '2026-02-23',
-              start_time: '12:00:00',
-              end_time: '13:00:00',
-              action_type: 'info_only_open_gym',
-              blocks_inventory: true,
+              drop_in_enabled: true,
+              drop_in_price: null,
+              regular_schedule_mode: 'template',
             },
-            {
-              id: 'slot-drop-in-open',
-              venue_id: 'venue-1',
-              date: '2026-02-23',
-              start_time: '14:00:00',
-              end_time: '15:00:00',
-              action_type: 'info_only_open_gym',
-              blocks_inventory: true,
-            },
-          ],
-          error: null,
-        })
-      }
-      if (table === 'slot_modal_content') {
-        return createQuery({ data: [], error: null })
-      }
-      if (table === 'external_availability_blocks') {
-        return createQuery({
-          data: [
-            {
-              id: 'block-1',
-              venue_id: 'venue-1',
-              source: 'google_calendar',
-              source_event_id: 'event-1',
-              start_at: '2026-02-23T12:15:00',
-              end_at: '2026-02-23T12:45:00',
-              status: 'active',
-            },
-          ],
-          error: null,
-        })
-      }
-      throw new Error(`Unexpected table query: ${table}`)
-    })
+            error: null,
+          })
+        }
+        if (table === 'slot_instances') {
+          return createQuery({
+            data: [
+              {
+                id: 'slot-drop-in-blocked',
+                venue_id: 'venue-1',
+                date: '2026-02-23',
+                start_time: '12:00:00',
+                end_time: '13:00:00',
+                action_type: 'info_only_open_gym',
+                blocks_inventory: true,
+              },
+              {
+                id: 'slot-drop-in-open',
+                venue_id: 'venue-1',
+                date: '2026-02-23',
+                start_time: '14:00:00',
+                end_time: '15:00:00',
+                action_type: 'info_only_open_gym',
+                blocks_inventory: true,
+              },
+            ],
+            error: null,
+          })
+        }
+        if (table === 'slot_modal_content') {
+          return createQuery({ data: [], error: null })
+        }
+        if (table === 'external_availability_blocks') {
+          return createQuery({
+            data: [
+              {
+                id: 'block-1',
+                venue_id: 'venue-1',
+                source: 'google_calendar',
+                source_event_id: 'event-1',
+                start_at: '2026-02-23T12:15:00',
+                end_at: '2026-02-23T12:45:00',
+                status: 'active',
+              },
+            ],
+            error: null,
+          })
+        }
+        throw new Error(`Unexpected table query: ${table}`)
+      })
 
-    mockCreateClient.mockResolvedValue({ from, rpc })
+      mockCreateClient.mockResolvedValue({ from, rpc })
 
-    const service = new AvailabilityService()
-    const result = await service.getAvailableSlots('venue-1', '2026-02-23', '2026-02-23')
+      const service = new AvailabilityService()
+      const result = await service.getAvailableSlots('venue-1', '2026-02-23', '2026-02-23')
 
-    expect(result).toEqual([
-      {
-        date: '2026-02-23',
-        start_time: '14:00:00',
-        end_time: '15:00:00',
-        venue_id: 'venue-1',
-        availability_id: null,
-        slot_instance_id: 'slot-drop-in-open',
-        action_type: 'info_only_open_gym',
-        modal_content: null,
-        slot_pricing: null,
-      },
-    ])
-    expect(rpc).toHaveBeenCalledWith('get_regular_available_slot_instances', {
-      p_venue_id: 'venue-1',
-      p_date_from: '2026-02-23',
-      p_date_to: '2026-02-23',
-      p_date_filter: null,
-    })
+      expect(result).toEqual([
+        {
+          date: '2026-02-23',
+          start_time: '14:00:00',
+          end_time: '15:00:00',
+          venue_id: 'venue-1',
+          availability_id: null,
+          slot_instance_id: 'slot-drop-in-open',
+          action_type: 'info_only_open_gym',
+          modal_content: null,
+          slot_pricing: null,
+        },
+      ])
+      expect(rpc).toHaveBeenCalledWith('get_regular_available_slot_instances', {
+        p_venue_id: 'venue-1',
+        p_date_from: '2026-02-23',
+        p_date_to: '2026-02-23',
+        p_date_filter: null,
+      })
+    } finally {
+      jest.useRealTimers()
+    }
   })
 })

@@ -14,19 +14,21 @@ export function formatDiscoveryPrice(
   nextAvailable: NextAvailableSlot | null,
   hourlyRate: number
 ): string {
-  if (!isOpenGymDiscovery(nextAvailable)) {
-    return `$${hourlyRate}/hr`
+  if (nextAvailable?.pricing) {
+    const { amount_cents: amountCents, currency, unit } = nextAvailable.pricing
+    const amount = new Intl.NumberFormat('en-US', {
+      style: 'currency',
+      currency,
+      minimumFractionDigits: amountCents % 100 === 0 ? 0 : 2,
+      maximumFractionDigits: amountCents % 100 === 0 ? 0 : 2,
+    }).format(amountCents / 100)
+
+    return `${amount}${UNIT_SUFFIX[unit]}`
   }
 
-  if (!nextAvailable?.pricing) return 'Drop-in price on site'
+  if (isOpenGymDiscovery(nextAvailable)) {
+    return 'Drop-in price on site'
+  }
 
-  const { amount_cents: amountCents, currency, unit } = nextAvailable.pricing
-  const amount = new Intl.NumberFormat('en-US', {
-    style: 'currency',
-    currency,
-    minimumFractionDigits: amountCents % 100 === 0 ? 0 : 2,
-    maximumFractionDigits: amountCents % 100 === 0 ? 0 : 2,
-  }).format(amountCents / 100)
-
-  return `${amount}${UNIT_SUFFIX[unit]}`
+  return `$${hourlyRate}/hr`
 }
