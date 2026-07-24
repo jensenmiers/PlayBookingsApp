@@ -57,7 +57,7 @@ function CourtCard({
           <div className="absolute bottom-3 left-4 flex items-center gap-2">
             <span className="w-2 h-2 bg-primary-400 rounded-full animate-pulse" />
             <span className="text-xs font-medium text-primary-400 uppercase tracking-wider">
-              Available {court.nextAvailable}
+              {court.isOpenGym ? 'Open Gym' : 'Available'} {court.nextAvailable}
             </span>
           </div>
         </div>
@@ -170,7 +170,7 @@ function VerticalCompactCourtCard({
           <div className="absolute bottom-2.5 left-3.5 flex items-center gap-2">
             <span className="w-1.5 h-1.5 bg-primary-400 rounded-full animate-pulse" />
             <span className="text-[11px] font-medium text-primary-400 uppercase tracking-wider">
-              Available {court.nextAvailable}
+              {court.isOpenGym ? 'Open Gym' : 'Available'} {court.nextAvailable}
             </span>
           </div>
         </div>

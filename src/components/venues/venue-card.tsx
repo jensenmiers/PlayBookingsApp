@@ -8,6 +8,8 @@ import { slugify } from '@/lib/utils'
 import { PhotoCarousel } from '@/components/venue/photo-carousel'
 import { BookingModeChip } from '@/components/venue/shared'
 import { deriveVenuePhotos } from '@/lib/venueMedia'
+import type { NextAvailableSlot } from '@/lib/venueDiscovery'
+import { formatDiscoveryPrice, isOpenGymDiscovery } from '@/lib/discoveryPresentation'
 import {
   formatVenueCardPriceLine,
   resolveVenueAccess,
@@ -15,15 +17,10 @@ import {
 } from '@/lib/venueAccess'
 import { VenueAccessChips } from '@/components/venues/venue-access-chips'
 
-interface NextAvailableInfo {
-  displayText: string  // "Fri Feb 20, 6 PM"
-  slotId?: string
-}
-
 interface VenueCardProps {
   venue: Venue
   /** Optional next available slot info to display as a badge */
-  nextAvailable?: NextAvailableInfo | null
+  nextAvailable?: NextAvailableSlot | null
   /** Current discovery access segment; controls next-available badge visibility */
   accessFilter?: VenueAccessFilter
 }
@@ -35,9 +32,15 @@ export function VenueCard({
 }: VenueCardProps) {
   const venueSlug = slugify(venue.name)
   const photos = deriveVenuePhotos(venue)
+  const isOpenGym = isOpenGymDiscovery(nextAvailable || null)
   const { offersPrivateRental } = resolveVenueAccess(venue)
   const priceLine = formatVenueCardPriceLine(venue)
+  const discoveryPrice = formatDiscoveryPrice(nextAvailable || null, venue.hourly_rate)
+  const displayedPrice = isOpenGym ? discoveryPrice : priceLine
   const showNextAvailable = Boolean(nextAvailable) && accessFilter !== 'open_gym'
+  const accessChipVenue = isOpenGym
+    ? { ...venue, offers_open_gym: true }
+    : venue
 
   return (
     <Link
@@ -55,7 +58,7 @@ export function VenueCard({
         </div>
 
         <VenueAccessChips
-          venue={venue}
+          venue={accessChipVenue}
           className="absolute right-s top-s z-10 justify-end"
         />
       </div>
@@ -71,7 +74,7 @@ export function VenueCard({
           {venue.city}, {venue.state}
         </p>
 
-        {offersPrivateRental && (
+        {offersPrivateRental && !isOpenGym && (
           <BookingModeChip
             instantBooking={venue.instant_booking}
             bookingMode={venue.booking_mode}
@@ -81,13 +84,13 @@ export function VenueCard({
 
         <div className="flex items-center justify-between gap-s pt-xs">
           <span className="text-secondary-50 font-semibold text-sm sm:text-base">
-            {priceLine}
+            {displayedPrice}
           </span>
 
           {showNextAvailable && nextAvailable && (
             <span className="inline-flex items-center gap-xs bg-primary-100 text-primary-700 text-xs font-medium px-s py-xxs rounded-full shrink-0">
               <FontAwesomeIcon icon={faClock} className="text-[10px]" />
-              Next: {nextAvailable.displayText}
+              {isOpenGym ? 'Open Gym' : 'Next'}: {nextAvailable.displayText}
             </span>
           )}
         </div>

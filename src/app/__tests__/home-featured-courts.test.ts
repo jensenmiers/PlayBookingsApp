@@ -1,7 +1,7 @@
 import { buildFeaturedCourts } from '../home-featured-courts'
 import { formatCompactNextAvailable } from '@/lib/nextAvailableDisplay'
 import type { Venue } from '@/types'
-import type { MapVenue } from '@/lib/venueDiscovery'
+import type { MapVenue, NextAvailableSlot } from '@/lib/venueDiscovery'
 
 function createVenue(overrides: Partial<Venue> = {}): Venue {
   return {
@@ -27,7 +27,22 @@ function createVenue(overrides: Partial<Venue> = {}): Venue {
   }
 }
 
-function createMapVenue(overrides: Partial<MapVenue> = {}): MapVenue {
+function createMapVenue(
+  overrides: Omit<Partial<MapVenue>, 'nextAvailable'> & {
+    nextAvailable?: Partial<NextAvailableSlot> | null
+  } = {}
+): MapVenue {
+  const { nextAvailable, ...venueOverrides } = overrides
+  const defaultNextAvailable: NextAvailableSlot = {
+    slotId: 'slot-1',
+    date: '2026-02-20',
+    startTime: '18:00:00',
+    endTime: '19:00:00',
+    actionType: 'instant_book',
+    pricing: null,
+    displayText: 'Fri Feb 20, 6 PM',
+  }
+
   return {
     id: 'venue-1',
     name: 'Memorial Park',
@@ -46,20 +61,45 @@ function createMapVenue(overrides: Partial<MapVenue> = {}): MapVenue {
     distanceMiles: null,
     venueType: 'Recreation Center',
     photo: 'https://example.com/memorial.jpg',
-    nextAvailable: {
-      slotId: 'slot-1',
-      date: '2026-02-20',
-      startTime: '18:00:00',
-      endTime: '19:00:00',
-      displayText: 'Fri Feb 20, 6 PM',
-    },
-    ...overrides,
+    ...venueOverrides,
+    nextAvailable: nextAvailable === null
+      ? null
+      : { ...defaultNextAvailable, ...nextAvailable },
   }
 }
 
 describe('home featured courts mapping', () => {
   it('formats availability with weekday, date, and compact time', () => {
     expect(formatCompactNextAvailable('2026-02-20', '18:00:00')).toBe('Fri Feb 20, 6 PM')
+  })
+
+  it('maps open-gym discovery to an accurate label and per-person price', () => {
+    const featured = buildFeaturedCourts(
+      [createVenue()],
+      [createMapVenue({
+        nextAvailable: {
+          slotId: 'slot-open-gym',
+          date: '2026-02-20',
+          startTime: '18:00:00',
+          endTime: '19:00:00',
+          actionType: 'info_only_open_gym',
+          pricing: {
+            amount_cents: 300,
+            currency: 'USD',
+            unit: 'person',
+            payment_method: 'on_site',
+          },
+          displayText: 'Fri Feb 20, 6 PM',
+        },
+      })],
+      3
+    )
+
+    expect(featured[0]).toMatchObject({
+      isOpenGym: true,
+      priceLabel: '$3/person',
+      nextAvailable: 'Fri Feb 20, 6 PM',
+    })
   })
 
   it('maps dynamic featured cards from venues and next availability', () => {

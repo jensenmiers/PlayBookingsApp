@@ -43,6 +43,7 @@ export async function GET(request: Request) {
         p_user_lat: userLat,
         p_user_lng: userLng,
         p_radius_miles: radiusMiles,
+        p_access_filter: access,
       }
     )
 

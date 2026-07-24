@@ -1,0 +1,3 @@
+-- Compatibility marker for environments where this migration version is already recorded.
+-- The discovery function is defined by 20260721000100_include_open_gym_in_next_available.sql.
+-- Keep this migration as a no-op to avoid redefining the function with stale SQL.

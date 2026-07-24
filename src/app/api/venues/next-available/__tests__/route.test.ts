@@ -44,6 +44,11 @@ describe('GET /api/venues/next-available', () => {
           next_slot_date: '2026-02-20',
           next_slot_start_time: '18:00:00',
           next_slot_end_time: '19:00:00',
+          next_slot_action_type: 'info_only_open_gym',
+          next_slot_price_amount_cents: 300,
+          next_slot_price_currency: 'USD',
+          next_slot_price_unit: 'person',
+          next_slot_payment_method: 'on_site',
         },
       ],
       error: null,
@@ -81,6 +86,13 @@ describe('GET /api/venues/next-available', () => {
       offersOpenGym: false,
       offersPrivateRental: true,
       nextAvailable: {
+        actionType: 'info_only_open_gym',
+        pricing: {
+          amount_cents: 300,
+          currency: 'USD',
+          unit: 'person',
+          payment_method: 'on_site',
+        },
         displayText: 'Fri Feb 20, 6 PM',
       },
     })
@@ -89,6 +101,7 @@ describe('GET /api/venues/next-available', () => {
       p_user_lat: null,
       p_user_lng: null,
       p_radius_miles: null,
+      p_access_filter: 'all',
     })
   })
 
@@ -159,6 +172,10 @@ describe('GET /api/venues/next-available', () => {
     expect(body.data).toHaveLength(1)
     expect(body.data[0].id).toBe('venue-2')
     expect(body.data[0].offersOpenGym).toBe(true)
+    expect(rpc).toHaveBeenCalledWith(
+      'get_venues_with_next_available',
+      expect.objectContaining({ p_access_filter: 'open_gym' })
+    )
   })
 
   it('forwards optional query filters to the discovery function', async () => {
@@ -184,6 +201,7 @@ describe('GET /api/venues/next-available', () => {
       p_user_lat: 34.05,
       p_user_lng: -118.24,
       p_radius_miles: 10,
+      p_access_filter: 'all',
     })
   })
 
@@ -208,6 +226,11 @@ describe('GET /api/venues/next-available', () => {
           next_slot_date: '2026-02-20',
           next_slot_start_time: '18:00:00',
           next_slot_end_time: '19:00:00',
+          next_slot_action_type: 'instant_book',
+          next_slot_price_amount_cents: null,
+          next_slot_price_currency: null,
+          next_slot_price_unit: null,
+          next_slot_payment_method: null,
         },
       ],
       error: null,

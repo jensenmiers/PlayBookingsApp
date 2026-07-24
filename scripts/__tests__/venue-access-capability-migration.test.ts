@@ -3,7 +3,7 @@ import { join } from 'path'
 
 describe('venue access capability flags migration', () => {
   const migrationSource = readFileSync(
-    join(process.cwd(), 'supabase/migrations/20260721000100_add_venue_access_capability_flags.sql'),
+    join(process.cwd(), 'supabase/migrations/20260723000300_add_venue_access_capability_flags.sql'),
     'utf8'
   )
 
@@ -21,5 +21,13 @@ describe('venue access capability flags migration', () => {
     expect(migrationSource).toContain('v.offers_open_gym')
     expect(migrationSource).toContain('v.offers_private_rental')
     expect(migrationSource).toContain('v.drop_in_price')
+    expect(migrationSource).toContain("si.action_type = 'info_only_open_gym'")
+    expect(migrationSource).toContain('next_slot_action_type')
+    expect(migrationSource).toContain('next_slot_price_amount_cents')
+    expect(migrationSource).toContain(
+      "CASE WHEN c.action_type IN ('instant_book', 'request_private') THEN 0 ELSE 1 END"
+    )
+    expect(migrationSource).toContain('ns.slot_date ASC NULLS LAST')
+    expect(migrationSource).toContain('ns.start_time ASC NULLS LAST')
   })
 })
