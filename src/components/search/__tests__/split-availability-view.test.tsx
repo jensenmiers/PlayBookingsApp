@@ -544,6 +544,41 @@ describe('SplitAvailabilityView - Location button', () => {
     expect(screen.getByText('Test Venue')).toBeInTheDocument()
   })
 
+  it('excludes a hybrid venue from Private Rentals when its next slot is open gym', () => {
+    ;(useVenuesWithNextAvailable as jest.Mock).mockReturnValue({
+      data: [
+        mockVenue,
+        {
+          ...mockHybridOpenGymVenue,
+          nextAvailable: {
+            slotId: 'slot-hybrid-open-gym',
+            date: '2026-02-10',
+            startTime: '16:00:00',
+            endTime: '17:00:00',
+            actionType: 'info_only_open_gym',
+            pricing: {
+              amount_cents: 300,
+              currency: 'USD',
+              unit: 'person',
+              payment_method: 'on_site',
+            },
+            displayText: 'Tue Feb 10, 4 PM',
+          },
+        },
+      ],
+      loading: false,
+      error: null,
+      refetch: jest.fn(),
+    })
+
+    render(<SplitAvailabilityView />)
+
+    fireEvent.click(screen.getByRole('button', { name: 'Private Rentals' }))
+    expect(screen.getByText('Test Venue')).toBeInTheDocument()
+    expect(screen.queryByText('Memorial Park')).not.toBeInTheDocument()
+    expect(screen.getByTestId('availability-map')).toHaveAttribute('data-venue-ids', 'venue-1')
+  })
+
   it('shows open-gym venues without a regular next slot in the Open Gym segment', () => {
     ;(useVenuesWithNextAvailable as jest.Mock).mockReturnValue({
       data: [mockHybridOpenGymVenue],
@@ -559,6 +594,8 @@ describe('SplitAvailabilityView - Location button', () => {
     fireEvent.click(screen.getByRole('button', { name: 'Open Gym' }))
     expect(screen.getByText('Memorial Park')).toBeInTheDocument()
     expect(screen.getByText('$3 drop-in · $50/hr')).toBeInTheDocument()
+    expect(screen.getByText('1 Open Gym venue')).toBeInTheDocument()
+    expect(screen.queryByText('1 venue with availability')).not.toBeInTheDocument()
   })
 
   it('does not fall back to private rental hourly rate for open-gym-only venues without drop-in price', () => {

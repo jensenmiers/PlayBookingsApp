@@ -132,6 +132,11 @@ export function SplitAvailabilityView() {
     if (accessFilter === 'open_gym') {
       return filteredVenues
     }
+    if (accessFilter === 'private_rental') {
+      return filteredVenues.filter(
+        (venue) => venue.nextAvailable !== null && !isOpenGymDiscovery(venue.nextAvailable)
+      )
+    }
     return filteredVenues.filter((venue) => venue.nextAvailable !== null)
   }, [filteredVenues, accessFilter])
 
@@ -362,7 +367,9 @@ export function SplitAvailabilityView() {
               <p className="text-sm text-secondary-50/60">
                 {loading 
                   ? 'Loading...' 
-                  : `${venuesWithAvailability.length} venue${venuesWithAvailability.length !== 1 ? 's' : ''} with availability`
+                  : accessFilter === 'open_gym'
+                    ? `${venuesWithAvailability.length} Open Gym venue${venuesWithAvailability.length !== 1 ? 's' : ''}`
+                    : `${venuesWithAvailability.length} venue${venuesWithAvailability.length !== 1 ? 's' : ''} with availability`
                 }
               </p>
             </div>
