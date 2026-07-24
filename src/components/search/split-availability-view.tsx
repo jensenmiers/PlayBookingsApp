@@ -466,7 +466,7 @@ function MapVenueCard({
       ? discoveryPrice
       : priceLine || discoveryPrice
   const showNextAvailable = Boolean(venue.nextAvailable) && accessFilter !== 'open_gym'
-  const showBookingModeChip = offersPrivateRental && accessFilter !== 'open_gym'
+  const showBookingModeChip = offersPrivateRental && accessFilter !== 'open_gym' && !isOpenGym
 
   return (
     <div 

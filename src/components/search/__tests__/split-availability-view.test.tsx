@@ -335,6 +335,7 @@ describe('SplitAvailabilityView - Location button', () => {
     expect(screen.getByText('$3/person')).toBeInTheDocument()
     expect(screen.getByRole('link', { name: /view details/i })).toHaveAttribute('href', '/venue/memorial-park')
     expect(screen.queryByText('$75/hr')).not.toBeInTheDocument()
+    expect(screen.queryByText('Instant')).not.toBeInTheDocument()
   })
 
   it('does not render unimplemented Any time or Filters controls', () => {
