@@ -58,7 +58,7 @@ export interface VenueDiscoveryRpcRow {
   next_slot_date: string | null
   next_slot_start_time: string | null
   next_slot_end_time: string | null
-  next_slot_action_type?: SlotActionType | null
+  next_slot_action_type: SlotActionType | null
   next_slot_price_amount_cents?: number | null
   next_slot_price_currency?: string | null
   next_slot_price_unit?: SlotPricingUnit | null
@@ -120,14 +120,16 @@ export function buildMapVenuesFromDiscovery(
       venueType: enrichment?.venue_type?.trim() || DEFAULT_VENUE_TYPE,
       photo: photos[0] || null,
       nextAvailable:
-        row.next_slot_id && row.next_slot_date && row.next_slot_start_time
+        row.next_slot_id
+        && row.next_slot_date
+        && row.next_slot_start_time
+        && row.next_slot_action_type
           ? {
               slotId: row.next_slot_id,
               date: row.next_slot_date,
               startTime: row.next_slot_start_time,
               endTime: row.next_slot_end_time || '',
-              actionType: row.next_slot_action_type
-                || (row.instant_booking ? 'instant_book' : 'request_private'),
+              actionType: row.next_slot_action_type,
               pricing: nextSlotPricing,
               displayText: formatCompactNextAvailable(
                 row.next_slot_date,
