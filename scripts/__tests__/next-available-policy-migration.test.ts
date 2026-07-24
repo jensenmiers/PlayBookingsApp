@@ -1,4 +1,4 @@
-import { readFileSync } from 'fs'
+import { existsSync, readFileSync } from 'fs'
 import { join } from 'path'
 
 describe('exact minimum advance policy migration', () => {
@@ -44,6 +44,38 @@ describe('exact minimum advance policy migration', () => {
     expect(migrationSource).toContain('next_slot_price_amount_cents')
     expect(migrationSource).toContain('ns.slot_date ASC NULLS LAST')
     expect(migrationSource).toContain('ns.start_time ASC NULLS LAST')
+    expect(migrationSource).not.toContain('v.offers_open_gym')
+    expect(migrationSource).not.toContain('v.offers_private_rental')
+    expect(migrationSource).not.toContain('v.drop_in_price')
+    const compatibilityMigrationPath = join(
+      process.cwd(),
+      'supabase/migrations/20260723000100_include_open_gym_in_next_available.sql'
+    )
+    expect(existsSync(compatibilityMigrationPath)).toBe(true)
+
+    const compatibilityMigrationSource = readFileSync(compatibilityMigrationPath, 'utf8')
+    expect(compatibilityMigrationSource).not.toContain(
+      'CREATE OR REPLACE FUNCTION public.get_venues_with_next_available'
+    )
+    expect(compatibilityMigrationSource).not.toContain('v.offers_open_gym')
+    expect(compatibilityMigrationSource).not.toContain('v.offers_private_rental')
+    expect(compatibilityMigrationSource).not.toContain('v.drop_in_price')
+
+    const correctiveMigrationSource = readFileSync(
+      join(
+        process.cwd(),
+        'supabase/migrations/20260723000200_fix_next_available_open_gym_discovery.sql'
+      ),
+      'utf8'
+    )
+    expect(correctiveMigrationSource).toContain(
+      'CREATE OR REPLACE FUNCTION public.get_venues_with_next_available'
+    )
+    expect(correctiveMigrationSource).toContain('ns.slot_date ASC NULLS LAST')
+    expect(correctiveMigrationSource).toContain('ns.start_time ASC NULLS LAST')
+    expect(correctiveMigrationSource).not.toContain('v.offers_open_gym')
+    expect(correctiveMigrationSource).not.toContain('v.offers_private_rental')
+    expect(correctiveMigrationSource).not.toContain('v.drop_in_price')
   })
 
   it('validates discovery against combined regular and open-gym availability', () => {
