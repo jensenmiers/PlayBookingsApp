@@ -12,13 +12,10 @@ import { Button } from '@/components/ui/button'
 import { ErrorMessage } from '@/components/ui/error-message'
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome'
 import { faSearch } from '@fortawesome/free-solid-svg-icons'
-import { createClient } from '@/lib/supabase/client'
-import { isOpenGymDiscovery } from '@/lib/discoveryPresentation'
-import { formatCompactNextAvailable } from '@/lib/nextAvailableDisplay'
 import { parseVenueAccessFilter, type VenueAccessFilter } from '@/lib/venueAccess'
+import type { MapVenue, NextAvailableSlot } from '@/lib/venueDiscovery'
 import type { Venue } from '@/types'
-import type { NextAvailableSlot } from '@/lib/venueDiscovery'
-import type { PaginatedResponse } from '@/types/api'
+import type { ApiResponse, PaginatedResponse } from '@/types/api'
 
 // Type for next available slot info
 const VENUE_DIRECTORY_TIMEOUT_MS = 12_000
@@ -44,6 +41,7 @@ function VenuesContent() {
     total_pages: number
   } | null>(null)
   const venuesRef = useRef<Venue[]>([])
+  const venuesQueryRef = useRef<string | null>(null)
   
   // Store next available info keyed by venue ID
   const [nextAvailableMap, setNextAvailableMap] = useState<Record<string, NextAvailableSlot>>({})
@@ -67,20 +65,27 @@ function VenuesContent() {
     }, VENUE_DIRECTORY_TIMEOUT_MS)
 
     const fetchVenues = async () => {
-      setLoading(venuesRef.current.length === 0)
+      const params = new URLSearchParams()
+      params.set('page', currentPage.toString())
+      params.set('limit', '12')
+      if (searchQuery.trim()) {
+        params.set('search', searchQuery.trim())
+      }
+      if (accessFilter !== 'all') {
+        params.set('access', accessFilter)
+      }
+      const queryKey = params.toString()
+      const isSameQuery = venuesQueryRef.current === queryKey
+
+      if (!isSameQuery) {
+        venuesRef.current = []
+        setVenues([])
+        setPagination(null)
+      }
+      setLoading(!isSameQuery || venuesRef.current.length === 0)
       setError(null)
 
       try {
-        const params = new URLSearchParams()
-        params.set('page', currentPage.toString())
-        params.set('limit', '12')
-        if (searchQuery.trim()) {
-          params.set('search', searchQuery.trim())
-        }
-        if (accessFilter !== 'all') {
-          params.set('access', accessFilter)
-        }
-
         const response = await fetch(`/api/venues?${params.toString()}`, {
           cache: 'no-store',
           signal: controller.signal,
@@ -95,6 +100,7 @@ function VenuesContent() {
 
         const nextVenues = data.data
         venuesRef.current = nextVenues
+        venuesQueryRef.current = queryKey
         setVenues(nextVenues)
         setPagination(data.pagination)
         setError(null)
@@ -103,7 +109,7 @@ function VenuesContent() {
 
         const isAbortError = err instanceof Error && err.name === 'AbortError'
         const message = err instanceof Error ? err.message : 'Failed to load venues'
-        const previousVenues = venuesRef.current
+        const previousVenues = isSameQuery ? venuesRef.current : []
 
         if (previousVenues.length > 0) {
           setVenues(previousVenues)
@@ -129,64 +135,57 @@ function VenuesContent() {
     }
   }, [currentPage, searchQuery, accessFilter])
 
-  // Fetch next available times for all venues
+  // Fetch access-scoped next available times for card presentation.
   useEffect(() => {
+    let active = true
+    const controller = new AbortController()
+
     const fetchNextAvailable = async () => {
+      setNextAvailableMap({})
+
       try {
-        const supabase = createClient()
-        
-        // Call the RPC function to get next available slots
-        const { data, error: rpcError } = await supabase.rpc(
-          'get_venues_with_next_available',
-          {
-            p_date_filter: null,
-            p_user_lat: null,
-            p_user_lng: null,
-            p_radius_miles: null,
-          }
-        )
-
-        if (rpcError) {
-          console.error('Failed to fetch next available times:', rpcError)
-          return
+        const params = new URLSearchParams()
+        if (accessFilter !== 'all') {
+          params.set('access', accessFilter)
         }
+        const query = params.toString()
+        const url = query
+          ? `/api/venues/next-available?${query}`
+          : '/api/venues/next-available'
+        const response = await fetch(url, {
+          cache: 'no-store',
+          signal: controller.signal,
+        })
+        const body: ApiResponse<MapVenue[]> = await response.json()
 
-        // Build a map of venue_id -> next available info
+        if (!response.ok || !body.success) {
+          throw new Error('Failed to fetch next available times')
+        }
+        if (!active) return
+
         const availabilityMap: Record<string, NextAvailableSlot> = {}
-        for (const row of data || []) {
-          if (row.next_slot_id && row.next_slot_date && row.next_slot_start_time) {
-            availabilityMap[row.venue_id] = {
-              displayText: formatCompactNextAvailable(row.next_slot_date, row.next_slot_start_time),
-              slotId: row.next_slot_id,
-              date: row.next_slot_date,
-              startTime: row.next_slot_start_time,
-              endTime: row.next_slot_end_time || '',
-              actionType: row.next_slot_action_type
-                || (row.instant_booking ? 'instant_book' : 'request_private'),
-              pricing:
-                row.next_slot_price_amount_cents != null
-                && row.next_slot_price_currency
-                && row.next_slot_price_unit
-                && row.next_slot_payment_method
-                  ? {
-                      amount_cents: Number(row.next_slot_price_amount_cents),
-                      currency: row.next_slot_price_currency,
-                      unit: row.next_slot_price_unit,
-                      payment_method: row.next_slot_payment_method,
-                    }
-                  : null,
-            }
+        for (const venue of body.data || []) {
+          if (venue.nextAvailable) {
+            availabilityMap[venue.id] = venue.nextAvailable
           }
         }
-        
+
         setNextAvailableMap(availabilityMap)
       } catch (err) {
+        if (!active || (err instanceof Error && err.name === 'AbortError')) {
+          return
+        }
         console.error('Error fetching next available:', err)
       }
     }
 
-    fetchNextAvailable()
-  }, []) // Only fetch once on mount
+    void fetchNextAvailable()
+
+    return () => {
+      active = false
+      controller.abort()
+    }
+  }, [accessFilter])
 
   // Handle search input change
   const handleSearchChange = (value: string) => {
@@ -249,10 +248,6 @@ function VenuesContent() {
     updateURL({ page: newPage, access: accessFilter })
     window.scrollTo({ top: 0, behavior: 'smooth' })
   }
-
-  const displayedVenues = accessFilter === 'private_rental'
-    ? venues.filter((venue) => !isOpenGymDiscovery(nextAvailableMap[venue.id] || null))
-    : venues
 
   return (
     <div className="min-h-screen bg-background">
@@ -331,9 +326,9 @@ function VenuesContent() {
         )}
 
         {/* Venues List */}
-        {!loading && !error && displayedVenues.length > 0 && (
+        {!loading && !error && venues.length > 0 && (
           <div className="grid grid-cols-1 gap-l md:grid-cols-2 lg:grid-cols-3 mb-xl">
-            {displayedVenues.map((venue) => (
+            {venues.map((venue) => (
               <VenueCard 
                 key={venue.id} 
                 venue={venue} 
@@ -345,7 +340,7 @@ function VenuesContent() {
         )}
 
         {/* Empty State */}
-        {!loading && !error && displayedVenues.length === 0 && (
+        {!loading && !error && venues.length === 0 && (
           <div className="text-center py-4xl">
             <p className="text-secondary-50/60 text-lg mb-s">No venues found</p>
             {searchQuery && (

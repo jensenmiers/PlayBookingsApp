@@ -54,6 +54,7 @@ async function main() {
     p_user_lat: null,
     p_user_lng: null,
     p_radius_miles: null,
+    p_access_filter: 'all',
   })
 
   if (nextRowsError) {

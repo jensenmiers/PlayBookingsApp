@@ -99,6 +99,7 @@ export function SplitAvailabilityView() {
     dateFilter: selectedDate || undefined,
     userLat: userLat || undefined,
     userLng: userLng || undefined,
+    accessFilter,
   })
 
   // Filter venues by search query and access segment
@@ -133,9 +134,7 @@ export function SplitAvailabilityView() {
       return filteredVenues
     }
     if (accessFilter === 'private_rental') {
-      return filteredVenues.filter(
-        (venue) => venue.nextAvailable !== null && !isOpenGymDiscovery(venue.nextAvailable)
-      )
+      return filteredVenues.filter((venue) => venue.nextAvailable !== null)
     }
     return filteredVenues.filter((venue) => venue.nextAvailable !== null)
   }, [filteredVenues, accessFilter])
@@ -423,6 +422,7 @@ export function SplitAvailabilityView() {
               <EmptyState
                 hasVenues={filteredVenues.length > 0}
                 hasDateFilter={Boolean(selectedDate)}
+                accessFilter={accessFilter}
               />
             )}
 
@@ -576,9 +576,11 @@ function MapVenueCard({
 function EmptyState({ 
   hasVenues, 
   hasDateFilter,
+  accessFilter,
 }: { 
   hasVenues: boolean
   hasDateFilter: boolean
+  accessFilter: VenueAccessFilter
 }) {
   return (
     <div className="text-center py-2xl">
@@ -589,12 +591,20 @@ function EmptyState({
       {hasVenues ? (
         <>
           <p className="text-secondary-50 font-medium mb-s">
-            {hasDateFilter ? 'No availability found' : 'No upcoming availability found'}
+            {accessFilter === 'private_rental'
+              ? 'No private rental availability found'
+              : hasDateFilter
+                ? 'No availability found'
+                : 'No upcoming availability found'}
           </p>
           <p className="text-secondary-50/60 text-sm mb-l">
-            {hasDateFilter
-              ? 'No slots available for this date. Try a different day.'
-              : 'No future sessions are currently published.'}
+            {accessFilter === 'private_rental'
+              ? hasDateFilter
+                ? 'No private rental slots are available for this date. Try a different day.'
+                : 'No future private rental slots are currently published.'
+              : hasDateFilter
+                ? 'No slots available for this date. Try a different day.'
+                : 'No future sessions are currently published.'}
           </p>
         </>
       ) : (

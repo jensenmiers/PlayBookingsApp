@@ -101,6 +101,7 @@ describe('GET /api/venues/next-available', () => {
       p_user_lat: null,
       p_user_lng: null,
       p_radius_miles: null,
+      p_access_filter: 'all',
     })
   })
 
@@ -171,6 +172,10 @@ describe('GET /api/venues/next-available', () => {
     expect(body.data).toHaveLength(1)
     expect(body.data[0].id).toBe('venue-2')
     expect(body.data[0].offersOpenGym).toBe(true)
+    expect(rpc).toHaveBeenCalledWith(
+      'get_venues_with_next_available',
+      expect.objectContaining({ p_access_filter: 'open_gym' })
+    )
   })
 
   it('forwards optional query filters to the discovery function', async () => {
@@ -196,6 +201,7 @@ describe('GET /api/venues/next-available', () => {
       p_user_lat: 34.05,
       p_user_lng: -118.24,
       p_radius_miles: 10,
+      p_access_filter: 'all',
     })
   })
 

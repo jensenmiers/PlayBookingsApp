@@ -455,6 +455,7 @@ describe('useVenuesWithNextAvailable', () => {
         userLat: 34.05,
         userLng: -118.24,
         radiusMiles: 10,
+        accessFilter: 'private_rental',
       })
     )
 
@@ -463,7 +464,61 @@ describe('useVenuesWithNextAvailable', () => {
     })
 
     expect(mockFetch).toHaveBeenCalledWith(
-      '/api/venues/next-available?date=2026-02-20&lat=34.05&lng=-118.24&radiusMiles=10',
+      '/api/venues/next-available?date=2026-02-20&lat=34.05&lng=-118.24&radiusMiles=10&access=private_rental',
+      { cache: 'no-store' }
+    )
+  })
+
+  it('does not retain stale all-segment data when a new access scope fails', async () => {
+    const loadedVenue = {
+      id: 'venue-1',
+      name: 'All Segment Result',
+      city: 'Los Angeles',
+      state: 'CA',
+      address: '123 Court St',
+      hourlyRate: 125,
+      instantBooking: true,
+      bookingMode: 'instant_slots',
+      insuranceRequired: false,
+      offersOpenGym: true,
+      offersPrivateRental: true,
+      dropInPrice: 3,
+      latitude: 34.05,
+      longitude: -118.24,
+      distanceMiles: null,
+      venueType: 'Indoor Court',
+      photo: null,
+      nextAvailable: null,
+    }
+
+    mockFetch
+      .mockResolvedValueOnce(createMockResponse({ success: true, data: [loadedVenue] }))
+      .mockRejectedValueOnce(new Error('Private rental discovery failed'))
+
+    const { result, rerender } = renderHook(
+      ({ accessFilter }: { accessFilter: 'all' | 'private_rental' }) =>
+        useVenuesWithNextAvailable({ accessFilter }),
+      {
+        initialProps: {
+          accessFilter: 'all',
+        } as { accessFilter: 'all' | 'private_rental' },
+      }
+    )
+
+    await waitFor(() => {
+      expect(result.current.data?.[0].name).toBe('All Segment Result')
+    })
+
+    rerender({ accessFilter: 'private_rental' })
+
+    await waitFor(() => {
+      expect(result.current.loading).toBe(false)
+      expect(result.current.error).toBe('Private rental discovery failed')
+    })
+
+    expect(result.current.data).toBeNull()
+    expect(mockFetch).toHaveBeenLastCalledWith(
+      '/api/venues/next-available?access=private_rental',
       { cache: 'no-store' }
     )
   })

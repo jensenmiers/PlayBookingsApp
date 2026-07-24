@@ -7,6 +7,7 @@
 
 import { useState, useEffect, useCallback, useRef } from 'react'
 import type { MapVenue } from '@/lib/venueDiscovery'
+import type { VenueAccessFilter } from '@/lib/venueAccess'
 
 export type { MapVenue, NextAvailableSlot } from '@/lib/venueDiscovery'
 
@@ -38,6 +39,8 @@ interface UseVenuesOptions {
   userLng?: number
   /** Filter venues within this radius (miles) */
   radiusMiles?: number
+  /** Scope capabilities and next-slot selection to an access segment */
+  accessFilter?: VenueAccessFilter
 }
 
 interface UseVenuesResult {
@@ -60,6 +63,9 @@ function buildNextAvailableUrl(options: UseVenuesOptions): string {
   }
   if (options.radiusMiles != null) {
     params.set('radiusMiles', String(options.radiusMiles))
+  }
+  if (options.accessFilter && options.accessFilter !== 'all') {
+    params.set('access', options.accessFilter)
   }
   const query = params.toString()
   return query ? `/api/venues/next-available?${query}` : '/api/venues/next-available'
@@ -84,7 +90,9 @@ export function useVenuesWithNextAvailable(options: UseVenuesOptions = {}): UseV
   const [error, setError] = useState<string | null>(null)
   const latestRequestIdRef = useRef(0)
   const dataRef = useRef<MapVenue[] | null>(null)
+  const dataUrlRef = useRef<string | null>(null)
   const loadingRef = useRef(loading)
+  const requestUrl = buildNextAvailableUrl(options)
 
   useEffect(() => {
     loadingRef.current = loading
@@ -93,14 +101,19 @@ export function useVenuesWithNextAvailable(options: UseVenuesOptions = {}): UseV
   const fetchVenues = useCallback(async () => {
     const requestId = latestRequestIdRef.current + 1
     latestRequestIdRef.current = requestId
+    const isSameScope = dataUrlRef.current === requestUrl
 
-    setLoading(dataRef.current === null)
+    if (!isSameScope) {
+      dataRef.current = null
+      setData(null)
+    }
+    setLoading(!isSameScope || dataRef.current === null)
     setError(null)
 
     try {
       const { response, body } = await withVenueDiscoveryTimeout(
         (async () => {
-          const response = await fetch(buildNextAvailableUrl(options), { cache: 'no-store' })
+          const response = await fetch(requestUrl, { cache: 'no-store' })
           const body = await response.json().catch(() => null)
           return { response, body }
         })()
@@ -120,6 +133,7 @@ export function useVenuesWithNextAvailable(options: UseVenuesOptions = {}): UseV
 
       const venues = (body.data || []) as MapVenue[]
       dataRef.current = venues
+      dataUrlRef.current = requestUrl
       setData(venues)
       setError(null)
     } catch (err) {
@@ -129,7 +143,7 @@ export function useVenuesWithNextAvailable(options: UseVenuesOptions = {}): UseV
 
       console.error('Failed to fetch venues with availability:', err)
       const message = err instanceof Error ? err.message : 'Failed to fetch venues'
-      const previousData = dataRef.current
+      const previousData = dataUrlRef.current === requestUrl ? dataRef.current : null
 
       if (previousData !== null) {
         setData(previousData)
@@ -143,7 +157,7 @@ export function useVenuesWithNextAvailable(options: UseVenuesOptions = {}): UseV
         setLoading(false)
       }
     }
-  }, [options.dateFilter, options.userLat, options.userLng, options.radiusMiles])
+  }, [requestUrl])
 
   useEffect(() => {
     fetchVenues()

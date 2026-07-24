@@ -94,4 +94,25 @@ describe('exact minimum advance policy migration', () => {
     expect(validatorSource).not.toContain('addDaysToDateString(today, 365)')
     expect(validatorSource).not.toContain('slot.start_time >= nowTime')
   })
+
+  it('scopes next-available candidates and venue capabilities by access segment', () => {
+    const migrationPath = join(
+      process.cwd(),
+      'supabase/migrations/20260723000400_scope_next_available_by_access.sql'
+    )
+
+    expect(existsSync(migrationPath)).toBe(true)
+
+    const migrationSource = readFileSync(migrationPath, 'utf8')
+    expect(migrationSource).toContain('p_access_filter TEXT')
+    expect(migrationSource).toContain(
+      "'all',\n      p_date_filter,\n      p_user_lat,\n      p_user_lng,\n      p_radius_miles\n    )"
+    )
+    expect(migrationSource).toContain("access_filter IN ('all', 'private_rental')")
+    expect(migrationSource).toContain("access_filter IN ('all', 'open_gym')")
+    expect(migrationSource).toContain("access_filter = 'open_gym' AND v.offers_open_gym")
+    expect(migrationSource).toContain(
+      "access_filter = 'private_rental' AND v.offers_private_rental"
+    )
+  })
 })

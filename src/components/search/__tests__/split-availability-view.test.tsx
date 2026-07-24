@@ -514,58 +514,53 @@ describe('SplitAvailabilityView - Location button', () => {
   })
 
   it('includes hybrid open-gym venues in both Open Gym and Private Rentals segments', () => {
-    ;(useVenuesWithNextAvailable as jest.Mock).mockReturnValue({
-      data: [
-        mockVenue,
-        {
-          ...mockHybridOpenGymVenue,
-          nextAvailable: {
-            slotId: 'slot-hybrid',
-            date: '2026-02-10',
-            startTime: '16:00:00',
-            endTime: '17:00:00',
-            displayText: 'Tue Feb 10, 4 PM',
+    ;(useVenuesWithNextAvailable as jest.Mock).mockImplementation(
+      ({ accessFilter }: { accessFilter?: string }) => ({
+        data: [
+          mockVenue,
+          {
+            ...mockHybridOpenGymVenue,
+            nextAvailable: {
+              slotId: accessFilter === 'open_gym' ? 'slot-hybrid-open-gym' : 'slot-hybrid-rental',
+              date: '2026-02-10',
+              startTime: accessFilter === 'open_gym' ? '14:00:00' : '16:00:00',
+              endTime: accessFilter === 'open_gym' ? '15:00:00' : '17:00:00',
+              actionType: accessFilter === 'open_gym' ? 'info_only_open_gym' : 'instant_book',
+              pricing: null,
+              displayText:
+                accessFilter === 'open_gym'
+                  ? 'Tue Feb 10, 2 PM'
+                  : 'Tue Feb 10, 4 PM',
+            },
           },
-        },
-      ],
-      loading: false,
-      error: null,
-      refetch: jest.fn(),
-    })
+        ],
+        loading: false,
+        error: null,
+        refetch: jest.fn(),
+      })
+    )
 
     render(<SplitAvailabilityView />)
 
     fireEvent.click(screen.getByRole('button', { name: 'Open Gym' }))
     expect(screen.getByText('Memorial Park')).toBeInTheDocument()
     expect(screen.queryByText('Test Venue')).not.toBeInTheDocument()
+    expect(useVenuesWithNextAvailable).toHaveBeenLastCalledWith(
+      expect.objectContaining({ accessFilter: 'open_gym' })
+    )
 
     fireEvent.click(screen.getByRole('button', { name: 'Private Rentals' }))
     expect(screen.getByText('Memorial Park')).toBeInTheDocument()
     expect(screen.getByText('Test Venue')).toBeInTheDocument()
+    expect(screen.getByText('Tue Feb 10, 4 PM')).toBeInTheDocument()
+    expect(useVenuesWithNextAvailable).toHaveBeenLastCalledWith(
+      expect.objectContaining({ accessFilter: 'private_rental' })
+    )
   })
 
-  it('excludes a hybrid venue from Private Rentals when its next slot is open gym', () => {
+  it('uses private-rental-specific copy when matching venues have no rental slot', () => {
     ;(useVenuesWithNextAvailable as jest.Mock).mockReturnValue({
-      data: [
-        mockVenue,
-        {
-          ...mockHybridOpenGymVenue,
-          nextAvailable: {
-            slotId: 'slot-hybrid-open-gym',
-            date: '2026-02-10',
-            startTime: '16:00:00',
-            endTime: '17:00:00',
-            actionType: 'info_only_open_gym',
-            pricing: {
-              amount_cents: 300,
-              currency: 'USD',
-              unit: 'person',
-              payment_method: 'on_site',
-            },
-            displayText: 'Tue Feb 10, 4 PM',
-          },
-        },
-      ],
+      data: [mockHybridOpenGymVenue],
       loading: false,
       error: null,
       refetch: jest.fn(),
@@ -574,9 +569,10 @@ describe('SplitAvailabilityView - Location button', () => {
     render(<SplitAvailabilityView />)
 
     fireEvent.click(screen.getByRole('button', { name: 'Private Rentals' }))
-    expect(screen.getByText('Test Venue')).toBeInTheDocument()
-    expect(screen.queryByText('Memorial Park')).not.toBeInTheDocument()
-    expect(screen.getByTestId('availability-map')).toHaveAttribute('data-venue-ids', 'venue-1')
+    expect(screen.getByText('No private rental availability found')).toBeInTheDocument()
+    expect(
+      screen.getByText('No future private rental slots are currently published.')
+    ).toBeInTheDocument()
   })
 
   it('shows open-gym venues without a regular next slot in the Open Gym segment', () => {
