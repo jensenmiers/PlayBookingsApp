@@ -13,6 +13,7 @@ import { ErrorMessage } from '@/components/ui/error-message'
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome'
 import { faSearch } from '@fortawesome/free-solid-svg-icons'
 import { createClient } from '@/lib/supabase/client'
+import { isOpenGymDiscovery } from '@/lib/discoveryPresentation'
 import { formatCompactNextAvailable } from '@/lib/nextAvailableDisplay'
 import { parseVenueAccessFilter, type VenueAccessFilter } from '@/lib/venueAccess'
 import type { Venue } from '@/types'
@@ -249,6 +250,10 @@ function VenuesContent() {
     window.scrollTo({ top: 0, behavior: 'smooth' })
   }
 
+  const displayedVenues = accessFilter === 'private_rental'
+    ? venues.filter((venue) => !isOpenGymDiscovery(nextAvailableMap[venue.id] || null))
+    : venues
+
   return (
     <div className="min-h-screen bg-background">
       <Navigation />
@@ -326,9 +331,9 @@ function VenuesContent() {
         )}
 
         {/* Venues List */}
-        {!loading && !error && venues.length > 0 && (
+        {!loading && !error && displayedVenues.length > 0 && (
           <div className="grid grid-cols-1 gap-l md:grid-cols-2 lg:grid-cols-3 mb-xl">
-            {venues.map((venue) => (
+            {displayedVenues.map((venue) => (
               <VenueCard 
                 key={venue.id} 
                 venue={venue} 
@@ -340,7 +345,7 @@ function VenuesContent() {
         )}
 
         {/* Empty State */}
-        {!loading && !error && venues.length === 0 && (
+        {!loading && !error && displayedVenues.length === 0 && (
           <div className="text-center py-4xl">
             <p className="text-secondary-50/60 text-lg mb-s">No venues found</p>
             {searchQuery && (

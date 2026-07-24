@@ -132,6 +132,42 @@ describe('VenuesPage', () => {
     )
   })
 
+  it('excludes hybrid venues whose next slot is open gym from Private Rentals', async () => {
+    mockSearchParams = 'access=private_rental'
+    mockFetch.mockResolvedValue(createVenueResponse([
+      createVenue('regular', 'Regular Court'),
+      createVenue('hybrid', 'Hybrid Court'),
+    ]))
+    mockRpc.mockResolvedValue({
+      data: [
+        {
+          venue_id: 'regular',
+          next_slot_id: 'slot-regular',
+          next_slot_date: '2026-07-25',
+          next_slot_start_time: '10:00:00',
+          next_slot_end_time: '11:00:00',
+          next_slot_action_type: 'instant_book',
+        },
+        {
+          venue_id: 'hybrid',
+          next_slot_id: 'slot-open-gym',
+          next_slot_date: '2026-07-25',
+          next_slot_start_time: '12:00:00',
+          next_slot_end_time: '13:00:00',
+          next_slot_action_type: 'info_only_open_gym',
+        },
+      ],
+      error: null,
+    })
+
+    render(<VenuesPage />)
+
+    expect(await screen.findByText(/Regular Court/)).toBeInTheDocument()
+    await waitFor(() => {
+      expect(screen.queryByText(/Hybrid Court/)).not.toBeInTheDocument()
+    })
+  })
+
   it('ignores stale venue list responses after search changes', async () => {
     let resolveFirstRequest: (value: Response) => void = () => {}
 
