@@ -4,6 +4,7 @@
  */
 
 import { render, screen, fireEvent } from '@testing-library/react'
+import type { MapVenue } from '@/hooks/useVenuesWithNextAvailable'
 import { getDateStringInTimeZone } from '@/utils/dateHelpers'
 import { SplitAvailabilityView } from '../split-availability-view'
 
@@ -21,7 +22,28 @@ jest.mock('@/hooks/useVenuesWithNextAvailable', () => ({
 }))
 
 jest.mock('@/components/maps/availability-map', () => ({
-  AvailabilityMap: () => <div data-testid="availability-map">Map</div>,
+  AvailabilityMap: ({
+    venues,
+    onVenueSelect,
+  }: {
+    venues: MapVenue[]
+    onVenueSelect: (venue: MapVenue) => void
+  }) => (
+    <div
+      data-testid="availability-map"
+      data-venue-ids={venues.map((venue) => venue.id).join(',')}
+    >
+      Map
+      {venues.map((venue) => (
+        <button
+          key={venue.id}
+          type="button"
+          aria-label={`Select ${venue.name} on map`}
+          onClick={() => onVenueSelect(venue)}
+        />
+      ))}
+    </div>
+  ),
 }))
 
 jest.mock('@/components/ui/calendar', () => ({
@@ -304,6 +326,53 @@ describe('SplitAvailabilityView - Location button', () => {
     expect(screen.getByText('Venue 12')).toBeInTheDocument()
     expect(screen.queryByText('Venue 13')).not.toBeInTheDocument()
     fireEvent.click(screen.getByRole('button', { name: /show more/i }))
+    expect(screen.getByText('Venue 13')).toBeInTheDocument()
+  })
+
+  it('keeps map venues aligned with the availability-qualified list', () => {
+    ;(useVenuesWithNextAvailable as jest.Mock).mockReturnValue({
+      data: [
+        mockVenue,
+        {
+          ...mockVenue,
+          id: 'venue-without-availability',
+          name: 'No Availability Court',
+          nextAvailable: null,
+        },
+      ],
+      loading: false,
+      error: null,
+      refetch: jest.fn(),
+    })
+
+    render(<SplitAvailabilityView />)
+
+    expect(screen.getByTestId('availability-map')).toHaveAttribute('data-venue-ids', 'venue-1')
+    expect(screen.getByText('1 venue with availability')).toBeInTheDocument()
+    expect(
+      screen.queryByRole('button', { name: 'Select No Availability Court on map' })
+    ).not.toBeInTheDocument()
+
+    fireEvent.click(screen.getByRole('button', { name: 'Private Rentals' }))
+    expect(screen.getByTestId('availability-map')).toHaveAttribute('data-venue-ids', 'venue-1')
+  })
+
+  it('reveals a paginated list card when its map marker is selected', () => {
+    ;(useVenuesWithNextAvailable as jest.Mock).mockReturnValue({
+      data: Array.from({ length: 13 }, (_, index) => ({
+        ...mockVenue,
+        id: `venue-${index + 1}`,
+        name: `Venue ${index + 1}`,
+      })),
+      loading: false,
+      error: null,
+      refetch: jest.fn(),
+    })
+
+    render(<SplitAvailabilityView />)
+
+    expect(screen.queryByText('Venue 13')).not.toBeInTheDocument()
+    fireEvent.click(screen.getByRole('button', { name: 'Select Venue 13 on map' }))
     expect(screen.getByText('Venue 13')).toBeInTheDocument()
   })
 

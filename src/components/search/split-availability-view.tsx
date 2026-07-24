@@ -151,6 +151,11 @@ export function SplitAvailabilityView() {
   }
 
   const handleVenueSelect = (venue: MapVenue) => {
+    const venueIndex = venuesWithAvailability.findIndex((candidate) => candidate.id === venue.id)
+    if (venueIndex >= 0) {
+      const requiredResultCount = Math.ceil((venueIndex + 1) / RESULTS_PAGE_SIZE) * RESULTS_PAGE_SIZE
+      setVisibleResultCount((count) => Math.max(count, requiredResultCount))
+    }
     setSelectedVenueId(venue.id)
   }
 
@@ -333,7 +338,7 @@ export function SplitAvailabilityView() {
             </div>
           ) : (
             <AvailabilityMap
-              venues={filteredVenues}
+              venues={venuesWithAvailability}
               selectedVenueId={selectedVenueId}
               onVenueSelect={handleVenueSelect}
               className="w-full h-full"
