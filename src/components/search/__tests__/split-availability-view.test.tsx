@@ -59,6 +59,9 @@ const mockVenue = {
   instantBooking: true,
   bookingMode: 'instant_slots',
   insuranceRequired: false,
+  offersOpenGym: false,
+  offersPrivateRental: true,
+  dropInPrice: null as number | null,
   latitude: 34.05,
   longitude: -118.24,
   distanceMiles: null as number | null,
@@ -89,6 +92,18 @@ const mockRequestToBookVenue = {
   name: 'Request A Time Court',
   instantBooking: false,
   bookingMode: 'request_to_book',
+}
+
+const mockHybridOpenGymVenue = {
+  ...mockVenue,
+  id: 'venue-4',
+  name: 'Memorial Park',
+  instantBooking: false,
+  bookingMode: 'request_to_book',
+  offersOpenGym: true,
+  offersPrivateRental: true,
+  dropInPrice: 3,
+  nextAvailable: null as null,
 }
 
 describe('SplitAvailabilityView - Location button', () => {
@@ -426,5 +441,76 @@ describe('SplitAvailabilityView - Location button', () => {
 
     expect(screen.getByText('No upcoming availability found')).toBeInTheDocument()
     expect(screen.queryByText(/try a different day/i)).not.toBeInTheDocument()
+  })
+
+  it('includes hybrid open-gym venues in both Open Gym and Private Rentals segments', () => {
+    ;(useVenuesWithNextAvailable as jest.Mock).mockReturnValue({
+      data: [
+        mockVenue,
+        {
+          ...mockHybridOpenGymVenue,
+          nextAvailable: {
+            slotId: 'slot-hybrid',
+            date: '2026-02-10',
+            startTime: '16:00:00',
+            endTime: '17:00:00',
+            displayText: 'Tue Feb 10, 4 PM',
+          },
+        },
+      ],
+      loading: false,
+      error: null,
+      refetch: jest.fn(),
+    })
+
+    render(<SplitAvailabilityView />)
+
+    fireEvent.click(screen.getByRole('button', { name: 'Open Gym' }))
+    expect(screen.getByText('Memorial Park')).toBeInTheDocument()
+    expect(screen.queryByText('Test Venue')).not.toBeInTheDocument()
+
+    fireEvent.click(screen.getByRole('button', { name: 'Private Rentals' }))
+    expect(screen.getByText('Memorial Park')).toBeInTheDocument()
+    expect(screen.getByText('Test Venue')).toBeInTheDocument()
+  })
+
+  it('shows open-gym venues without a regular next slot in the Open Gym segment', () => {
+    ;(useVenuesWithNextAvailable as jest.Mock).mockReturnValue({
+      data: [mockHybridOpenGymVenue],
+      loading: false,
+      error: null,
+      refetch: jest.fn(),
+    })
+
+    render(<SplitAvailabilityView />)
+
+    expect(screen.queryByText('Memorial Park')).not.toBeInTheDocument()
+
+    fireEvent.click(screen.getByRole('button', { name: 'Open Gym' }))
+    expect(screen.getByText('Memorial Park')).toBeInTheDocument()
+    expect(screen.getByText('$3 drop-in · $50/hr')).toBeInTheDocument()
+  })
+
+  it('does not fall back to private rental hourly rate for open-gym-only venues without drop-in price', () => {
+    ;(useVenuesWithNextAvailable as jest.Mock).mockReturnValue({
+      data: [
+        {
+          ...mockHybridOpenGymVenue,
+          offersPrivateRental: false,
+          dropInPrice: null,
+          hourlyRate: 100,
+        },
+      ],
+      loading: false,
+      error: null,
+      refetch: jest.fn(),
+    })
+
+    render(<SplitAvailabilityView />)
+
+    fireEvent.click(screen.getByRole('button', { name: 'Open Gym' }))
+    expect(screen.getByText('Memorial Park')).toBeInTheDocument()
+    expect(screen.queryByText('$100/hr')).not.toBeInTheDocument()
+    expect(screen.queryByText(/\/hr/)).not.toBeInTheDocument()
   })
 })

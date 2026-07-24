@@ -17,7 +17,7 @@ It is intentionally not a column-by-column reference.
 
 <!-- AUTO-SNAPSHOT:DB:START -->
 - Generated at: 2026-07-23 (America/Los_Angeles)
-- Latest migration in repo: `20260723000200_fix_next_available_open_gym_discovery.sql` (55 total)
+- Latest migration in repo: `20260723000300_add_venue_access_capability_flags.sql` (56 total)
 - Distinct tables referenced in app code via `.from()`: 22
 - App tables referenced in app code: `audit_logs`, `auth_oauth_states`, `availability`, `bookings`, `drop_in_template_sync_queue`, `external_availability_blocks`, `payments`, `recurring_bookings`, `regular_template_sync_queue`, `slot_instance_pricing`, `slot_instances`, `slot_interactions`, `slot_modal_content`, `slot_templates`, `users`, `venue_admin_configs`, `venue_availability_publish_states`, `venue_calendar_integrations`, `venue_calendar_oauth_states`, `venue_calendar_tokens`, `venue_media`, `venues`
 - Live key-table check: 19/19 tables available
@@ -101,6 +101,11 @@ It is intentionally not a column-by-column reference.
    - `venues.booking_mode` distinguishes `instant_slots`, `approval_slots`, and `request_to_book`.
    - Request-to-book venues can accept precise pending booking requests without published slot inventory.
    - `venues.instant_booking` remains present for legacy compatibility while runtime behavior moves toward `booking_mode`.
+11. Open Gym vs Private Rental discovery capabilities:
+   - `venues.offers_open_gym`, `venues.offers_private_rental`, and denormalized `venues.drop_in_price` power All / Open Gym / Private Rentals filters on `/venues` and `/search`.
+   - Hybrid venues match both Open Gym and Private Rentals segments.
+   - `offers_open_gym` / `drop_in_price` sync from `venue_admin_configs.drop_in_enabled` / `drop_in_price` on admin save.
+   - Slot `action_type = info_only_open_gym` remains per-slot UX (info modal, no in-app booking), not a venue category.
 
 ## Operational Notes
 

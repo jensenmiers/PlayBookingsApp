@@ -4,6 +4,7 @@ import type { Venue } from '@/types'
 import { deriveVenuePhotos } from '@/lib/venueMedia'
 import { formatCompactNextAvailable } from '@/lib/nextAvailableDisplay'
 import { formatDiscoveryPrice, isOpenGymDiscovery } from '@/lib/discoveryPresentation'
+import { formatVenueCardPriceLine } from '@/lib/venueAccess'
 
 export interface FeaturedCourt {
   id: string
@@ -43,13 +44,19 @@ function mapVenueToFeaturedCourt(
   nextSlot: NextAvailableSlot | undefined,
   fallbackAvailabilityLabel: string
 ): FeaturedCourt & { sortTime: number } {
+  const isOpenGym = isOpenGymDiscovery(nextSlot || null)
+  const accessPrice = formatVenueCardPriceLine(venue)
+  const priceLabel = isOpenGym
+    ? formatDiscoveryPrice(nextSlot || null, venue.hourly_rate)
+    : accessPrice
+
   return {
     id: venue.id,
     name: venue.name,
     type: venue.venue_type || 'Sports Facility',
     hourlyRate: venue.hourly_rate,
-    priceLabel: formatDiscoveryPrice(nextSlot || null, venue.hourly_rate),
-    isOpenGym: isOpenGymDiscovery(nextSlot || null),
+    priceLabel,
+    isOpenGym,
     nextAvailable: nextSlot
       ? formatCompactNextAvailable(nextSlot.date, nextSlot.startTime)
       : fallbackAvailabilityLabel,

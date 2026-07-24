@@ -105,10 +105,31 @@ describe('VenuesPage', () => {
 
     expect(screen.getByRole('heading', { name: /all courts/i })).toBeInTheDocument()
     expect(screen.queryByText(/all venues/i)).not.toBeInTheDocument()
+    expect(screen.getByRole('button', { name: 'Open Gym' })).toBeInTheDocument()
+    expect(screen.getByRole('button', { name: 'Private Rentals' })).toBeInTheDocument()
 
     await waitFor(() => {
       expect(screen.queryAllByTestId('venue-card-skeleton')).toHaveLength(0)
     })
+  })
+
+  it('passes access filter to the venues API and URL', async () => {
+    mockFetch.mockResolvedValue(createVenueResponse([]))
+
+    render(<VenuesPage />)
+
+    fireEvent.click(screen.getByRole('button', { name: 'Open Gym' }))
+
+    await waitFor(() => {
+      expect(mockFetch).toHaveBeenCalledWith(
+        expect.stringContaining('access=open_gym'),
+        expect.objectContaining({ cache: 'no-store' })
+      )
+    })
+    expect(mockPush).toHaveBeenCalledWith(
+      expect.stringContaining('access=open_gym'),
+      { scroll: false }
+    )
   })
 
   it('ignores stale venue list responses after search changes', async () => {

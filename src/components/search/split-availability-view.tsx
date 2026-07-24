@@ -20,9 +20,16 @@ import {
 import { useVenuesWithNextAvailable, useUserLocation, type MapVenue } from '@/hooks/useVenuesWithNextAvailable'
 import { AvailabilityMap } from '@/components/maps/availability-map'
 import { VenueCardSkeleton } from '@/components/search/venue-card-skeleton'
+import { VenueAccessSegment } from '@/components/venues/venue-access-segment'
 import { ErrorMessage } from '@/components/ui/error-message'
 import Link from 'next/link'
 import { getBookingModeDisplay } from '@/lib/booking-mode'
+import {
+  formatVenueCardPriceLine,
+  matchesAccessFilter,
+  resolveVenueAccess,
+  type VenueAccessFilter,
+} from '@/lib/venueAccess'
 import { slugify } from '@/lib/utils'
 import { addDaysToDateString, getDateStringInTimeZone } from '@/utils/dateHelpers'
 import { formatDiscoveryPrice, isOpenGymDiscovery } from '@/lib/discoveryPresentation'
@@ -53,6 +60,7 @@ export function SplitAvailabilityView() {
   const [visibleResultCount, setVisibleResultCount] = useState(RESULTS_PAGE_SIZE)
   const dateButtonRef = useRef<HTMLButtonElement>(null)
   const [datePickerPosition, setDatePickerPosition] = useState<{ left: number; top: number } | null>(null)
+  const [accessFilter, setAccessFilter] = useState<VenueAccessFilter>('all')
 
   const updateDatePickerPosition = useCallback(() => {
     const button = dateButtonRef.current
@@ -93,30 +101,46 @@ export function SplitAvailabilityView() {
     userLng: userLng || undefined,
   })
 
-  // Filter venues by search query
+  // Filter venues by search query and access segment
   const filteredVenues = useMemo(() => {
     if (!venues) return []
-    if (!searchQuery.trim()) return venues
 
-    const query = searchQuery.toLowerCase()
-    return venues.filter(v => 
-      v.name.toLowerCase().includes(query) ||
-      v.city.toLowerCase().includes(query) ||
-      v.address.toLowerCase().includes(query)
-    )
-  }, [venues, searchQuery])
+    const query = searchQuery.trim().toLowerCase()
+    return venues.filter((venue) => {
+      const matchesSearch =
+        !query
+        || venue.name.toLowerCase().includes(query)
+        || venue.city.toLowerCase().includes(query)
+        || venue.address.toLowerCase().includes(query)
 
-  // Venues with availability for the list
+      if (!matchesSearch) {
+        return false
+      }
+
+      return matchesAccessFilter(
+        {
+          offers_open_gym: venue.offersOpenGym,
+          offers_private_rental: venue.offersPrivateRental,
+        },
+        accessFilter
+      )
+    })
+  }, [venues, searchQuery, accessFilter])
+
+  // List rows: private rentals need a next regular slot; open gym can show without one.
   const venuesWithAvailability = useMemo(() => {
-    return filteredVenues.filter(v => v.nextAvailable !== null)
-  }, [filteredVenues])
+    if (accessFilter === 'open_gym') {
+      return filteredVenues
+    }
+    return filteredVenues.filter((venue) => venue.nextAvailable !== null)
+  }, [filteredVenues, accessFilter])
 
   const visibleVenues = venuesWithAvailability.slice(0, visibleResultCount)
   const selectedDateObject = selectedDate ? parseLocalDate(selectedDate) : undefined
 
   useEffect(() => {
     setVisibleResultCount(RESULTS_PAGE_SIZE)
-  }, [selectedDate, searchQuery])
+  }, [selectedDate, searchQuery, accessFilter])
 
   const handleDateChange = (direction: 'prev' | 'next') => {
     if (!selectedDate) return
@@ -151,6 +175,10 @@ export function SplitAvailabilityView() {
             onChange={(e) => setSearchQuery(e.target.value)}
             className="w-full pl-4xl pr-l py-m bg-background rounded-xl border-secondary-50/10"
           />
+        </div>
+
+        <div className="mb-m">
+          <VenueAccessSegment value={accessFilter} onChange={setAccessFilter} />
         </div>
 
         {/* Filter Row */}
@@ -355,11 +383,12 @@ export function SplitAvailabilityView() {
 
             {/* Availability Cards */}
             {!loading && !error && venuesWithAvailability.length > 0 && (
-              <div className="space-y-3">
+              <div className="space-y-m">
                 {visibleVenues.map((venue) => (
                   <MapVenueCard 
                     key={venue.id} 
                     venue={venue}
+                    accessFilter={accessFilter}
                     isSelected={selectedVenueId === venue.id}
                     onClick={() => setSelectedVenueId(venue.id)}
                   />
@@ -405,11 +434,13 @@ export function SplitAvailabilityView() {
  * Simplified venue card for the availability list
  */
 function MapVenueCard({ 
-  venue, 
+  venue,
+  accessFilter,
   isSelected,
   onClick 
 }: { 
   venue: MapVenue
+  accessFilter: VenueAccessFilter
   isSelected: boolean
   onClick: () => void 
 }) {
@@ -418,7 +449,24 @@ function MapVenueCard({
     'compact'
   )
   const isOpenGym = isOpenGymDiscovery(venue.nextAvailable)
-  const priceLabel = formatDiscoveryPrice(venue.nextAvailable, venue.hourlyRate)
+  const { offersPrivateRental } = resolveVenueAccess({
+    offers_open_gym: venue.offersOpenGym,
+    offers_private_rental: venue.offersPrivateRental,
+  })
+  const priceLine = formatVenueCardPriceLine({
+    offers_open_gym: venue.offersOpenGym,
+    offers_private_rental: venue.offersPrivateRental,
+    drop_in_price: venue.dropInPrice,
+    hourly_rate: venue.hourlyRate,
+  })
+  const discoveryPrice = formatDiscoveryPrice(venue.nextAvailable, venue.hourlyRate)
+  const displayedPrice = accessFilter === 'open_gym'
+    ? priceLine
+    : isOpenGym
+      ? discoveryPrice
+      : priceLine || discoveryPrice
+  const showNextAvailable = Boolean(venue.nextAvailable) && accessFilter !== 'open_gym'
+  const showBookingModeChip = offersPrivateRental && accessFilter !== 'open_gym'
 
   return (
     <div 
@@ -446,33 +494,51 @@ function MapVenueCard({
 
         {/* Right: Price */}
         <div className="text-right flex-shrink-0">
-          <span className="font-bold text-secondary-50">{priceLabel}</span>
+          {displayedPrice ? (
+            <span className="font-bold text-secondary-50 text-sm">
+              {displayedPrice}
+            </span>
+          ) : null}
         </div>
       </div>
 
       {/* Next Available — two-row meta strip for consistent mobile chip sizing */}
-      {venue.nextAvailable && (
+      {(showNextAvailable || showBookingModeChip || venue.offersOpenGym) && (
         <div className="mt-m space-y-s">
-          <div data-testid="venue-meta-datetime-row">
-            <span className="inline-flex max-w-full bg-primary-400/15 text-primary-400 text-sm font-medium px-m py-xs rounded-lg whitespace-nowrap">
-              {venue.nextAvailable.displayText}
-            </span>
-          </div>
+          {showNextAvailable && venue.nextAvailable && (
+            <div data-testid="venue-meta-datetime-row">
+              <span className="inline-flex max-w-full bg-primary-400/15 text-primary-400 text-sm font-medium px-m py-xs rounded-lg whitespace-nowrap">
+                {venue.nextAvailable.displayText}
+              </span>
+            </div>
+          )}
           <div
             data-testid="venue-meta-chips-row"
             className="flex items-center justify-between gap-s"
           >
             <div className="flex min-w-0 flex-wrap items-center gap-s">
-              <span
-                className={`whitespace-nowrap text-xs px-s py-xxs rounded-full ${
-                  isOpenGym || bookingMode.mode === 'instant'
-                    ? 'bg-accent-400/15 text-accent-400'
-                    : 'bg-secondary-50/10 text-secondary-50/70'
-                }`}
-              >
-                {isOpenGym ? 'Open Gym' : bookingMode.label}
-              </span>
-              {!isOpenGym && venue.insuranceRequired && (
+              {venue.offersOpenGym && (
+                <span className="whitespace-nowrap bg-accent-400/15 text-accent-400 text-xs px-s py-xxs rounded-full">
+                  Open Gym
+                </span>
+              )}
+              {venue.offersPrivateRental && (
+                <span className="whitespace-nowrap bg-primary-400/10 text-primary-400 text-xs px-s py-xxs rounded-full">
+                  Private Rental
+                </span>
+              )}
+              {showBookingModeChip && (
+                <span
+                  className={`whitespace-nowrap text-xs px-s py-xxs rounded-full ${
+                    bookingMode.mode === 'instant'
+                      ? 'bg-accent-400/15 text-accent-400'
+                      : 'bg-secondary-50/10 text-secondary-50/70'
+                  }`}
+                >
+                  {bookingMode.label}
+                </span>
+              )}
+              {venue.insuranceRequired && (
                 <span className="whitespace-nowrap bg-secondary-50/10 text-secondary-50/70 text-xs px-s py-xxs rounded-full">
                   Insurance
                 </span>

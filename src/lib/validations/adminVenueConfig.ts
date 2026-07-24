@@ -31,6 +31,7 @@ export const updateVenueAdminConfigSchema = z
     booking_mode: z.enum(['instant_slots', 'approval_slots', 'request_to_book']).optional(),
     instant_booking: z.boolean().optional(),
     insurance_required: z.boolean().optional(),
+    offers_private_rental: z.boolean().optional(),
     amenities: z.array(z.string().min(1)).optional(),
     is_active: z.boolean().optional(),
 

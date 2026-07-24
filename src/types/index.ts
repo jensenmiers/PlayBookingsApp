@@ -58,6 +58,9 @@ export interface Venue {
   instant_booking: boolean
   booking_mode?: BookingMode | null
   insurance_required: boolean
+  offers_open_gym?: boolean
+  offers_private_rental?: boolean
+  drop_in_price?: number | null
   max_advance_booking_days: number
   media?: VenueMedia[]
   photos: string[]
@@ -372,6 +375,8 @@ export interface UpdatePaymentForm {
 }
 
 // Search and filter interfaces
+export type VenueAccessFilter = 'all' | 'open_gym' | 'private_rental'
+
 export interface VenueSearchFilters {
   city?: string
   state?: string
@@ -381,6 +386,7 @@ export interface VenueSearchFilters {
   insurance_required?: boolean
   instant_booking?: boolean
   booking_mode?: BookingMode
+  access?: VenueAccessFilter
   date?: string
   start_time?: string
   end_time?: string

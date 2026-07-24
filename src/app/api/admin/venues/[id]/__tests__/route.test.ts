@@ -440,6 +440,75 @@ describe('PATCH /api/admin/venues/[id]', () => {
     )
   })
 
+  it('syncs offers_open_gym and drop_in_price onto venues when drop-in config changes', async () => {
+    const { client, calls } = createAdminClientMock()
+    mockCreateAdminClient.mockReturnValue(client)
+    mockValidateRequest.mockResolvedValue({
+      drop_in_enabled: true,
+      drop_in_price: 3,
+    })
+
+    const response = await PATCH(
+      new Request('http://localhost/api/admin/venues/venue-1', {
+        method: 'PATCH',
+        headers: { 'content-type': 'application/json' },
+        body: JSON.stringify({ drop_in_enabled: true, drop_in_price: 3 }),
+      }),
+      createContext('venue-1')
+    )
+
+    expect(response.status).toBe(200)
+    expect(calls.venueUpdate).toHaveBeenCalledWith({
+      offers_open_gym: true,
+      drop_in_price: 3,
+    })
+  })
+
+  it('clears denormalized venues.drop_in_price when drop-in is disabled without a price patch', async () => {
+    const { client, calls } = createAdminClientMock()
+    mockCreateAdminClient.mockReturnValue(client)
+    mockValidateRequest.mockResolvedValue({
+      drop_in_enabled: false,
+    })
+
+    const response = await PATCH(
+      new Request('http://localhost/api/admin/venues/venue-1', {
+        method: 'PATCH',
+        headers: { 'content-type': 'application/json' },
+        body: JSON.stringify({ drop_in_enabled: false }),
+      }),
+      createContext('venue-1')
+    )
+
+    expect(response.status).toBe(200)
+    expect(calls.venueUpdate).toHaveBeenCalledWith({
+      offers_open_gym: false,
+      drop_in_price: null,
+    })
+  })
+
+  it('persists offers_private_rental on the venue row', async () => {
+    const { client, calls } = createAdminClientMock()
+    mockCreateAdminClient.mockReturnValue(client)
+    mockValidateRequest.mockResolvedValue({
+      offers_private_rental: false,
+    })
+
+    const response = await PATCH(
+      new Request('http://localhost/api/admin/venues/venue-1', {
+        method: 'PATCH',
+        headers: { 'content-type': 'application/json' },
+        body: JSON.stringify({ offers_private_rental: false }),
+      }),
+      createContext('venue-1')
+    )
+
+    expect(response.status).toBe(200)
+    expect(calls.venueUpdate).toHaveBeenCalledWith({
+      offers_private_rental: false,
+    })
+  })
+
   it('returns success with needs_attention when immediate slot publish fails after persistence', async () => {
     const { client, calls } = createAdminClientMock()
     mockCreateAdminClient.mockReturnValue(client)
