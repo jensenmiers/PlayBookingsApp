@@ -86,3 +86,24 @@ it('disables a selected window if refreshed availability removes it', () => {
   rerender(<VenueAvailabilityCalendar {...props} slots={[]} />)
   expect(screen.getByRole('button', { name: 'Continue to booking' })).toBeDisabled()
 })
+
+it('shows one continuous orange session and selects its full range with first-hour details', () => {
+  const gymSlots: ComputedAvailabilitySlot[] = slots.map((slot, index) => ({
+    ...slot, action_type: 'info_only_open_gym', slot_instance_id: `gym-${index}`,
+    modal_content: { title: `Session ${index}`, body: `Details ${index}` },
+    slot_pricing: { amount_cents: 300 + index * 100, currency: 'USD', unit: 'person', payment_method: 'on_site' },
+  }))
+  render(<VenueAvailabilityCalendar {...props} slots={gymSlots} />)
+  const block = screen.getByRole('button', { name: /Open gym.*September 6.*5:00 PM.*8:00 PM/ })
+  expect(screen.getAllByRole('button', { name: /Open gym.*September 6/ })).toHaveLength(1)
+  expect(block).toHaveClass('bg-accent-400/20')
+  fireEvent.click(block)
+  expect(props.onSelect).toHaveBeenCalledWith({ ...gymSlots[0], end_time: '20:00:00' })
+})
+
+it('keeps the two availability legend labels without the unfilled-time callout', () => {
+  render(<VenueAvailabilityCalendar {...props} />)
+  expect(screen.getByText('Private rental')).toBeInTheDocument()
+  expect(screen.getByText('Open gym')).toBeInTheDocument()
+  expect(screen.queryByText('Unfilled time: no published availability')).not.toBeInTheDocument()
+})

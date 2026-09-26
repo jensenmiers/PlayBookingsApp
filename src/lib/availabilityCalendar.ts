@@ -46,8 +46,7 @@ export function buildAvailabilityWindows(slots: ComputedAvailabilitySlot[], poli
   for (const slot of slots) {
     if (!isCalendarSlotEligible(slot, policy, now)) continue
     const key = JSON.stringify([slot.venue_id, slot.date, slot.action_type,
-      slot.action_type === 'info_only_open_gym' ? slot.slot_instance_id || `${slot.start_time}-${slot.end_time}` : null,
-      slot.modal_content || null,
+      slot.action_type === 'info_only_open_gym' ? null : slot.modal_content || null,
     ])
     const group = groups.get(key) || []
     group.push(slot)
@@ -58,7 +57,7 @@ export function buildAvailabilityWindows(slots: ComputedAvailabilitySlot[], poli
     group.sort((a, b) => a.start_time.localeCompare(b.start_time) || a.end_time.localeCompare(b.end_time))
     let current: AvailabilityWindow | undefined
     for (const slot of group) {
-      if (current && slot.start_time <= current.end_time && slot.action_type !== 'info_only_open_gym') {
+      if (current && slot.start_time <= current.end_time) {
         current.end_time = current.end_time > slot.end_time ? current.end_time : slot.end_time
         current.slots.push(slot)
       } else {

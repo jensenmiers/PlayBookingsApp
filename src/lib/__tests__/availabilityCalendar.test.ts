@@ -14,14 +14,14 @@ describe('availability calendar windows', () => {
     expect(windows.map(w => [w.start_time, w.end_time])).toEqual([['17:00:00', '19:00:00'], ['20:00:00', '21:00:00']])
     expect(windows[0].slots).toHaveLength(3)
   })
-  it('keeps open gym sessions and booking types separate', () => {
+  it('merges open gym hours while keeping booking types separate', () => {
     const windows = buildAvailabilityWindows([
       slot('17:00:00', '18:00:00'),
       slot('18:00:00', '19:00:00', { action_type: 'instant_book' }),
       slot('18:00:00', '19:00:00', { action_type: 'info_only_open_gym' }),
       slot('19:00:00', '20:00:00', { action_type: 'info_only_open_gym' }),
     ], null, now)
-    expect(windows).toHaveLength(4)
+    expect(windows).toHaveLength(3)
   })
   it('enforces a hard cutoff including exact equality and never invents a clipped booking', () => {
     const windows = buildAvailabilityWindows([
@@ -43,11 +43,28 @@ describe('availability calendar windows', () => {
     expect(buildAvailabilityWindows([slot('06:00:00', '08:00:00'), slot('22:00:00', '23:00:00')], null, now)).toHaveLength(2)
   })
   it('places chained overlapping sessions in separate lanes without covering each other', () => {
-    const windows = buildAvailabilityWindows([
+    const windows = [
       slot('17:00:00', '18:00:00', { action_type: 'info_only_open_gym' }),
       slot('17:30:00', '18:30:00', { action_type: 'info_only_open_gym' }),
       slot('18:00:00', '19:00:00', { action_type: 'info_only_open_gym' }),
-    ], null, now)
+    ].map(slot => ({ ...slot, slots: [slot] }))
     expect(layoutAvailabilityWindows(windows).map(item => [item.lane, item.laneCount])).toEqual([[0, 2], [1, 2], [0, 2]])
   })
+})
+
+it('merges open gym across differing details, preserving the earliest details, gaps, dates and venues', () => {
+  const gym = (start: string, end: string, overrides: Partial<ComputedAvailabilitySlot> = {}) => slot(start, end, { action_type: 'info_only_open_gym', ...overrides })
+  const first = gym('14:00:00', '15:00:00', { slot_instance_id: 'first', modal_content: { title: 'First session', body: 'First details' } })
+  const slots = [
+    gym('16:00:00', '17:00:00', { slot_instance_id: 'last' }),
+    first,
+    gym('15:00:00', '16:00:00', { slot_instance_id: 'middle', modal_content: { title: 'Different session', body: 'Different details' } }),
+    gym('18:00:00', '19:00:00'),
+    gym('17:00:00', '18:00:00', { date: '2026-09-07' }),
+    gym('17:00:00', '18:00:00', { venue_id: 'other' }),
+  ]
+  const windows = buildAvailabilityWindows(slots, null, new Date('2026-09-04T22:00:00Z'))
+  expect(windows).toHaveLength(4)
+  expect(windows[0]).toEqual({ ...first, end_time: '17:00:00', slots: [first, slots[2], slots[0]] })
+  expect(first.end_time).toBe('15:00:00')
 })

@@ -42,7 +42,7 @@ export function VenueAvailabilityCalendar({ venue, startDate, today, now, slots,
   const cutoff = getNoticeCutoff(policy, now)
   const ready = !loading && !error
   const choose = (window: AvailabilityWindow) => {
-    if (window.action_type === 'info_only_open_gym') onSelect(window.slots[0])
+    if (window.action_type === 'info_only_open_gym') onSelect({ ...window.slots[0], start_time: window.start_time, end_time: window.end_time })
     else setSelection(window)
   }
   const navigate = (date: string) => {
@@ -78,7 +78,6 @@ export function VenueAvailabilityCalendar({ venue, startDate, today, now, slots,
       <div className="flex flex-wrap gap-l mb-m text-xs text-muted-foreground">
         <span className="flex items-center gap-s"><span className="h-s w-s rounded-full bg-primary-400" />Private rental</span>
         <span className="flex items-center gap-s"><span className="h-s w-s rounded-full bg-accent-400" />Open gym</span>
-        <span>Unfilled time: no published availability</span>
       </div>
       <div aria-live="polite">
         {loading && <p role="status" className="py-l text-muted-foreground">Loading availability…</p>}
