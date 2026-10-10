@@ -22,7 +22,7 @@ A web-based facility rental marketplace for streamlining the rental of underutil
 
 ## 📋 Prerequisites
 
-- Node.js 18+ 
+- Node.js 24.x (matches Vercel; run `nvm install` and `nvm use` if using nvm)
 - npm or yarn
 - Supabase account
 - Google OAuth credentials
