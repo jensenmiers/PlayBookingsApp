@@ -107,3 +107,15 @@ it('keeps the two availability legend labels without the unfilled-time callout',
   expect(screen.getByText('Open gym')).toBeInTheDocument()
   expect(screen.queryByText('Unfilled time: no published availability')).not.toBeInTheDocument()
 })
+
+it('uses compact day headers and time ranges while retaining precise accessible labels', () => {
+  render(<VenueAvailabilityCalendar {...props} slots={[
+    { ...slots[0], start_time: '11:30:00', end_time: '13:00:00', action_type: 'info_only_open_gym' },
+    { ...slots[0], start_time: '14:00:00', end_time: '17:00:00', action_type: 'info_only_open_gym' },
+  ]} />)
+  expect(screen.queryByText('Find your court time')).not.toBeInTheDocument()
+  expect(screen.getByText('Fri Sep 4')).toBeInTheDocument()
+  expect(screen.getByText('2–5 PM')).toBeInTheDocument()
+  expect(screen.getByText('11:30 AM–1 PM')).toBeInTheDocument()
+  expect(screen.getByRole('button', { name: /Open gym.*11:30 AM.*1:00 PM/ })).toBeInTheDocument()
+})

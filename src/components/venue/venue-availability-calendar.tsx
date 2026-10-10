@@ -31,6 +31,13 @@ const dateLabel = (date: string, options: Intl.DateTimeFormatOptions) => new Int
 const longDate = (date: string) => dateLabel(date, { month: 'long', day: 'numeric', weekday: 'long' })
 const windowLabel = (window: AvailabilityWindow) => `${window.action_type === 'info_only_open_gym' ? 'Open gym' : 'Private rental'} · ${longDate(window.date)} · ${formatTime(window.start_time)}–${formatTime(window.end_time)}`
 
+const compactTimeRange = (start: string, end: string) => {
+  const startLabel = formatTime(start).replace(':00', '')
+  const endLabel = formatTime(end).replace(':00', '')
+  const samePeriod = startLabel.slice(-2) === endLabel.slice(-2)
+  return `${samePeriod ? startLabel.slice(0, -3) : startLabel}–${endLabel}`
+}
+
 export function VenueAvailabilityCalendar({ venue, startDate, today, now, slots, policy, loading, error, publishedThrough, onStartDateChange, onSelect, onRetry }: Props) {
   const dates = Array.from({ length: 7 }, (_, index) => addDaysToDateString(startDate, index))
   const [mobileDate, setMobileDate] = useState(startDate)
@@ -54,11 +61,10 @@ export function VenueAvailabilityCalendar({ venue, startDate, today, now, slots,
 
   return (
     <section aria-labelledby="venue-availability-title" className="mt-2xl px-l">
-      <div className="flex flex-wrap items-end justify-between gap-l mb-l">
-        <div>
-          <p className="text-xs uppercase tracking-widest text-primary-400 mb-xs">Find your court time</p>
-          <h2 id="venue-availability-title" className="font-serif text-3xl text-foreground">Availability</h2>
-          <p className="text-sm text-muted-foreground mt-xs">{dateLabel(startDate, { month: 'short', day: 'numeric' })}–{dateLabel(dates[6], { month: 'short', day: 'numeric', year: 'numeric' })} · Pacific time</p>
+      <div className="flex flex-wrap items-center justify-between gap-s mb-s">
+        <div className="flex flex-wrap items-baseline gap-x-l gap-y-xs">
+          <h2 id="venue-availability-title" className="font-serif text-2xl text-foreground">Availability</h2>
+          <p className="text-xs text-muted-foreground">{dateLabel(startDate, { month: 'short', day: 'numeric' })}–{dateLabel(dates[6], { month: 'short', day: 'numeric', year: 'numeric' })} · Pacific time</p>
         </div>
         <div className="flex flex-wrap items-center gap-s">
           <Button variant="outline" size="icon" aria-label="Previous seven days" disabled={startDate <= today} onClick={() => navigate(addDaysToDateString(startDate, -7) < today ? today : addDaysToDateString(startDate, -7))}>←</Button>
@@ -92,22 +98,21 @@ export function VenueAvailabilityCalendar({ venue, startDate, today, now, slots,
         </button>)}
       </div>
 
-      <div className="max-h-[720px] overflow-y-auto rounded-xl border border-border bg-background" aria-label="Availability timeline, 7am to 10pm" aria-busy={loading}>
-        <div className="sticky top-0 z-20 grid grid-cols-[3.5rem_minmax(0,1fr)] border-b border-border bg-background md:grid-cols-[3.5rem_repeat(7,minmax(0,1fr))]">
+      <div className="overflow-hidden rounded-xl border border-border bg-background" aria-label="Availability timeline, 7am to 10pm" aria-busy={loading}>
+        <div className="grid grid-cols-[3.5rem_minmax(0,1fr)] border-b border-border bg-background md:grid-cols-[3.5rem_repeat(7,minmax(0,1fr))]">
           <div className="p-s text-xs text-muted-foreground">Time</div>
-          {dates.map(date => <div key={date} className={`${date === selectedDate ? 'block' : 'hidden'} md:block border-l border-border px-s py-m text-center ${date === today ? 'bg-primary-400/10 text-primary-400' : 'text-foreground'}`}>
-            <span className="text-xs block">{date === today ? 'Today' : dateLabel(date, { weekday: 'short' })}</span>
-            <span className="text-lg font-medium">{dateLabel(date, { month: 'short', day: 'numeric' })}</span>
+          {dates.map(date => <div key={date} className={`${date === selectedDate ? 'block' : 'hidden'} md:block border-l border-border px-xs py-s text-center ${date === today ? 'bg-primary-400/10 text-primary-400' : 'text-foreground'}`}>
+            <span aria-current={date === today ? 'date' : undefined} className="whitespace-nowrap text-xs font-medium">{dateLabel(date, { weekday: 'short' })} {dateLabel(date, { month: 'short', day: 'numeric' })}</span>
           </div>)}
         </div>
         <div className="grid grid-cols-[3.5rem_minmax(0,1fr)] md:grid-cols-[3.5rem_repeat(7,minmax(0,1fr))]">
-          <div className="relative h-[900px] text-xs text-muted-foreground">
+          <div className="relative h-[480px] text-xs text-muted-foreground">
             {Array.from({ length: 16 }, (_, i) => <span key={i} className="absolute right-xs" style={{ top: position((i + 7) * 60), transform: i === 15 ? 'translateY(-100%)' : undefined }}>{(i + 7) % 12 || 12} {i + 7 < 12 ? 'AM' : 'PM'}</span>)}
           </div>
           {dates.map(date => {
             const dayWindows = ready ? windows.filter(window => window.date === date && timeToMinutes(window.end_time) > CALENDAR_START_MINUTES && timeToMinutes(window.start_time) < CALENDAR_END_MINUTES) : []
             const noticeEnd = Math.min(CALENDAR_END_MINUTES, getNoticeMinutesForDate(date, cutoff))
-            return <div key={date} aria-label={longDate(date)} className={`${date === selectedDate ? 'block' : 'hidden'} md:block relative h-[900px] min-w-0 border-l border-border`}>
+            return <div key={date} aria-label={longDate(date)} className={`${date === selectedDate ? 'block' : 'hidden'} md:block relative h-[480px] min-w-0 border-l border-border`}>
               {Array.from({ length: 30 }, (_, index) => <div key={index} aria-hidden="true" className={`absolute inset-x-0 border-t ${index % 2 ? 'border-dashed border-border/40' : 'border-border'}`} style={{ top: `${index / 30 * 100}%` }} />)}
               {noticeHours > 0 && noticeEnd > CALENDAR_START_MINUTES && <div className="absolute inset-x-0 top-0 overflow-hidden border-b border-dashed border-muted-foreground/40 bg-muted/70 px-s py-s" style={{ height: `${(noticeEnd - CALENDAR_START_MINUTES) / TIMELINE_MINUTES * 100}%` }}>
                 <span className="text-xs text-muted-foreground">Within required notice period</span>
@@ -116,9 +121,10 @@ export function VenueAvailabilityCalendar({ venue, startDate, today, now, slots,
                 const start = Math.max(CALENDAR_START_MINUTES, timeToMinutes(window.start_time))
                 const end = Math.min(CALENDAR_END_MINUTES, timeToMinutes(window.end_time))
                 const gym = window.action_type === 'info_only_open_gym'
-                return <button key={`${window.action_type}-${window.start_time}-${index}`} aria-label={windowLabel(window)} onClick={() => choose(window)} className={`absolute z-10 overflow-hidden rounded-md border-l-2 p-xs text-left text-xs transition-colors focus-visible:z-20 focus-visible:outline focus-visible:outline-2 focus-visible:outline-foreground ${gym ? 'border-accent-400 bg-accent-400/20 text-accent-200 hover:bg-accent-400/30' : 'border-primary-400 bg-primary-400/20 text-primary-100 hover:bg-primary-400/30'}`} style={{ top: position(start), height: `${(end - start) / TIMELINE_MINUTES * 100}%`, left: `calc(${lane / laneCount * 100}% + 2px)`, width: `calc(${100 / laneCount}% - 4px)` }}>
-                  <span className="block font-semibold">{gym ? 'Open gym' : 'Available'}</span>
-                  <span className="block mt-xxs">{formatTime(window.start_time)}–{formatTime(window.end_time)}</span>
+                const compact = end - start < 90
+                return <button key={`${window.action_type}-${window.start_time}-${index}`} aria-label={windowLabel(window)} title={windowLabel(window)} onClick={() => choose(window)} className={`absolute z-10 flex ${compact ? 'flex-row gap-xs' : 'flex-col'} items-start justify-start overflow-hidden rounded-md border-l-2 p-xs text-left text-xs transition-colors focus-visible:z-20 focus-visible:outline focus-visible:outline-2 focus-visible:outline-foreground ${gym ? 'border-accent-400 bg-accent-400/20 text-accent-200 hover:bg-accent-400/30' : 'border-primary-400 bg-primary-400/20 text-primary-100 hover:bg-primary-400/30'}`} style={{ top: position(start), height: `${(end - start) / TIMELINE_MINUTES * 100}%`, left: `calc(${lane / laneCount * 100}% + 2px)`, width: `calc(${100 / laneCount}% - 4px)` }}>
+                  <span className="shrink-0 font-semibold">{gym ? 'Open gym' : 'Available'}</span>
+                  <span className={`min-w-0 truncate ${compact ? '' : 'mt-xxs'}`}>{compactTimeRange(window.start_time, window.end_time)}</span>
                   {!gym && end - start >= 90 && <span className="block mt-xs text-primary-200">${venue.hourly_rate}/hr</span>}
                 </button>
               })}
