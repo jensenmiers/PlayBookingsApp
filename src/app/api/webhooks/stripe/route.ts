@@ -12,6 +12,21 @@ import { getPostHogClient } from '@/lib/posthog-server'
 
 const webhookSecret = process.env.STRIPE_WEBHOOK_SECRET
 
+// Analytics must never fail the webhook: a non-2xx response makes Stripe
+// retry an event whose payment work has already completed.
+async function captureWebhookEvent(
+  event: Parameters<ReturnType<typeof getPostHogClient>['capture']>[0]
+): Promise<void> {
+  try {
+    const posthog = getPostHogClient()
+    posthog.capture(event)
+    await posthog.flush()
+  } catch (error) {
+    const message = error instanceof Error ? error.message : 'Unknown error'
+    console.error(`Failed to capture webhook analytics (${event.event}): ${message}`)
+  }
+}
+
 export async function POST(request: NextRequest) {
   if (!webhookSecret) {
     console.error('STRIPE_WEBHOOK_SECRET is not set')
@@ -59,8 +74,7 @@ export async function POST(request: NextRequest) {
           )
           console.log(`Payment processed successfully for session ${session.id}`)
 
-          const posthog = getPostHogClient()
-          posthog.capture({
+          await captureWebhookEvent({
             distinctId: session.client_reference_id ?? session.id,
             event: 'payment_succeeded',
             properties: {
@@ -70,7 +84,6 @@ export async function POST(request: NextRequest) {
               currency: session.currency,
             },
           })
-          await posthog.flush()
         }
         break
       }
@@ -95,8 +108,7 @@ export async function POST(request: NextRequest) {
         console.log(`Payment failed for intent: ${paymentIntent.id}`)
         // Payment stays pending, slot remains held per spec
 
-        const posthog = getPostHogClient()
-        posthog.capture({
+        await captureWebhookEvent({
           distinctId: paymentIntent.id,
           event: 'payment_failed',
           properties: {
@@ -106,7 +118,6 @@ export async function POST(request: NextRequest) {
             failure_code: paymentIntent.last_payment_error?.code,
           },
         })
-        await posthog.flush()
         break
       }
 

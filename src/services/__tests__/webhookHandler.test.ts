@@ -55,6 +55,16 @@ jest.mock('@/lib/stripe', () => ({
   },
 }))
 
+// Mock PostHog server client
+const mockPostHogCapture = jest.fn()
+const mockPostHogFlush = jest.fn()
+jest.mock('@/lib/posthog-server', () => ({
+  getPostHogClient: () => ({
+    capture: mockPostHogCapture,
+    flush: mockPostHogFlush,
+  }),
+}))
+
 jest.mock('@/repositories/paymentRepository')
 jest.mock('@/repositories/bookingRepository')
 jest.mock('@/lib/supabase/server', () => ({
@@ -176,6 +186,60 @@ describe('Stripe Webhook Handler', () => {
     expect(response.status).toBe(200)
     expect(data.received).toBe(true)
     expect(mockProcessPaymentSuccess).toHaveBeenCalledWith('pi_checkout_456', 'cs_session_456')
+  })
+
+  it('acknowledges a paid checkout session even when analytics capture fails', async () => {
+    const fakeEvent = {
+      type: 'checkout.session.completed',
+      data: {
+        object: {
+          id: 'cs_session_789',
+          payment_intent: 'pi_checkout_789',
+          payment_status: 'paid',
+        },
+      },
+    }
+
+    mockConstructEvent.mockReturnValue(fakeEvent)
+    mockProcessPaymentSuccess.mockResolvedValue({
+      payment: { id: 'payment-789' },
+      booking: { id: 'booking-789' },
+    })
+    mockPostHogFlush.mockRejectedValueOnce(new Error('PostHog unavailable'))
+
+    const request = createRequest('{}', { 'stripe-signature': 'valid_sig' })
+    const response = await POST(request)
+    const data = await response.json() as { received: boolean }
+
+    expect(response.status).toBe(200)
+    expect(data.received).toBe(true)
+    expect(mockProcessPaymentSuccess).toHaveBeenCalledWith('pi_checkout_789', 'cs_session_789')
+  })
+
+  it('acknowledges payment_intent.payment_failed even when analytics capture fails', async () => {
+    const fakeEvent = {
+      type: 'payment_intent.payment_failed',
+      data: {
+        object: {
+          id: 'pi_failed_123',
+          amount: 5000,
+          currency: 'usd',
+          last_payment_error: { code: 'card_declined' },
+        },
+      },
+    }
+
+    mockConstructEvent.mockReturnValue(fakeEvent)
+    mockPostHogCapture.mockImplementationOnce(() => {
+      throw new Error('PostHog misconfigured')
+    })
+
+    const request = createRequest('{}', { 'stripe-signature': 'valid_sig' })
+    const response = await POST(request)
+    const data = await response.json() as { received: boolean }
+
+    expect(response.status).toBe(200)
+    expect(data.received).toBe(true)
   })
 
   it('returns 500 when successful-payment processing fails so Stripe retries', async () => {
