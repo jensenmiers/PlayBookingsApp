@@ -639,7 +639,7 @@ export class PaymentService {
     // Create refund in Stripe
     const refund = await stripe.refunds.create({
       payment_intent: payment.stripe_payment_intent_id,
-      reason: isOwnerInitiated ? 'requested_by_customer' : 'requested_by_customer',
+      reason: 'requested_by_customer',
     })
 
     // Update payment record
