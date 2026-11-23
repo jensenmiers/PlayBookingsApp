@@ -99,6 +99,11 @@ function CourtCardsScroll({ courts, mounted }: { courts: FeaturedCourt[]; mounte
             <CourtCard court={court} index={i} mounted={mounted} />
           </div>
         ))}
+        {Array.from({ length: Math.max(0, FEATURED_COURT_LIMIT - courts.length) }, (_, i) => (
+          <div key={`coming-soon-${i}`} className="flex-shrink-0 w-[280px] sm:w-[320px] snap-start">
+            <ComingSoonCard className="min-h-[320px]" />
+          </div>
+        ))}
         <Link
           href="/venues"
           className={`flex-shrink-0 w-[280px] sm:w-[320px] snap-start transform transition-all duration-700 ${
@@ -122,6 +127,18 @@ function CourtCardsScroll({ courts, mounted }: { courts: FeaturedCourt[]; mounte
           </div>
         </Link>
       </div>
+    </div>
+  )
+}
+
+const COMING_SOON_LABEL = 'More LA courts coming soon'
+
+function ComingSoonCard({ className = '' }: { className?: string }) {
+  return (
+    <div
+      className={`flex h-full min-h-[140px] items-center justify-center rounded-2xl border-2 border-dashed border-secondary-50/15 bg-secondary-800/20 p-6 text-center ${className}`}
+    >
+      <span className="text-sm text-secondary-50/40">{COMING_SOON_LABEL}</span>
     </div>
   )
 }
@@ -214,6 +231,8 @@ export default function Home() {
     [venues, availabilityVenues]
   )
   const featuredLoading = venuesLoading || availabilityLoading
+  // With a single live venue, the main call to action goes straight to it.
+  const heroHref = featuredCourts.length === 1 ? featuredCourts[0].href : '/search'
   
   useEffect(() => {
     setMounted(true)
@@ -250,7 +269,7 @@ export default function Home() {
 
           <div className={`max-w-xl transform transition-all duration-1000 delay-300 ${mounted ? 'translate-y-0 opacity-100' : 'translate-y-12 opacity-0'}`}>
             <Link 
-              href="/search"
+              href={heroHref}
               className="group flex items-center justify-between w-full px-6 sm:px-8 py-5 sm:py-6 bg-secondary-50 text-secondary-900 rounded-2xl hover:bg-primary-400 transition-colors"
             >
               <span className="text-lg sm:text-xl font-medium">
@@ -296,11 +315,18 @@ export default function Home() {
                 ))}
               </>
             ) : featuredCourts.length > 0 ? (
-              featuredCourts.map((court, i) => (
-                <div key={court.id} className="flex-1 min-h-0">
-                  <VerticalCompactCourtCard court={court} index={i} mounted={mounted} />
-                </div>
-              ))
+              <>
+                {featuredCourts.map((court, i) => (
+                  <div key={court.id} className="flex-1 min-h-0">
+                    <VerticalCompactCourtCard court={court} index={i} mounted={mounted} />
+                  </div>
+                ))}
+                {Array.from({ length: Math.max(0, FEATURED_COURT_LIMIT - featuredCourts.length) }, (_, i) => (
+                  <div key={`coming-soon-${i}`} className="flex-1 min-h-0">
+                    <ComingSoonCard />
+                  </div>
+                ))}
+              </>
             ) : (
               <div className="rounded-2xl border border-secondary-50/10 bg-secondary-800/30 p-6 text-secondary-50/50 text-sm">
                 No upcoming availability yet.

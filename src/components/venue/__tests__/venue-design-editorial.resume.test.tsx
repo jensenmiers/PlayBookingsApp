@@ -7,7 +7,13 @@ const mockUseVenueAvailabilityRange = jest.fn()
 jest.mock('next/navigation', () => ({
   useRouter: () => ({
     back: jest.fn(),
+    push: jest.fn(),
   }),
+  usePathname: () => '/venue/test-venue',
+}))
+
+jest.mock('@/components/layout/navigation', () => ({
+  Navigation: () => null,
 }))
 
 jest.mock('next/image', () => ({

@@ -137,7 +137,7 @@ The renter also gets an email receipt (see section 6).
   - status `pending` → `cancelled`
   - the reason is stored in the audit log and included in the email
   - the renter gets the decline email, with both admin addresses on CC
-  - My Bookings shows "Not available"
+  - My Bookings shows "Cancelled" with "Declined by the venue or cancelled. Check your email for details.", because a request the renter cancelled themselves has the same status
 - Each status change is written to `audit_logs`: who, when, old status and new status.
 - The confirmation email reuses the existing tracking columns, `confirmation_email_sent_at` and `confirmation_email_resend_id`.
 - A request that's already confirmed or cancelled can't be changed again by mistake: its buttons are hidden, and the server checks the status too.
@@ -164,7 +164,7 @@ All emails are sent through the existing Resend setup. They copy the idempotent 
 
 **Failure rule.** If an email fails, the request is still saved and the admin action still succeeds. The failure is logged and shown on the admin row as "email not sent".
 
-**Admin addresses.** Keep them in an environment variable (for example `BOOKING_REQUEST_ADMIN_EMAILS`), not in code.
+**Admin addresses.** These reuse the existing `BOOKING_EMAIL_BCC` setting, which defaults to both admin addresses, so no new environment variable is needed. Confirmation and decline emails reach the admins as BCC, not CC, so the renter never sees the admin addresses.
 
 ## 7. Data
 

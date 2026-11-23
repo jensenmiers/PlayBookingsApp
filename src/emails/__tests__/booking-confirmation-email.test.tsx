@@ -53,6 +53,24 @@ describe('booking confirmation email', () => {
     expect(email.text).toContain('Questions? Reply to this email or contact jensen@playbookings.com.')
   })
 
+  it('labels the amount as paid for venues that take payment online', () => {
+    const email = buildBookingConfirmationEmail(booking)
+
+    expect(email.text).toContain('Total paid: $175.00')
+    expect(email.text).not.toContain('No payment was taken here')
+  })
+
+  it('labels the amount as an estimate for request-to-book venues', () => {
+    const email = buildBookingConfirmationEmail({ ...booking, paidOnline: false })
+    const html = renderToStaticMarkup(email.react)
+
+    expect(email.text).toContain('Estimated total: $175.00')
+    expect(email.text).not.toContain('Total paid')
+    expect(email.text).toContain('No payment was taken here')
+    expect(html).toContain('Estimated total')
+    expect(html).toContain('No payment was taken here')
+  })
+
   it('uses a neutral greeting when the renter has no first name', () => {
     const email = buildBookingConfirmationEmail({
       ...booking,

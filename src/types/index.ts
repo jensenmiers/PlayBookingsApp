@@ -111,6 +111,7 @@ export interface VenueAdminConfig {
   min_advance_booking_days: number
   min_advance_lead_time_hours: number
   operating_hours: OperatingHourWindow[]
+  request_hint_windows: OperatingHourWindow[]
   blackout_dates: string[]
   holiday_dates: string[]
   policy_cancel: string | null
@@ -150,6 +151,7 @@ export interface Booking {
   recurring_type: RecurringType
   recurring_end_date?: string
   notes?: string
+  activity?: string | null
   created_at: string
   updated_at: string
 }
@@ -284,7 +286,7 @@ export interface BookingWithVenue extends Booking {
     insurance_required: boolean
     media?: VenueMedia[]
     photos: string[]
-  }
+  } | null
 }
 
 // Payment flow response types
@@ -330,6 +332,8 @@ export interface CreateBookingForm {
   recurring_type?: RecurringType
   recurring_end_date?: string
   notes?: string
+  activity?: string
+  phone?: string
 }
 
 // Alias for backwards compatibility

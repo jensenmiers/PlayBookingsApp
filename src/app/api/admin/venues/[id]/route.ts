@@ -504,6 +504,7 @@ export async function PATCH(request: NextRequest, context: RouteContext): Promis
       'min_advance_booking_days',
       'min_advance_lead_time_hours',
       'operating_hours',
+      'request_hint_windows',
       'blackout_dates',
       'holiday_dates',
       'policy_cancel',

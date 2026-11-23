@@ -9,10 +9,8 @@ import { bookingApi } from '@/lib/api/bookings'
 import type { Booking, BookingWithPaymentInfo, CancellationResult } from '@/types'
 import type {
   CreateBookingRequest,
-  UpdateBookingRequest,
   ListBookingsQueryParams,
   CheckConflictsRequest,
-  GenerateRecurringRequest,
 } from '@/types/api'
 
 /**
@@ -194,43 +192,6 @@ export function usePaymentCheckout() {
 }
 
 /**
- * Hook for updating bookings
- */
-export function useUpdateBooking() {
-  const [state, setState] = useState<UseAsyncState<Booking>>({
-    data: null,
-    loading: false,
-    error: null,
-  })
-
-  const updateBooking = useCallback(
-    async (id: string, data: UpdateBookingRequest): Promise<Booking | null> => {
-      setState({ data: null, loading: true, error: null })
-      try {
-        const booking = await bookingApi.updateBooking(id, data)
-        setState({ data: booking, loading: false, error: null })
-        return booking
-      } catch (error) {
-        const message = error instanceof Error ? error.message : 'Failed to update booking'
-        setState({ data: null, loading: false, error: message })
-        return null
-      }
-    },
-    []
-  )
-
-  const reset = useCallback(() => {
-    setState({ data: null, loading: false, error: null })
-  }, [])
-
-  return {
-    ...state,
-    updateBooking,
-    reset,
-  }
-}
-
-/**
  * Hook for cancelling bookings
  */
 export function useCancelBooking() {
@@ -331,43 +292,6 @@ export function useCheckConflicts() {
   return {
     ...state,
     check,
-    reset,
-  }
-}
-
-/**
- * Hook for generating recurring bookings
- */
-export function useGenerateRecurring() {
-  const [state, setState] = useState<UseAsyncState<unknown[]>>({
-    data: null,
-    loading: false,
-    error: null,
-  })
-
-  const generateRecurring = useCallback(
-    async (data: GenerateRecurringRequest): Promise<unknown[] | null> => {
-      setState({ data: null, loading: true, error: null })
-      try {
-        const result = await bookingApi.generateRecurring(data)
-        setState({ data: result, loading: false, error: null })
-        return result
-      } catch (error) {
-        const message = error instanceof Error ? error.message : 'Failed to generate recurring bookings'
-        setState({ data: null, loading: false, error: message })
-        return null
-      }
-    },
-    []
-  )
-
-  const reset = useCallback(() => {
-    setState({ data: null, loading: false, error: null })
-  }, [])
-
-  return {
-    ...state,
-    generateRecurring,
     reset,
   }
 }

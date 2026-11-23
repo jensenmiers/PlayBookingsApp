@@ -9,7 +9,8 @@ import { DeferredVenueLocationMap } from './deferred-venue-location-map'
 import { AvailabilityWindowPicker } from './availability-window-picker'
 import { VenueAvailabilityCalendar } from './venue-availability-calendar'
 import { buildAvailabilityWindows, isCalendarSlotEligible } from '@/lib/availabilityCalendar'
-import { RequestToBookPanel } from './request-to-book-panel'
+import { RequestToBookPanel, type RequestToBookPolicy } from './request-to-book-panel'
+import { Navigation } from '@/components/layout/navigation'
 import { format } from 'date-fns'
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome'
 import { faArrowLeft, faShield, faCalendarDays, faDollarSign } from '@fortawesome/free-solid-svg-icons'
@@ -21,12 +22,12 @@ import { formatTime, getDateStringInTimeZone, addDaysToDateString } from '@/util
 import { getBookingModeDisplay, resolveVenueBookingMode } from '@/lib/booking-mode'
 import { getCurrentRelativeUrl, peekAuthResumeStateForReturnTo } from '@/lib/auth/authResume'
 import { useSlotBookingAuthResume } from '@/lib/auth/useAuthResume'
-import { buildVenuePlanningFact, type VenuePlanningPolicy } from '@/lib/venuePlanning'
+import { buildVenuePlanningFact } from '@/lib/venuePlanning'
 import type { Venue } from '@/types'
 
 interface VenueDesignEditorialProps {
   venue: Venue
-  venueAdminConfig?: Partial<VenuePlanningPolicy> | null
+  venueAdminConfig?: RequestToBookPolicy | null
   initialAvailability?: ComputedAvailabilitySlot[]
   initialPublishedThrough?: string | null
   faqStyle?: 'none' | 'accordion' | 'tabs' | 'list'
@@ -213,6 +214,7 @@ export function VenueDesignEditorial({
 
   return (
     <div className="min-h-screen bg-secondary-900">
+      <Navigation />
       {/* Hero Section */}
       <div className="relative h-[55vh] min-h-[400px]">
         {/* Background Image / Carousel */}

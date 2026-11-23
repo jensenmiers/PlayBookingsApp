@@ -27,6 +27,7 @@ export class BookingRepository {
     recurring_type?: 'none' | 'weekly' | 'monthly'
     recurring_end_date?: string
     notes?: string
+    activity?: string
   }): Promise<Booking> {
     const supabase = await createClient()
     const { data: booking, error } = await supabase
@@ -188,7 +189,8 @@ export class BookingRepository {
 
     return bookingsWithVenue.map((booking) => ({
       ...booking,
-      venue: normalizeVenueWithMedia(booking.venue),
+      // Inactive venues are not readable under RLS, so their bookings arrive with no venue.
+      venue: booking.venue ? normalizeVenueWithMedia(booking.venue) : null,
     }))
   }
 

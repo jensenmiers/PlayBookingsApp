@@ -24,7 +24,7 @@ import { VenueCardSkeleton } from '@/components/search/venue-card-skeleton'
 import { VenueAccessSegment } from '@/components/venues/venue-access-segment'
 import { ErrorMessage } from '@/components/ui/error-message'
 import Link from 'next/link'
-import { getBookingModeDisplay } from '@/lib/booking-mode'
+import { getBookingModeDisplay, resolveVenueBookingMode } from '@/lib/booking-mode'
 import {
   formatVenueCardPriceLine,
   matchesAccessFilter,
@@ -40,6 +40,10 @@ type ViewMode = 'map' | 'list'
 
 const PLATFORM_TIME_ZONE = 'America/Los_Angeles'
 const RESULTS_PAGE_SIZE = 12
+
+function isRequestToBookVenue(venue: MapVenue): boolean {
+  return resolveVenueBookingMode({ booking_mode: venue.bookingMode, instant_booking: venue.instantBooking }) === 'request_to_book'
+}
 
 function parseLocalDate(dateStr: string): Date {
   const [year, month, day] = dateStr.split('-').map(Number)
@@ -137,15 +141,13 @@ export function SplitAvailabilityView() {
     })
   }, [venues, searchQuery, accessFilter])
 
-  // List rows: private rentals need a next regular slot; open gym can show without one.
+  // List rows: private rentals need a next regular slot, except request-to-book venues,
+  // which never publish slots and take requested times instead. Open gym can show without one.
   const venuesWithAvailability = useMemo(() => {
     if (accessFilter === 'open_gym') {
       return filteredVenues
     }
-    if (accessFilter === 'private_rental') {
-      return filteredVenues.filter((venue) => venue.nextAvailable !== null)
-    }
-    return filteredVenues.filter((venue) => venue.nextAvailable !== null)
+    return filteredVenues.filter((venue) => venue.nextAvailable !== null || isRequestToBookVenue(venue))
   }, [filteredVenues, accessFilter])
 
   const visibleVenues = venuesWithAvailability.slice(0, visibleResultCount)
@@ -545,6 +547,7 @@ function MapVenueCard({
               </span>
             </div>
           )}
+
           <div
             data-testid="venue-meta-chips-row"
             className="flex items-center justify-between gap-s"

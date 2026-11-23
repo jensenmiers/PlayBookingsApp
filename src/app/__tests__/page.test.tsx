@@ -263,4 +263,47 @@ describe('HomePage', () => {
     expect(screen.getAllByRole('link', { name: /memorial park/i }).length).toBeGreaterThan(0)
     expect(screen.getAllByText(/by request/i).length).toBeGreaterThan(0)
   })
+
+  it('fills empty featured spots with coming-soon cards and sends the hero to the only live venue', () => {
+    mockUseVenues.mockReturnValue({
+      data: [
+        {
+          id: 'venue-fpc',
+          name: 'First Presbyterian Church of Hollywood',
+          description: 'Church gym',
+          venue_type: 'Church Gym',
+          address: '1760 N Gower St',
+          city: 'Los Angeles',
+          state: 'CA',
+          zip_code: '90028',
+          owner_id: 'owner-2',
+          hourly_rate: 80,
+          instant_booking: false,
+          booking_mode: 'request_to_book',
+          insurance_required: false,
+          max_advance_booking_days: 30,
+          photos: ['https://example.com/fpc.jpg'],
+          amenities: [],
+          is_active: true,
+          created_at: '2026-03-01T00:00:00.000Z',
+          updated_at: '2026-03-01T00:00:00.000Z',
+        },
+      ] satisfies Venue[],
+      loading: false,
+      error: null,
+    })
+    mockUseVenuesWithNextAvailable.mockReturnValue({ data: [], loading: false, error: null })
+
+    render(<HomePage />)
+
+    expect(
+      screen.getAllByRole('link', { name: /first presbyterian church of hollywood/i }).length
+    ).toBeGreaterThan(0)
+    // Two empty spots, shown in both the desktop column and the mobile row.
+    expect(screen.getAllByText('More LA courts coming soon')).toHaveLength(4)
+    expect(screen.getByRole('link', { name: /see available courts now/i })).toHaveAttribute(
+      'href',
+      '/venue/first-presbyterian-church-of-hollywood'
+    )
+  })
 })

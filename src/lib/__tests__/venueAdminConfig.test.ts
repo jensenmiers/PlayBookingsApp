@@ -30,6 +30,18 @@ describe('normalizeVenueAdminConfig', () => {
     expect(zeroPriceConfig.drop_in_price).toBeNull()
   })
 
+  it('normalizes request hint windows and defaults them to empty', () => {
+    const config = normalizeVenueAdminConfig('venue-1', {
+      request_hint_windows: [{ day_of_week: 6, start_time: '08:00', end_time: '13:00' }],
+    })
+    const empty = normalizeVenueAdminConfig('venue-1', {})
+
+    expect(config.request_hint_windows).toEqual([
+      { day_of_week: 6, start_time: '08:00:00', end_time: '13:00:00' },
+    ])
+    expect(empty.request_hint_windows).toEqual([])
+  })
+
   it('preserves new free-form policy fields', () => {
     const config = normalizeVenueAdminConfig('venue-1', {
       policy_refund: 'No refunds after game start.',

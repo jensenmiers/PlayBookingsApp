@@ -119,6 +119,7 @@ describe('GET /api/admin/venues/[id]/bookings', () => {
           first_name: 'Riley',
           last_name: 'Renter',
           email: 'riley@example.com',
+          phone: '323-555-0100',
         },
       ],
       usersError: null,
@@ -138,6 +139,7 @@ describe('GET /api/admin/venues/[id]/bookings', () => {
           first_name: 'Riley',
           last_name: 'Renter',
           email: 'riley@example.com',
+          phone: '323-555-0100',
         },
       }),
     ])

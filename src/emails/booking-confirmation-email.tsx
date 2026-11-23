@@ -13,6 +13,14 @@ export interface BookingConfirmationEmailProps {
   totalAmount: number
   bookingUrl: string
   replyTo: string
+  /** False for request-to-book venues, where payment is arranged with the venue. Defaults to true. */
+  paidOnline?: boolean
+}
+
+export const PAY_VENUE_DIRECTLY_NOTE = 'No payment was taken here. The venue will arrange payment with you directly.'
+
+function amountLabel(paidOnline: boolean | undefined): string {
+  return paidOnline === false ? 'Estimated total' : 'Total paid'
 }
 
 export interface BuiltBookingConfirmationEmail {
@@ -155,9 +163,16 @@ export function BookingConfirmationEmail(props: BookingConfirmationEmailProps) {
                             </tr>
                             <tr>
                               <td style={{ padding: '4px 20px', fontSize: 15 }}>
-                                <strong>Total paid:</strong> {formattedAmount}
+                                <strong>{amountLabel(props.paidOnline)}:</strong> {formattedAmount}
                               </td>
                             </tr>
+                            {props.paidOnline === false ? (
+                              <tr>
+                                <td style={{ padding: '4px 20px', color: MUTED, fontSize: 14, lineHeight: 1.5 }}>
+                                  {PAY_VENUE_DIRECTLY_NOTE}
+                                </td>
+                              </tr>
+                            ) : null}
                             <tr>
                               <td style={{ padding: '4px 20px 20px', color: MUTED, fontSize: 13 }}>
                                 Booking #{props.bookingId}
@@ -217,7 +232,8 @@ export function buildBookingConfirmationEmail(
     props.venueAddress,
     `Date: ${formattedDate}`,
     `Time: ${formattedTime}`,
-    `Total paid: ${formattedAmount}`,
+    `${amountLabel(props.paidOnline)}: ${formattedAmount}`,
+    ...(props.paidOnline === false ? [PAY_VENUE_DIRECTLY_NOTE] : []),
     `Booking #${props.bookingId}`,
     '',
     `View booking: ${props.bookingUrl}`,

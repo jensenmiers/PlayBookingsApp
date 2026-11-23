@@ -6,15 +6,23 @@ const mockBack = jest.fn()
 const mockUseVenueAvailabilityRange = jest.fn()
 const mockCreateBooking = jest.fn()
 const mockOpenAuthModal = jest.fn()
-let mockCurrentUser: { id: string; email: string } | null = {
+let mockCurrentUser: { id: string; email: string; phone?: string } | null = {
   id: 'user-1',
   email: 'user@example.com',
 }
 
+const mockPush = jest.fn()
+
 jest.mock('next/navigation', () => ({
   useRouter: () => ({
     back: mockBack,
+    push: mockPush,
   }),
+  usePathname: () => '/venue/memorial-park',
+}))
+
+jest.mock('@/components/layout/navigation', () => ({
+  Navigation: () => <nav data-testid="site-header" />,
 }))
 
 jest.mock('next/image', () => ({
@@ -465,101 +473,111 @@ describe('VenueDesignEditorial availability calendar', () => {
     expect(within(bookingCard).getByText('No availability this week')).toBeInTheDocument()
   })
 
-  it('replaces slot availability with a request form for request-to-book venues', () => {
-    mockUseVenueAvailabilityRange.mockReturnValue({
-      data: [],
-      loading: false,
-      error: null,
-    })
-
-    render(
+  const renderRequestVenue = (venueAdminConfig?: Parameters<typeof VenueDesignEditorial>[0]['venueAdminConfig']) => {
+    mockUseVenueAvailabilityRange.mockReturnValue({ data: [], loading: false, error: null })
+    return render(
       <VenueDesignEditorial
         venue={createMockVenue({
           instant_booking: false,
           booking_mode: 'request_to_book',
         })}
+        venueAdminConfig={venueAdminConfig}
       />
     )
+  }
+
+  const fillTimes = () => {
+    fireEvent.change(screen.getByLabelText('Start time'), { target: { value: '19:00' } })
+    fireEvent.change(screen.getByLabelText('End time'), { target: { value: '21:00' } })
+  }
+
+  const openSheet = async () => {
+    fireEvent.click(screen.getByRole('button', { name: 'Request a time' }))
+    return screen.findByRole('dialog')
+  }
+
+  const fillDetails = (sheet: HTMLElement) => {
+    fireEvent.change(within(sheet).getByLabelText('What are you planning?'), { target: { value: 'Team practice' } })
+    fireEvent.change(within(sheet).getByLabelText('Message to host (optional)'), {
+      target: { value: 'Youth basketball practice' },
+    })
+  }
+
+  const setDesktop = (isDesktop: boolean) => {
+    Object.defineProperty(window, 'matchMedia', {
+      configurable: true,
+      writable: true,
+      value: isDesktop ? () => ({ matches: true }) : undefined,
+    })
+  }
+
+  afterEach(() => setDesktop(false))
+
+  it('shows the site header on the venue page', () => {
+    renderRequestVenue()
+
+    expect(screen.getByTestId('site-header')).toBeInTheDocument()
+  })
+
+  it('replaces slot availability with a compact request card for request-to-book venues', () => {
+    renderRequestVenue()
 
     expect(screen.getByText('Request your preferred time')).toBeInTheDocument()
     expect(screen.getByText('Request a time to book')).toBeInTheDocument()
     expect(screen.getByText('No published availability shown')).toBeInTheDocument()
     expect(screen.getByLabelText('Date')).toBeInTheDocument()
     expect(screen.getByLabelText('Start time')).toBeInTheDocument()
-    expect(screen.getByLabelText('Duration')).toBeInTheDocument()
-    expect(screen.getByText('hour(s)')).toBeInTheDocument()
-    expect(screen.getByRole('button', { name: 'Review request' })).toBeInTheDocument()
+    expect(screen.getByLabelText('End time')).toBeInTheDocument()
+    expect(screen.getByText(/No payment now/)).toBeInTheDocument()
+    expect(screen.getByRole('button', { name: 'Request a time' })).toBeInTheDocument()
+    // The rest of the form waits for the sheet (phone) or the request page (desktop).
+    expect(screen.queryByLabelText('What are you planning?')).not.toBeInTheDocument()
     expect(screen.queryByText('No availability this week')).not.toBeInTheDocument()
     expect(screen.queryByRole('heading', { name: 'Coming Up' })).not.toBeInTheDocument()
-    expect(screen.queryByRole('button', { name: /coming-up-day/i })).not.toBeInTheDocument()
   })
 
-  it('constrains request-to-book form controls within the mobile card', () => {
-    mockUseVenueAvailabilityRange.mockReturnValue({
-      data: [],
-      loading: false,
-      error: null,
-    })
+  it('puts start and end time on one row, with every control constrained to the card', () => {
+    renderRequestVenue()
 
-    render(
-      <VenueDesignEditorial
-        venue={createMockVenue({
-          instant_booking: false,
-          booking_mode: 'request_to_book',
-        })}
-      />
-    )
-
-    const dateField = screen.getByText('Date', { selector: 'label' }).closest('div')
-    const startTimeField = screen.getByText('Start time', { selector: 'label' }).closest('div')
-    const durationField = screen.getByText('Duration', { selector: 'label' }).closest('div')
-    const dateInput = screen.getByLabelText('Date')
-    const startTimeInput = screen.getByLabelText('Start time')
-    const durationInput = screen.getByLabelText('Duration')
-    const dateControl = dateInput.parentElement
-    const startTimeControl = startTimeInput.parentElement
-    const durationControl = durationInput.parentElement
-
-    expect(dateField).toHaveClass('min-w-0')
-    expect(startTimeField).toHaveClass('min-w-0')
-    expect(durationField).toHaveClass('min-w-0')
-    const formGrid = dateField?.parentElement
-    expect(formGrid?.className).toContain('minmax(0,1fr)')
-    expect(dateControl).toHaveClass('relative', 'w-full', 'min-w-0', 'max-w-full', 'overflow-hidden', 'rounded-xl')
-    expect(startTimeControl).toHaveClass('relative', 'w-full', 'min-w-0', 'max-w-full', 'overflow-hidden', 'rounded-xl')
-    expect(durationControl).toHaveClass('relative', 'w-full', 'min-w-0', 'max-w-full', 'overflow-hidden', 'rounded-xl')
-    expect(dateInput).toHaveClass('block', 'w-full', 'min-w-0', 'max-w-full', 'appearance-none', 'overflow-hidden')
-    expect(startTimeInput).toHaveClass('block', 'w-full', 'min-w-0', 'max-w-full', 'appearance-none', 'overflow-hidden')
-    expect(durationInput).toHaveClass('max-w-full')
+    const timeRow = screen.getByTestId('request-time-row')
+    expect(timeRow.className).toContain('grid-cols-[repeat(2,minmax(0,1fr))]')
+    expect(within(timeRow).getByLabelText('Start time')).toBeInTheDocument()
+    expect(within(timeRow).getByLabelText('End time')).toBeInTheDocument()
+    for (const label of ['Date', 'Start time', 'End time']) {
+      const control = screen.getByLabelText(label)
+      expect(control.parentElement).toHaveClass('relative', 'w-full', 'min-w-0', 'max-w-full', 'overflow-hidden', 'rounded-lg')
+      expect(control).toHaveClass('block', 'w-full', 'min-w-0', 'max-w-full', 'appearance-none', 'overflow-hidden')
+    }
   })
 
-  it('sends request-to-book details from the review step', async () => {
-    mockUseVenueAvailabilityRange.mockReturnValue({
-      data: [],
-      loading: false,
-      error: null,
-    })
+  it('updates the estimate as times change', () => {
+    renderRequestVenue()
 
-    render(
-      <VenueDesignEditorial
-        venue={createMockVenue({
-          instant_booking: false,
-          booking_mode: 'request_to_book',
-        })}
-      />
-    )
-
-    fireEvent.change(screen.getByLabelText('Start time'), { target: { value: '19:00' } })
-    fireEvent.change(screen.getByLabelText('Duration'), { target: { value: '2' } })
-    fireEvent.click(screen.getByRole('button', { name: 'Review request' }))
-
-    expect(screen.getByText('Basketball')).toBeInTheDocument()
+    expect(screen.getByText('$75.00')).toBeInTheDocument()
+    fillTimes()
     expect(screen.getByText('$150.00')).toBeInTheDocument()
+  })
 
-    fireEvent.change(screen.getByLabelText('Notes (optional)'), {
-      target: { value: 'Youth basketball practice' },
-    })
-    fireEvent.click(screen.getByRole('button', { name: 'Send request' }))
+  it('on desktop, goes to the request page with the chosen date and times', () => {
+    setDesktop(true)
+    renderRequestVenue()
+
+    fillTimes()
+    fireEvent.click(screen.getByRole('button', { name: 'Request a time' }))
+
+    expect(mockPush).toHaveBeenCalledWith('/venue/memorial-park/request?date=2026-02-21&start=19%3A00&end=21%3A00')
+    expect(screen.queryByRole('dialog')).not.toBeInTheDocument()
+  })
+
+  it('on phones, finishes in a bottom sheet and shows the received screen', async () => {
+    renderRequestVenue()
+
+    fillTimes()
+    const sheet = await openSheet()
+    expect(within(sheet).getByText('Request to book')).toBeInTheDocument()
+    fillDetails(sheet)
+    fireEvent.change(within(sheet).getByLabelText('Phone'), { target: { value: '323-555-0100' } })
+    fireEvent.click(within(sheet).getByRole('button', { name: 'Send request' }))
 
     await waitFor(() => {
       expect(mockCreateBooking).toHaveBeenCalledWith({
@@ -568,36 +586,97 @@ describe('VenueDesignEditorial availability calendar', () => {
         start_time: '19:00:00',
         end_time: '21:00:00',
         recurring_type: 'none',
+        activity: 'Team practice',
+        phone: '323-555-0100',
         notes: 'Youth basketball practice',
       })
     })
-    expect(await screen.findByText('Request sent')).toBeInTheDocument()
+    expect(await screen.findByText("Request sent. You're not booked yet.")).toBeInTheDocument()
+    expect(screen.getByRole('link', { name: 'View my requests' })).toHaveAttribute('href', '/my-bookings')
+  })
+
+  it('prefills the phone saved on the profile', async () => {
+    mockCurrentUser = { id: 'user-1', email: 'user@example.com', phone: '323-555-0111' }
+    renderRequestVenue()
+
+    const sheet = await openSheet()
+    expect(within(sheet).getByLabelText('Phone')).toHaveValue('323-555-0111')
+    fillDetails(sheet)
+    fireEvent.click(within(sheet).getByRole('button', { name: 'Send request' }))
+
+    await waitFor(() => {
+      expect(mockCreateBooking).toHaveBeenCalledWith(expect.objectContaining({ phone: '323-555-0111' }))
+    })
+  })
+
+  it('asks for a phone number and what they are planning before sending', async () => {
+    mockCurrentUser = { id: 'user-1', email: 'user@example.com' }
+    renderRequestVenue()
+
+    const sheet = await openSheet()
+    fireEvent.click(within(sheet).getByRole('button', { name: 'Send request' }))
+    expect(await within(sheet).findByText('Choose what you are planning')).toBeInTheDocument()
+
+    fillDetails(sheet)
+    fireEvent.click(within(sheet).getByRole('button', { name: 'Send request' }))
+    expect(await within(sheet).findByText('Add a phone number so the venue can reach you')).toBeInTheDocument()
+    expect(mockCreateBooking).not.toHaveBeenCalled()
+  })
+
+  it('takes typed plans when Other is chosen', async () => {
+    renderRequestVenue()
+
+    const sheet = await openSheet()
+    fireEvent.change(within(sheet).getByLabelText('What are you planning?'), { target: { value: 'Other' } })
+    fireEvent.change(within(sheet).getByLabelText('Describe your plans'), { target: { value: 'Volleyball practice' } })
+    fireEvent.change(within(sheet).getByLabelText('Phone'), { target: { value: '323-555-0100' } })
+    fireEvent.click(within(sheet).getByRole('button', { name: 'Send request' }))
+
+    await waitFor(() => {
+      expect(mockCreateBooking).toHaveBeenCalledWith(expect.objectContaining({ activity: 'Volleyball practice' }))
+    })
+  })
+
+  it('fills the date and times from a usually-open hint', () => {
+    renderRequestVenue({
+      request_hint_windows: [{ day_of_week: 6, start_time: '08:00:00', end_time: '13:00:00' }],
+    })
+
+    fireEvent.change(screen.getByLabelText('Date'), { target: { value: '2026-02-24' } })
+    fireEvent.click(screen.getByRole('button', { name: /Sat 8:00 AM–1:00 PM/ }))
+
+    expect(screen.getByLabelText('Date')).toHaveValue('2026-02-28')
+    expect(screen.getByLabelText('Start time')).toHaveValue('08:00')
+    expect(screen.getByLabelText('End time')).toHaveValue('13:00')
+    expect(screen.getByText('$375.00')).toBeInTheDocument()
+  })
+
+  it('only offers times inside the venue hours, and blocks Request a time on a closed day', () => {
+    renderRequestVenue({
+      operating_hours: [{ day_of_week: 6, start_time: '08:00:00', end_time: '12:00:00' }],
+    })
+
+    const startValues = Array.from((screen.getByLabelText('Start time') as HTMLSelectElement).options)
+      .map((option) => option.value)
+      .filter((value) => value !== '18:00')
+    expect(startValues).toEqual(['08:00', '09:00', '10:00', '11:00'])
+
+    fireEvent.change(screen.getByLabelText('Date'), { target: { value: '2026-02-23' } })
+    expect(screen.getByText("The venue isn't open on this day. Try another date.")).toBeInTheDocument()
+    fireEvent.click(screen.getByRole('button', { name: 'Request a time' }))
+    expect(screen.getByText('Choose a start time when the venue is open')).toBeInTheDocument()
+    expect(screen.queryByRole('dialog')).not.toBeInTheDocument()
   })
 
   it('opens sign-in with request details when a signed-out user sends a request', async () => {
     mockCurrentUser = null
-    mockUseVenueAvailabilityRange.mockReturnValue({
-      data: [],
-      loading: false,
-      error: null,
-    })
+    renderRequestVenue()
 
-    render(
-      <VenueDesignEditorial
-        venue={createMockVenue({
-          instant_booking: false,
-          booking_mode: 'request_to_book',
-        })}
-      />
-    )
-
-    fireEvent.change(screen.getByLabelText('Start time'), { target: { value: '19:00' } })
-    fireEvent.change(screen.getByLabelText('Duration'), { target: { value: '2' } })
-    fireEvent.click(screen.getByRole('button', { name: 'Review request' }))
-    fireEvent.change(screen.getByLabelText('Notes (optional)'), {
-      target: { value: 'Youth basketball practice' },
-    })
-    fireEvent.click(screen.getByRole('button', { name: 'Send request' }))
+    fillTimes()
+    const sheet = await openSheet()
+    expect(within(sheet).queryByLabelText('Phone')).not.toBeInTheDocument()
+    fillDetails(sheet)
+    fireEvent.click(within(sheet).getByRole('button', { name: 'Send request' }))
 
     await waitFor(() => {
       expect(mockOpenAuthModal).toHaveBeenCalledWith({
@@ -608,12 +687,29 @@ describe('VenueDesignEditorial availability calendar', () => {
           venueId: 'venue-1',
           date: '2026-02-21',
           startTime: '19:00',
-          durationHours: 2,
+          endTime: '21:00',
+          activity: 'Team practice',
           notes: 'Youth basketball practice',
+          phone: '',
         },
       })
     })
     expect(mockCreateBooking).not.toHaveBeenCalled()
+  })
+
+  it('clears an earlier form error once the request is valid', async () => {
+    mockCurrentUser = null
+    renderRequestVenue()
+
+    const sheet = await openSheet()
+    fireEvent.click(within(sheet).getByRole('button', { name: 'Send request' }))
+    expect(await within(sheet).findByText('Choose what you are planning')).toBeInTheDocument()
+
+    fillDetails(sheet)
+    fireEvent.click(within(sheet).getByRole('button', { name: 'Send request' }))
+
+    await waitFor(() => expect(mockOpenAuthModal).toHaveBeenCalled())
+    expect(within(sheet).queryByText('Choose what you are planning')).not.toBeInTheDocument()
   })
 
   it('shows drop-in person pricing for info-only slots instead of venue hourly rate', () => {

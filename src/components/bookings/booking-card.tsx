@@ -110,7 +110,7 @@ export function BookingCard({ booking, onPayClick }: BookingCardProps) {
             >
               ${booking.total_amount.toFixed(2)}
               {ticketState.showAmount === 'subdued' && (
-                <span className="ml-xs">paid</span>
+                <span className="ml-xs">{ticketState.amountSuffix}</span>
               )}
             </p>
           </div>

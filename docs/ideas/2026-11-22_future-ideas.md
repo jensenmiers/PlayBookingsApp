@@ -25,7 +25,7 @@ This is a record of features that were built, half-built or explored but aren't 
   - the page: https://www.catchcorner.com/facility-page/first-presbyterian-church-of-hollywood/home
   - the church doesn't share a schedule with us, and its CatchCorner page shows the current week
   - check CatchCorner's terms before reading the page automatically
-- **Search page views.** Older search layouts (`src/components/search/venues-view.tsx`, `calendar-view.tsx`, `availability-view.tsx`, `availability-card.tsx`) offered list, calendar and availability-first views. `SplitAvailabilityView` (map plus list) replaced them. *Planned for deletion in the church project.*
+- **Search page views.** Older search layouts (`src/components/search/venues-view.tsx`, `calendar-view.tsx`, `availability-view.tsx`, `availability-card.tsx`) offered list, calendar and availability-first views. `SplitAvailabilityView` (map plus list) replaced them. *Deleted on the `feat/church-request-to-book` branch; recover them from `main` at `c6f9ade` or earlier. Their tests and the `useAvailabilitySlots` hook were deleted with them.*
 
 ## Booking and payments
 
@@ -41,16 +41,16 @@ This is a record of features that were built, half-built or explored but aren't 
   - **Pay after approval:** no card at request time; the renter pays once approved. Smaller.
   - **Charge on approval:** create a Stripe Customer, attach the card, charge when the admin clicks Confirm.
 - **Stripe Checkout (hosted payment page).** This was the first payment method: `/api/payments/checkout`, `usePaymentCheckout`, `/booking/cancelled`. The embedded card form replaced it. Kept, unused.
-- **Editing a booking.** `PATCH /api/bookings/[id]` and the `useUpdateBooking` hook exist with no screen. *The hook is planned for deletion; the route stays.*
+- **Editing a booking.** `PATCH /api/bookings/[id]` and the `useUpdateBooking` hook exist with no screen. *The hook was deleted (recover from `main` at `c6f9ade`); the route stays. `useGenerateRecurring` was deleted too.*
 - **Platform fee and payouts to owners.** `payments.platform_fee` is always 0 and `stripe_transfer_id` is never written. Stripe Connect payouts were planned (the README mentions them) but not built.
-- **Booking details dialogs.** `booking-details.tsx`, `booking-status-badge.tsx` and `booking-confirmation-dialog.tsx` were earlier ways of showing a booking. The ticket view replaced them. *Planned for deletion.*
+- **Booking details dialogs.** `booking-details.tsx`, `booking-status-badge.tsx` and `booking-confirmation-dialog.tsx` were earlier ways of showing a booking. The ticket view replaced them. *Deleted on the `feat/church-request-to-book` branch; recover them from `main` at `c6f9ade` or earlier.*
 
 ## Hosts and owners
 
 - **Host self sign-up.** `/become-a-host` and `/auth/upgrade-to-host` exist. The flag `HOST_ONBOARDING_ENABLED` in `src/lib/hostOnboarding.ts` is hard-coded to `false`, so the upgrade screen can't be reached.
 - **Owner dashboard.** `/dashboard`, `/listings`, `/payouts`, `/messages` and `/settings` were planned owner pages. Today each just redirects to `/my-bookings`, but `sidebar-navigation.tsx` still links to them.
   - Dashboard widgets were also built: stat cards, an activity feed, message cards and small charts.
-  - *Those widgets are planned for deletion; the redirect pages stay.*
+  - *Those widgets (`src/components/dashboard/stats-card.tsx`, `activity-item.tsx`, `booking-list-item.tsx`, `message-card.tsx`, and `src/components/charts/`) were deleted on the `feat/church-request-to-book` branch; recover them from `main` at `c6f9ade`. The redirect pages stay.*
 - **Messages between renter and owner.** There's a `messages` table, but nothing reads it.
 - **Insurance documents.** There's an `insurance_documents` table, but approval is just a yes/no flag set by the super-admin. A real flow would upload and review the certificate.
 - **Subscriptions.** There's a `subscriptions` table with no code. Possibly for owner plans or renter memberships.
@@ -97,3 +97,13 @@ These can't be settled by reading the repo:
 
 - The old `/auth/callback` route without a nonce may still be listed in Supabase's allowed redirects.
 - `check_booking_conflicts()` may or may not still be attached as a database trigger in production.
+
+## Deleted in the church project
+
+All of these had no callers. Recover any of them from `main` at `c6f9ade` or earlier.
+
+- **Search views:** `venues-view.tsx`, `calendar-view.tsx`, `availability-view.tsx` and `availability-card.tsx`, with their two tests.
+- **Dashboard widgets:** `stats-card.tsx`, `activity-item.tsx`, `booking-list-item.tsx` and `message-card.tsx`, plus `src/components/charts/` (`mini-line-chart.tsx`, `performance-chart.tsx`).
+- **Booking dialogs:** `booking-details.tsx`, `booking-status-badge.tsx` and `booking-confirmation-dialog.tsx`.
+- **Stripe provider:** `src/components/providers/stripe-provider.tsx`. The payment modal loads Stripe on its own.
+- **Hooks:** `useUpdateBooking` and `useGenerateRecurring` (from `useBookings.ts`), and `useVenueBySlug`, `useVenueAvailability` and `useAvailabilitySlots` (from `useVenues.ts`).

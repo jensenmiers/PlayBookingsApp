@@ -28,8 +28,10 @@ export interface RequestToBookResumeState {
   venueId: string
   date: string
   startTime: string
-  durationHours: number
+  endTime: string
+  activity: string
   notes: string
+  phone: string
 }
 
 export type AuthResumeState = CreateBookingFormResumeState | SlotBookingResumeState | RequestToBookResumeState
@@ -108,16 +110,14 @@ function isRequestToBookResumeState(value: unknown): value is RequestToBookResum
     return false
   }
 
-  const durationHours = value.durationHours
-
   return value.type === 'request-to-book'
     && typeof value.venueId === 'string'
     && typeof value.date === 'string'
     && typeof value.startTime === 'string'
-    && typeof durationHours === 'number'
-    && Number.isInteger(durationHours)
-    && durationHours >= 1
+    && typeof value.endTime === 'string'
+    && typeof value.activity === 'string'
     && typeof value.notes === 'string'
+    && typeof value.phone === 'string'
 }
 
 function isAuthResumeState(value: unknown): value is AuthResumeState {

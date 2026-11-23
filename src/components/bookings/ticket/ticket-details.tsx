@@ -8,9 +8,10 @@ interface TicketDetailsProps {
   booking: Booking
   venue: Venue | null
   showAmount: TicketState['showAmount']
+  amountSuffix: TicketState['amountSuffix']
 }
 
-export function TicketDetails({ booking, venue, showAmount }: TicketDetailsProps) {
+export function TicketDetails({ booking, venue, showAmount, amountSuffix }: TicketDetailsProps) {
   return (
     <div className="space-y-4">
       {/* Venue location */}
@@ -41,7 +42,7 @@ export function TicketDetails({ booking, venue, showAmount }: TicketDetailsProps
           </p>
         ) : (
           <p className="text-lg text-secondary-50/60">
-            ${booking.total_amount.toFixed(2)} paid
+            ${booking.total_amount.toFixed(2)} {amountSuffix}
           </p>
         )}
       </div>

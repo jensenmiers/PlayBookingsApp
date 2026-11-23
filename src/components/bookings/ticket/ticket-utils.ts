@@ -11,6 +11,8 @@ export interface TicketState {
   insuranceGated: boolean
   primaryAction: 'pay' | 'directions' | 'book-again' | 'waiting' | null
   showAmount: 'prominent' | 'subdued'
+  /** Word shown after a subdued amount. Request-to-book venues never take payment in the app. */
+  amountSuffix: 'paid' | 'estimate'
   statusLabel: string
   statusDescription: string
   statusVariant: 'pending' | 'pending-insurance' | 'confirmed' | 'cancelled' | 'completed'
@@ -19,10 +21,8 @@ export interface TicketState {
 export function getTicketState(booking: Booking, venue: BookingTicketVenue | null): TicketState {
   const isPast = isPastBookingStart(booking.date, booking.start_time)
   const insuranceGated = booking.insurance_required && !booking.insurance_approved && booking.status === 'pending'
-  const isRequestToBookPending =
-    booking.status === 'pending'
-    && venue !== null
-    && resolveVenueBookingMode(venue) === 'request_to_book'
+  const isRequestToBookVenue = venue !== null && resolveVenueBookingMode(venue) === 'request_to_book'
+  const isRequestToBookPending = booking.status === 'pending' && isRequestToBookVenue
 
   const canPay =
     booking.status === 'pending' &&
@@ -55,7 +55,7 @@ export function getTicketState(booking: Booking, venue: BookingTicketVenue | nul
     case 'pending':
       if (isRequestToBookPending && !isPast) {
         statusLabel = 'Request sent'
-        statusDescription = 'Manual follow-up pending'
+        statusDescription = "We'll email you within 24 hours once the venue confirms"
         statusVariant = 'pending'
       } else if (insuranceGated) {
         statusLabel = 'Pending'
@@ -82,7 +82,9 @@ export function getTicketState(booking: Booking, venue: BookingTicketVenue | nul
       break
     case 'cancelled':
       statusLabel = 'Cancelled'
-      statusDescription = 'This booking was cancelled'
+      statusDescription = isRequestToBookVenue
+        ? 'Declined by the venue or cancelled. Check your email for details.'
+        : 'This booking was cancelled'
       statusVariant = 'cancelled'
       break
     case 'completed':
@@ -99,6 +101,7 @@ export function getTicketState(booking: Booking, venue: BookingTicketVenue | nul
     insuranceGated,
     primaryAction,
     showAmount,
+    amountSuffix: isRequestToBookVenue ? 'estimate' : 'paid',
     statusLabel,
     statusDescription,
     statusVariant,

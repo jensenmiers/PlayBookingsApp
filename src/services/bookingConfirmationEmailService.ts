@@ -22,6 +22,7 @@ export interface BookingConfirmationEmailRecord {
   totalAmount: number
   status: BookingStatus
   confirmationEmailSentAt: string | null
+  paidOnline?: boolean
 }
 
 export interface BookingConfirmationEmailStore {
@@ -53,7 +54,7 @@ interface BookingConfirmationEmailServiceDependencies {
   config?: BookingEmailConfig
 }
 
-class LazyResendEmailClient implements ResendEmailClient {
+export class LazyResendEmailClient implements ResendEmailClient {
   readonly emails: ResendEmailClient['emails']
 
   constructor(apiKey: string) {
@@ -141,7 +142,7 @@ implements BookingConfirmationEmailStore {
         .maybeSingle(),
       supabase
         .from('venues')
-        .select('name, address, city, state, zip_code')
+        .select('name, address, city, state, zip_code, booking_mode')
         .eq('id', booking.venue_id)
         .maybeSingle(),
     ])
@@ -173,6 +174,7 @@ implements BookingConfirmationEmailStore {
       totalAmount: Number(booking.total_amount),
       status: booking.status as BookingStatus,
       confirmationEmailSentAt: booking.confirmation_email_sent_at,
+      paidOnline: venueResult.data.booking_mode !== 'request_to_book',
     }
   }
 
@@ -252,6 +254,7 @@ export class BookingConfirmationEmailService {
       totalAmount: booking.totalAmount,
       bookingUrl,
       replyTo: this.config.replyTo,
+      paidOnline: booking.paidOnline,
     })
     const isOverridden = Boolean(this.config.overrideTo)
     const payload: CreateEmailOptions = {

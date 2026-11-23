@@ -12,6 +12,7 @@ type UserRow = {
   first_name: string | null
   last_name: string | null
   email: string | null
+  phone?: string | null
 }
 
 export async function GET(_request: Request, context: RouteContext): Promise<Response> {
@@ -43,7 +44,7 @@ export async function GET(_request: Request, context: RouteContext): Promise<Res
     if (renterIds.length > 0) {
       const { data: userRows, error: usersError } = await adminClient
         .from('users')
-        .select('id, first_name, last_name, email')
+        .select('id, first_name, last_name, email, phone')
         .in('id', renterIds)
 
       if (usersError) {
@@ -55,6 +56,7 @@ export async function GET(_request: Request, context: RouteContext): Promise<Res
           first_name: row.first_name,
           last_name: row.last_name,
           email: row.email,
+          phone: row.phone ?? null,
         })
       }
     }

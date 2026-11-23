@@ -143,7 +143,7 @@ function createAdminClientMock(args?: {
 
   return {
     client: { from, rpc },
-    calls: { rpc, templatesInsert, templateDeleteRegularIn, publishStateUpsert, venueUpdate },
+    calls: { rpc, templatesInsert, templateDeleteRegularIn, publishStateUpsert, venueUpdate, configUpsert },
   }
 }
 
@@ -434,6 +434,32 @@ describe('PATCH /api/admin/venues/[id]', () => {
     expect(calls.venueUpdate).toHaveBeenCalledWith({
       booking_mode: 'request_to_book',
     })
+    expect(calls.rpc).not.toHaveBeenCalledWith(
+      'refresh_slot_instances_from_templates',
+      expect.any(Object)
+    )
+  })
+
+  it('persists request hint windows without publishing slot availability', async () => {
+    const { client, calls } = createAdminClientMock()
+    mockCreateAdminClient.mockReturnValue(client)
+    const hints = [{ day_of_week: 6, start_time: '08:00:00', end_time: '13:00:00' }]
+    mockValidateRequest.mockResolvedValue({ request_hint_windows: hints })
+
+    const response = await PATCH(
+      new Request('http://localhost/api/admin/venues/venue-1', {
+        method: 'PATCH',
+        headers: { 'content-type': 'application/json' },
+        body: JSON.stringify({ request_hint_windows: hints }),
+      }),
+      createContext('venue-1')
+    )
+
+    expect(response.status).toBe(200)
+    expect(calls.configUpsert).toHaveBeenCalledWith(
+      expect.objectContaining({ request_hint_windows: hints }),
+      expect.anything()
+    )
     expect(calls.rpc).not.toHaveBeenCalledWith(
       'refresh_slot_instances_from_templates',
       expect.any(Object)

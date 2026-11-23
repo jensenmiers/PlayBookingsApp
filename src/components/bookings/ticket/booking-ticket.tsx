@@ -82,6 +82,7 @@ export function BookingTicket({
               booking={booking}
               venue={venue}
               showAmount={ticketState.showAmount}
+              amountSuffix={ticketState.amountSuffix}
             />
           </div>
 
