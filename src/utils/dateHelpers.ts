@@ -62,14 +62,8 @@ export function getCancellationInfo(
   bookingStartTime?: string,
   hoursBefore: number = BUSINESS_RULES.CANCELLATION_NOTICE_HOURS
 ): CancellationInfo {
-  let bookingDateTime: Date
-  
-  if (typeof bookingDate === 'string') {
-    bookingDateTime = new Date(bookingDate)
-  } else {
-    bookingDateTime = new Date(bookingDate)
-  }
-  
+  const bookingDateTime = new Date(bookingDate)
+
   // If start time is provided, set the hours
   if (bookingStartTime) {
     const [hours, minutes] = bookingStartTime.split(':').map(Number)
@@ -180,9 +174,7 @@ export function getNextTopOfHour(): Date {
  */
 export function timeStringToDate(dateStr: string, timeStr: string): Date {
   const [hours, minutes] = timeStr.split(':').map(Number)
-  // Parse date as local midnight to avoid UTC shift
-  const [year, month, day] = dateStr.split('-').map(Number)
-  const date = new Date(year, month - 1, day) // month is 0-indexed
+  const date = parseLocalDate(dateStr)
   date.setHours(hours, minutes || 0, 0, 0)
   return date
 }
@@ -254,8 +246,7 @@ export function getDateStringInTimeZone(date: Date, timeZone: string): string {
 }
 
 export function addDaysToDateString(dateStr: string, days: number): string {
-  const [year, month, day] = dateStr.split('-').map(Number)
-  const date = new Date(year, month - 1, day)
+  const date = parseLocalDate(dateStr)
   date.setDate(date.getDate() + days)
   const y = date.getFullYear()
   const m = date.getMonth() + 1
