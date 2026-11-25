@@ -219,4 +219,25 @@ describe('Navigation', () => {
 
     expect(container.querySelector('a[href=\"/calendar\"]')).toBeNull()
   })
+
+  it('shows a Profile link in the signed-in user dropdown', () => {
+    mockUseCurrentUser.mockReturnValue({
+      user: {
+        id: 'renter-1',
+        email: 'renter@example.com',
+        first_name: 'Renter',
+        last_name: 'User',
+        avatar_url: null,
+        is_venue_owner: false,
+      },
+      loading: false,
+      error: null,
+    })
+
+    render(<Navigation />)
+
+    fireEvent.click(screen.getByRole('button', { name: /renter user/i }))
+
+    expect(screen.getByRole('link', { name: 'Profile' })).toHaveAttribute('href', '/profile')
+  })
 })
