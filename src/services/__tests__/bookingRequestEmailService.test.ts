@@ -39,7 +39,7 @@ function setup(config: Partial<BookingEmailConfig> = {}, sendImpl?: jest.Mock) {
 }
 
 describe('BookingRequestEmailService', () => {
-  it('sends the admins a request notice with the renter\'s contact details, replying to the business address', async () => {
+  it('sends the admins an action-needed notice with the request, the renter and next steps', async () => {
     const { service, send } = setup()
 
     await service.sendRequestReceived('booking-1')
@@ -47,21 +47,45 @@ describe('BookingRequestEmailService', () => {
     const [adminPayload, adminOptions] = send.mock.calls[0]
     expect(adminPayload.to).toEqual(['jensen@playbookings.com', 'jensenmiers@gmail.com'])
     expect(adminPayload.replyTo).toBe('jensen@playbookings.com')
-    expect(adminPayload.text).toContain('renter@example.com')
-    expect(adminPayload.subject).toContain('New request')
-    expect(adminPayload.subject).toContain('Pickup run')
-    expect(adminPayload.text).toContain('323-555-0100')
-    expect(adminPayload.text).toContain('Ten of us, half court is fine.')
+    expect(adminPayload.subject).toBe(
+      'Action needed: new court request from Sam Rivera, Sat, Nov 28, 8:00 AM–10:00 AM PT'
+    )
+    expect(adminPayload.text).toContain('NEW COURT REQUEST: ACTION NEEDED')
+    expect(adminPayload.text).toContain('Sam Rivera wants to book First Presbyterian Church of Hollywood.')
+    expect(adminPayload.text).toContain('Date:      Saturday, November 28, 2026')
+    expect(adminPayload.text).toContain('Time:      8:00 AM–10:00 AM PT (2 hours)')
+    expect(adminPayload.text).toContain('Planning:  Pickup run')
+    expect(adminPayload.text).toContain('Message:   Ten of us, half court is fine.')
+    expect(adminPayload.text).toContain('Estimate:  $120.00 at $60.00/hr. No payment taken.')
+    expect(adminPayload.text).toContain('Email:  renter@example.com')
+    expect(adminPayload.text).toContain('Phone:  323-555-0100')
+    expect(adminPayload.text).toContain('1. Check this time with First Presbyterian Church of Hollywood.')
+    expect(adminPayload.text).toContain('https://www.playbookings.com/super-admin')
     expect(adminOptions).toEqual({ idempotencyKey: 'booking-request-admin/booking-1' })
   })
 
-  it('sends the renter a receipt saying they are not booked yet', async () => {
+  it('names the renter by email in the subject when they have no name on file', async () => {
+    const send = jest.fn().mockResolvedValue({ data: { id: 'email-1' }, error: null })
+    const service = new BookingRequestEmailService({
+      store: { getByBookingId: jest.fn().mockResolvedValue({ ...record, renterName: null }) },
+      resend: { emails: { send } } as unknown as ResendEmailClient,
+      config: baseConfig,
+    })
+
+    await service.sendRequestReceived('booking-1')
+
+    expect(send.mock.calls[0][0].subject).toContain('new court request from renter@example.com')
+  })
+
+  it('sends the renter a receipt saying they are not booked yet, copying both admins', async () => {
     const { service, send } = setup()
 
     await service.sendRequestReceived('booking-1')
 
     const [receiptPayload, receiptOptions] = send.mock.calls[1]
     expect(receiptPayload.to).toEqual(['renter@example.com'])
+    expect(receiptPayload.bcc).toEqual(['jensen@playbookings.com', 'jensenmiers@gmail.com'])
+    expect(receiptPayload.replyTo).toBe('jensen@playbookings.com')
     expect(receiptPayload.text).toContain("You're not booked yet")
     expect(receiptPayload.text).toContain('within 24 hours')
     expect(receiptPayload.text).toContain('$120.00')
@@ -76,6 +100,7 @@ describe('BookingRequestEmailService', () => {
     expect(send.mock.calls[0][0].to).toEqual(['qa@example.com'])
     expect(send.mock.calls[1][0].to).toEqual(['qa@example.com'])
     expect(send.mock.calls[1][0].subject).toContain('[TEST for renter@example.com]')
+    expect(send.mock.calls[1][0].bcc).toBeUndefined()
   })
 
   it('still sends the receipt when the admin notice fails, then reports the failure', async () => {

@@ -106,6 +106,33 @@ export class SupabaseBookingRequestEmailStore implements BookingRequestEmailStor
   }
 }
 
+function toUtcNoon(date: string): Date {
+  const [year, month, day] = date.split('-').map(Number)
+  return new Date(Date.UTC(year, month - 1, day, 12))
+}
+
+/** "Saturday, November 28, 2026" */
+function formatLongDate(date: string): string {
+  return new Intl.DateTimeFormat('en-US', {
+    weekday: 'long', month: 'long', day: 'numeric', year: 'numeric', timeZone: 'UTC',
+  }).format(toUtcNoon(date))
+}
+
+/** "Sat, Nov 28" */
+function formatShortDate(date: string): string {
+  return new Intl.DateTimeFormat('en-US', {
+    weekday: 'short', month: 'short', day: 'numeric', timeZone: 'UTC',
+  }).format(toUtcNoon(date))
+}
+
+function requestHours(record: BookingRequestEmailRecord): number {
+  const toMinutes = (time: string) => {
+    const [hours, minutes] = time.split(':').map(Number)
+    return hours * 60 + minutes
+  }
+  return (toMinutes(record.endTime) - toMinutes(record.startTime)) / 60
+}
+
 function summaryLines(record: BookingRequestEmailRecord): string[] {
   return [
     `Venue: ${record.venueName}`,
@@ -135,24 +162,44 @@ export class BookingRequestEmailService {
     const failures: string[] = []
 
     if (this.config.bcc.length > 0 || this.config.overrideTo) {
+      const who = record.renterName || record.renterEmail
+      const hours = requestHours(record)
+      const hourlyRate = hours > 0 ? record.totalAmount / hours : record.totalAmount
       const adminText = [
-        'A renter has requested a time. Confirm with the venue, then Confirm or Decline in Super Admin.',
+        'NEW COURT REQUEST: ACTION NEEDED',
         '',
-        ...summaryLines(record),
+        `${who} wants to book ${record.venueName}.`,
+        "They are not booked yet. They've been told they'll hear back within 24 hours.",
         '',
-        `Name: ${record.renterName || 'Not given'}`,
-        `Email: ${record.renterEmail}`,
-        `Phone: ${record.renterPhone || 'Not given'}`,
-        `Message: ${record.notes || 'None'}`,
+        "WHAT THEY'RE ASKING FOR",
+        `Date:      ${formatLongDate(record.date)}`,
+        `Time:      ${time} (${hours} ${hours === 1 ? 'hour' : 'hours'})`,
+        `Planning:  ${record.activity || 'Not given'}`,
+        `Message:   ${record.notes || 'None'}`,
+        `Estimate:  ${formatBookingAmount(record.totalAmount)} at ${formatBookingAmount(hourlyRate)}/hr. No payment taken.`,
         '',
-        `Super Admin: ${this.config.appUrl}/super-admin`,
+        "WHO'S ASKING",
+        `Name:   ${record.renterName || 'Not given'}`,
+        `Email:  ${record.renterEmail}`,
+        `Phone:  ${record.renterPhone || 'Not given'}`,
+        '',
+        'WHAT TO DO NEXT',
+        `1. Check this time with ${record.venueName}.`,
+        '2. Confirm or decline it in Super Admin, on the venue\'s Bookings tab:',
+        `   ${this.config.appUrl}/super-admin`,
+        '   The renter is emailed either way, and you get a copy.',
+        '',
+        `Request #${record.bookingId}`,
       ].join('\n')
 
       const error = await this.send(
         {
           to: this.config.overrideTo ? [this.config.overrideTo] : this.config.bcc,
           replyTo: this.config.replyTo,
-          subject: `New request: ${date} ${time} · ${record.activity || 'Court time'}`,
+          subject: this.testSubject(
+            `Action needed: new court request from ${who}, ${formatShortDate(record.date)}, ${time}`,
+            record
+          ),
           text: adminText,
         },
         `booking-request-admin/${record.bookingId}`
@@ -177,6 +224,8 @@ export class BookingRequestEmailService {
         replyTo: this.config.replyTo,
         subject: this.testSubject(`Request received: ${record.venueName}, ${date}`, record),
         text: receiptText,
+        // Admins get a copy of what the renter was told.
+        ...(this.config.overrideTo || this.config.bcc.length === 0 ? {} : { bcc: this.config.bcc }),
       },
       `booking-request-receipt/${record.bookingId}`
     )
