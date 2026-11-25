@@ -25,6 +25,21 @@ function formatHour(hour: number): string {
   return formatTime(hourToTime(hour))
 }
 
+function formatShortDate(date: string): string {
+  const [year, month, day] = date.split('-').map(Number)
+  return format(new Date(year, month - 1, day), 'EEE, MMM d, yyyy')
+}
+
+/** Label with a red asterisk while the required field is still incomplete. Kept outside <label> so its accessible name stays clean. */
+function RequiredLabel({ htmlFor, missing, children }: { htmlFor: string; missing: boolean; children: string }) {
+  return (
+    <div className="flex items-baseline gap-xxs">
+      <label htmlFor={htmlFor} className={labelClassName}>{children}</label>
+      {missing ? <span aria-hidden="true" className="text-xs font-medium text-destructive">*</span> : null}
+    </div>
+  )
+}
+
 export function formatRequestDate(date: string): string {
   const [year, month, day] = date.split('-').map(Number)
   return format(new Date(year, month - 1, day), 'EEEE, MMMM d, yyyy')
@@ -53,26 +68,40 @@ export function RequestTimeFields({ form }: { form: RequestToBookForm }) {
       ) : null}
 
       <div className="min-w-0 space-y-xs">
-        <label htmlFor="request-date" className={labelClassName}>Date</label>
+        <RequiredLabel htmlFor="request-date" missing={!form.date}>Date</RequiredLabel>
         <div className={fieldWrapperClassName}>
+          {/* Native picker underneath; its text is hidden so the overlay can show the weekday. */}
           <Input
             id="request-date"
             type="date"
+            aria-required="true"
             min={form.minimumRequestDate}
             value={form.date}
             onChange={(event) => form.setDate(event.target.value)}
-            className={fieldClassName}
+            onClick={(event) => event.currentTarget.showPicker?.()}
+            className={`${fieldClassName} ${form.date ? 'text-transparent' : ''}`}
           />
+          {form.date ? (
+            <span
+              aria-hidden="true"
+              className="pointer-events-none absolute inset-y-0 left-0 flex items-center px-l text-base text-secondary-50 md:text-sm"
+            >
+              {formatShortDate(form.date)}
+            </span>
+          ) : null}
         </div>
       </div>
 
       {/* minmax(0,1fr): default 1fr uses minmax(auto,1fr) so WebKit select min-content widens the column */}
       <div data-testid="request-time-row" className="grid w-full min-w-0 max-w-full grid-cols-[repeat(2,minmax(0,1fr))] gap-m">
         <div className="min-w-0 space-y-xs">
-          <label htmlFor="request-start-time" className={labelClassName}>Start time</label>
+          <RequiredLabel htmlFor="request-start-time" missing={!form.startOptions.includes(toHour(form.startTime))}>
+            Start time
+          </RequiredLabel>
           <div className={fieldWrapperClassName}>
             <select
               id="request-start-time"
+              aria-required="true"
               value={form.startTime}
               onChange={(event) => form.changeStartTime(event.target.value)}
               className={`${selectClassName} ${fieldClassName}`}
@@ -86,10 +115,13 @@ export function RequestTimeFields({ form }: { form: RequestToBookForm }) {
         </div>
 
         <div className="min-w-0 space-y-xs">
-          <label htmlFor="request-end-time" className={labelClassName}>End time</label>
+          <RequiredLabel htmlFor="request-end-time" missing={!form.endOptions.includes(toHour(form.endTime))}>
+            End time
+          </RequiredLabel>
           <div className={fieldWrapperClassName}>
             <select
               id="request-end-time"
+              aria-required="true"
               value={form.endTime}
               onChange={(event) => form.setEndTime(event.target.value)}
               className={`${selectClassName} ${fieldClassName}`}
@@ -134,9 +166,10 @@ export function RequestDetailsFields({ form }: { form: RequestToBookForm }) {
   return (
     <div className="min-w-0 space-y-l">
       <div className="space-y-xs">
-        <label htmlFor="request-activity" className={labelClassName}>What are you planning?</label>
+        <RequiredLabel htmlFor="request-activity" missing={!form.activity}>What are you planning?</RequiredLabel>
         <select
           id="request-activity"
+          aria-required="true"
           value={form.activityChoice}
           onChange={(event) => form.setActivityChoice(event.target.value)}
           className={selectClassName}
@@ -150,6 +183,7 @@ export function RequestDetailsFields({ form }: { form: RequestToBookForm }) {
         {form.activityChoice === OTHER_ACTIVITY ? (
           <Input
             aria-label="Describe your plans"
+            aria-required="true"
             value={form.activityOther}
             maxLength={120}
             placeholder="e.g. Volleyball practice"
@@ -172,9 +206,10 @@ export function RequestDetailsFields({ form }: { form: RequestToBookForm }) {
 
       {form.user ? (
         <div className="space-y-xs">
-          <label htmlFor="request-phone" className={labelClassName}>Phone</label>
+          <RequiredLabel htmlFor="request-phone" missing={!form.phone.trim()}>Phone</RequiredLabel>
           <Input
             id="request-phone"
+            aria-required="true"
             type="tel"
             autoComplete="tel"
             value={form.phone}

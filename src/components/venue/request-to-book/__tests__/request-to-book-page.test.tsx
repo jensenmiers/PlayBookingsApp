@@ -72,6 +72,27 @@ describe('RequestToBookPage (desktop)', () => {
     expect(screen.getByLabelText('Date')).toHaveValue('2026-11-22')
   })
 
+  it('shows the weekday with the date', () => {
+    render(<RequestToBookPage venue={venue} venueSlug="church" initial={{ date: '2026-11-26' }} />)
+
+    expect(screen.getByText('Thu, Nov 26, 2026')).toBeInTheDocument()
+  })
+
+  it('marks required fields with an asterisk until they are filled in', () => {
+    const { container } = render(<RequestToBookPage venue={venue} venueSlug="church" initial={{ date: '2026-11-28' }} />)
+    const asteriskFor = (id: string) =>
+      container.querySelector(`label[for="${id}"]`)?.parentElement?.querySelector('.text-destructive')
+
+    expect(asteriskFor('request-activity')).toBeInTheDocument()
+    expect(asteriskFor('request-phone')).not.toBeInTheDocument()
+
+    fireEvent.change(screen.getByLabelText('What are you planning?'), { target: { value: 'Pickup run' } })
+    fireEvent.change(screen.getByLabelText('Phone'), { target: { value: '' } })
+
+    expect(asteriskFor('request-activity')).not.toBeInTheDocument()
+    expect(asteriskFor('request-phone')).toBeInTheDocument()
+  })
+
   it('sends the request and shows the received screen', async () => {
     render(
       <RequestToBookPage
