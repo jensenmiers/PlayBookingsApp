@@ -48,7 +48,7 @@ describe('BookingRequestEmailService', () => {
     expect(adminPayload.to).toEqual(['jensen@playbookings.com', 'jensenmiers@gmail.com'])
     expect(adminPayload.replyTo).toBe('jensen@playbookings.com')
     expect(adminPayload.subject).toBe(
-      'Action needed: new court request from Sam Rivera, Sat, Nov 28, 8:00 AM–10:00 AM PT'
+      'ACTION NEEDED: new court request from Sam Rivera, Sat, Nov 28, 8:00 AM–10:00 AM PT'
     )
     expect(adminPayload.text).toContain('NEW COURT REQUEST: ACTION NEEDED')
     expect(adminPayload.text).toContain('Sam Rivera wants to book First Presbyterian Church of Hollywood.')

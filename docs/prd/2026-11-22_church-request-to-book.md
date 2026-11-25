@@ -157,7 +157,7 @@ All emails are sent through the existing Resend setup. They copy the idempotent 
 
 | When | To | CC | Content |
 |---|---|---|---|
-| Request sent | jensen@playbookings.com, jensenmiers@gmail.com | none | "Action needed" notice. Subject: "Action needed: new court request from {name}, {Sat, Nov 28}, {start}–{end} PT". Body sections: what they're asking for (date with weekday, time and hours, plan, message, estimate), who's asking (name, email, phone), what to do next (check with the venue, Confirm or Decline in Super Admin). Reply-To is jensen@playbookings.com, like every other email. |
+| Request sent | jensen@playbookings.com, jensenmiers@gmail.com | none | "Action needed" notice. Subject: "ACTION NEEDED: new court request from {name}, {Sat, Nov 28}, {start}–{end} PT". Body sections: what they're asking for (date with weekday, time and hours, plan, message, estimate), who's asking (name, email, phone), what to do next (check with the venue, Confirm or Decline in Super Admin). Reply-To is jensen@playbookings.com, like every other email. |
 | Request sent | Renter | both admin addresses | Receipt: summary, "not booked yet", reply within 24 hours. |
 | Confirmed | Renter | both admin addresses | "You're confirmed": summary, venue address, how payment works offline, contact. |
 | Declined | Renter | both admin addresses | "This time isn't available": optional reason, link to request another time. |

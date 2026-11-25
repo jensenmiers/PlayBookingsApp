@@ -190,7 +190,7 @@ export class BookingRequestEmailService {
           to: this.config.overrideTo ? [this.config.overrideTo] : this.config.bcc,
           replyTo: this.config.replyTo,
           subject: this.testSubject(
-            `Action needed: new court request from ${who}, ${formatShortDate(record.date)}, ${time}`,
+            `ACTION NEEDED: new court request from ${who}, ${formatShortDate(record.date)}, ${time}`,
             record
           ),
           text: adminText,
