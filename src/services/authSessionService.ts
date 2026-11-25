@@ -1,4 +1,5 @@
 import type { Session, SupabaseClient } from '@supabase/supabase-js'
+import { captureRecentGoogleSignup } from '@/lib/analytics/authSignupEvents'
 import { HOST_ONBOARDING_ENABLED } from '@/lib/hostOnboarding'
 import { sanitizeAuthIntent } from '@/lib/auth/oauthFlow'
 
@@ -51,6 +52,11 @@ export async function finalizeAuthenticatedUser(args: {
       { onConflict: 'id' }
     )
   }
+
+  await captureRecentGoogleSignup({
+    user,
+    isHostSignup: intent === 'host',
+  })
 
   return {
     finalIsHost: typedExistingUser?.is_venue_owner ?? isHostSignup,

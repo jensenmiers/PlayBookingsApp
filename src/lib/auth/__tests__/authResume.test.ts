@@ -82,7 +82,9 @@ describe('authResume helpers', () => {
         venueId: 'venue-1',
         date: '2026-03-20',
         startTime: '18:00',
-        durationHours: 2,
+        endTime: '20:00',
+        activity: 'Pickup run',
+        phone: '323-555-0100',
         notes: 'Youth basketball practice',
       },
     })
@@ -92,7 +94,9 @@ describe('authResume helpers', () => {
       venueId: 'venue-1',
       date: '2026-03-20',
       startTime: '18:00',
-      durationHours: 2,
+      endTime: '20:00',
+      activity: 'Pickup run',
+      phone: '323-555-0100',
       notes: 'Youth basketball practice',
     })
     expect(consumeAuthResumeStateForReturnTo('/venue/first-presbyterian-church-of-hollywood')).toBeNull()

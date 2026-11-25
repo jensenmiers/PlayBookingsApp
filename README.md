@@ -22,7 +22,7 @@ A web-based facility rental marketplace for streamlining the rental of underutil
 
 ## 📋 Prerequisites
 
-- Node.js 18+ 
+- Node.js 24.x (matches Vercel; run `nvm install` and `nvm use` if using nvm)
 - npm or yarn
 - Supabase account
 - Google OAuth credentials
@@ -58,6 +58,13 @@ Required environment variables:
 - `SUPABASE_AUTH_EXTERNAL_GOOGLE_SECRET` - Google OAuth client secret used by Supabase Auth sign-in
 - `STRIPE_SECRET_KEY` - Your Stripe secret key
 - `NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY` - Your Stripe publishable key
+- `STRIPE_WEBHOOK_SECRET` - Stripe webhook signing secret
+- `RESEND_API_KEY` - Resend sending-only API key restricted to `notifications.playbookings.com`
+- `BOOKING_EMAIL_FROM` - Booking sender (production: `Play Bookings <bookings@notifications.playbookings.com>`)
+- `BOOKING_EMAIL_REPLY_TO` - Reply-to address for booking emails
+- `BOOKING_EMAIL_BCC` - Comma-separated production audit recipients
+- `BOOKING_EMAIL_OVERRIDE_TO` - Required locally and in Preview to reroute renter email and suppress BCC; omit from Production
+- `NEXT_PUBLIC_APP_URL` - Public site origin used in booking email links
 - `NEXT_PUBLIC_POSTHOG_KEY` - (Optional) PostHog project API key
 - `NEXT_PUBLIC_POSTHOG_HOST` - (Optional) PostHog ingest host (default `https://us.i.posthog.com`)
 - `NEXT_PUBLIC_POSTHOG_INTERNAL_EMAILS` - (Optional) comma-separated internal emails to exclude from analytics
@@ -66,6 +73,12 @@ Required environment variables:
 PostHog internal traffic controls:
 - Visit your site once with `?internal_traffic=1` to mark the current browser as internal traffic (saved in local storage).
 - Visit with `?internal_traffic=0` to re-enable analytics capture for that browser.
+
+Booking confirmations are sent once Resend accepts a message after a successful
+payment confirms the booking. Local and Preview environments must use
+`BOOKING_EMAIL_OVERRIDE_TO`; Production sends to the renter and uses
+`BOOKING_EMAIL_BCC`. Resend API keys must be entered directly into local or
+Vercel environment settings and must not be committed.
 
 ### 4. Run the development server
 ```bash

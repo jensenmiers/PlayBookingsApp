@@ -18,6 +18,7 @@ import { useState, useRef, useEffect } from 'react'
 export function Navigation() {
   const router = useRouter()
   const pathname = usePathname()
+  const isHome = pathname === '/'
   const isHostLanding = pathname === '/become-a-host'
   const { user, loading, error: userError } = useCurrentUser()
   const { openAuthModal } = useAuthModal()
@@ -89,8 +90,15 @@ export function Navigation() {
   return (
     <nav className="relative z-40 border-b border-secondary-50/10 bg-secondary-900/90 backdrop-blur supports-[backdrop-filter]:bg-secondary-900/70">
       <div className="mx-auto flex h-16 max-w-7xl items-center justify-between px-4 sm:px-10">
-        <Link href="/" className="text-xl font-bold tracking-tight text-secondary-50/90">
-          Play Bookings
+        <Link href="/" className="inline-flex items-center" aria-label="Play Bookings home">
+          <Image
+            src="/play_bookings_logo_white.png"
+            alt="Play Bookings"
+            width={195}
+            height={36}
+            className="h-8 w-auto"
+            priority
+          />
         </Link>
 
         <div className="hidden md:flex md:items-center md:space-x-6">
@@ -234,18 +242,22 @@ export function Navigation() {
             </>
           ) : (
             <>
-              <Link
-                href="/search"
-                className={linkClass('/search')}
-              >
-                Next Availability
-              </Link>
-              <Link
-                href="/venues"
-                className={linkClass('/venues')}
-              >
-                All Courts
-              </Link>
+              {!isHome && (
+                <>
+                  <Link
+                    href="/search"
+                    className={linkClass('/search')}
+                  >
+                    Next Availability
+                  </Link>
+                  <Link
+                    href="/venues"
+                    className={linkClass('/venues')}
+                  >
+                    All Courts
+                  </Link>
+                </>
+              )}
               <div className="relative" ref={guestDropdownRef}>
                 <button
                   onClick={() => setGuestDropdownOpen(!guestDropdownOpen)}
@@ -264,7 +276,7 @@ export function Navigation() {
                       d="M4 6h16M4 12h16M4 18h16"
                     />
                   </svg>
-                  <span className="text-base font-medium text-secondary-50/80">Join / Sign in</span>
+                  <span className="text-base font-medium text-secondary-50/80">Join</span>
                 </button>
 
                 {guestDropdownOpen && (
@@ -279,7 +291,7 @@ export function Navigation() {
                         }}
                         className="block w-full rounded-lg bg-primary-400 px-4 py-2.5 text-center text-sm font-semibold text-secondary-900 transition-colors hover:bg-primary-500"
                       >
-                        Join / Sign in
+                        Join or sign in
                       </button>
                     </div>
                     <div className="border-t border-secondary-50/10 py-2">
@@ -320,12 +332,15 @@ export function Navigation() {
 
         <Button
           variant="ghost"
-          size="sm"
-          className="md:hidden text-secondary-50/60 hover:text-secondary-50"
+          size="icon"
+          className="size-12 md:hidden text-secondary-50/60 hover:text-secondary-50"
           onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
+          aria-label={mobileMenuOpen ? 'Close navigation menu' : 'Open navigation menu'}
+          aria-expanded={mobileMenuOpen}
+          aria-controls="mobile-navigation-menu"
         >
           <svg
-            className="h-6 w-6"
+            className="size-7"
             fill="none"
             stroke="currentColor"
             viewBox="0 0 24 24"
@@ -341,7 +356,10 @@ export function Navigation() {
       </div>
 
       {mobileMenuOpen && (
-        <div className="md:hidden border-t border-secondary-50/10 bg-secondary-900/95 backdrop-blur">
+        <div
+          id="mobile-navigation-menu"
+          className="md:hidden border-t border-secondary-50/10 bg-secondary-900/95 backdrop-blur"
+        >
           <div className="mx-auto max-w-7xl px-4 py-4 space-y-2">
             {loading && !userError ? (
               <div className="h-10 w-full animate-pulse rounded-lg bg-secondary-50/10" />
@@ -404,7 +422,7 @@ export function Navigation() {
                   }}
                   className="block w-full rounded-lg bg-primary-400 px-4 py-3 text-center text-base font-semibold text-secondary-900 transition-colors hover:bg-primary-500"
                 >
-                  Join / Sign in
+                  Join or sign in
                 </button>
                 <Link
                   href="/search"

@@ -50,7 +50,7 @@ export function BookingActions({
   const canConfirm = isVenueOwner && booking.status === 'pending'
 
   const handleCancel = async () => {
-    const result = await cancelBooking.mutate(booking.id, cancelReason || undefined)
+    const result = await cancelBooking.cancelBooking(booking.id, cancelReason || undefined)
     if (result) {
       setShowCancelDialog(false)
       setCancelReason('')
@@ -59,7 +59,7 @@ export function BookingActions({
   }
 
   const handleConfirm = async () => {
-    const result = await confirmBooking.mutate(booking.id)
+    const result = await confirmBooking.confirmBooking(booking.id)
     if (result) {
       onActionComplete?.()
     }

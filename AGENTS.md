@@ -8,6 +8,22 @@ Shared instructions for coding agents working in this repository (Codex, Cursor,
 - Prefer minimal, correct, verifiable changes over broad refactors.
 - If a higher-priority system policy conflicts with this file, follow the higher-priority policy.
 
+## Product Stage and Engineering Posture
+
+Play Bookings is an early-stage product seeking product-market fit. Optimize decisions for learning velocity, customer value, and the shortest responsible path to production—not hypothetical future scale.
+
+Prefer the simplest architecture that satisfies current validated requirements. Managed services, bounded manual operations, and reversible infrastructure shortcuts are acceptable when they materially accelerate learning.
+
+This is not permission to create careless code or hidden technical debt. Maintain engineering-manager discipline:
+
+- Preserve clear ownership and separation of concerns.
+- Avoid meaningful duplication while also avoiding premature abstractions.
+- Keep business logic testable and independent from infrastructure details.
+- Protect security, payment correctness, privacy, and data integrity.
+- Make tradeoffs explicit, including what would trigger revisiting them.
+
+When choosing between approaches, favor the option that is easiest to understand, verify, change, and remove.
+
 ## Always-Load Context
 
 At task start, load these files into working context before coding:

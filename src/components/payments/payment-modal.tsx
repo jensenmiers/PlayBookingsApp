@@ -17,6 +17,10 @@ import {
 } from '@/components/ui/dialog'
 import { Button } from '@/components/ui/button'
 import { useCreatePaymentIntent } from '@/hooks/usePaymentIntent'
+import {
+  getStripeElementsAppearance,
+  getStripeElementsFonts,
+} from '@/lib/stripeAppearance'
 
 const stripePromise = loadStripe(process.env.NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY!)
 
@@ -191,14 +195,8 @@ export function PaymentModal({
             stripe={stripePromise}
             options={{
               clientSecret,
-              appearance: {
-                theme: 'stripe',
-                variables: {
-                  colorPrimary: '#0066cc',
-                  fontFamily: 'system-ui, sans-serif',
-                  borderRadius: '8px',
-                },
-              },
+              fonts: getStripeElementsFonts(),
+              appearance: getStripeElementsAppearance(),
             }}
           >
             <PaymentForm

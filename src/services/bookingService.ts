@@ -10,6 +10,8 @@ import { getCancellationInfo, calculateDuration, isPastBookingStart, timeStringT
 import { conflict, badRequest, notFound } from '@/utils/errorHandling'
 import { getBookingPolicyViolation, normalizeVenueAdminConfig } from '@/lib/venueAdminConfig'
 import { resolveVenueBookingMode } from '@/lib/booking-mode'
+import { BookingConfirmationEmailService } from './bookingConfirmationEmailService'
+import { BookingRequestEmailService } from './bookingRequestEmailService'
 import type { Booking, RecurringBooking, CreateBookingForm, BookingStatus, BookingWithPaymentInfo, CancellationResult, BookingWithVenue } from '@/types'
 import { createClient } from '@/lib/supabase/server'
 
@@ -93,6 +95,8 @@ export class BookingService {
   private bookingRepo = new BookingRepository()
   private auditService = new AuditService()
   private paymentService = new PaymentService()
+  private bookingConfirmationEmailService = new BookingConfirmationEmailService()
+  private bookingRequestEmailService = new BookingRequestEmailService()
 
   /**
    * Create a new booking with full validation
@@ -144,11 +148,19 @@ export class BookingService {
       throw badRequest(policyViolation.message)
     }
 
+    let requestActivity: string | undefined
     if (bookingMode === 'request_to_book') {
       const requestValidationMessage = getRequestToBookValidationMessage(data, adminConfig)
       if (requestValidationMessage) {
         throw badRequest(requestValidationMessage)
       }
+
+      requestActivity = data.activity?.trim()
+      if (!requestActivity) {
+        throw badRequest('Tell us what you are planning')
+      }
+
+      await this.ensureRenterPhone(supabase, userId, data.phone)
     }
 
     if (bookingMode !== 'request_to_book') {
@@ -183,10 +195,20 @@ export class BookingService {
       recurring_type: data.recurring_type || 'none',
       recurring_end_date: data.recurring_end_date,
       notes: data.notes,
+      ...(requestActivity ? { activity: requestActivity } : {}),
     })
 
     // Log audit
     await this.auditService.logCreate('bookings', booking.id, userId, booking as unknown as Record<string, unknown>)
+
+    if (bookingMode === 'request_to_book') {
+      try {
+        await this.bookingRequestEmailService.sendRequestReceived(booking.id)
+      } catch (error) {
+        // The request is saved; a failed email must not lose it. Admins can still see it in Super Admin.
+        console.error('Booking request emails failed', error)
+      }
+    }
 
     // Generate recurring bookings if needed
     if (bookingMode !== 'request_to_book' && booking.recurring_type !== 'none') {
@@ -205,6 +227,40 @@ export class BookingService {
       requiresPayment,
       awaitingOwnerApproval: awaitingOwnerApproval && !awaitingInsuranceApproval,
       awaitingInsuranceApproval: bookingMode === 'request_to_book' ? false : awaitingInsuranceApproval,
+    }
+  }
+
+  /**
+   * Request-to-book venues are confirmed offline, so the renter must be reachable by phone.
+   * A phone given with the request is saved to the renter's profile.
+   */
+  private async ensureRenterPhone(
+    supabase: Awaited<ReturnType<typeof createClient>>,
+    userId: string,
+    phone: string | undefined
+  ): Promise<void> {
+    const givenPhone = phone?.trim()
+    if (givenPhone) {
+      const { error } = await supabase
+        .from('users')
+        .update({ phone: givenPhone, updated_at: new Date().toISOString() })
+        .eq('id', userId)
+      if (error) {
+        throw new Error(`Failed to save phone number: ${error.message}`)
+      }
+      return
+    }
+
+    const { data: user, error } = await supabase
+      .from('users')
+      .select('phone')
+      .eq('id', userId)
+      .maybeSingle()
+    if (error) {
+      throw new Error(`Failed to load phone number: ${error.message}`)
+    }
+    if (!user?.phone?.trim()) {
+      throw badRequest('Add a phone number so the venue can reach you')
     }
   }
 
@@ -522,6 +578,17 @@ export class BookingService {
         booking as unknown as Record<string, unknown>,
         updated as unknown as Record<string, unknown>
       )
+
+      try {
+        await this.bookingConfirmationEmailService.sendIfNeeded(bookingId)
+      } catch (error) {
+        // The booking is already confirmed. Keep the owner action successful;
+        // the empty sent marker preserves the notification for later recovery.
+        console.error(
+          'Booking confirmation email failed after owner confirmation',
+          error
+        )
+      }
       
       return { ...updated, requiresPayment: false }
     }

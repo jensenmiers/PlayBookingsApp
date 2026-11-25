@@ -8,6 +8,8 @@ export const createBookingSchema = z.object({
   recurring_type: z.enum(['none', 'weekly', 'monthly']).default('none'),
   recurring_end_date: z.string().regex(/^\d{4}-\d{2}-\d{2}$/, 'Date must be in YYYY-MM-DD format').optional(),
   notes: z.string().optional(),
+  activity: z.string().trim().max(120).optional(),
+  phone: z.string().trim().max(40).optional(),
 }).refine((data) => data.start_time < data.end_time, {
   message: 'End time must be after start time',
   path: ['end_time'],

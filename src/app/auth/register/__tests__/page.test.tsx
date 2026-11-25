@@ -4,6 +4,8 @@ import RegisterPage from '../page'
 const mockGet = jest.fn()
 const mockSignUp = jest.fn()
 const mockResend = jest.fn()
+const mockCapture = jest.fn()
+const mockNavigateToUrl = jest.fn()
 
 jest.mock('next/navigation', () => ({
   useSearchParams: () => ({
@@ -18,6 +20,16 @@ jest.mock('@/lib/supabase/client', () => ({
       resend: mockResend,
     },
   }),
+}))
+
+jest.mock('posthog-js/react', () => ({
+  usePostHog: () => ({
+    capture: (...args: unknown[]) => mockCapture(...args),
+  }),
+}))
+
+jest.mock('@/lib/auth/clientNavigation', () => ({
+  navigateToUrl: (...args: unknown[]) => mockNavigateToUrl(...args),
 }))
 
 describe('RegisterPage', () => {
@@ -52,6 +64,27 @@ describe('RegisterPage', () => {
     render(<RegisterPage />)
 
     expect(screen.getAllByRole('link', { name: /privacy policy/i })[0]).toHaveAttribute('href', '/privacy')
+  })
+
+  it('records a Google signup attempt without claiming the user signed up before OAuth succeeds', () => {
+    mockGet.mockImplementation((key: string) => key === 'intent' ? 'host' : null)
+
+    render(<RegisterPage />)
+
+    fireEvent.click(screen.getByRole('button', { name: /continue with google/i }))
+
+    expect(mockCapture).toHaveBeenCalledWith('signup_started', {
+      method: 'google',
+      is_host_signup: true,
+    }, {
+      send_instantly: true,
+      transport: 'sendBeacon',
+    })
+    expect(mockCapture).not.toHaveBeenCalledWith(
+      'user_signed_up',
+      expect.objectContaining({ method: 'google' })
+    )
+    expect(mockNavigateToUrl).toHaveBeenCalled()
   })
 
   it('submits email signup and shows a check-your-email state', async () => {
@@ -92,6 +125,14 @@ describe('RegisterPage', () => {
 
     expect(screen.getByRole('heading', { name: /check your email/i })).toBeInTheDocument()
     expect(screen.getByRole('button', { name: /resend verification email/i })).toBeInTheDocument()
+    expect(mockCapture).toHaveBeenNthCalledWith(1, 'signup_started', {
+      method: 'email',
+      is_host_signup: true,
+    })
+    expect(mockCapture).toHaveBeenNthCalledWith(2, 'user_signed_up', {
+      method: 'email',
+      is_host_signup: true,
+    })
   })
 
   it('resends the verification email from the post-signup state', async () => {

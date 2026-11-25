@@ -37,19 +37,11 @@ export function buildVenueFaqs(
   }
 
   const rate = venue.hourly_rate
-  if (venue.weekend_rate && venue.weekend_rate !== rate) {
-    faqs.push({
-      group: 'Booking',
-      q: 'What does it cost?',
-      a: `The weekday rate is $${rate}/hr. Weekend bookings (Saturday & Sunday) are $${venue.weekend_rate}/hr.`,
-    })
-  } else {
-    faqs.push({
-      group: 'Booking',
-      q: 'What does it cost?',
-      a: `The hourly rate is $${rate}/hr.`,
-    })
-  }
+  faqs.push({
+    group: 'Booking',
+    q: 'What does it cost?',
+    a: `The hourly rate is $${rate}/hr.`,
+  })
 
   const planningFact = buildVenuePlanningFact({ bookingMode, policy: venueAdminConfig })
   faqs.push({

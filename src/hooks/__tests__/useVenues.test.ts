@@ -27,6 +27,31 @@ function createSlot(overrides: Partial<ComputedAvailabilitySlot> = {}): Computed
 }
 
 describe('useVenueAvailabilityRange', () => {
+  it('clears the old week while loading and reports a failed new week', async () => {
+    let rejectRequest!: (reason: Error) => void
+    mockFetch.mockImplementationOnce(() => new Promise((_resolve, reject) => { rejectRequest = reject }))
+    const { result, rerender } = renderHook(({ from }) =>
+      useVenueAvailabilityRange('venue-1', from, from, { initialData: [createSlot()] }),
+    { initialProps: { from: '2026-02-21' } })
+    rerender({ from: '2026-02-28' })
+    expect(result.current.loading).toBe(true)
+    expect(result.current.data).toBeNull()
+    await act(async () => rejectRequest(new Error('New week failed')))
+    expect(result.current.error).toBe('New week failed')
+  })
+
+  it('ignores an older response after navigating to another week', async () => {
+    let finishOld!: (response: Response) => void
+    mockFetch.mockImplementationOnce(() => new Promise(resolve => { finishOld = resolve }))
+      .mockResolvedValueOnce(createMockResponse({ success: true, data: [createSlot({ date: '2026-03-07' })] }))
+    const { result, rerender } = renderHook(({ from }) =>
+      useVenueAvailabilityRange('venue-1', from, from),
+    { initialProps: { from: '2026-02-28' } })
+    rerender({ from: '2026-03-07' })
+    await waitFor(() => expect(result.current.data?.[0].date).toBe('2026-03-07'))
+    await act(async () => finishOld(createMockResponse({ success: true, data: [createSlot()] })))
+    expect(result.current.data?.[0].date).toBe('2026-03-07')
+  })
   const originalVisibilityState = document.visibilityState
   let visibilityState = 'visible'
   let consoleErrorSpy: jest.SpyInstance

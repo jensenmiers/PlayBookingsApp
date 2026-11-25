@@ -1,5 +1,5 @@
 /**
- * React Hooks for Booking Data Fetching and Mutations
+ * React Hooks for Booking Data Fetching and Actions
  */
 
 'use client'
@@ -9,10 +9,8 @@ import { bookingApi } from '@/lib/api/bookings'
 import type { Booking, BookingWithPaymentInfo, CancellationResult } from '@/types'
 import type {
   CreateBookingRequest,
-  UpdateBookingRequest,
   ListBookingsQueryParams,
   CheckConflictsRequest,
-  GenerateRecurringRequest,
 } from '@/types/api'
 
 /**
@@ -22,17 +20,6 @@ interface UseAsyncState<T> {
   data: T | null
   loading: boolean
   error: string | null
-}
-
-/**
- * Mutation hook state interface
- */
-interface UseMutationState<T> {
-  data: T | null
-  loading: boolean
-  error: string | null
-  mutate: (...args: unknown[]) => Promise<T | null>
-  reset: () => void
 }
 
 /**
@@ -124,17 +111,17 @@ export function useBooking(id: string | null) {
 }
 
 /**
- * Mutation hook for creating bookings
+ * Hook for creating bookings
  * Returns BookingWithPaymentInfo which includes payment flow flags
  */
 export function useCreateBooking() {
-  const [state, setState] = useState<Omit<UseMutationState<BookingWithPaymentInfo>, 'mutate' | 'reset'>>({
+  const [state, setState] = useState<UseAsyncState<BookingWithPaymentInfo>>({
     data: null,
     loading: false,
     error: null,
   })
 
-  const mutate = useCallback(async (data: CreateBookingRequest): Promise<{ data: BookingWithPaymentInfo | null; error: string | null }> => {
+  const createBooking = useCallback(async (data: CreateBookingRequest): Promise<{ data: BookingWithPaymentInfo | null; error: string | null }> => {
     setState({ data: null, loading: true, error: null })
     try {
       const booking = await bookingApi.createBooking(data)
@@ -153,7 +140,7 @@ export function useCreateBooking() {
 
   return {
     ...state,
-    mutate,
+    createBooking,
     reset,
   }
 }
@@ -205,53 +192,16 @@ export function usePaymentCheckout() {
 }
 
 /**
- * Mutation hook for updating bookings
- */
-export function useUpdateBooking() {
-  const [state, setState] = useState<Omit<UseMutationState<Booking>, 'mutate' | 'reset'>>({
-    data: null,
-    loading: false,
-    error: null,
-  })
-
-  const mutate = useCallback(
-    async (id: string, data: UpdateBookingRequest): Promise<Booking | null> => {
-      setState({ data: null, loading: true, error: null })
-      try {
-        const booking = await bookingApi.updateBooking(id, data)
-        setState({ data: booking, loading: false, error: null })
-        return booking
-      } catch (error) {
-        const message = error instanceof Error ? error.message : 'Failed to update booking'
-        setState({ data: null, loading: false, error: message })
-        return null
-      }
-    },
-    []
-  )
-
-  const reset = useCallback(() => {
-    setState({ data: null, loading: false, error: null })
-  }, [])
-
-  return {
-    ...state,
-    mutate,
-    reset,
-  }
-}
-
-/**
- * Mutation hook for cancelling bookings
+ * Hook for cancelling bookings
  */
 export function useCancelBooking() {
-  const [state, setState] = useState<Omit<UseMutationState<CancellationResult>, 'mutate' | 'reset'>>({
+  const [state, setState] = useState<UseAsyncState<CancellationResult>>({
     data: null,
     loading: false,
     error: null,
   })
 
-  const mutate = useCallback(
+  const cancelBooking = useCallback(
     async (id: string, reason?: string): Promise<CancellationResult | null> => {
       setState({ data: null, loading: true, error: null })
       try {
@@ -273,22 +223,22 @@ export function useCancelBooking() {
 
   return {
     ...state,
-    mutate,
+    cancelBooking,
     reset,
   }
 }
 
 /**
- * Mutation hook for confirming bookings
+ * Hook for confirming bookings
  */
 export function useConfirmBooking() {
-  const [state, setState] = useState<Omit<UseMutationState<Booking>, 'mutate' | 'reset'>>({
+  const [state, setState] = useState<UseAsyncState<Booking>>({
     data: null,
     loading: false,
     error: null,
   })
 
-  const mutate = useCallback(async (id: string): Promise<Booking | null> => {
+  const confirmBooking = useCallback(async (id: string): Promise<Booking | null> => {
     setState({ data: null, loading: true, error: null })
     try {
       const booking = await bookingApi.confirmBooking(id)
@@ -307,7 +257,7 @@ export function useConfirmBooking() {
 
   return {
     ...state,
-    mutate,
+    confirmBooking,
     reset,
   }
 }
@@ -345,41 +295,3 @@ export function useCheckConflicts() {
     reset,
   }
 }
-
-/**
- * Hook for generating recurring bookings
- */
-export function useGenerateRecurring() {
-  const [state, setState] = useState<Omit<UseMutationState<unknown[]>, 'mutate' | 'reset'>>({
-    data: null,
-    loading: false,
-    error: null,
-  })
-
-  const mutate = useCallback(
-    async (data: GenerateRecurringRequest): Promise<unknown[] | null> => {
-      setState({ data: null, loading: true, error: null })
-      try {
-        const result = await bookingApi.generateRecurring(data)
-        setState({ data: result, loading: false, error: null })
-        return result
-      } catch (error) {
-        const message = error instanceof Error ? error.message : 'Failed to generate recurring bookings'
-        setState({ data: null, loading: false, error: message })
-        return null
-      }
-    },
-    []
-  )
-
-  const reset = useCallback(() => {
-    setState({ data: null, loading: false, error: null })
-  }, [])
-
-  return {
-    ...state,
-    mutate,
-    reset,
-  }
-}
-

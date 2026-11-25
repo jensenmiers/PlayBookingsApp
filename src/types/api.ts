@@ -52,6 +52,10 @@ export interface CreateBookingRequest {
   recurring_type?: 'none' | 'weekly' | 'monthly'
   recurring_end_date?: string
   notes?: string
+  /** Request-to-book only: what the renter is planning. */
+  activity?: string
+  /** Request-to-book only: saved to the renter's profile. */
+  phone?: string
 }
 
 export type CreateBookingResponse = ApiResponse<Booking>
@@ -115,6 +119,7 @@ export interface AdminVenueBookingRenterSummary {
   first_name: string | null
   last_name: string | null
   email: string | null
+  phone: string | null
 }
 
 export interface AdminVenueBookingFeedItem extends Booking {

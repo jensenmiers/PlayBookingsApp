@@ -13,10 +13,12 @@ import { buildAuthInitiationPath, buildEmailConfirmationPath } from '@/lib/auth/
 import { navigateToUrl } from '@/lib/auth/clientNavigation'
 import { createClient } from '@/lib/supabase/client'
 import { registerSchema } from '@/lib/validations/auth'
+import { usePostHog } from 'posthog-js/react'
 
 type SignupState = 'form' | 'verification'
 
 function RegisterContent() {
+  const posthog = usePostHog()
   const [loading, setLoading] = useState(false)
   const [emailLoading, setEmailLoading] = useState(false)
   const [resending, setResending] = useState(false)
@@ -46,6 +48,11 @@ function RegisterContent() {
       setErrorMessage(null)
       setInfoMessage(null)
 
+      posthog.capture(
+        'signup_started',
+        { method: 'google', is_host_signup: isHostSignup },
+        { send_instantly: true, transport: 'sendBeacon' }
+      )
       navigateToUrl(buildAuthInitiationPath({
         returnTo,
         intent,
@@ -75,6 +82,7 @@ function RegisterContent() {
 
     try {
       setEmailLoading(true)
+      posthog.capture('signup_started', { method: 'email', is_host_signup: isHostSignup })
       const fullName = parsed.data.name.trim()
       const [firstName = '', ...lastNameParts] = fullName.split(/\s+/)
       const lastName = lastNameParts.join(' ')
@@ -100,6 +108,7 @@ function RegisterContent() {
         return
       }
 
+      posthog.capture('user_signed_up', { method: 'email', is_host_signup: isHostSignup })
       setSignupState('verification')
       setInfoMessage('Check your email to verify your account and finish setting up Play Bookings.')
     } catch (error) {

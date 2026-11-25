@@ -8,6 +8,7 @@ import { PaymentService } from '@/services/paymentService'
 import { requireAuth } from '@/middleware/authMiddleware'
 import { handleApiError } from '@/utils/errorHandling'
 import type { ApiResponse } from '@/types/api'
+import { getPostHogClient } from '@/lib/posthog-server'
 
 interface CheckoutRequest {
   booking_id: string
@@ -40,6 +41,18 @@ export async function POST(request: NextRequest) {
       auth.userId,
       baseUrl
     )
+
+    const posthog = getPostHogClient()
+    posthog.capture({
+      distinctId: auth.userId,
+      event: 'checkout_session_created',
+      properties: {
+        booking_id: body.booking_id,
+        payment_id: result.paymentId,
+        session_id: result.sessionId,
+      },
+    })
+    await posthog.flush()
 
     const response: ApiResponse<CheckoutResponse> = {
       success: true,

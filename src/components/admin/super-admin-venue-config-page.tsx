@@ -27,6 +27,7 @@ import type {
 } from '@/types/api'
 import { formatTime, timeStringToDate } from '@/utils/dateHelpers'
 import { cn } from '@/lib/utils'
+import { resolveVenueBookingMode } from '@/lib/booking-mode'
 
 const DAY_OPTIONS = [
   { label: 'Sunday', value: 0 },
@@ -65,6 +66,7 @@ type VenueConfigDraft = {
   drop_in_price: string
   instant_booking: boolean
   insurance_required: boolean
+  offers_private_rental: boolean
   min_advance_booking_days: string
   min_advance_lead_time_hours: string
   blackout_dates: string
@@ -75,6 +77,7 @@ type VenueConfigDraft = {
   policy_no_show: string
   policy_operating_hours_notes: string
   operating_hours: DropInTemplateDraftWindow[]
+  request_hint_windows: DropInTemplateDraftWindow[]
   regular_booking_templates: DropInTemplateDraftWindow[]
   drop_in_templates: DropInTemplateDraftWindow[]
 }
@@ -200,6 +203,7 @@ function createDraft(item: AdminVenueConfigItem): VenueConfigDraft {
     drop_in_price: item.config.drop_in_price === null ? '' : String(item.config.drop_in_price),
     instant_booking: item.venue.instant_booking,
     insurance_required: item.venue.insurance_required,
+    offers_private_rental: item.venue.offers_private_rental !== false,
     min_advance_booking_days: String(item.config.min_advance_booking_days),
     min_advance_lead_time_hours: String(item.config.min_advance_lead_time_hours),
     blackout_dates: item.config.blackout_dates.join(', '),
@@ -210,6 +214,11 @@ function createDraft(item: AdminVenueConfigItem): VenueConfigDraft {
     policy_no_show: item.config.policy_no_show ?? '',
     policy_operating_hours_notes: item.config.policy_operating_hours_notes ?? '',
     operating_hours: (item.config.operating_hours || []).map((window) => ({
+      day_of_week: window.day_of_week,
+      start_time: formatTimeForInput(window.start_time),
+      end_time: formatTimeForInput(window.end_time),
+    })),
+    request_hint_windows: (item.config.request_hint_windows || []).map((window) => ({
       day_of_week: window.day_of_week,
       start_time: formatTimeForInput(window.start_time),
       end_time: formatTimeForInput(window.end_time),
@@ -424,6 +433,17 @@ function buildPatchFromDraft(
   if (dropInPrice !== item.config.drop_in_price) {
     patch.drop_in_price = dropInPrice
   }
+  // Re-enabling must always send a positive drop_in_price: backend validation requires it
+  // when omitted, and an earlier diff can already set drop_in_price to null if the field
+  // was cleared while config still retained a prior price.
+  if (patch.drop_in_enabled === true) {
+    if (dropInPrice === null) {
+      return { patch: {}, error: 'Drop-in price is required when drop-in is enabled.' }
+    }
+    if (patch.drop_in_price === undefined) {
+      patch.drop_in_price = dropInPrice
+    }
+  }
 
   for (const window of draft.operating_hours) {
     if (!window.start_time || !window.end_time) {
@@ -446,6 +466,17 @@ function buildPatchFromDraft(
     JSON.stringify(normalizedDraftOperatingHours) !== JSON.stringify(normalizedCurrentOperatingHours)
   if (operatingHoursChanged) {
     patch.operating_hours = normalizedDraftOperatingHours
+  }
+
+  for (const window of draft.request_hint_windows) {
+    if (!window.start_time || !window.end_time || window.start_time >= window.end_time) {
+      return { patch: {}, error: 'Each usually-open time must end after it starts.' }
+    }
+  }
+  const normalizedDraftHints = normalizeDraftTemplates(draft.request_hint_windows)
+  const normalizedCurrentHints = normalizeDraftTemplates(item.config.request_hint_windows || [])
+  if (JSON.stringify(normalizedDraftHints) !== JSON.stringify(normalizedCurrentHints)) {
+    patch.request_hint_windows = normalizedDraftHints
   }
 
   for (const window of draft.drop_in_templates) {
@@ -480,6 +511,11 @@ function buildPatchFromDraft(
 
   if (draft.insurance_required !== item.venue.insurance_required) {
     patch.insurance_required = draft.insurance_required
+  }
+
+  const currentOffersPrivateRental = item.venue.offers_private_rental !== false
+  if (draft.offers_private_rental !== currentOffersPrivateRental) {
+    patch.offers_private_rental = draft.offers_private_rental
   }
 
   const minAdvanceDays = parseNonNegativeInteger(draft.min_advance_booking_days)
@@ -636,7 +672,8 @@ function formatRenterLabel(renter: AdminVenueBookingRenterSummary | null): strin
 function resolveTimelineBadge(
   booking: AdminVenueBookingFeedItem,
   instantBooking: boolean,
-  isPast: boolean
+  isPast: boolean,
+  isRequestToBook = false
 ): { label: string; className: string } {
   const destructiveBadgeClassName = 'border-destructive/30 bg-destructive/10 text-destructive'
   const completedBadgeClassName = 'border-primary-400/20 bg-primary-400/10 text-primary-200'
@@ -670,6 +707,13 @@ function resolveTimelineBadge(
     return {
       label: 'Expired',
       className: expiredBadgeClassName,
+    }
+  }
+
+  if (isRequestToBook) {
+    return {
+      label: 'Requested',
+      className: pendingBadgeClassName,
     }
   }
 
@@ -848,6 +892,102 @@ function TimePillSelect({
         ▼
       </span>
     </div>
+  )
+}
+
+function BookingRequestDetails({ booking }: { booking: AdminVenueBookingFeedItem }) {
+  if (!booking.activity && !booking.notes && !booking.renter?.phone) {
+    return null
+  }
+
+  return (
+    <div className="space-y-xxs pt-xxs text-xs text-secondary-50/70">
+      {booking.renter?.phone ? <p>Phone: {booking.renter.phone}</p> : null}
+      {booking.activity ? <p>Planning: {booking.activity}</p> : null}
+      {booking.notes ? <p className="whitespace-pre-wrap break-words">Message: {booking.notes}</p> : null}
+    </div>
+  )
+}
+
+function WeeklyWindowListEditor({
+  rowLabel,
+  addLabel,
+  windows,
+  defaultWindow,
+  onChange,
+}: {
+  rowLabel: string
+  addLabel: string
+  windows: DropInTemplateDraftWindow[]
+  defaultWindow: DropInTemplateDraftWindow
+  onChange: (next: DropInTemplateDraftWindow[]) => void
+}) {
+  const updateRow = (index: number, changes: Partial<DropInTemplateDraftWindow>) => {
+    const next = [...windows]
+    next[index] = { ...next[index], ...changes }
+    onChange(next)
+  }
+
+  return (
+    <>
+      <div className="space-y-m">
+        {windows.map((window, index) => (
+          <div
+            key={`${rowLabel}-${window.day_of_week}-${window.start_time}-${window.end_time}-${index}`}
+            className="rounded-xl border border-secondary-50/10 bg-secondary-800/60 px-l py-m"
+          >
+            <div className="mb-s flex items-center justify-between">
+              <div className="relative">
+                <select
+                  aria-label={`${rowLabel} day row ${index + 1}`}
+                  className="appearance-none bg-transparent pr-l text-xs font-semibold text-secondary-50 outline-none cursor-pointer"
+                  value={window.day_of_week}
+                  onChange={(event) => updateRow(index, { day_of_week: Number(event.target.value) })}
+                >
+                  {DAY_OPTIONS.map((option) => (
+                    <option key={option.value} value={option.value}>
+                      {option.label}
+                    </option>
+                  ))}
+                </select>
+                <span
+                  aria-hidden="true"
+                  className="pointer-events-none absolute right-0 top-1/2 -translate-y-1/2 text-[0.5rem] text-secondary-50/50"
+                >
+                  ▼
+                </span>
+              </div>
+              <button
+                type="button"
+                aria-label={`Remove ${rowLabel.toLowerCase()} row ${index + 1}`}
+                className="text-secondary-50/40 hover:text-secondary-50/80 transition-colors text-sm leading-none"
+                onClick={() => onChange(windows.filter((_, rowIndex) => rowIndex !== index))}
+              >
+                ✕
+              </button>
+            </div>
+            <div className="flex items-center gap-s">
+              <TimePillSelect
+                ariaLabel={`${rowLabel} start time row ${index + 1}`}
+                value={window.start_time}
+                options={getTimePillOptions(window.start_time)}
+                onChange={(value) => updateRow(index, { start_time: value })}
+              />
+              <span className="text-xs text-secondary-50/40">–</span>
+              <TimePillSelect
+                ariaLabel={`${rowLabel} end time row ${index + 1}`}
+                value={window.end_time}
+                options={getTimePillOptions(window.end_time)}
+                onChange={(value) => updateRow(index, { end_time: value })}
+              />
+            </div>
+          </div>
+        ))}
+      </div>
+      <Button type="button" variant="outline" onClick={() => onChange([...windows, defaultWindow])}>
+        {addLabel}
+      </Button>
+    </>
   )
 }
 
@@ -1039,6 +1179,7 @@ export function SuperAdminVenueConfigPage() {
     error: venueBookingsError,
     refetch: refetchVenueBookings,
     approveInsurance,
+    decideRequest,
   } = useAdminVenueBookings(selectedVenueId)
   const [draft, setDraft] = useState<VenueConfigDraft | null>(null)
   const [isSaving, setIsSaving] = useState(false)
@@ -1046,6 +1187,10 @@ export function SuperAdminVenueConfigPage() {
   const [saveError, setSaveError] = useState<string | null>(null)
   const [saveMessage, setSaveMessage] = useState<string | null>(null)
   const [insuranceActionBookingId, setInsuranceActionBookingId] = useState<string | null>(null)
+  const [requestActionBookingId, setRequestActionBookingId] = useState<string | null>(null)
+  const [requestActionError, setRequestActionError] = useState<string | null>(null)
+  const [requestActionMessage, setRequestActionMessage] = useState<string | null>(null)
+  const [declineDraft, setDeclineDraft] = useState<{ bookingId: string; reason: string } | null>(null)
   const [insuranceActionError, setInsuranceActionError] = useState<string | null>(null)
   const [insuranceActionMessage, setInsuranceActionMessage] = useState<string | null>(null)
   const [calendarStatusLoading, setCalendarStatusLoading] = useState(false)
@@ -1111,6 +1256,8 @@ export function SuperAdminVenueConfigPage() {
 
     return createDraft(selectedItem)
   }, [selectedItem])
+
+  const isRequestToBookVenue = selectedItem ? resolveVenueBookingMode(selectedItem.venue) === 'request_to_book' : false
 
   const timelineBookings = useMemo(() => {
     return splitBookingsByTime(venueBookings || [])
@@ -1387,6 +1534,27 @@ export function SuperAdminVenueConfigPage() {
     }
   }
 
+  const handleRequestDecision = async (bookingId: string, decision: 'confirm' | 'decline', reason?: string) => {
+    setRequestActionBookingId(bookingId)
+    setRequestActionError(null)
+    setRequestActionMessage(null)
+
+    try {
+      const result = await decideRequest(bookingId, decision, reason)
+      if (!result.success) {
+        setRequestActionError(result.error || `Failed to ${decision} request`)
+        return
+      }
+      setDeclineDraft(null)
+      await refetchVenueBookings()
+      setRequestActionMessage(result.message || (decision === 'confirm' ? 'Request confirmed' : 'Request declined'))
+    } catch (actionError) {
+      setRequestActionError(actionError instanceof Error ? actionError.message : `Failed to ${decision} request`)
+    } finally {
+      setRequestActionBookingId(null)
+    }
+  }
+
   const handleConnectCalendar = async () => {
     if (!selectedItem) {
       return
@@ -1626,6 +1794,21 @@ export function SuperAdminVenueConfigPage() {
                     </ConfigRow>
 
                     <ConfigRow
+                      title="Usually Open"
+                      description="Request-to-book venues only: times shown to renters as suggestions on the request form. They never block a request."
+                    >
+                      <WeeklyWindowListEditor
+                        rowLabel="Usually open"
+                        addLabel="Add Usually-Open Time"
+                        windows={draft.request_hint_windows}
+                        defaultWindow={{ day_of_week: 6, start_time: '08:00', end_time: '13:00' }}
+                        onChange={(next) => {
+                          updateDraft((previous) => ({ ...previous, request_hint_windows: next }))
+                        }}
+                      />
+                    </ConfigRow>
+
+                    <ConfigRow
                       title="Google Calendar"
                       description="Connect Google Calendar to block busy times from availability."
                     >
@@ -1775,98 +1958,15 @@ export function SuperAdminVenueConfigPage() {
                     {draft.drop_in_enabled && (
                       <>
                         <p className="pt-s text-xs font-medium text-secondary-50/70">Drop-In Weekly Schedule</p>
-                        <div className="space-y-m">
-                          {draft.drop_in_templates.map((window, index) => (
-                            <div
-                              key={`di-${window.day_of_week}-${window.start_time}-${window.end_time}-${index}`}
-                              className="rounded-xl border border-secondary-50/10 bg-secondary-800/60 px-l py-m"
-                            >
-                              <div className="mb-s flex items-center justify-between">
-                                <div className="relative">
-                                  <select
-                                    aria-label={`Drop-in day row ${index + 1}`}
-                                    className="appearance-none bg-transparent pr-l text-xs font-semibold text-secondary-50 outline-none cursor-pointer"
-                                    value={window.day_of_week}
-                                    onChange={(event) => {
-                                      updateDraft((previous) => {
-                                        const next = [...previous.drop_in_templates]
-                                        next[index] = { ...next[index], day_of_week: Number(event.target.value) }
-                                        return { ...previous, drop_in_templates: next }
-                                      })
-                                    }}
-                                  >
-                                    {DAY_OPTIONS.map((option) => (
-                                      <option key={option.value} value={option.value}>
-                                        {option.label}
-                                      </option>
-                                    ))}
-                                  </select>
-                                  <span
-                                    aria-hidden="true"
-                                    className="pointer-events-none absolute right-0 top-1/2 -translate-y-1/2 text-[0.5rem] text-secondary-50/50"
-                                  >
-                                    ▼
-                                  </span>
-                                </div>
-                                <button
-                                  type="button"
-                                  aria-label={`Remove drop-in row ${index + 1}`}
-                                  className="text-secondary-50/40 hover:text-secondary-50/80 transition-colors text-sm leading-none"
-                                  onClick={() => {
-                                    updateDraft((previous) => ({
-                                      ...previous,
-                                      drop_in_templates: previous.drop_in_templates.filter((_, rowIndex) => rowIndex !== index),
-                                    }))
-                                  }}
-                                >
-                                  ✕
-                                </button>
-                              </div>
-                              <div className="flex items-center gap-s">
-                                <TimePillSelect
-                                  ariaLabel={`Drop-in start time row ${index + 1}`}
-                                  value={window.start_time}
-                                  options={getTimePillOptions(window.start_time)}
-                                  onChange={(value) => {
-                                    updateDraft((previous) => {
-                                      const next = [...previous.drop_in_templates]
-                                      next[index] = { ...next[index], start_time: value }
-                                      return { ...previous, drop_in_templates: next }
-                                    })
-                                  }}
-                                />
-                                <span className="text-xs text-secondary-50/40">–</span>
-                                <TimePillSelect
-                                  ariaLabel={`Drop-in end time row ${index + 1}`}
-                                  value={window.end_time}
-                                  options={getTimePillOptions(window.end_time)}
-                                  onChange={(value) => {
-                                    updateDraft((previous) => {
-                                      const next = [...previous.drop_in_templates]
-                                      next[index] = { ...next[index], end_time: value }
-                                      return { ...previous, drop_in_templates: next }
-                                    })
-                                  }}
-                                />
-                              </div>
-                            </div>
-                          ))}
-                        </div>
-                        <Button
-                          type="button"
-                          variant="outline"
-                          onClick={() => {
-                            updateDraft((previous) => ({
-                              ...previous,
-                              drop_in_templates: [
-                                ...previous.drop_in_templates,
-                                { day_of_week: 1, start_time: '12:00', end_time: '13:00' },
-                              ],
-                            }))
+                        <WeeklyWindowListEditor
+                          rowLabel="Drop-in"
+                          addLabel="Add Drop-In Window"
+                          windows={draft.drop_in_templates}
+                          defaultWindow={{ day_of_week: 1, start_time: '12:00', end_time: '13:00' }}
+                          onChange={(next) => {
+                            updateDraft((previous) => ({ ...previous, drop_in_templates: next }))
                           }}
-                        >
-                          Add Drop-In Window
-                        </Button>
+                        />
                       </>
                     )}
                   </ConfigRow>
@@ -1991,8 +2091,8 @@ export function SuperAdminVenueConfigPage() {
 
                 <SectionGroup title="Pricing & Booking Settings">
                   <ConfigRow
-                    title="Normal Booking Price"
-                    description="Flat rate for standard private booking sessions."
+                    title="Private Rental Hourly Rate"
+                    description="Standard hourly rate for private rentals on every day."
                   >
                     <Input
                       type="number"
@@ -2003,6 +2103,25 @@ export function SuperAdminVenueConfigPage() {
                         updateDraft((previous) => ({ ...previous, hourly_rate: event.target.value }))
                       }}
                     />
+                  </ConfigRow>
+
+                  <ConfigRow
+                    title="Offers Private Rental"
+                    description="Show this venue in Private Rentals discovery. Turn off for open-gym-only venues."
+                  >
+                    <label className="inline-flex items-center gap-s text-sm text-secondary-50/80">
+                      <input
+                        type="checkbox"
+                        checked={draft.offers_private_rental}
+                        onChange={(event) => {
+                          updateDraft((previous) => ({
+                            ...previous,
+                            offers_private_rental: event.target.checked,
+                          }))
+                        }}
+                      />
+                      Offers private rental
+                    </label>
                   </ConfigRow>
 
                   <ConfigRow
@@ -2167,6 +2286,12 @@ export function SuperAdminVenueConfigPage() {
                   {insuranceActionMessage ? (
                     <p className="mb-s text-xs text-primary-400">{insuranceActionMessage}</p>
                   ) : null}
+                  {requestActionError ? (
+                    <p className="mb-s text-xs text-destructive">{requestActionError}</p>
+                  ) : null}
+                  {requestActionMessage ? (
+                    <p className="mb-s text-xs text-primary-400">{requestActionMessage}</p>
+                  ) : null}
                   {venueBookingsLoading ? (
                     <p className="text-xs text-secondary-50/60">Loading bookings...</p>
                   ) : venueBookingsError ? (
@@ -2188,7 +2313,15 @@ export function SuperAdminVenueConfigPage() {
                   ) : (
                     <div data-testid="venue-bookings-timeline" className="space-y-s">
                       {timelineBookings.upcoming.map((booking) => {
-                        const badge = resolveTimelineBadge(booking, selectedItem.venue.instant_booking, false)
+                        const isPendingRequest = isRequestToBookVenue && booking.status === 'pending'
+                        const badge = resolveTimelineBadge(
+                          booking,
+                          selectedItem.venue.instant_booking,
+                          false,
+                          isPendingRequest
+                        )
+                        const isDeciding = requestActionBookingId === booking.id
+                        const isDeclining = declineDraft?.bookingId === booking.id
                         const canApproveInsurance =
                           booking.status === 'pending'
                           && booking.insurance_required
@@ -2206,7 +2339,67 @@ export function SuperAdminVenueConfigPage() {
                                 <p className="text-sm font-medium text-secondary-50">{formatRenterLabel(booking.renter)}</p>
                                 <p className="text-xs text-secondary-50/70">{booking.renter?.email || 'No email on file'}</p>
                                 <p className="text-xs text-secondary-50/60">{formatBookingTimelineDate(booking)}</p>
-                                {canApproveInsurance ? (
+                                <BookingRequestDetails booking={booking} />
+                                {isPendingRequest ? (
+                                  isDeclining ? (
+                                    <div className="space-y-xs pt-xs">
+                                      <label htmlFor={`decline-reason-${booking.id}`} className="text-xs text-secondary-50/70">
+                                        Reason for the renter (optional)
+                                      </label>
+                                      <Input
+                                        id={`decline-reason-${booking.id}`}
+                                        value={declineDraft.reason}
+                                        maxLength={500}
+                                        placeholder="e.g. The gym is booked for a church event"
+                                        onChange={(event) => setDeclineDraft({ bookingId: booking.id, reason: event.target.value })}
+                                      />
+                                      <div className="flex gap-xs">
+                                        <Button
+                                          type="button"
+                                          variant="outline"
+                                          size="sm"
+                                          disabled={isDeciding}
+                                          onClick={() => setDeclineDraft(null)}
+                                        >
+                                          Back
+                                        </Button>
+                                        <Button
+                                          type="button"
+                                          size="sm"
+                                          disabled={isDeciding}
+                                          onClick={() => {
+                                            void handleRequestDecision(booking.id, 'decline', declineDraft.reason)
+                                          }}
+                                        >
+                                          {isDeciding ? 'Declining...' : 'Send decline'}
+                                        </Button>
+                                      </div>
+                                    </div>
+                                  ) : (
+                                    <div className="flex gap-xs pt-xs">
+                                      <Button
+                                        type="button"
+                                        size="sm"
+                                        disabled={isDeciding}
+                                        onClick={() => {
+                                          void handleRequestDecision(booking.id, 'confirm')
+                                        }}
+                                      >
+                                        {isDeciding ? 'Confirming...' : 'Confirm'}
+                                      </Button>
+                                      <Button
+                                        type="button"
+                                        variant="outline"
+                                        size="sm"
+                                        disabled={isDeciding}
+                                        onClick={() => setDeclineDraft({ bookingId: booking.id, reason: '' })}
+                                      >
+                                        Decline
+                                      </Button>
+                                    </div>
+                                  )
+                                ) : null}
+                                {canApproveInsurance && !isPendingRequest ? (
                                   <Button
                                     type="button"
                                     variant="outline"
@@ -2261,6 +2454,7 @@ export function SuperAdminVenueConfigPage() {
                                 <p className="text-sm font-medium text-secondary-50">{formatRenterLabel(booking.renter)}</p>
                                 <p className="text-xs text-secondary-50/70">{booking.renter?.email || 'No email on file'}</p>
                                 <p className="text-xs text-secondary-50/60">{formatBookingTimelineDate(booking)}</p>
+                                <BookingRequestDetails booking={booking} />
                               </div>
                               <div className="flex flex-col items-end gap-xs">
                                 <span className="text-xs font-semibold text-secondary-50">${booking.total_amount.toFixed(2)}</span>

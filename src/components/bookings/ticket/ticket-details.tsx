@@ -8,9 +8,10 @@ interface TicketDetailsProps {
   booking: Booking
   venue: Venue | null
   showAmount: TicketState['showAmount']
+  amountSuffix: TicketState['amountSuffix']
 }
 
-export function TicketDetails({ booking, venue, showAmount }: TicketDetailsProps) {
+export function TicketDetails({ booking, venue, showAmount, amountSuffix }: TicketDetailsProps) {
   return (
     <div className="space-y-4">
       {/* Venue location */}
@@ -36,12 +37,12 @@ export function TicketDetails({ booking, venue, showAmount }: TicketDetailsProps
           Total
         </p>
         {showAmount === 'prominent' ? (
-          <p className="font-mono text-3xl text-primary-400 font-bold">
+          <p className="text-3xl text-primary-400 font-bold">
             ${booking.total_amount.toFixed(2)}
           </p>
         ) : (
-          <p className="font-mono text-lg text-secondary-50/60">
-            ${booking.total_amount.toFixed(2)} paid
+          <p className="text-lg text-secondary-50/60">
+            ${booking.total_amount.toFixed(2)} {amountSuffix}
           </p>
         )}
       </div>

@@ -143,7 +143,7 @@ function createAdminClientMock(args?: {
 
   return {
     client: { from, rpc },
-    calls: { rpc, templatesInsert, templateDeleteRegularIn, publishStateUpsert, venueUpdate },
+    calls: { rpc, templatesInsert, templateDeleteRegularIn, publishStateUpsert, venueUpdate, configUpsert },
   }
 }
 
@@ -438,6 +438,101 @@ describe('PATCH /api/admin/venues/[id]', () => {
       'refresh_slot_instances_from_templates',
       expect.any(Object)
     )
+  })
+
+  it('persists request hint windows without publishing slot availability', async () => {
+    const { client, calls } = createAdminClientMock()
+    mockCreateAdminClient.mockReturnValue(client)
+    const hints = [{ day_of_week: 6, start_time: '08:00:00', end_time: '13:00:00' }]
+    mockValidateRequest.mockResolvedValue({ request_hint_windows: hints })
+
+    const response = await PATCH(
+      new Request('http://localhost/api/admin/venues/venue-1', {
+        method: 'PATCH',
+        headers: { 'content-type': 'application/json' },
+        body: JSON.stringify({ request_hint_windows: hints }),
+      }),
+      createContext('venue-1')
+    )
+
+    expect(response.status).toBe(200)
+    expect(calls.configUpsert).toHaveBeenCalledWith(
+      expect.objectContaining({ request_hint_windows: hints }),
+      expect.anything()
+    )
+    expect(calls.rpc).not.toHaveBeenCalledWith(
+      'refresh_slot_instances_from_templates',
+      expect.any(Object)
+    )
+  })
+
+  it('syncs offers_open_gym and drop_in_price onto venues when drop-in config changes', async () => {
+    const { client, calls } = createAdminClientMock()
+    mockCreateAdminClient.mockReturnValue(client)
+    mockValidateRequest.mockResolvedValue({
+      drop_in_enabled: true,
+      drop_in_price: 3,
+    })
+
+    const response = await PATCH(
+      new Request('http://localhost/api/admin/venues/venue-1', {
+        method: 'PATCH',
+        headers: { 'content-type': 'application/json' },
+        body: JSON.stringify({ drop_in_enabled: true, drop_in_price: 3 }),
+      }),
+      createContext('venue-1')
+    )
+
+    expect(response.status).toBe(200)
+    expect(calls.venueUpdate).toHaveBeenCalledWith({
+      offers_open_gym: true,
+      drop_in_price: 3,
+    })
+  })
+
+  it('clears denormalized venues.drop_in_price when drop-in is disabled without a price patch', async () => {
+    const { client, calls } = createAdminClientMock()
+    mockCreateAdminClient.mockReturnValue(client)
+    mockValidateRequest.mockResolvedValue({
+      drop_in_enabled: false,
+    })
+
+    const response = await PATCH(
+      new Request('http://localhost/api/admin/venues/venue-1', {
+        method: 'PATCH',
+        headers: { 'content-type': 'application/json' },
+        body: JSON.stringify({ drop_in_enabled: false }),
+      }),
+      createContext('venue-1')
+    )
+
+    expect(response.status).toBe(200)
+    expect(calls.venueUpdate).toHaveBeenCalledWith({
+      offers_open_gym: false,
+      drop_in_price: null,
+    })
+  })
+
+  it('persists offers_private_rental on the venue row', async () => {
+    const { client, calls } = createAdminClientMock()
+    mockCreateAdminClient.mockReturnValue(client)
+    mockValidateRequest.mockResolvedValue({
+      offers_private_rental: false,
+    })
+
+    const response = await PATCH(
+      new Request('http://localhost/api/admin/venues/venue-1', {
+        method: 'PATCH',
+        headers: { 'content-type': 'application/json' },
+        body: JSON.stringify({ offers_private_rental: false }),
+      }),
+      createContext('venue-1')
+    )
+
+    expect(response.status).toBe(200)
+    expect(calls.venueUpdate).toHaveBeenCalledWith({
+      offers_private_rental: false,
+    })
   })
 
   it('returns success with needs_attention when immediate slot publish fails after persistence', async () => {

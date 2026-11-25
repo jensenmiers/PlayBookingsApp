@@ -1,0 +1,380 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>PlayBookings, Bottom Up</title>
+<meta name="claude:viewport-fit-sides" content="cover">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@500;700&family=Inter:wght@400;600&family=DM+Mono:wght@400;500&display=swap">
+<style>
+/* Layout: a 16:9 "film" stage that plays scene by scene, chapter rail under it, then a full written transcript. One deliberate dark look. */
+:root{
+  --ground:#13233A; --main:#F2A541; --second:#EAF0F7; --accent:#4FC3A1;
+  --page:#0D1828;
+  --panel:color-mix(in srgb,var(--ground) 80%,var(--second));
+  --deep:color-mix(in srgb,var(--ground) 65%,#000);
+  --dim:color-mix(in srgb,var(--second) 62%,var(--ground));
+  --line:color-mix(in srgb,var(--second) 12%,transparent);
+  --display:"Space Grotesk",system-ui,sans-serif;
+  --sans:"Inter",system-ui,sans-serif;
+  --mono:"DM Mono",ui-monospace,monospace;
+  color-scheme:dark;
+}
+body{margin:0;background:var(--page);color:var(--second);font-family:var(--sans);font-size:16px;line-height:1.55}
+.wrap{max-width:1180px;margin:0 auto;padding-block:28px 64px;padding-left:max(16px,env(safe-area-inset-left,0px));padding-right:max(16px,env(safe-area-inset-right,0px));display:grid;gap:20px}
+header h1{font-family:var(--display);font-size:clamp(28px,4vw,44px);line-height:1.1;margin:0;text-wrap:balance}
+header p{margin:6px 0 0;color:var(--dim);max-width:65ch}
+
+/* player */
+.screen{position:relative;width:100%;aspect-ratio:16/9;max-width:100%;overflow:hidden;border-radius:12px;background:var(--ground);box-shadow:0 20px 50px rgba(0,0,0,.35)}
+#stage{position:absolute;left:0;top:0;width:1920px;height:1080px;transform-origin:0 0;overflow:hidden;background:var(--ground)}
+.bar{display:flex;align-items:center;gap:12px;flex-wrap:wrap}
+.bar button{font:500 15px var(--sans);color:var(--second);background:var(--panel);border:0;border-radius:8px;padding:9px 14px;cursor:pointer}
+.bar button:hover{background:color-mix(in srgb,var(--panel) 80%,var(--second))}
+.bar button:focus-visible,.chap:focus-visible,.track:focus-visible{outline:2px solid var(--main);outline-offset:2px}
+#play{background:var(--main);color:var(--ground);min-width:92px;font-weight:600}
+#play:hover{background:color-mix(in srgb,var(--main) 85%,var(--second))}
+.time{font:14px var(--mono);color:var(--dim);font-variant-numeric:tabular-nums;margin-left:auto}
+.track{position:relative;display:flex;gap:3px;height:14px;cursor:pointer;flex:1 1 100%;order:5}
+.track span{position:relative;height:100%;background:var(--panel);border-radius:3px;overflow:hidden}
+.track span i{position:absolute;inset:0 auto 0 0;width:0;background:var(--main)}
+.chaps{display:flex;flex-wrap:wrap;gap:8px}
+.chap{font:500 14px var(--sans);color:var(--dim);background:transparent;border:1px solid var(--line);border-radius:999px;padding:5px 12px;cursor:pointer}
+.chap.now{color:var(--ground);background:var(--second);border-color:var(--second)}
+
+/* transcript */
+.notes{display:grid;gap:22px;margin-top:18px}
+.notes h2{font-family:var(--display);font-size:26px;margin:8px 0 0}
+.note{display:grid;grid-template-columns:44px minmax(0,1fr);gap:14px;align-items:start}
+.note b.n{font:500 14px var(--mono);color:var(--main);padding-top:4px}
+.note h3{margin:0;font:600 18px var(--sans)}
+.note p{margin:4px 0 0;max-width:72ch;color:color-mix(in srgb,var(--second) 85%,var(--ground))}
+.note code{font:14px var(--mono);color:var(--accent);overflow-wrap:anywhere}
+
+/* ---------- stage contents (1920x1080 coordinates) ---------- */
+.scene{position:absolute;inset:0;transform-origin:50% 50%;animation:push linear forwards}
+@keyframes push{from{transform:scale(1)}to{transform:scale(1.025)}}
+.paused .scene{animation-play-state:paused}
+.grid{position:absolute;inset:0;background-image:radial-gradient(var(--line) 2px,transparent 2.6px);background-size:48px 48px}
+.court{position:absolute;inset:0;width:100%;height:100%}
+.abs{position:absolute}
+.b{opacity:0;transform:translateY(-40px);transition:opacity .3s ease-out,transform .6s cubic-bezier(.34,1.56,.64,1),filter .5s,background-color .4s,border-color .4s,left .9s cubic-bezier(.65,0,.35,1)}
+.b.r{transform:translateY(28px)}
+.b.p{transform:scale(.7)}
+.b.f{transform:none}
+.b.on{opacity:1;transform:none}
+.eyebrow{font:500 28px var(--mono);color:var(--accent);letter-spacing:.06em;text-transform:uppercase}
+.h{font:700 76px/1.05 var(--display);letter-spacing:-.01em;margin:0}
+.hh{font:700 170px/1 var(--display);letter-spacing:-.02em;margin:0}
+.s{font:400 36px/1.3 var(--sans);color:color-mix(in srgb,var(--second) 78%,var(--ground));margin:0}
+.top{position:absolute;left:120px;top:76px;width:1680px;display:flex;flex-direction:column;gap:14px}
+.cap{position:absolute;left:120px;bottom:70px;max-width:1680px;font:400 34px/1.35 var(--sans);padding:18px 26px;border-radius:12px;background:color-mix(in srgb,var(--deep) 88%,transparent);border-left:6px solid var(--accent)}
+.blk{position:absolute;display:flex;flex-direction:column;justify-content:center;gap:8px;padding:20px 30px;border-radius:14px;background:var(--panel);box-shadow:0 12px 0 var(--deep);border:3px solid transparent}
+.blk .nm{font:500 36px var(--mono)}
+.blk .ds{font:400 30px/1.3 var(--sans);color:var(--dim)}
+.blk.row{flex-direction:row;align-items:center;justify-content:space-between;gap:24px}
+.blk.amber{background:var(--main);color:var(--ground);box-shadow:0 12px 0 color-mix(in srgb,var(--main) 55%,var(--deep))}
+.blk.amber .ds{color:color-mix(in srgb,var(--ground) 75%,var(--main))}
+.blk.mint{background:var(--accent);color:var(--ground);box-shadow:0 12px 0 color-mix(in srgb,var(--accent) 50%,var(--deep))}
+.blk.mint .ds{color:color-mix(in srgb,var(--ground) 75%,var(--accent))}
+.blk.big .nm{font:700 52px var(--display)}
+.pill{display:inline-block;font:500 28px var(--sans);padding:10px 22px;border-radius:999px;background:var(--panel)}
+.pill.off{color:var(--dim);border:2px dashed var(--dim);background:transparent}
+.ln{fill:none;stroke:var(--main);stroke-width:6;stroke-linecap:round;stroke-dasharray:1;stroke-dashoffset:1;transition:stroke-dashoffset .9s ease-in-out;opacity:1}
+.ln.on{stroke-dashoffset:0}
+.ln.mint{stroke:var(--accent)}
+.ln.dash{stroke-dasharray:1}
+/* calendar */
+.cal{position:absolute;left:820px;top:330px;display:grid;grid-template-columns:repeat(7,140px);gap:12px}
+.cal .hd{font:500 28px var(--mono);color:var(--dim);text-align:center}
+.cal .dy{height:150px;border-radius:12px;background:color-mix(in srgb,var(--panel) 60%,var(--ground));padding:10px 14px;position:relative;font:500 28px var(--mono);color:var(--dim)}
+.chip{position:absolute;left:10px;right:10px;bottom:12px;font:600 28px var(--sans);text-align:center;border-radius:8px;padding:8px 0;background:var(--accent);color:var(--ground)}
+.chip.x{background:transparent;color:var(--dim);border:2px dashed var(--dim);text-decoration:line-through}
+.busy{position:absolute;font:600 28px var(--sans);background:var(--main);color:var(--ground);border-radius:10px;padding:12px 18px;box-shadow:0 10px 0 color-mix(in srgb,var(--main) 55%,var(--deep))}
+/* browser frames */
+.frame{position:absolute;top:360px;width:400px;height:410px;border-radius:16px;background:var(--panel);box-shadow:0 12px 0 var(--deep);overflow:hidden;display:flex;flex-direction:column}
+.frame .tb{height:46px;background:color-mix(in srgb,var(--panel) 70%,var(--second));display:flex;align-items:center;gap:10px;padding:0 18px}
+.frame .tb i{width:14px;height:14px;border-radius:50%;background:var(--dim)}
+.frame .bd{padding:24px 26px;display:flex;flex-direction:column;gap:16px;flex:1}
+.frame .pt{font:500 34px var(--mono);color:var(--main)}
+.frame .ds{font:400 32px/1.3 var(--sans)}
+.frame .who{margin-top:auto;align-self:flex-start;font:600 26px var(--sans);padding:8px 16px;border-radius:999px;background:var(--accent);color:var(--ground)}
+.frame .who.adm{background:var(--main)}
+/* booking track */
+.st{position:absolute;top:690px;width:270px;padding:18px 20px;border-radius:14px;background:var(--panel);border:3px solid transparent;display:flex;flex-direction:column;gap:8px;box-shadow:0 10px 0 var(--deep)}
+.st .nm{font:600 32px/1.2 var(--sans)}
+.st .ds{font:400 26px/1.3 var(--mono);color:var(--dim)}
+.st.x{border-color:var(--main);background:color-mix(in srgb,var(--panel) 75%,var(--main))}
+.dot{position:absolute;top:628px;width:28px;height:28px;border-radius:50%;background:var(--panel);border:4px solid var(--main)}
+.ticket{position:absolute;top:400px;width:270px;padding:20px 24px;border-radius:14px;background:var(--second);color:var(--ground);box-shadow:0 14px 0 color-mix(in srgb,var(--second) 40%,var(--deep));display:flex;flex-direction:column;gap:6px}
+.ticket .k{font:500 26px var(--mono);color:color-mix(in srgb,var(--ground) 60%,var(--second))}
+.ticket .stt{position:absolute;left:24px;top:62px;font:700 40px var(--display)}
+.ticket .stt.ok{color:color-mix(in srgb,var(--accent) 60%,var(--ground))}
+.ticket .sp{height:52px}
+/* webhook */
+.out{position:absolute;left:1060px;width:740px;height:98px;display:flex;align-items:center;justify-content:space-between;gap:20px;padding:0 26px;border-radius:14px;background:var(--panel);box-shadow:0 10px 0 var(--deep)}
+.out .q{font:400 30px var(--sans)}
+.out .a{font:500 28px var(--mono);padding:8px 16px;border-radius:8px;background:var(--accent);color:var(--ground);white-space:nowrap}
+.out .a.re{background:var(--main)}
+.out.hot{border:3px solid var(--main)}
+.tag{position:absolute;font:500 26px var(--mono);color:var(--main)}
+/* paths / dead cards */
+.card{position:absolute;border-radius:16px;background:var(--panel);box-shadow:0 12px 0 var(--deep);padding:28px 30px;display:flex;flex-direction:column;gap:14px;border:3px solid transparent}
+.card .k{font:500 26px var(--mono);color:var(--accent);text-transform:uppercase;letter-spacing:.05em}
+.card .t{font:700 44px/1.1 var(--display)}
+.card .ds{font:400 28px/1.35 var(--sans);color:color-mix(in srgb,var(--second) 80%,var(--ground))}
+.step{font:400 32px/1.3 var(--sans);padding-left:40px;position:relative}
+.step::before{content:"";position:absolute;left:4px;top:14px;width:16px;height:16px;border-radius:50%;background:var(--main)}
+.b.on.x.card{filter:grayscale(1);opacity:.5;transform:translateY(10px) rotate(-1deg);border:3px dashed var(--dim);box-shadow:none}
+.card.gap{border-color:var(--main)}
+.card.gap .k{color:var(--main)}
+/* admin */
+.save{position:absolute;left:120px;top:400px;width:520px;height:150px;border-radius:20px;background:var(--main);color:var(--ground);display:flex;align-items:center;justify-content:center;font:700 56px var(--display);box-shadow:0 16px 0 color-mix(in srgb,var(--main) 55%,var(--deep))}
+.save.x{transform:translateY(12px)!important;box-shadow:0 4px 0 color-mix(in srgb,var(--main) 55%,var(--deep))}
+.ck{position:absolute;left:760px;width:1040px;height:86px;display:flex;align-items:center;gap:24px;padding:0 26px;border-radius:12px;background:var(--panel)}
+.ck .m{width:46px;height:46px;border-radius:50%;background:var(--accent);color:var(--ground);display:flex;align-items:center;justify-content:center;font:700 30px var(--sans);flex:none}
+.ck .nm{font:600 32px var(--sans)}
+.ck .ds{font:400 26px var(--mono);color:var(--dim);margin-left:auto;text-align:right}
+@media (prefers-reduced-motion:reduce){.b,.ln{transition:none}.scene{animation:none}}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <header>
+    <h1>PlayBookings, Bottom Up</h1>
+    <p style="font:14px var(--mono);color:var(--main)">Snapshot of the code as of 2026-11-20 (branch fix/webhook-analytics-failure-no-retry, commit ccf340f). Later changes may make parts of this out of date.</p>
+    <p>A two-minute animated tour of the repo: the tables at the bottom, the server in the middle, the pages on top, then how a booking moves through all three and which parts are dead.</p>
+  </header>
+
+  <div class="screen" id="screen"><div id="stage" aria-live="off"></div></div>
+
+  <div class="bar">
+    <button id="prev" type="button" aria-label="Previous scene">◀ Prev</button>
+    <button id="play" type="button">Pause</button>
+    <button id="next" type="button" aria-label="Next scene">Next ▶</button>
+    <span class="time" id="time">0:00 / 0:00</span>
+    <div class="track" id="track" role="slider" tabindex="0" aria-label="Seek" aria-valuemin="0"></div>
+  </div>
+  <div class="chaps" id="chaps"></div>
+
+  <section class="notes" id="notes"><h2>What each scene says</h2></section>
+</div>
+
+<script>
+(()=>{
+const B=(cls,at,style,inner,extra)=>`<div class="b ${cls}" data-at="${at}" style="${style}" ${extra||''}>${inner}</div>`;
+const hdr=(eb,h,s,sAt)=>`<div class="top">${B('f eyebrow',0,'',eb)}${B('r h',0,'',h)}${s?B('r s',sAt||0.5,'',s):''}</div>`;
+
+const SC=[
+{id:'intro',name:'The app',dur:7,html:`
+  <div class="abs" style="left:120px;top:200px;width:980px;display:flex;flex-direction:column;gap:24px">
+    ${B('f eyebrow',0,'','Your repo, from the ground up')}
+    ${B('r hh',0,'','PlayBookings')}
+    ${B('r s',0.3,'','A website for booking indoor basketball courts and gyms in Los Angeles.')}
+  </div>
+  ${B('blk row big',2.2,'left:1180px;top:430px;width:620px;height:130px','<span class="nm">Screens</span><span class="ds">what you click</span>')}
+  ${B('blk row big',1.6,'left:1180px;top:590px;width:620px;height:130px','<span class="nm">Server</span><span class="ds">what decides</span>')}
+  ${B('blk row big amber',1.0,'left:1180px;top:750px;width:620px;height:130px','<span class="nm">Database</span><span class="ds">what is stored</span>')}
+  <div class="abs" style="left:120px;top:640px;width:980px;display:flex;flex-direction:column;align-items:flex-start;gap:18px">
+    ${B('r pill',3.2,'','Renters: find a court, pick a time, pay')}
+    ${B('r pill',3.7,'','One super-admin: sets up every venue')}
+    ${B('r pill off',4.2,'','Hosts: self sign-up is switched off')}
+  </div>`,
+ say:`PlayBookings lets renters find a court in LA, pick a time on its calendar and pay with Stripe. There are no self-serve hosts yet: <code>HOST_ONBOARDING_ENABLED = false</code> in <code>src/lib/hostOnboarding.ts</code>, so one super-admin sets up every venue. The code has three layers, and the film builds them bottom-up: a Supabase Postgres database, a Next.js 16 server, and the pages on top.`},
+
+{id:'tables',name:'The tables',dur:13,html:`
+  <div class="abs" style="left:120px;top:110px;width:700px;display:flex;flex-direction:column;gap:22px">
+    ${B('f eyebrow',0,'','Layer 1 · the database')}
+    ${B('r h',0,'','Everything is rows in tables')}
+    ${B('r s',0.6,'','Each table leans on the one below it. Read the tower from the bottom up.')}
+  </div>
+  ${[
+   ['users','who you are: renter, owner, admin',''],
+   ['venues','the gym: address, price, booking mode',''],
+   ['venue_admin_configs','house rules: hours, blackouts',''],
+   ['slot_templates','weekly pattern: Tue 6–9 pm',''],
+   ['slot_instances','real, dated slots to book','mint'],
+   ['bookings','a booking: pending → confirmed','amber'],
+   ['payments','the Stripe side of a booking','']
+  ].map((r,i)=>B('blk row '+r[2],1.5+i*1.1,`left:880px;top:${838-i*106}px;width:920px;height:92px;padding:0 28px`,`<span class="nm">${r[0]}</span><span class="ds">${r[1]}</span>`)).join('')}
+  ${B('r s',9.6,'position:absolute;left:120px;top:700px;width:680px','60 migrations. Row Level Security rules decide who may read or change each row.')}`,
+ say:`The bottom layer is Supabase Postgres, built up over 60 migrations in <code>supabase/migrations/</code>. The chain that matters: <code>users</code> → <code>venues</code> → <code>venue_admin_configs</code> (the house rules) → <code>slot_templates</code> (a weekly pattern) → <code>slot_instances</code> (real dated slots) → <code>bookings</code> → <code>payments</code>. Row Level Security policies decide who can read and write each table.`},
+
+{id:'slots',name:'Making slots',dur:11,html:`
+  ${hdr('Layer 1 · the clever part','A weekly pattern turns into real slots')}
+  ${B('blk amber',1.0,'left:120px;top:420px;width:580px;height:200px','<span class="nm">slot_templates</span><span class="ds">Every Tuesday, 6–9 pm</span>')}
+  <svg class="abs" style="left:0;top:0" width="1920" height="1080"><path class="b f ln" data-at="2" pathLength="1" d="M710 520 C760 520 770 480 805 470"/></svg>
+  ${B('f',2.4,'position:absolute;left:820px;top:262px;font:500 30px var(--mono);color:var(--accent)','slot_instances')}
+  <div class="cal">
+    ${['Mon','Tue','Wed','Thu','Fri','Sat','Sun'].map(d=>`<div class="hd">${d}</div>`).join('')}
+    ${['Nov 23','24','25','26','27','28','29','30','Dec 1','2','3','4','5','6'].map((d,i)=>`<div class="dy">${d}${i===1?B('p chip',3.0,'','6–9 pm'):''}${i===8?B('p chip',3.6,'','6–9 pm','data-x="6.4"'):''}</div>`).join('')}
+  </div>
+  ${B('busy',5.6,'left:960px;top:640px','Busy in Google Calendar')}
+  ${B('r cap',7.2,'','A database job (pg_cron) refills slots 180 days ahead every 5 minutes. Busy times from Google Calendar are subtracted.')}`,
+ say:`An admin never types in individual slots. They describe a weekly pattern in <code>slot_templates</code>; SQL (<code>refresh_slot_instances_from_templates</code>) stamps it into dated <code>slot_instances</code>. Two sync queues plus a pg_cron job (<code>availability_backfill_worker_every_5_minutes</code>) keep 180 days filled. Google Calendar events become <code>external_availability_blocks</code>, which knock out overlapping slots. The recent calendar commits only merge touching slots into one window on screen; each slot is still booked separately.`},
+
+{id:'server',name:'The server',dur:10,html:`
+  ${hdr('Layer 2 · the server','The server makes the decisions','Code in src/services, reached through 27 API routes.',0.5)}
+  ${B('blk row amber',0,'left:120px;top:900px;width:1680px;height:96px;padding:0 30px','<span class="nm">Layer 1 · database</span><span class="ds">tables from the last two scenes</span>')}
+  ${[
+   ['BookingService','create, check clashes, cancel, confirm'],
+   ['PaymentService','Stripe payments, saved cards, refunds'],
+   ['Availability','which slots to show right now'],
+   ['Email','sends the confirmation (Resend)'],
+   ['Calendar sync','Google busy times → blocks']
+  ].map((r,i)=>B('blk',1.2+i*0.7,`left:${120+i*340}px;top:630px;width:320px;height:230px;justify-content:flex-start`,`<span class="nm" style="font-size:32px">${r[0]}</span><span class="ds">${r[1]}</span>`)).join('')}
+  ${B('blk row mint',5.0,'left:120px;top:470px;width:1680px;height:110px;padding:0 30px','<span class="nm">/api</span><span class="ds">bookings · payments · webhooks/stripe · venues · admin</span>')}`,
+ say:`The middle layer is plain TypeScript. <code>bookingService.ts</code> (create, conflict check, cancel, confirm), <code>paymentService.ts</code> (PaymentIntent, SetupIntent, refunds), <code>availabilityService.ts</code>, <code>bookingConfirmationEmailService.ts</code> (Resend) and <code>googleCalendarIntegrationService.ts</code>. Pages reach them through 27 route files under <code>src/app/api/</code>. <code>src/proxy.ts</code> only refreshes the Supabase login cookie.`},
+
+{id:'screens',name:'The screens',dur:9,html:`
+  ${hdr('Layer 3 · the pages','The pages people click','Also: SEO landing pages for LA neighborhoods, and sign-in with Google or email.',5)}
+  ${[
+   ['/search','Map and list of courts','Renters',''],
+   ['/venue/[name]','Calendar: pick a time and book','Renters',''],
+   ['/my-bookings','Pay, cancel or approve','Renters + owners',''],
+   ['/super-admin','Set up a venue’s schedule and rules','Admin only','adm']
+  ].map((r,i)=>B('frame',1.0+i*0.8,`left:${120+i*426}px`,`<div class="tb"><i></i><i></i><i></i></div><div class="bd"><span class="pt">${r[0]}</span><span class="ds">${r[1]}</span><span class="who ${r[3]}">${r[2]}</span></div>`)).join('')}
+  ${B('blk row mint',0,'left:120px;top:812px;width:1680px;height:80px;padding:0 30px','<span class="nm" style="font-size:30px">Layer 2 · server</span>')}
+  ${B('blk row amber',0,'left:120px;top:912px;width:1680px;height:80px;padding:0 30px','<span class="nm" style="font-size:30px">Layer 1 · database</span>')}`,
+ say:`About 37 pages live in <code>src/app/</code>. The four that matter: <code>/search</code> (map + list), <code>/venue/[name]</code> (the venue page with the availability calendar), <code>/my-bookings</code> (renters pay or cancel; owners see incoming bookings), and <code>/super-admin</code> (allow-listed by email in <code>SUPER_ADMIN_EMAILS</code>). There are also SEO landing pages under <code>/los-angeles/…</code> and Google, password and email-code sign-in.`},
+
+{id:'booking',name:'One booking',dur:16,html:`
+  ${hdr('Workflow · instant booking','One booking, start to finish')}
+  <svg class="abs" style="left:0;top:0" width="1920" height="1080"><path class="b f ln" data-at="0.3" pathLength="1" d="M200 642 H1720"/></svg>
+  ${[
+   ['Pick a slot','/venue/[name] calendar'],
+   ['Save booking','POST /api/bookings'],
+   ['Start payment','create-intent'],
+   ['Renter pays','Stripe card form'],
+   ['Stripe calls back','webhook: payment succeeded'],
+   ['Email sent','Resend confirmation']
+  ].map((r,i)=>{const cx=220+i*296;return B('p dot',0.3+i*0.15,`left:${cx-14}px`,'')+B('r st',0.4+i*0.15,`left:${cx-135}px`,`<span class="nm">${r[0]}</span><span class="ds">${r[1]}</span>`,`data-x="${1.5+i*2.3}"`)}).join('')}
+  ${B('p ticket',1.2,'left:85px',`<span class="k">booking</span><span class="sp"></span>`+
+     `<span class="b f stt" data-at="0" data-out="3.8" style="font-size:32px">choosing…</span>`+
+     `<span class="b f stt" data-at="3.8" data-out="10.7">pending</span>`+
+     `<span class="b f stt ok" data-at="10.7">confirmed</span>`,
+     `data-path="1.5:85,3.8:381,6.1:677,8.4:973,10.7:1269,13:1565"`)}
+  ${B('r cap',13.6,'bottom:40px','If the renter closes the payment box instead, the pending booking is deleted again.')}`,
+ say:`1. The renter picks a slot on <code>/venue/[name]</code>. 2. <code>POST /api/bookings</code> → <code>BookingService.createBooking</code> checks the rules and clashes, then saves the booking as <code>pending</code>. 3. <code>/api/payments/create-intent</code> makes a Stripe PaymentIntent. 4. The renter pays in Stripe's card form. 5. Stripe calls <code>/api/webhooks/stripe</code> with <code>payment_intent.succeeded</code>; <code>processPaymentSuccess</code> marks the payment paid and the booking <code>confirmed</code> (only if it was still pending). 6. Resend sends the confirmation email, at most once per booking. If the renter closes the payment box, <code>DELETE /api/bookings/[id]?hard=true</code> removes the unpaid booking.`},
+
+{id:'webhook',name:'Webhook rules',dur:10,html:`
+  ${hdr('The current branch','The webhook tells Stripe the truth','Stripe retries until it gets a 2xx answer, so each answer has to mean something.',0.4)}
+  ${B('blk mint big',0.8,'left:120px;top:520px;width:300px;height:150px','<span class="nm">Stripe</span>')}
+  ${B('blk',1.2,'left:530px;top:510px;width:400px;height:170px','<span class="nm" style="font-size:30px">webhooks/stripe</span><span class="ds">what happened?</span>')}
+  <svg class="abs" style="left:0;top:0" width="1920" height="1080"><path class="b f ln mint" data-at="1.0" pathLength="1" d="M430 595 H520"/>
+   ${[0,1,2,3].map(i=>`<path class="b f ln" data-at="${2.3+i*1.3}" pathLength="1" d="M940 595 C1000 595 1000 ${430+i*120} 1050 ${430+i*120}"/>`).join('')}</svg>
+  ${[
+   ['Payment saved, email sent','200 OK',''],
+   ['Booking data can’t be emailed','200, no retry',''],
+   ['Email failed to send','500, retry','re'],
+   ['Analytics (PostHog) fails','still 200','']
+  ].map((r,i)=>B('r out'+(i===3?' hot':''),2.5+i*1.3,`top:${381+i*120}px`,`<span class="q">${r[0]}</span><span class="a ${r[2]}">${r[1]}</span>`)).join('')}
+  ${B('r tag',6.6,'left:1060px;top:860px','ccf340f · this branch’s fix')}
+  ${B('r cap',7.6,'bottom:40px','Before the fix, an analytics hiccup could answer 500 and make Stripe resend a payment that had already worked.')}`,
+ say:`<code>src/app/api/webhooks/stripe/route.ts</code> verifies Stripe's signature, then handles <code>payment_intent.succeeded</code>, <code>checkout.session.completed</code> and <code>charge.refunded</code>. Its answer decides whether Stripe retries: a permanent email-data problem returns 200 (retrying won't help), a failed email send returns 500 (retry). The latest commit, <code>ccf340f</code> on <code>fix/webhook-analytics-failure-no-retry</code>, wraps PostHog capture in <code>captureWebhookEvent()</code> so an analytics failure can no longer turn a processed payment into a 500. Tested in <code>src/services/__tests__/webhookHandler.test.ts</code>.`},
+
+{id:'paths',name:'Other paths',dur:12,html:`
+  ${hdr('Workflows · the other ways','Not every booking pays right away')}
+  ${[
+   ['booking_mode = request_to_book','Request to book',['Renter sends a request','Saved, with no slot check and no payment','Everything after is done by hand']],
+   ['approval or insurance','Needs a yes first',['Card saved with a SetupIntent','Admin approves, or OKs insurance','Payment sits as “authorized”']],
+   ['/api/bookings/[id]/cancel','Cancel',['More than 48 h ahead: refund','Stripe refunds the charge','Webhook marks it refunded']]
+  ].map((c,i)=>{const at=0.8+i*3;return B('card',at,`left:${120+i*570}px;top:300px;width:540px;height:560px`,
+     `<span class="k">${c[0]}</span><span class="t">${c[1]}</span>`+c[2].map((s,j)=>B('r step',at+0.6+j*0.6,'',s)).join(''))}).join('')}`,
+ say:`<b>Request to book</b> (<code>request-to-book-panel.tsx</code>): the booking is saved with no slot check and no payment; follow-up is manual. <b>Approval or insurance venues</b>: <code>create-setup-intent</code> saves the card and the payment becomes <code>authorized</code>; the admin then confirms or approves insurance. <b>Cancel</b>: <code>cancelBooking</code> refunds through Stripe when the renter cancels more than 48 hours ahead (or the owner cancels), and the <code>charge.refunded</code> webhook syncs the payment row. There are no payouts: Stripe Connect isn't used, despite the README.`},
+
+{id:'admin',name:'Admin save',dur:10,html:`
+  ${hdr('Workflow · venue setup','When the admin presses Save')}
+  ${B('p save',0.4,'','Save venue','data-x="1.2"')}
+  ${B('r s',7.6,'position:absolute;left:120px;top:620px;width:560px','Code: /api/admin/venues/[id], about 900 lines.')}
+  ${[
+   ['Save the venue and its house rules','venue_admin_configs'],
+   ['Rewrite the weekly pattern','slot_templates'],
+   ['Queue a 180-day refill','pg_cron, every 5 min'],
+   ['Build the next 30 days now','visible at once'],
+   ['Pull busy times from Google','if connected'],
+   ['Record whether it published','publish_states']
+  ].map((r,i)=>B('r ck',1.8+i*0.9,`top:${300+i*100}px`,`<span class="m">✓</span><span class="nm">${r[0]}</span><span class="ds">${r[1]}</span>`)).join('')}`,
+ say:`Everything about a venue is set on <code>/super-admin</code>. Saving calls <code>PATCH /api/admin/venues/[id]</code>, which in order: saves <code>venues</code> and <code>venue_admin_configs</code>, rewrites <code>slot_templates</code>, queues the 180-day refill, builds about 30 days of slots straight away so renters see them, syncs Google Calendar if connected, and records the result in <code>venue_availability_publish_states</code>. Admins can preview a draft schedule first (<code>availability-preview</code>).`},
+
+{id:'dead',name:'Dead ends',dur:15,html:`
+  ${hdr('Dead and half-built','Dead ends and loose wires','Code that exists but nothing reaches, found by searching for callers.',0.5)}
+  ${[
+   ['Real gap','Saved cards never charged','/api/payments/capture has no caller. Approval venues save a card; nothing bills it.'],
+   ['Dead','Stripe Checkout path','usePaymentCheckout has no importers, so /booking/cancelled is unreachable too.'],
+   ['Stub','Owner dashboard pages','/dashboard, /payouts and three more just redirect. The sidebar still links them.'],
+   ['Switched off','Host sign-up','A flag hard-coded to false hides /auth/upgrade-to-host.'],
+   ['Unused','Old venue page designs','arena, community, quickplay, scoreboard. Only editorial ships.'],
+   ['No reader','Tables nobody reads','availability, messages, subscriptions, insurance_documents.']
+  ].map((c,i)=>{const at=1.2+i*1.4;return B('card'+(i===0?' gap':''),at,`left:${120+(i%3)*570}px;top:${330+Math.floor(i/3)*270}px;width:540px;height:240px;padding:22px 28px;gap:8px`,
+    `<span class="k">${c[0]}</span><span class="t" style="font-size:38px">${c[1]}</span><span class="ds">${c[2]}</span>`,i===0?'':`data-x="${at+1.1}"`)}).join('')}
+  ${B('r cap',10.4,'bottom:30px;font-size:30px','Also unused: about 20 components, several hooks, and the recurring-booking and booking-edit routes have no screen calling them.')}`,
+ say:`<b>Real gap:</b> <code>/api/payments/capture</code> and <code>PaymentService.capturePayment</code> have no caller, so for approval/insurance venues the saved card is never charged. Also: <code>venue.instant_booking</code> (legacy) still decides PaymentIntent vs SetupIntent in <code>booking-payment-flow.tsx</code>, not <code>booking_mode</code>. <b>Dead:</b> the Stripe Checkout path (<code>usePaymentCheckout</code>, <code>/api/payments/checkout</code>, <code>/booking/cancelled</code>). <b>Stubs:</b> <code>/dashboard</code>, <code>/listings</code>, <code>/payouts</code>, <code>/messages</code>, <code>/settings</code> redirect to <code>/my-bookings</code> but <code>sidebar-navigation.tsx</code> links them; empty folders <code>src/app/1</code>–<code>4</code>. <b>Unused components:</b> four old venue designs, <code>venue-detail-page.tsx</code>, the old search views, dashboard cards and charts. <b>Unread tables:</b> <code>availability</code>, <code>messages</code>, <code>subscriptions</code>, <code>insurance_documents</code>; <code>payments.stripe_transfer_id</code> is never written. Unsure: the old no-nonce <code>/auth/callback</code> route may still be in Supabase's redirect list, and whether <code>check_booking_conflicts()</code> is attached as a trigger in production can't be told from the repo.`},
+
+{id:'end',name:'The stack',dur:6,html:`
+  ${B('blk row big',0.9,'left:120px;top:330px;width:900px;height:150px','<span class="nm">Screens</span><span class="ds">~37 pages</span>')}
+  ${B('blk row big mint',0.5,'left:120px;top:510px;width:900px;height:150px','<span class="nm">Server</span><span class="ds">27 API routes · 10 services</span>')}
+  ${B('blk row big amber',0.1,'left:120px;top:690px;width:900px;height:150px','<span class="nm">Database</span><span class="ds">60 migrations</span>')}
+  <div class="abs" style="left:1120px;top:380px;width:700px;display:flex;flex-direction:column;gap:26px">
+    ${B('r h',1.4,'font-size:110px','PlayBookings')}
+    ${B('r s',2.0,'','Slot → pending → paid → confirmed.')}
+    ${B('r s',2.6,'color:var(--main)','About 110 test files guard it.')}
+  </div>`,
+ say:`Three layers: about 37 pages on top, 27 API routes and 10 services in the middle, 60 migrations at the bottom. Jest covers it with about 110 test files, heaviest on the services. Facts come from reading the code on <code>fix/webhook-analytics-failure-no-retry</code> on Nov 20, 2026.`}
+];
+
+const COURT=`<div class="grid"></div><svg class="court" viewBox="0 0 1920 1080" aria-hidden="true"><g style="fill:none;stroke:var(--line);stroke-width:4"><path d="M-20 1030 H1940"/><circle cx="960" cy="1200" r="210"/><path d="M60 1030 V1100 M1860 1030 V1100"/></g></svg>`;
+const stage=document.getElementById('stage'),screen=document.getElementById('screen'),track=document.getElementById('track'),chaps=document.getElementById('chaps'),notes=document.getElementById('notes'),playBtn=document.getElementById('play'),timeEl=document.getElementById('time');
+const starts=[];let total=0;SC.forEach(s=>{starts.push(total);total+=s.dur});
+let t=0,playing=true,cur=-1,els=[],last=null;
+const fmt=s=>Math.floor(s/60)+':'+String(Math.floor(s%60)).padStart(2,'0');
+
+SC.forEach((s,i)=>{
+  const seg=document.createElement('span');seg.style.flex=s.dur+' 1 0';seg.innerHTML='<i></i>';track.appendChild(seg);
+  const c=document.createElement('button');c.type='button';c.className='chap';c.textContent=(i+1)+'. '+s.name;c.onclick=()=>jump(i);chaps.appendChild(c);
+  const n=document.createElement('div');n.className='note';n.innerHTML=`<b class="n">${fmt(starts[i])}</b><div><h3>${i+1}. ${s.name}</h3><p>${s.say}</p></div>`;notes.appendChild(n);
+});
+track.setAttribute('aria-valuemax',String(total));
+
+function fit(){stage.style.transform='scale('+(screen.clientWidth/1920)+')'}
+addEventListener('resize',fit);fit();
+
+function show(i){
+  cur=i;const s=SC[i];
+  stage.innerHTML=`<div class="scene" style="animation-duration:${s.dur}s">${COURT}${s.html}</div>`;
+  els=[...stage.querySelectorAll('[data-at],[data-x],[data-path]')];
+  els.forEach(el=>{if(el.dataset.path)el._p=el.dataset.path.split(',').map(p=>p.split(':').map(Number))});
+  [...chaps.children].forEach((c,j)=>c.classList.toggle('now',j===i));
+}
+function apply(lt){
+  for(const el of els){
+    if(el.dataset.at!==undefined){const on=lt>=+el.dataset.at&&!(el.dataset.out&&lt>=+el.dataset.out);el.classList.toggle('on',on)}
+    if(el.dataset.x)el.classList.toggle('x',lt>=+el.dataset.x);
+    if(el._p){let v=el._p[0][1];for(const [pt,pv] of el._p)if(lt>=pt)v=pv;el.style.left=v+'px'}
+  }
+}
+function idx(tt){let i=0;while(i<SC.length-1&&tt>=starts[i+1])i++;return i}
+function jump(i){t=starts[i];if(!playing)setPlay(true);draw(true)}
+function setPlay(p){playing=p;playBtn.textContent=p?'Pause':(t>=total?'Replay':'Play');screen.classList.toggle('paused',!p)}
+function draw(force){
+  const i=idx(t);if(i!==cur||force){show(i);requestAnimationFrame(()=>apply(t-starts[i]))}else apply(t-starts[i]);
+  [...track.children].forEach((sg,j)=>{sg.firstChild.style.width=(Math.max(0,Math.min(1,(t-starts[j])/SC[j].dur))*100)+'%'});
+  timeEl.textContent=fmt(t)+' / '+fmt(total);track.setAttribute('aria-valuenow',String(Math.round(t)));
+}
+function loop(now){
+  if(last!==null&&playing){t+=Math.min(0.1,(now-last)/1000);if(t>=total){t=total-0.001;setPlay(false)}}
+  last=now;draw(false);requestAnimationFrame(loop);
+}
+playBtn.onclick=()=>{if(!playing&&t>=total-0.01){t=0;draw(true)}setPlay(!playing)};
+document.getElementById('prev').onclick=()=>{const i=idx(t);jump(t-starts[i]>1.5?i:Math.max(0,i-1))};
+document.getElementById('next').onclick=()=>jump(Math.min(SC.length-1,idx(t)+1));
+track.addEventListener('click',e=>{const r=track.getBoundingClientRect();t=Math.max(0,Math.min(total-0.01,(e.clientX-r.left)/r.width*total));draw(true)});
+track.addEventListener('keydown',e=>{if(e.key==='ArrowRight'){t=Math.min(total-0.01,t+5);draw(true)}if(e.key==='ArrowLeft'){t=Math.max(0,t-5);draw(true)}});
+document.addEventListener('keydown',e=>{if(e.key===' '&&e.target===document.body){e.preventDefault();playBtn.click()}});
+if(matchMedia('(prefers-reduced-motion: reduce)').matches)setPlay(false);
+show(0);apply(0);requestAnimationFrame(loop);
+})();
+</script>
+</body>
+</html>

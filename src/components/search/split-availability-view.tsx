@@ -1,15 +1,16 @@
 'use client'
 
-import { useState, useMemo } from 'react'
-import { format, addDays, subDays } from 'date-fns'
+import { useState, useMemo, useCallback, useEffect, useRef } from 'react'
+import { createPortal } from 'react-dom'
+import { useRouter, useSearchParams } from 'next/navigation'
+import { format } from 'date-fns'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
+import { Calendar } from '@/components/ui/calendar'
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome'
 import {
   faSearch,
   faCalendarDays,
-  faClock,
-  faSliders,
   faChevronDown,
   faChevronLeft,
   faChevronRight,
@@ -20,12 +21,34 @@ import {
 import { useVenuesWithNextAvailable, useUserLocation, type MapVenue } from '@/hooks/useVenuesWithNextAvailable'
 import { AvailabilityMap } from '@/components/maps/availability-map'
 import { VenueCardSkeleton } from '@/components/search/venue-card-skeleton'
+import { VenueAccessSegment } from '@/components/venues/venue-access-segment'
 import { ErrorMessage } from '@/components/ui/error-message'
 import Link from 'next/link'
-import { getBookingModeDisplay } from '@/lib/booking-mode'
+import { getBookingModeDisplay, resolveVenueBookingMode } from '@/lib/booking-mode'
+import {
+  formatVenueCardPriceLine,
+  matchesAccessFilter,
+  parseVenueAccessFilter,
+  resolveVenueAccess,
+  type VenueAccessFilter,
+} from '@/lib/venueAccess'
 import { slugify } from '@/lib/utils'
+import { addDaysToDateString, getDateStringInTimeZone } from '@/utils/dateHelpers'
+import { formatDiscoveryPrice, isOpenGymDiscovery } from '@/lib/discoveryPresentation'
 
 type ViewMode = 'map' | 'list'
+
+const PLATFORM_TIME_ZONE = 'America/Los_Angeles'
+const RESULTS_PAGE_SIZE = 12
+
+function isRequestToBookVenue(venue: MapVenue): boolean {
+  return resolveVenueBookingMode({ booking_mode: venue.bookingMode, instant_booking: venue.instantBooking }) === 'request_to_book'
+}
+
+function parseLocalDate(dateStr: string): Date {
+  const [year, month, day] = dateStr.split('-').map(Number)
+  return new Date(year, month - 1, day)
+}
 
 /**
  * Split view component combining map and availability list
@@ -33,14 +56,54 @@ type ViewMode = 'map' | 'list'
  * Mobile: Toggle between map and list views
  */
 export function SplitAvailabilityView() {
-  const today = new Date()
-  const [selectedDate, setSelectedDate] = useState<string | null>(null) // null = any date (show absolute next)
-  const [selectedTime] = useState<string>('Any time')
+  const router = useRouter()
+  const searchParams = useSearchParams()
+  const searchParamAccess = parseVenueAccessFilter(searchParams.get('access') || 'all')
+  const todayKey = getDateStringInTimeZone(new Date(), PLATFORM_TIME_ZONE)
+  const todayDate = parseLocalDate(todayKey)
+  const [selectedDate, setSelectedDate] = useState<string | null>(null)
+  const [showDatePicker, setShowDatePicker] = useState(false)
   const [viewMode, setViewMode] = useState<ViewMode>('map')
   const [selectedVenueId, setSelectedVenueId] = useState<string | null>(null)
   const [searchQuery, setSearchQuery] = useState('')
+  const [visibleResultCount, setVisibleResultCount] = useState(RESULTS_PAGE_SIZE)
+  const dateButtonRef = useRef<HTMLButtonElement>(null)
+  const [datePickerPosition, setDatePickerPosition] = useState<{ left: number; top: number } | null>(null)
+  const [accessFilter, setAccessFilter] = useState<VenueAccessFilter>(searchParamAccess)
 
-  // Get user location for distance-based sorting (opt-in via location icon button)
+  useEffect(() => {
+    setAccessFilter(searchParamAccess)
+  }, [searchParamAccess])
+
+  const updateDatePickerPosition = useCallback(() => {
+    const button = dateButtonRef.current
+    if (!button) return
+
+    const rect = button.getBoundingClientRect()
+    const viewportGutter = 8
+    const estimatedCalendarWidth = 320
+    const left = Math.max(
+      viewportGutter,
+      Math.min(rect.left, window.innerWidth - estimatedCalendarWidth - viewportGutter)
+    )
+
+    setDatePickerPosition({ left, top: rect.bottom + 4 })
+  }, [])
+
+  useEffect(() => {
+    if (!showDatePicker) return
+
+    updateDatePickerPosition()
+    window.addEventListener('resize', updateDatePickerPosition)
+    window.addEventListener('scroll', updateDatePickerPosition, true)
+
+    return () => {
+      window.removeEventListener('resize', updateDatePickerPosition)
+      window.removeEventListener('scroll', updateDatePickerPosition, true)
+    }
+  }, [showDatePicker, updateDatePickerPosition])
+
+  // Get user location for distance display and chronological tie-breaking (opt-in).
   const { latitude: userLat, longitude: userLng, loading: locationLoading, requestLocation } = useUserLocation()
   const hasLocation = userLat != null && userLng != null
 
@@ -49,59 +112,83 @@ export function SplitAvailabilityView() {
     dateFilter: selectedDate || undefined,
     userLat: userLat || undefined,
     userLng: userLng || undefined,
+    accessFilter,
   })
 
-  // Filter venues by search query
+  // Filter venues by search query and access segment
   const filteredVenues = useMemo(() => {
     if (!venues) return []
-    if (!searchQuery.trim()) return venues
 
-    const query = searchQuery.toLowerCase()
-    return venues.filter(v => 
-      v.name.toLowerCase().includes(query) ||
-      v.city.toLowerCase().includes(query) ||
-      v.address.toLowerCase().includes(query)
-    )
-  }, [venues, searchQuery])
+    const query = searchQuery.trim().toLowerCase()
+    return venues.filter((venue) => {
+      const matchesSearch =
+        !query
+        || venue.name.toLowerCase().includes(query)
+        || venue.city.toLowerCase().includes(query)
+        || venue.address.toLowerCase().includes(query)
 
-  // Venues with availability for the list
+      if (!matchesSearch) {
+        return false
+      }
+
+      return matchesAccessFilter(
+        {
+          offers_open_gym: venue.offersOpenGym,
+          offers_private_rental: venue.offersPrivateRental,
+        },
+        accessFilter
+      )
+    })
+  }, [venues, searchQuery, accessFilter])
+
+  // List rows: private rentals need a next regular slot, except request-to-book venues,
+  // which never publish slots and take requested times instead. Open gym can show without one.
   const venuesWithAvailability = useMemo(() => {
-    return filteredVenues.filter(v => v.nextAvailable !== null)
-  }, [filteredVenues])
-
-  const handleDateChange = (direction: 'prev' | 'next') => {
-    if (selectedDate) {
-      const [y, m, d] = selectedDate.split('-').map(Number)
-      const currentDate = new Date(y, m - 1, d)
-      const newDate = direction === 'prev' ? subDays(currentDate, 1) : addDays(currentDate, 1)
-      setSelectedDate(format(newDate, 'yyyy-MM-dd'))
-    } else {
-      // If no date selected, start from today
-      const newDate = direction === 'next' ? addDays(today, 1) : today
-      setSelectedDate(format(newDate, 'yyyy-MM-dd'))
+    if (accessFilter === 'open_gym') {
+      return filteredVenues
     }
+    return filteredVenues.filter((venue) => venue.nextAvailable !== null || isRequestToBookVenue(venue))
+  }, [filteredVenues, accessFilter])
+
+  const visibleVenues = venuesWithAvailability.slice(0, visibleResultCount)
+  const selectedDateObject = selectedDate ? parseLocalDate(selectedDate) : undefined
+
+  const handleAccessChange = (value: VenueAccessFilter) => {
+    setAccessFilter(value)
+    const nextParams = new URLSearchParams(searchParams.toString())
+    if (value === 'all') {
+      nextParams.delete('access')
+    } else {
+      nextParams.set('access', value)
+    }
+    const query = nextParams.toString()
+    router.push(query ? `/search?${query}` : '/search', { scroll: false })
   }
 
-  const handleTodayClick = () => {
-    if (selectedDate === format(today, 'yyyy-MM-dd')) {
-      // If already on today, toggle to "any date" mode
-      setSelectedDate(null)
-    } else {
-      setSelectedDate(format(today, 'yyyy-MM-dd'))
-    }
+  useEffect(() => {
+    setVisibleResultCount(RESULTS_PAGE_SIZE)
+  }, [selectedDate, searchQuery, accessFilter])
+
+  const handleDateChange = (direction: 'prev' | 'next') => {
+    if (!selectedDate) return
+    const newDateKey = addDaysToDateString(selectedDate, direction === 'prev' ? -1 : 1)
+    if (direction === 'prev' && newDateKey < todayKey) return
+    setSelectedDate(newDateKey)
+    setShowDatePicker(false)
   }
 
   const handleVenueSelect = (venue: MapVenue) => {
+    const venueIndex = venuesWithAvailability.findIndex((candidate) => candidate.id === venue.id)
+    if (venueIndex >= 0) {
+      const requiredResultCount = Math.ceil((venueIndex + 1) / RESULTS_PAGE_SIZE) * RESULTS_PAGE_SIZE
+      setVisibleResultCount((count) => Math.max(count, requiredResultCount))
+    }
     setSelectedVenueId(venue.id)
   }
 
-  // Format date for display
   const getDateDisplay = () => {
-    if (!selectedDate) return 'Any Date'
-    const [year, month, day] = selectedDate.split('-').map(Number)
-    const date = new Date(year, month - 1, day)
-    const isToday = selectedDate === format(today, 'yyyy-MM-dd')
-    return isToday ? 'Today' : format(date, 'EEE, MMM d')
+    if (!selectedDate || !selectedDateObject) return 'Next available'
+    return selectedDate === todayKey ? 'Today' : format(selectedDateObject, 'EEE, MMM d')
   }
 
   return (
@@ -120,6 +207,10 @@ export function SplitAvailabilityView() {
             onChange={(e) => setSearchQuery(e.target.value)}
             className="w-full pl-4xl pr-l py-m bg-background rounded-xl border-secondary-50/10"
           />
+        </div>
+
+        <div className="mb-m">
+          <VenueAccessSegment value={accessFilter} onChange={handleAccessChange} />
         </div>
 
         {/* Filter Row */}
@@ -155,38 +246,80 @@ export function SplitAvailabilityView() {
           </div>
 
           {/* Date Filter */}
-          <div className="flex-shrink-0 flex items-center gap-xs">
+          <div className="relative flex-shrink-0 flex items-center gap-xs">
+            {selectedDate && (
+              <Button
+                variant="ghost"
+                size="icon"
+                onClick={() => handleDateChange('prev')}
+                disabled={selectedDate === todayKey}
+                aria-label="Previous day"
+                className="h-9 w-9 rounded-lg bg-secondary-50/5 text-secondary-50/70 hover:bg-secondary-50/10"
+              >
+                <FontAwesomeIcon icon={faChevronLeft} className="text-xs" />
+              </Button>
+            )}
             <Button
-              variant="ghost"
-              size="icon"
-              onClick={() => handleDateChange('prev')}
-              className="h-9 w-9 rounded-lg bg-secondary-50/5 text-secondary-50/70 hover:bg-secondary-50/10"
-            >
-              <FontAwesomeIcon icon={faChevronLeft} className="text-xs" />
-            </Button>
-            <Button
-              onClick={handleTodayClick}
-              className={`flex items-center gap-s rounded-lg px-m py-s text-sm whitespace-nowrap ${
-                selectedDate 
-                  ? 'bg-primary-400/15 text-primary-400 hover:bg-primary-400/25' 
-                  : 'bg-secondary-50/5 text-secondary-50/70 hover:bg-secondary-50/10'
-              }`}
+              ref={dateButtonRef}
+              onClick={() => {
+                updateDatePickerPosition()
+                setShowDatePicker((open) => !open)
+              }}
+              aria-expanded={showDatePicker}
+              aria-haspopup="dialog"
+              className="flex items-center gap-s rounded-lg px-m py-s text-sm whitespace-nowrap bg-primary-400/15 text-primary-400 hover:bg-primary-400/25"
             >
               <FontAwesomeIcon icon={faCalendarDays} className="text-xs" />
               <span>{getDateDisplay()}</span>
               <FontAwesomeIcon icon={faChevronDown} className="text-xs" />
             </Button>
-            <Button
-              variant="ghost"
-              size="icon"
-              onClick={() => handleDateChange('next')}
-              className="h-9 w-9 rounded-lg bg-secondary-50/5 text-secondary-50/70 hover:bg-secondary-50/10"
-            >
-              <FontAwesomeIcon icon={faChevronRight} className="text-xs" />
-            </Button>
+            {selectedDate && (
+              <Button
+                variant="ghost"
+                size="icon"
+                onClick={() => handleDateChange('next')}
+                aria-label="Next day"
+                className="h-9 w-9 rounded-lg bg-secondary-50/5 text-secondary-50/70 hover:bg-secondary-50/10"
+              >
+                <FontAwesomeIcon icon={faChevronRight} className="text-xs" />
+              </Button>
+            )}
+            {showDatePicker && datePickerPosition && createPortal(
+              <div
+                data-date-picker-overlay
+                role="dialog"
+                aria-label="Choose a date"
+                className="fixed z-50 rounded-xl border border-secondary-50/10 bg-secondary-800 p-s shadow-lg"
+                style={datePickerPosition}
+              >
+                <Button
+                  type="button"
+                  variant="ghost"
+                  size="sm"
+                  onClick={() => {
+                    setSelectedDate(null)
+                    setShowDatePicker(false)
+                  }}
+                  className="mb-xs w-full justify-start rounded-lg text-primary-400"
+                >
+                  Next available
+                </Button>
+                <Calendar
+                  mode="single"
+                  selected={selectedDateObject}
+                  onSelect={(date) => {
+                    if (!date) return
+                    setSelectedDate(format(date, 'yyyy-MM-dd'))
+                    setShowDatePicker(false)
+                  }}
+                  disabled={(date) => date < todayDate}
+                />
+              </div>,
+              document.body
+            )}
           </div>
 
-          {/* Location (opt-in): sort by distance when enabled */}
+          {/* Location (opt-in): show distance and use it only to break time ties. */}
           <Button
             variant="ghost"
             size="icon"
@@ -205,19 +338,6 @@ export function SplitAvailabilityView() {
             ) : (
               <FontAwesomeIcon icon={faLocationDot} className="text-sm" />
             )}
-          </Button>
-
-          {/* Time Filter */}
-          <Button className="flex-shrink-0 flex items-center gap-s bg-secondary-50/5 rounded-lg px-m py-s text-sm text-secondary-50/70 hover:bg-secondary-50/10">
-            <FontAwesomeIcon icon={faClock} className="text-xs" />
-            <span className="whitespace-nowrap">{selectedTime}</span>
-            <FontAwesomeIcon icon={faChevronDown} className="text-xs" />
-          </Button>
-
-          {/* Filters Button */}
-          <Button className="flex-shrink-0 flex items-center gap-s bg-secondary-50/5 rounded-lg px-m py-s text-sm text-secondary-50/70 hover:bg-secondary-50/10">
-            <FontAwesomeIcon icon={faSliders} className="text-xs" />
-            <span className="whitespace-nowrap">Filters</span>
           </Button>
 
         </div>
@@ -245,7 +365,7 @@ export function SplitAvailabilityView() {
             </div>
           ) : (
             <AvailabilityMap
-              venues={filteredVenues}
+              venues={venuesWithAvailability}
               selectedVenueId={selectedVenueId}
               onVenueSelect={handleVenueSelect}
               className="w-full h-full"
@@ -264,12 +384,14 @@ export function SplitAvailabilityView() {
             {/* Results Header */}
             <div className="mb-l">
               <h2 className="text-lg font-semibold text-secondary-50">
-                {selectedDate ? 'Available Slots' : 'Next Available Times'}
+                {accessFilter === 'open_gym' ? 'Open Gym Venues' : 'Available Slots'}
               </h2>
               <p className="text-sm text-secondary-50/60">
-                {loading 
-                  ? 'Loading...' 
-                  : `${venuesWithAvailability.length} venue${venuesWithAvailability.length !== 1 ? 's' : ''} with availability`
+                {loading
+                  ? 'Loading...'
+                  : accessFilter === 'open_gym'
+                    ? `${venuesWithAvailability.length} Open Gym venue${venuesWithAvailability.length !== 1 ? 's' : ''}`
+                    : `${venuesWithAvailability.length} venue${venuesWithAvailability.length !== 1 ? 's' : ''} with availability`
                 }
               </p>
             </div>
@@ -295,23 +417,35 @@ export function SplitAvailabilityView() {
 
             {/* Availability Cards */}
             {!loading && !error && venuesWithAvailability.length > 0 && (
-              <div className="space-y-3">
-                {venuesWithAvailability.map((venue) => (
+              <div className="space-y-m">
+                {visibleVenues.map((venue) => (
                   <MapVenueCard 
                     key={venue.id} 
                     venue={venue}
+                    accessFilter={accessFilter}
                     isSelected={selectedVenueId === venue.id}
                     onClick={() => setSelectedVenueId(venue.id)}
                   />
                 ))}
+                {visibleResultCount < venuesWithAvailability.length && (
+                  <Button
+                    type="button"
+                    variant="outline"
+                    onClick={() => setVisibleResultCount((count) => count + RESULTS_PAGE_SIZE)}
+                    className="w-full rounded-xl"
+                  >
+                    Show more
+                  </Button>
+                )}
               </div>
             )}
 
             {/* Empty State */}
             {!loading && !error && venuesWithAvailability.length === 0 && (
-              <EmptyState 
+              <EmptyState
                 hasVenues={filteredVenues.length > 0}
-                dateFilter={selectedDate}
+                hasDateFilter={Boolean(selectedDate)}
+                accessFilter={accessFilter}
               />
             )}
 
@@ -335,11 +469,13 @@ export function SplitAvailabilityView() {
  * Simplified venue card for the availability list
  */
 function MapVenueCard({ 
-  venue, 
+  venue,
+  accessFilter,
   isSelected,
   onClick 
 }: { 
   venue: MapVenue
+  accessFilter: VenueAccessFilter
   isSelected: boolean
   onClick: () => void 
 }) {
@@ -347,6 +483,25 @@ function MapVenueCard({
     { booking_mode: venue.bookingMode, instant_booking: venue.instantBooking },
     'compact'
   )
+  const isOpenGym = isOpenGymDiscovery(venue.nextAvailable)
+  const { offersPrivateRental } = resolveVenueAccess({
+    offers_open_gym: venue.offersOpenGym,
+    offers_private_rental: venue.offersPrivateRental,
+  })
+  const priceLine = formatVenueCardPriceLine({
+    offers_open_gym: venue.offersOpenGym,
+    offers_private_rental: venue.offersPrivateRental,
+    drop_in_price: venue.dropInPrice,
+    hourly_rate: venue.hourlyRate,
+  })
+  const discoveryPrice = formatDiscoveryPrice(venue.nextAvailable, venue.hourlyRate)
+  const displayedPrice = accessFilter === 'open_gym'
+    ? priceLine
+    : isOpenGym
+      ? discoveryPrice
+      : priceLine || discoveryPrice
+  const showNextAvailable = Boolean(venue.nextAvailable) && accessFilter !== 'open_gym'
+  const showBookingModeChip = offersPrivateRental && accessFilter !== 'open_gym' && !isOpenGym
 
   return (
     <div 
@@ -374,40 +529,65 @@ function MapVenueCard({
 
         {/* Right: Price */}
         <div className="text-right flex-shrink-0">
-          <span className="font-bold text-secondary-50">${venue.hourlyRate}</span>
-          <span className="text-xs text-secondary-50/60">/hr</span>
+          {displayedPrice ? (
+            <span className="font-bold text-secondary-50 text-sm">
+              {displayedPrice}
+            </span>
+          ) : null}
         </div>
       </div>
 
-      {/* Next Available */}
-      {venue.nextAvailable && (
-        <div className="mt-m flex items-center justify-between">
-          <div className="flex items-center gap-s">
-            <span className="bg-primary-400/15 text-primary-400 text-sm font-medium px-m py-xs rounded-lg">
-              {venue.nextAvailable.displayText}
-            </span>
-            <span
-              className={`text-xs px-s py-xxs rounded-full ${
-                bookingMode.mode === 'instant'
-                  ? 'bg-accent-400/15 text-accent-400'
-                  : 'bg-secondary-50/10 text-secondary-50/70'
-              }`}
-            >
-              {bookingMode.label}
-            </span>
-            {venue.insuranceRequired && (
-              <span className="bg-secondary-50/10 text-secondary-50/70 text-xs px-s py-xxs rounded-full">
-                Insurance
+      {/* Next Available — two-row meta strip for consistent mobile chip sizing */}
+      {(showNextAvailable || showBookingModeChip || venue.offersOpenGym) && (
+        <div className="mt-m space-y-s">
+          {showNextAvailable && venue.nextAvailable && (
+            <div data-testid="venue-meta-datetime-row">
+              <span className="inline-flex max-w-full bg-primary-400/15 text-primary-400 text-sm font-medium px-m py-xs rounded-lg whitespace-nowrap">
+                {venue.nextAvailable.displayText}
               </span>
-            )}
-          </div>
-          <Link
-            href={`/venue/${slugify(venue.name)}`}
-            className="text-sm font-medium text-secondary-50/60 hover:text-secondary-50"
-            onClick={(e) => e.stopPropagation()}
+            </div>
+          )}
+
+          <div
+            data-testid="venue-meta-chips-row"
+            className="flex items-center justify-between gap-s"
           >
-            Book →
-          </Link>
+            <div className="flex min-w-0 flex-wrap items-center gap-s">
+              {venue.offersOpenGym && (
+                <span className="whitespace-nowrap bg-accent-400/15 text-accent-400 text-xs px-s py-xxs rounded-full">
+                  Open Gym
+                </span>
+              )}
+              {venue.offersPrivateRental && (
+                <span className="whitespace-nowrap bg-primary-400/10 text-primary-400 text-xs px-s py-xxs rounded-full">
+                  Private Rental
+                </span>
+              )}
+              {showBookingModeChip && (
+                <span
+                  className={`whitespace-nowrap text-xs px-s py-xxs rounded-full ${
+                    bookingMode.mode === 'instant'
+                      ? 'bg-accent-400/15 text-accent-400'
+                      : 'bg-secondary-50/10 text-secondary-50/70'
+                  }`}
+                >
+                  {bookingMode.label}
+                </span>
+              )}
+              {venue.insuranceRequired && (
+                <span className="whitespace-nowrap bg-secondary-50/10 text-secondary-50/70 text-xs px-s py-xxs rounded-full">
+                  Insurance
+                </span>
+              )}
+            </div>
+            <Link
+              href={`/venue/${slugify(venue.name)}`}
+              className="flex-shrink-0 text-sm font-medium text-secondary-50/60 hover:text-secondary-50"
+              onClick={(e) => e.stopPropagation()}
+            >
+              {isOpenGym ? 'View details →' : 'Book →'}
+            </Link>
+          </div>
         </div>
       )}
     </div>
@@ -419,10 +599,12 @@ function MapVenueCard({
  */
 function EmptyState({ 
   hasVenues, 
-  dateFilter 
+  hasDateFilter,
+  accessFilter,
 }: { 
   hasVenues: boolean
-  dateFilter: string | null 
+  hasDateFilter: boolean
+  accessFilter: VenueAccessFilter
 }) {
   return (
     <div className="text-center py-2xl">
@@ -432,12 +614,21 @@ function EmptyState({
       
       {hasVenues ? (
         <>
-          <p className="text-secondary-50 font-medium mb-s">No availability found</p>
+          <p className="text-secondary-50 font-medium mb-s">
+            {accessFilter === 'private_rental'
+              ? 'No private rental availability found'
+              : hasDateFilter
+                ? 'No availability found'
+                : 'No upcoming availability found'}
+          </p>
           <p className="text-secondary-50/60 text-sm mb-l">
-            {dateFilter 
-              ? 'No slots available for this date. Try a different day.'
-              : 'No upcoming availability at this time.'
-            }
+            {accessFilter === 'private_rental'
+              ? hasDateFilter
+                ? 'No private rental slots are available for this date. Try a different day.'
+                : 'No future private rental slots are currently published.'
+              : hasDateFilter
+                ? 'No slots available for this date. Try a different day.'
+                : 'No future sessions are currently published.'}
           </p>
         </>
       ) : (

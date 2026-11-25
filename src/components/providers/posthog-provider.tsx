@@ -3,6 +3,7 @@
 import { useMemo } from 'react'
 import type { ReactNode } from 'react'
 import type { CaptureResult } from 'posthog-js'
+import type { ConfigDefaults } from 'posthog-js'
 import { PostHogProvider as PostHogReactProvider } from 'posthog-js/react'
 import {
   getDeviceTrafficOverride,
@@ -44,7 +45,10 @@ export function PostHogProvider({ children }: PostHogProviderProps) {
 
   const options = useMemo(
     () => ({
-      api_host: process.env.NEXT_PUBLIC_POSTHOG_HOST || 'https://us.i.posthog.com',
+      api_host: '/ingest',
+      ui_host: 'https://us.posthog.com',
+      defaults: '2026-01-30' as ConfigDefaults,
+      capture_exceptions: true,
       person_profiles: 'identified_only' as const,
       before_send: (event: CaptureResult | null) => {
         if (isInternalTrafficEvent(event)) {

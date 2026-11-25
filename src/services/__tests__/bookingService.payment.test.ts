@@ -8,6 +8,7 @@ import type { Venue } from '@/types'
 jest.mock('@/repositories/bookingRepository')
 jest.mock('../auditService')
 jest.mock('../paymentService')
+jest.mock('../bookingRequestEmailService')
 jest.mock('@/lib/stripe', () => ({
   stripe: {
     paymentIntents: { create: jest.fn() },
@@ -218,6 +219,13 @@ describe('BookingService - Payment Flow', () => {
             maybeSingle: jest.fn().mockResolvedValue({ data: null, error: null }),
           }
         }
+        if (table === 'users') {
+          return {
+            select: jest.fn().mockReturnThis(),
+            eq: jest.fn().mockReturnThis(),
+            maybeSingle: jest.fn().mockResolvedValue({ data: { phone: '555-0100' }, error: null }),
+          }
+        }
         return mockSupabase
       })
 
@@ -228,7 +236,7 @@ describe('BookingService - Payment Flow', () => {
       const auditService = (bookingService as unknown as { auditService: { logCreate: jest.Mock } }).auditService
       auditService.logCreate = jest.fn().mockResolvedValue(undefined)
 
-      const result = await bookingService.createBooking(bookingData, 'user-123')
+      const result = await bookingService.createBooking({ ...bookingData, activity: 'Pickup run' }, 'user-123')
 
       expect(bookingService.checkConflicts).not.toHaveBeenCalled()
       expect(mockBookingRepo.create).toHaveBeenCalledWith(

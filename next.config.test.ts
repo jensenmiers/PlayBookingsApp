@@ -21,3 +21,9 @@ describe('next turbopack configuration', () => {
     expect(nextConfig.turbopack?.root).toBe(process.cwd())
   })
 })
+
+describe('next transpilePackages configuration', () => {
+  it('transpiles Cal Sans UI for Next font helpers', () => {
+    expect(nextConfig.transpilePackages).toContain('@calcom/cal-sans-ui')
+  })
+})

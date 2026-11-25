@@ -13,6 +13,7 @@ import { createBookingSchema, bookingQuerySchema } from '@/lib/validations/booki
 import { handleApiError } from '@/utils/errorHandling'
 import type { ApiResponse, ListBookingsResponse } from '@/types/api'
 import type { Booking } from '@/types'
+import { getPostHogClient } from '@/lib/posthog-server'
 
 export async function GET(request: NextRequest) {
   try {
@@ -65,6 +66,21 @@ export async function POST(request: NextRequest) {
 
     const bookingService = new BookingService()
     const booking = await bookingService.createBooking(body, auth.userId)
+
+    const posthog = getPostHogClient()
+    posthog.capture({
+      distinctId: auth.userId,
+      event: 'booking_created',
+      properties: {
+        booking_id: booking.id,
+        venue_id: booking.venue_id,
+        booking_date: booking.date,
+        total_amount: booking.total_amount,
+        recurring_type: booking.recurring_type,
+        booking_status: booking.status,
+      },
+    })
+    await posthog.flush()
 
     const response: ApiResponse<Booking> = {
       success: true,

@@ -54,10 +54,12 @@ export interface Venue {
   longitude?: number
   owner_id: string
   hourly_rate: number
-  weekend_rate?: number // Optional rate for weekend bookings (Sat/Sun)
   instant_booking: boolean
   booking_mode?: BookingMode | null
   insurance_required: boolean
+  offers_open_gym?: boolean
+  offers_private_rental?: boolean
+  drop_in_price?: number | null
   max_advance_booking_days: number
   media?: VenueMedia[]
   photos: string[]
@@ -109,6 +111,7 @@ export interface VenueAdminConfig {
   min_advance_booking_days: number
   min_advance_lead_time_hours: number
   operating_hours: OperatingHourWindow[]
+  request_hint_windows: OperatingHourWindow[]
   blackout_dates: string[]
   holiday_dates: string[]
   policy_cancel: string | null
@@ -148,6 +151,7 @@ export interface Booking {
   recurring_type: RecurringType
   recurring_end_date?: string
   notes?: string
+  activity?: string | null
   created_at: string
   updated_at: string
 }
@@ -282,7 +286,7 @@ export interface BookingWithVenue extends Booking {
     insurance_required: boolean
     media?: VenueMedia[]
     photos: string[]
-  }
+  } | null
 }
 
 // Payment flow response types
@@ -312,7 +316,6 @@ export interface CreateVenueForm {
   latitude?: number
   longitude?: number
   hourly_rate: number
-  weekend_rate?: number
   instant_booking: boolean
   booking_mode?: BookingMode
   insurance_required: boolean
@@ -329,6 +332,8 @@ export interface CreateBookingForm {
   recurring_type?: RecurringType
   recurring_end_date?: string
   notes?: string
+  activity?: string
+  phone?: string
 }
 
 // Alias for backwards compatibility
@@ -372,6 +377,8 @@ export interface UpdatePaymentForm {
 }
 
 // Search and filter interfaces
+export type VenueAccessFilter = 'all' | 'open_gym' | 'private_rental'
+
 export interface VenueSearchFilters {
   city?: string
   state?: string
@@ -381,6 +388,7 @@ export interface VenueSearchFilters {
   insurance_required?: boolean
   instant_booking?: boolean
   booking_mode?: BookingMode
+  access?: VenueAccessFilter
   date?: string
   start_time?: string
   end_time?: string
@@ -494,4 +502,4 @@ export const PAYMENT_STATUS_TRANSITIONS: Record<PaymentStatus, PaymentStatus[]> 
 }
 
 // Re-export map-related types from the hook for convenience
-export type { MapVenue, NextAvailableSlot } from '@/hooks/useVenuesWithNextAvailable'
+export type { MapVenue, NextAvailableSlot } from '@/lib/venueDiscovery'

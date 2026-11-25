@@ -57,7 +57,7 @@ function CourtCard({
           <div className="absolute bottom-3 left-4 flex items-center gap-2">
             <span className="w-2 h-2 bg-primary-400 rounded-full animate-pulse" />
             <span className="text-xs font-medium text-primary-400 uppercase tracking-wider">
-              Available {court.nextAvailable}
+              {court.isOpenGym ? 'Open Gym' : 'Available'} {court.nextAvailable}
             </span>
           </div>
         </div>
@@ -67,9 +67,8 @@ function CourtCard({
             <h3 className="font-serif text-lg sm:text-xl text-secondary-50 leading-tight truncate">
               {court.name}
             </h3>
-            <span className="text-base font-medium text-secondary-50 whitespace-nowrap">
-              ${court.hourlyRate}
-              <span className="text-sm text-secondary-50/40">/hr</span>
+            <span className="text-sm font-medium text-secondary-50 whitespace-nowrap">
+              {court.priceLabel}
             </span>
           </div>
           
@@ -98,6 +97,11 @@ function CourtCardsScroll({ courts, mounted }: { courts: FeaturedCourt[]; mounte
         {courts.map((court, i) => (
           <div key={court.id} className="flex-shrink-0 w-[280px] sm:w-[320px] snap-start">
             <CourtCard court={court} index={i} mounted={mounted} />
+          </div>
+        ))}
+        {Array.from({ length: Math.max(0, FEATURED_COURT_LIMIT - courts.length) }, (_, i) => (
+          <div key={`coming-soon-${i}`} className="flex-shrink-0 w-[280px] sm:w-[320px] snap-start">
+            <ComingSoonCard className="min-h-[320px]" />
           </div>
         ))}
         <Link
@@ -213,6 +217,18 @@ function FAQItem({
   )
 }
 
+const COMING_SOON_LABEL = 'More LA courts coming soon'
+
+function ComingSoonCard({ className = '' }: { className?: string }) {
+  return (
+    <div
+      className={`flex h-full min-h-[140px] items-center justify-center rounded-2xl border-2 border-dashed border-secondary-50/15 bg-secondary-800/20 p-6 text-center ${className}`}
+    >
+      <span className="text-sm text-secondary-50/40">{COMING_SOON_LABEL}</span>
+    </div>
+  )
+}
+
 function VerticalCompactCourtCard({
   court,
   index,
@@ -257,7 +273,7 @@ function VerticalCompactCourtCard({
           <div className="absolute bottom-2.5 left-3.5 flex items-center gap-2">
             <span className="w-1.5 h-1.5 bg-primary-400 rounded-full animate-pulse" />
             <span className="text-[11px] font-medium text-primary-400 uppercase tracking-wider">
-              Available {court.nextAvailable}
+              {court.isOpenGym ? 'Open Gym' : 'Available'} {court.nextAvailable}
             </span>
           </div>
         </div>
@@ -267,9 +283,8 @@ function VerticalCompactCourtCard({
             <h3 className="font-serif text-lg text-secondary-50 leading-tight truncate">
               {court.name}
             </h3>
-            <span className="text-base font-medium text-secondary-50 whitespace-nowrap">
-              ${court.hourlyRate}
-              <span className="text-xs text-secondary-50/40">/hr</span>
+            <span className="text-sm font-medium text-secondary-50 whitespace-nowrap">
+              {court.priceLabel}
             </span>
           </div>
 
@@ -291,6 +306,8 @@ function VerticalCompactCourtCard({
 export default function Home() {
   const [mounted, setMounted] = useState(false)
   const [openFaqIndex, setOpenFaqIndex] = useState<number | null>(0)
+  // Preferred pins resolve from the active catalog (includes ungeocoded venues).
+  // Discovery omits venues without location, so it alone cannot resolve demo pins.
   const { data: venues, loading: venuesLoading } = useVenues()
   const { data: availabilityVenues, loading: availabilityLoading } = useVenuesWithNextAvailable()
   const featuredCourts = useMemo(
@@ -301,6 +318,8 @@ export default function Home() {
     [venues, availabilityVenues]
   )
   const featuredLoading = venuesLoading || availabilityLoading
+  // With a single live venue, the main call to action goes straight to it.
+  const heroHref = featuredCourts.length === 1 ? featuredCourts[0].href : '/search'
   
   useEffect(() => {
     setMounted(true)
@@ -331,13 +350,13 @@ export default function Home() {
             <h1 className="font-serif text-5xl sm:text-7xl md:text-8xl lg:text-[5.5rem] xl:text-[6rem] leading-[0.9] tracking-tight mb-8 sm:mb-12">
               <span className="block">Find a court.</span>
               <span className="block text-primary-400">Book it.</span>
-              <span className="block italic font-light">Go play.</span>
+              <span className="block italic font-light">Play.</span>
             </h1>
           </div>
 
           <div className={`max-w-xl transform transition-all duration-1000 delay-300 ${mounted ? 'translate-y-0 opacity-100' : 'translate-y-12 opacity-0'}`}>
             <Link 
-              href="/search"
+              href={heroHref}
               className="group flex items-center justify-between w-full px-6 sm:px-8 py-5 sm:py-6 bg-secondary-50 text-secondary-900 rounded-2xl hover:bg-primary-400 transition-colors"
             >
               <span className="text-lg sm:text-xl font-medium">
@@ -383,11 +402,18 @@ export default function Home() {
                 ))}
               </>
             ) : featuredCourts.length > 0 ? (
-              featuredCourts.map((court, i) => (
-                <div key={court.id} className="flex-1 min-h-0">
-                  <VerticalCompactCourtCard court={court} index={i} mounted={mounted} />
-                </div>
-              ))
+              <>
+                {featuredCourts.map((court, i) => (
+                  <div key={court.id} className="flex-1 min-h-0">
+                    <VerticalCompactCourtCard court={court} index={i} mounted={mounted} />
+                  </div>
+                ))}
+                {Array.from({ length: Math.max(0, FEATURED_COURT_LIMIT - featuredCourts.length) }, (_, i) => (
+                  <div key={`coming-soon-${i}`} className="flex-1 min-h-0">
+                    <ComingSoonCard />
+                  </div>
+                ))}
+              </>
             ) : (
               <div className="rounded-2xl border border-secondary-50/10 bg-secondary-800/30 p-6 text-secondary-50/50 text-sm">
                 No upcoming availability yet.

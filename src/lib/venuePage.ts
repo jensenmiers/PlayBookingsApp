@@ -36,7 +36,6 @@ export type VenueMetadataRow = BaseVenueRow & VenueWithOptionalMediaFields & {
   latitude?: number | null
   longitude?: number | null
   hourly_rate?: number | null
-  weekend_rate?: number | null
 }
 
 export type VenueSeoMetadata = {
@@ -53,7 +52,6 @@ export type VenueSeoMetadata = {
   latitude: number | null
   longitude: number | null
   hourly_rate: number | null
-  weekend_rate: number | null
   primary_photo_url: string | null
 }
 
@@ -71,7 +69,6 @@ const VENUE_METADATA_SELECT = [
   'latitude',
   'longitude',
   'hourly_rate',
-  'weekend_rate',
   'photos',
 ].join(', ')
 
@@ -87,7 +84,6 @@ const VENUE_METADATA_SELECT_NO_NEIGHBORHOOD = [
   'latitude',
   'longitude',
   'hourly_rate',
-  'weekend_rate',
   'photos',
 ].join(', ')
 
@@ -156,7 +152,6 @@ function toVenueSeoMetadata(row: VenueMetadataRow): VenueSeoMetadata {
     latitude: typeof row.latitude === 'number' ? row.latitude : null,
     longitude: typeof row.longitude === 'number' ? row.longitude : null,
     hourly_rate: typeof row.hourly_rate === 'number' ? row.hourly_rate : null,
-    weekend_rate: typeof row.weekend_rate === 'number' ? row.weekend_rate : null,
     primary_photo_url: pickPrimaryPhotoUrl(media, row.photos ?? null),
   }
 }

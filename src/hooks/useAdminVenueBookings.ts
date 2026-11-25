@@ -77,9 +77,43 @@ export function useAdminVenueBookings(venueId: string | null) {
     }
   }, [venueId])
 
+  const decideRequest = useCallback(async (
+    bookingId: string,
+    decision: 'confirm' | 'decline',
+    reason?: string
+  ): Promise<{ success: boolean; error: string | null; message: string | null }> => {
+    if (!venueId) {
+      return { success: false, error: 'Venue is required', message: null }
+    }
+
+    try {
+      const response = await fetch(
+        `/api/admin/venues/${venueId}/bookings/${bookingId}/${decision}-request`,
+        {
+          method: 'POST',
+          headers: { 'content-type': 'application/json' },
+          body: JSON.stringify(decision === 'decline' && reason?.trim() ? { reason: reason.trim() } : {}),
+        }
+      )
+      const result = await response.json()
+      if (!response.ok || !result.success) {
+        return { success: false, error: result.error?.message || `Failed to ${decision} request`, message: null }
+      }
+
+      return { success: true, error: null, message: result.message || null }
+    } catch (error) {
+      return {
+        success: false,
+        error: error instanceof Error ? error.message : `Failed to ${decision} request`,
+        message: null,
+      }
+    }
+  }, [venueId])
+
   return {
     ...state,
     refetch,
     approveInsurance,
+    decideRequest,
   }
 }

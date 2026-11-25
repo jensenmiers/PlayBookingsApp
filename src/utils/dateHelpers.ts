@@ -194,6 +194,49 @@ export function isPastBookingStart(dateStr: string, timeStr: string, now: Date =
   return timeStringToDate(dateStr, timeStr) < now
 }
 
+function getTimeZoneOffsetMs(timeZone: string, date: Date): number {
+  const parts = new Intl.DateTimeFormat('en-US', {
+    timeZone,
+    year: 'numeric',
+    month: '2-digit',
+    day: '2-digit',
+    hour: '2-digit',
+    minute: '2-digit',
+    second: '2-digit',
+    hour12: false,
+  }).formatToParts(date)
+
+  const get = (type: string) => Number(parts.find((part) => part.type === type)?.value || '0')
+  const asUtc = Date.UTC(
+    get('year'),
+    get('month') - 1,
+    get('day'),
+    get('hour'),
+    get('minute'),
+    get('second')
+  )
+
+  return asUtc - date.getTime()
+}
+
+/**
+ * Convert a wall-clock date + time in `timeZone` to an absolute Date.
+ * Matches Postgres `(date + time) AT TIME ZONE timeZone`.
+ */
+export function zonedDateTimeToDate(dateStr: string, timeStr: string, timeZone: string): Date {
+  const [year, month, day] = dateStr.split('-').map(Number)
+  const normalizedTime = /^\d{2}:\d{2}$/.test(timeStr) ? `${timeStr}:00` : timeStr
+  const [hours, minutes, seconds] = normalizedTime.split(':').map(Number)
+
+  let utcMs = Date.UTC(year, month - 1, day, hours, minutes, seconds || 0)
+  for (let index = 0; index < 2; index += 1) {
+    const offset = getTimeZoneOffsetMs(timeZone, new Date(utcMs))
+    utcMs = Date.UTC(year, month - 1, day, hours, minutes, seconds || 0) - offset
+  }
+
+  return new Date(utcMs)
+}
+
 export function getDateStringInTimeZone(date: Date, timeZone: string): string {
   const parts = new Intl.DateTimeFormat('en-US', {
     timeZone,

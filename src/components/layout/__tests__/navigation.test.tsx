@@ -30,7 +30,9 @@ jest.mock('next/link', () => ({
 
 jest.mock('next/image', () => ({
   __esModule: true,
-  default: ({ alt }: { alt: string }) => <div aria-label={alt} />,
+  default: ({ alt, src }: { alt: string; src: string }) => (
+    <div role="img" aria-label={alt} data-src={src} />
+  ),
 }))
 
 jest.mock('next/navigation', () => ({
@@ -66,6 +68,17 @@ describe('Navigation', () => {
     })
   })
 
+  it('renders the logo home link with accessible name', () => {
+    render(<Navigation />)
+
+    const homeLink = screen.getByRole('link', { name: 'Play Bookings home' })
+    expect(homeLink).toHaveAttribute('href', '/')
+    expect(screen.getByRole('img', { name: 'Play Bookings' })).toHaveAttribute(
+      'data-src',
+      '/play_bookings_logo_white.png'
+    )
+  })
+
   it('applies active pill styling to Next Availability when pathname is /search', () => {
     mockPathname = '/search'
 
@@ -88,41 +101,56 @@ describe('Navigation', () => {
     expect(forRentersLink.className).not.toContain('bg-secondary-50/10')
   })
 
-  it('shows All Courts in the signed-out desktop navbar', () => {
+  it('hides discovery links from the signed-out homepage navbar', () => {
     render(<Navigation />)
 
-    const allCourtsLinks = screen.getAllByRole('link', { name: 'All Courts' })
+    expect(screen.queryByRole('link', { name: 'Next Availability' })).not.toBeInTheDocument()
+    expect(screen.queryByRole('link', { name: 'All Courts' })).not.toBeInTheDocument()
+    expect(screen.getByRole('button', { name: 'Join' })).toBeInTheDocument()
+  })
 
-    expect(allCourtsLinks).toHaveLength(1)
-    expect(allCourtsLinks[0]).toHaveAttribute('href', '/venues')
+  it('keeps discovery links in the signed-out navbar on internal renter pages', () => {
+    mockPathname = '/search'
+
+    render(<Navigation />)
+
+    expect(screen.getByRole('link', { name: 'Next Availability' })).toHaveAttribute(
+      'href',
+      '/search'
+    )
+    expect(screen.getByRole('link', { name: 'All Courts' })).toHaveAttribute('href', '/venues')
   })
 
   it('shows All Courts in the signed-out guest dropdown', () => {
     render(<Navigation />)
 
-    fireEvent.click(screen.getByRole('button', { name: 'Join / Sign in' }))
+    fireEvent.click(screen.getByRole('button', { name: 'Join' }))
 
     const allCourtsLinks = screen.getAllByRole('link', { name: 'All Courts' })
 
-    expect(allCourtsLinks).toHaveLength(2)
+    expect(allCourtsLinks).toHaveLength(1)
     expect(allCourtsLinks.every((link) => link.getAttribute('href') === '/venues')).toBe(true)
   })
 
   it('shows All Courts in the signed-out mobile menu', () => {
     render(<Navigation />)
 
-    const mobileMenuButton = screen
-      .getAllByRole('button')
-      .find((button) => button.className.includes('md:hidden'))
-    if (!mobileMenuButton) {
-      throw new Error('Expected mobile menu button to render')
-    }
+    const mobileMenuButton = screen.getByRole('button', { name: 'Open navigation menu' })
+
+    expect(mobileMenuButton).toHaveAttribute('aria-expanded', 'false')
+    expect(mobileMenuButton.className).toContain('size-12')
+    expect(mobileMenuButton.querySelector('svg')?.className.baseVal).toContain('size-7')
 
     fireEvent.click(mobileMenuButton)
 
+    expect(screen.getByRole('button', { name: 'Close navigation menu' })).toHaveAttribute(
+      'aria-expanded',
+      'true'
+    )
+
     const allCourtsLinks = screen.getAllByRole('link', { name: 'All Courts' })
 
-    expect(allCourtsLinks).toHaveLength(2)
+    expect(allCourtsLinks).toHaveLength(1)
     expect(allCourtsLinks.every((link) => link.getAttribute('href') === '/venues')).toBe(true)
   })
 
@@ -155,8 +183,8 @@ describe('Navigation', () => {
   it('opens mixed account auth from the guest navbar entry', () => {
     render(<Navigation />)
 
-    fireEvent.click(screen.getByRole('button', { name: 'Join / Sign in' }))
-    fireEvent.click(screen.getAllByRole('button', { name: 'Join / Sign in' })[1])
+    fireEvent.click(screen.getByRole('button', { name: 'Join' }))
+    fireEvent.click(screen.getByRole('button', { name: 'Join or sign in' }))
 
     expect(mockOpenAuthModal).toHaveBeenCalledWith(
       expect.objectContaining({

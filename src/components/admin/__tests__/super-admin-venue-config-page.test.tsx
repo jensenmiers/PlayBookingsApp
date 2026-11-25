@@ -558,10 +558,10 @@ describe('SuperAdminVenueConfigPage', () => {
   it.skip('renders super-admin sections in the configured order', async () => {
     render(<SuperAdminVenueConfigPage />)
 
-    await screen.findByRole('heading', { name: 'Normal Booking Price', level: 3 })
+    await screen.findByRole('heading', { name: 'Private Rental Hourly Rate', level: 3 })
 
     const headingsInOrder = [
-      'Normal Booking Price',
+      'Private Rental Hourly Rate',
       'Booking Mode',
       'Advance Booking Rules',
       'Amenities Checklist',
@@ -601,6 +601,13 @@ describe('SuperAdminVenueConfigPage', () => {
     expect(
       screen.getByText(/sync reads the selected calendar's current busy times and recalculates venue availability/i)
     ).toBeInTheDocument()
+  })
+
+  it('renders offers private rental control for discovery capability', async () => {
+    render(<SuperAdminVenueConfigPage />)
+
+    expect(await screen.findByText('Offers Private Rental')).toBeInTheDocument()
+    expect(screen.getByRole('checkbox', { name: /offers private rental/i })).toBeChecked()
   })
 
   it('renders two booking mode toggles and removes legacy insurance controls', async () => {
@@ -746,6 +753,9 @@ describe('SuperAdminVenueConfigPage', () => {
     // Enable drop-in first (schedule is only visible when enabled)
     const dropInCheckbox = await screen.findByLabelText(/drop-in enabled/i)
     fireEvent.click(dropInCheckbox)
+    fireEvent.change(screen.getByPlaceholderText('Drop-in price per person'), {
+      target: { value: '5' },
+    })
 
     fireEvent.click(await screen.findByRole('button', { name: /add drop-in window/i }))
     fireEvent.click(screen.getByRole('button', { name: /save & publish all changes/i }))
@@ -754,6 +764,8 @@ describe('SuperAdminVenueConfigPage', () => {
       expect(mockPatchAdminVenueConfig).toHaveBeenCalledWith(
         'venue-1',
         expect.objectContaining({
+          drop_in_enabled: true,
+          drop_in_price: 5,
           drop_in_templates: [
             expect.objectContaining({
               day_of_week: 1,
@@ -764,6 +776,70 @@ describe('SuperAdminVenueConfigPage', () => {
         })
       )
     })
+  })
+
+  it('includes drop_in_price when re-enabling drop-in without changing the price', async () => {
+    const data = buildMockAdminVenuesData()
+    // After a prior disable, config still keeps the price while venues.drop_in_price was cleared.
+    data[0].config.drop_in_enabled = false
+    data[0].config.drop_in_price = 3
+    data[0].drop_in_templates = [
+      { day_of_week: 1, start_time: '18:00:00', end_time: '20:00:00' },
+    ]
+
+    mockUseAdminVenues.mockReturnValue({
+      loading: false,
+      error: null,
+      refetch: mockRefetch,
+      data,
+    } as any)
+    mockPatchAdminVenueConfig.mockResolvedValue({})
+
+    render(<SuperAdminVenueConfigPage />)
+
+    const dropInCheckbox = await screen.findByLabelText(/drop-in enabled/i)
+    expect(dropInCheckbox).not.toBeChecked()
+    fireEvent.click(dropInCheckbox)
+    fireEvent.click(screen.getByRole('button', { name: /save & publish all changes/i }))
+
+    await waitFor(() => {
+      expect(mockPatchAdminVenueConfig).toHaveBeenCalledWith(
+        'venue-1',
+        expect.objectContaining({
+          drop_in_enabled: true,
+          drop_in_price: 3,
+        })
+      )
+    })
+  })
+
+  it('blocks re-enabling drop-in when the price field was cleared', async () => {
+    const data = buildMockAdminVenuesData()
+    data[0].config.drop_in_enabled = false
+    data[0].config.drop_in_price = 3
+    data[0].drop_in_templates = [
+      { day_of_week: 1, start_time: '18:00:00', end_time: '20:00:00' },
+    ]
+
+    mockUseAdminVenues.mockReturnValue({
+      loading: false,
+      error: null,
+      refetch: mockRefetch,
+      data,
+    } as any)
+
+    render(<SuperAdminVenueConfigPage />)
+
+    fireEvent.change(await screen.findByPlaceholderText('Drop-in price per person'), {
+      target: { value: '' },
+    })
+    const dropInCheckbox = screen.getByLabelText(/drop-in enabled/i)
+    expect(dropInCheckbox).not.toBeChecked()
+    fireEvent.click(dropInCheckbox)
+    fireEvent.click(screen.getByRole('button', { name: /save & publish all changes/i }))
+
+    expect(await screen.findByText('Drop-in price is required when drop-in is enabled.')).toBeInTheDocument()
+    expect(mockPatchAdminVenueConfig).not.toHaveBeenCalled()
   })
 
   it('renders 12-hour drop-in time labels and preserves legacy non-hour values', async () => {
@@ -801,6 +877,9 @@ describe('SuperAdminVenueConfigPage', () => {
     // Enable drop-in first (schedule is only visible when enabled)
     const dropInCheckbox = await screen.findByLabelText(/drop-in enabled/i)
     fireEvent.click(dropInCheckbox)
+    fireEvent.change(screen.getByPlaceholderText('Drop-in price per person'), {
+      target: { value: '5' },
+    })
 
     fireEvent.click(await screen.findByRole('button', { name: /add drop-in window/i }))
 
@@ -944,6 +1023,24 @@ describe('SuperAdminVenueConfigPage', () => {
     expect(await screen.findByText(/earliest allowed start is Fri, May 15, 9:13 PM PT/i)).toBeInTheDocument()
   })
 
+  it('saves usually-open times as request hint windows', async () => {
+    mockPatchAdminVenueConfig.mockResolvedValue({})
+
+    render(<SuperAdminVenueConfigPage />)
+
+    fireEvent.click(await screen.findByRole('button', { name: /add usually-open time/i }))
+    fireEvent.click(screen.getByRole('button', { name: /save & publish all changes/i }))
+
+    await waitFor(() => {
+      expect(mockPatchAdminVenueConfig).toHaveBeenCalledWith(
+        'venue-1',
+        expect.objectContaining({
+          request_hint_windows: [{ day_of_week: 6, start_time: '08:00:00', end_time: '13:00:00' }],
+        })
+      )
+    })
+  })
+
   it('saves operating hours when base availability cards are filled', async () => {
     mockPatchAdminVenueConfig.mockResolvedValue({})
 
@@ -1051,6 +1148,115 @@ describe('SuperAdminVenueConfigPage', () => {
     await waitFor(() => {
       expect(mockApproveInsurance).toHaveBeenCalledWith('booking-pending-insurance')
       expect(mockBookingsRefetch).toHaveBeenCalled()
+    })
+  })
+
+  describe('request-to-book venues', () => {
+    const mockDecideRequest = jest.fn()
+
+    const requestVenueData = () => {
+      const data = buildMockAdminVenuesData()
+      data[0] = {
+        ...data[0],
+        venue: { ...data[0].venue, instant_booking: false, booking_mode: 'request_to_book' },
+      } as (typeof data)[number]
+      return data
+    }
+
+    const requestBooking = {
+      id: 'booking-request',
+      venue_id: 'venue-1',
+      renter_id: 'renter-9',
+      date: '2099-01-03',
+      start_time: '08:00:00',
+      end_time: '10:00:00',
+      status: 'pending',
+      total_amount: 120,
+      insurance_approved: true,
+      insurance_required: false,
+      recurring_type: 'none',
+      activity: 'Team practice',
+      notes: 'Twelve players, full court please.',
+      created_at: '2026-02-20T12:00:00.000Z',
+      updated_at: '2026-02-20T12:00:00.000Z',
+      renter: {
+        first_name: 'Riley',
+        last_name: 'Request',
+        email: 'riley@example.com',
+        phone: '323-555-0199',
+      },
+    }
+
+    const openBookingsTab = async () => {
+      render(<SuperAdminVenueConfigPage />)
+      const bookingsTab = await screen.findByRole('tab', { name: /bookings/i })
+      fireEvent.mouseDown(bookingsTab, { button: 0, ctrlKey: false })
+      await screen.findByText('Riley Request')
+    }
+
+    beforeEach(() => {
+      mockDecideRequest.mockResolvedValue({ success: true, error: null, message: 'Request confirmed' })
+      mockUseAdminVenues.mockReturnValue({
+        loading: false,
+        error: null,
+        refetch: mockRefetch,
+        data: requestVenueData(),
+      } as any)
+      mockUseAdminVenueBookings.mockReturnValue({
+        loading: false,
+        error: null,
+        refetch: mockBookingsRefetch,
+        approveInsurance: mockApproveInsurance,
+        decideRequest: mockDecideRequest,
+        data: [requestBooking],
+      } as any)
+    })
+
+    it('shows the request details with a Requested badge', async () => {
+      await openBookingsTab()
+
+      expect(screen.getByText('Requested')).toBeInTheDocument()
+      expect(screen.getByText('Phone: 323-555-0199')).toBeInTheDocument()
+      expect(screen.getByText('Planning: Team practice')).toBeInTheDocument()
+      expect(screen.getByText('Message: Twelve players, full court please.')).toBeInTheDocument()
+    })
+
+    it('confirms a request and refetches the timeline', async () => {
+      await openBookingsTab()
+
+      fireEvent.click(screen.getByRole('button', { name: 'Confirm' }))
+
+      await waitFor(() => {
+        expect(mockDecideRequest).toHaveBeenCalledWith('booking-request', 'confirm', undefined)
+        expect(mockBookingsRefetch).toHaveBeenCalled()
+      })
+      expect(await screen.findByText('Request confirmed')).toBeInTheDocument()
+    })
+
+    it('declines a request with a reason', async () => {
+      mockDecideRequest.mockResolvedValue({ success: true, error: null, message: 'Request declined' })
+      await openBookingsTab()
+
+      fireEvent.click(screen.getByRole('button', { name: 'Decline' }))
+      fireEvent.change(screen.getByLabelText(/reason for the renter/i), {
+        target: { value: 'Church event that morning' },
+      })
+      fireEvent.click(screen.getByRole('button', { name: 'Send decline' }))
+
+      await waitFor(() => {
+        expect(mockDecideRequest).toHaveBeenCalledWith('booking-request', 'decline', 'Church event that morning')
+      })
+      expect(await screen.findByText('Request declined')).toBeInTheDocument()
+    })
+
+    it('shows the error and keeps the buttons when a decision fails', async () => {
+      mockDecideRequest.mockResolvedValue({ success: false, error: 'This request was already answered', message: null })
+      await openBookingsTab()
+
+      fireEvent.click(screen.getByRole('button', { name: 'Confirm' }))
+
+      expect(await screen.findByText('This request was already answered')).toBeInTheDocument()
+      expect(screen.getByRole('button', { name: 'Confirm' })).toBeInTheDocument()
     })
   })
 })

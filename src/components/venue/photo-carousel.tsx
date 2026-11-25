@@ -2,6 +2,7 @@
 
 import { useRef, useState, useCallback, useEffect } from 'react'
 import Image from 'next/image'
+import { cn } from '@/lib/utils'
 
 interface PhotoCarouselProps {
   photos: string[]
@@ -11,9 +12,18 @@ interface PhotoCarouselProps {
   priority?: boolean
   /** Responsive sizes attribute for images */
   sizes?: string
+  /** Horizontal position for multi-photo indicators (default: center) */
+  indicatorAlignment?: 'center' | 'left'
 }
 
-export function PhotoCarousel({ photos, venueName, onPhotoTap, priority: priorityProp = false, sizes }: PhotoCarouselProps) {
+export function PhotoCarousel({
+  photos,
+  venueName,
+  onPhotoTap,
+  priority: priorityProp = false,
+  sizes,
+  indicatorAlignment = 'center',
+}: PhotoCarouselProps) {
   const scrollRef = useRef<HTMLDivElement>(null)
   const [activeIndex, setActiveIndex] = useState(0)
 
@@ -78,7 +88,12 @@ export function PhotoCarousel({ photos, venueName, onPhotoTap, priority: priorit
       </div>
       <div
         data-testid="carousel-dots"
-        className="absolute bottom-4 left-1/2 -translate-x-1/2 z-10 flex gap-xs pointer-events-none"
+        className={cn(
+          'absolute bottom-l z-10 flex gap-xs pointer-events-none',
+          indicatorAlignment === 'left'
+            ? 'left-l'
+            : 'left-1/2 -translate-x-1/2'
+        )}
       >
         {photos.map((_, i) => (
           <div

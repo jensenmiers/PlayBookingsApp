@@ -40,13 +40,12 @@ export function TicketDatetime({ date, startTime, endTime, recurringType, recurr
         {format(bookingDate, 'MMMM d, yyyy')}
       </p>
 
-      {/* Time range — monospace scoreboard feel */}
       <div className="flex items-baseline gap-s mt-m">
-        <span className="font-mono text-2xl text-secondary-50 tracking-tight">
+        <span className="text-2xl text-secondary-50 tracking-tight">
           {formatTime(startTime)}
         </span>
         <span className="text-secondary-50/30 text-lg">&mdash;</span>
-        <span className="font-mono text-2xl text-secondary-50 tracking-tight">
+        <span className="text-2xl text-secondary-50 tracking-tight">
           {formatTime(endTime)}
         </span>
         <span className="text-secondary-50/40 text-sm ml-xs">

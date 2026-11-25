@@ -4,7 +4,7 @@ jest.mock("@vercel/analytics/next", () => ({
 
 import { metadata } from "../layout";
 
-const SHARE_TEXT = "Community courts, unlocked. Find a court. Book it. Go play.";
+const SHARE_TEXT = "Community courts, unlocked. Find a court. Book it. Play.";
 const OG_IMAGE_PATH = "/og-default-v3.jpg";
 
 describe("root metadata social defaults", () => {

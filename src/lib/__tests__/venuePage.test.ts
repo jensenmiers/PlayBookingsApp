@@ -33,7 +33,6 @@ describe('venuePage helpers', () => {
       latitude: 34.1055,
       longitude: -118.3229,
       hourly_rate: 120,
-      weekend_rate: 150,
       photos: null,
       venue_media: [
         {
@@ -83,7 +82,6 @@ describe('venuePage helpers', () => {
           latitude: 34.1055,
           longitude: -118.3229,
           hourly_rate: 120,
-          weekend_rate: 150,
           venue_media: [
             {
               public_url: 'https://example.com/hero.webp',

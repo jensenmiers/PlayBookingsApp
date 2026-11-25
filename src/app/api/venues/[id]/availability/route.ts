@@ -16,7 +16,7 @@ import type { UnifiedAvailableSlot } from '@/services/availabilityService'
 
 type RouteContext = { params: Promise<{ id: string }> }
 
-export type GetAvailabilityResponse = ApiResponse<UnifiedAvailableSlot[]>
+export type GetAvailabilityResponse = ApiResponse<UnifiedAvailableSlot[]> & { published_through: string | null }
 
 export async function GET(
   request: NextRequest,
@@ -67,7 +67,10 @@ export async function GET(
         logPerformance('venue-availability-api-queries', timing)
       },
     })
-    const slots = await availabilityService.getAvailableSlots(venueId, dateFrom, dateTo)
+    const [slots, publishedThrough] = await Promise.all([
+      availabilityService.getAvailableSlots(venueId, dateFrom, dateTo),
+      availabilityService.getPublishedThrough(venueId),
+    ])
 
     logPerformance('venue-availability-api-total', {
       venueId,
@@ -80,6 +83,7 @@ export async function GET(
     const response: GetAvailabilityResponse = {
       success: true,
       data: slots,
+      published_through: publishedThrough,
     }
 
     return Response.json(response)

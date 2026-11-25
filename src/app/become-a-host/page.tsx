@@ -9,9 +9,12 @@ import {
   HOST_ONBOARDING_UNAVAILABLE_DESCRIPTION,
   HOST_ONBOARDING_UNAVAILABLE_TITLE,
 } from '@/lib/hostOnboarding'
+import { usePostHog } from 'posthog-js/react'
 
 export default function BecomeAHostPage() {
+  const posthog = usePostHog()
   const handleHostCTA = () => {
+    posthog.capture('become_host_cta_clicked')
     toast({
       title: HOST_ONBOARDING_UNAVAILABLE_TITLE,
       description: HOST_ONBOARDING_UNAVAILABLE_DESCRIPTION,

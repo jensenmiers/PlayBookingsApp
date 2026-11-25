@@ -10,6 +10,7 @@ import { slugify } from '@/lib/utils'
 import { timeStringToDate } from '@/utils/dateHelpers'
 import type { Booking, Venue } from '@/types'
 import type { TicketState } from './ticket-utils'
+import { usePostHog } from 'posthog-js/react'
 
 interface TicketActionsProps {
   booking: Booking
@@ -36,6 +37,17 @@ export function TicketActions({
   onPayClick,
   onActionComplete,
 }: TicketActionsProps) {
+  const posthog = usePostHog()
+
+  const handlePayClick = () => {
+    posthog.capture('checkout_payment_initiated', {
+      booking_id: booking.id,
+      total_amount: booking.total_amount,
+      venue_id: venue?.id,
+    })
+    onPayClick()
+  }
+
   const handleAddToCalendar = () => {
     const start = timeStringToDate(booking.date, booking.start_time)
     const end = timeStringToDate(booking.date, booking.end_time)
@@ -70,7 +82,7 @@ export function TicketActions({
 
       {/* Primary CTA */}
       {ticketState.primaryAction === 'pay' && (
-        <Button onClick={onPayClick} size="lg" className="w-full">
+        <Button onClick={handlePayClick} size="lg" className="w-full">
           <FontAwesomeIcon icon={faCreditCard} className="mr-s" />
           Pay ${booking.total_amount.toFixed(2)}
         </Button>

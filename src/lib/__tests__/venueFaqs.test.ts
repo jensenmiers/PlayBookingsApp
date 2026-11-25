@@ -23,6 +23,15 @@ const createMockVenue = (overrides: Partial<Venue> = {}): Venue => ({
 })
 
 describe('buildVenueFaqs', () => {
+  it('uses the standard hourly rate even when legacy weekend data is present', () => {
+    const venue = createMockVenue() as Venue & { weekend_rate: number }
+    venue.weekend_rate = 95
+
+    const costFaq = buildVenueFaqs(venue).find((faq) => faq.q === 'What does it cost?')
+
+    expect(costFaq?.a).toBe('The hourly rate is $75/hr.')
+  })
+
   it('communicates required insurance and certificate-of-insurance expectations', () => {
     const faqs = buildVenueFaqs(createMockVenue({ insurance_required: true }))
 

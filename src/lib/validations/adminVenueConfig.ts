@@ -31,6 +31,7 @@ export const updateVenueAdminConfigSchema = z
     booking_mode: z.enum(['instant_slots', 'approval_slots', 'request_to_book']).optional(),
     instant_booking: z.boolean().optional(),
     insurance_required: z.boolean().optional(),
+    offers_private_rental: z.boolean().optional(),
     amenities: z.array(z.string().min(1)).optional(),
     is_active: z.boolean().optional(),
 
@@ -40,6 +41,7 @@ export const updateVenueAdminConfigSchema = z
     min_advance_booking_days: z.number().int().min(0).optional(),
     min_advance_lead_time_hours: z.number().int().min(0).optional(),
     operating_hours: z.array(operatingHourWindowSchema).optional(),
+    request_hint_windows: z.array(operatingHourWindowSchema).optional(),
     blackout_dates: z.array(dateSchema).optional(),
     holiday_dates: z.array(dateSchema).optional(),
     policy_cancel: z.string().nullable().optional(),

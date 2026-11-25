@@ -5,7 +5,7 @@ It is intentionally not a column-by-column reference.
 
 ## Known Gaps
 
-- Last verified: 2026-05-17 (America/Los_Angeles)
+- Last verified: 2026-08-02 (America/Los_Angeles)
 - Verification sources:
   - Live table existence checks with service-role Supabase queries
   - SQL migrations in `supabase/migrations`
@@ -16,10 +16,10 @@ It is intentionally not a column-by-column reference.
 ## Automated Snapshot (Generated)
 
 <!-- AUTO-SNAPSHOT:DB:START -->
-- Generated at: 2026-05-17 (America/Los_Angeles)
-- Latest migration in repo: `20260517000100_fix_next_available_exact_min_advance_rpc.sql` (52 total)
-- Distinct tables referenced in app code via `.from()`: 21
-- App tables referenced in app code: `audit_logs`, `auth_oauth_states`, `availability`, `bookings`, `drop_in_template_sync_queue`, `external_availability_blocks`, `payments`, `recurring_bookings`, `regular_template_sync_queue`, `slot_instances`, `slot_interactions`, `slot_modal_content`, `slot_templates`, `users`, `venue_admin_configs`, `venue_availability_publish_states`, `venue_calendar_integrations`, `venue_calendar_oauth_states`, `venue_calendar_tokens`, `venue_media`, `venues`
+- Generated at: 2026-08-02 (America/Los_Angeles)
+- Latest migration in repo: `20260728005518_simplify_standard_private_pricing.sql` (60 total)
+- Distinct tables referenced in app code via `.from()`: 22
+- App tables referenced in app code: `audit_logs`, `auth_oauth_states`, `availability`, `bookings`, `drop_in_template_sync_queue`, `external_availability_blocks`, `payments`, `recurring_bookings`, `regular_template_sync_queue`, `slot_instance_pricing`, `slot_instances`, `slot_interactions`, `slot_modal_content`, `slot_templates`, `users`, `venue_admin_configs`, `venue_availability_publish_states`, `venue_calendar_integrations`, `venue_calendar_oauth_states`, `venue_calendar_tokens`, `venue_media`, `venues`
 - Live key-table check: 19/19 tables available
 <!-- AUTO-SNAPSHOT:DB:END -->
 
@@ -34,7 +34,7 @@ It is intentionally not a column-by-column reference.
 
 - `venues`: rentable facility records (location, pricing, listing metadata, booking mode flags).
 - `availability`: retained legacy table for rollback/audit only (runtime booking/discovery no longer depends on it).
-- `bookings`: primary booking records.
+- `bookings`: primary booking records, including nullable Resend acceptance tracking in `confirmation_email_sent_at` and `confirmation_email_resend_id`. Existing confirmed bookings are not backfilled.
 - `recurring_bookings`: expanded recurring instances linked to a parent booking.
 
 ### Slot Engine (Template-Based Scheduling)
@@ -46,8 +46,9 @@ It is intentionally not a column-by-column reference.
 
 ### Slot Pricing
 
-- `pricing_rules`: reusable per-venue/per-action pricing definitions.
-- `slot_instance_pricing`: per-instance pricing snapshots written during slot materialization.
+- `venues.hourly_rate`: single standard hourly rate for private rentals on every day.
+- `pricing_rules`: offering-specific pricing definitions restricted to informational open-gym sessions.
+- `slot_instance_pricing`: per-instance open-gym pricing snapshots written during slot materialization.
 
 ### Venue Policy and Operations
 
@@ -80,8 +81,9 @@ It is intentionally not a column-by-column reference.
    - Admin edits also enqueue zero-delay long-horizon refresh (`enqueue_drop_in_template_sync`, `enqueue_regular_template_sync`) for 180-day coverage.
    - Long-horizon queue draining is handled by the Supabase cron job `availability_backfill_worker_every_5_minutes`.
 4. Slot pricing is normalized and snapshotted:
-   - Templates can reference `pricing_rules`.
-   - Generated instances receive `slot_instance_pricing` snapshots for runtime reads.
+   - Private rentals always display and charge `venues.hourly_rate`, regardless of day or slot.
+   - Informational open-gym templates can reference `pricing_rules`.
+   - Generated open-gym instances receive `slot_instance_pricing` snapshots for runtime reads.
 5. `venues.max_advance_booking_days` remains present for legacy compatibility, but policy enforcement now prioritizes admin config minimum-advance controls.
 6. External calendar blocking baseline is now present:
    - `external_availability_blocks` overlays slot reads and booking-create conflict checks.
@@ -89,10 +91,12 @@ It is intentionally not a column-by-column reference.
 7. Insurance policy controls were simplified:
    - `venues.insurance_required` is now the only venue-level insurance gate.
    - `venue_admin_configs.insurance_requires_manual_approval` and `venue_admin_configs.insurance_document_types` were removed.
-8. Regular availability parity is SQL-core-driven:
+8. Next-available discovery combines canonical rentals with future open-gym sessions:
    - `get_regular_available_slot_instances` is the canonical regular eligibility function used by both venue availability regular reads and next-available discovery.
-   - `get_venues_with_next_available` now derives next slots from that shared eligibility core.
-   - Discovery surfaces (`/search`, `/venues`, home featured) stay regular-only; drop-in info-only slots remain venue-page-only.
+   - `get_venues_with_next_available` unions that regular eligibility core with active `info_only_open_gym` instances for venues with drop-in enabled.
+   - Its `p_access_filter` argument scopes candidate selection before choosing the earliest slot: `all` considers both slot types, `open_gym` considers open-gym sessions, and `private_rental` considers regular rental slots.
+   - Open-gym discovery excludes past starts, blackout/holiday dates, and external availability blocks, but does not apply rental minimum-notice policy.
+   - Search, map, `/venues`, and home featured surfaces receive the selected slot action type and normalized per-instance pricing.
 9. Google Calendar OAuth callbacks are now fixed-path:
    - Venue-specific callback URLs were removed.
    - Short-lived `venue_calendar_oauth_states` records now map the static callback back to the initiating venue/admin.
@@ -100,6 +104,11 @@ It is intentionally not a column-by-column reference.
    - `venues.booking_mode` distinguishes `instant_slots`, `approval_slots`, and `request_to_book`.
    - Request-to-book venues can accept precise pending booking requests without published slot inventory.
    - `venues.instant_booking` remains present for legacy compatibility while runtime behavior moves toward `booking_mode`.
+11. Open Gym vs Private Rental discovery capabilities:
+   - `venues.offers_open_gym`, `venues.offers_private_rental`, and denormalized `venues.drop_in_price` power All / Open Gym / Private Rentals filters on `/venues` and `/search`.
+   - Hybrid venues match both Open Gym and Private Rentals segments.
+   - `offers_open_gym` / `drop_in_price` sync from `venue_admin_configs.drop_in_enabled` / `drop_in_price` on admin save.
+   - Slot `action_type = info_only_open_gym` remains per-slot UX (info modal, no in-app booking), not a venue category.
 
 ## Operational Notes
 
@@ -108,6 +117,7 @@ It is intentionally not a column-by-column reference.
   - `slot_templates` + `venue_admin_configs`.
 - Canonical regular slot eligibility is computed by SQL function:
   - `get_regular_available_slot_instances`.
+- Canonical next-available discovery is computed by `get_venues_with_next_available`, which selects each venue's earliest eligible slot within the requested access segment and sorts available venues chronologically.
 - `availability` remains physically present for rollback/audit and legacy tooling, but is deprecated from runtime booking/discovery.
 - Queue processing currently depends on scripts:
   - `scripts/process-drop-in-template-sync-queue.ts`

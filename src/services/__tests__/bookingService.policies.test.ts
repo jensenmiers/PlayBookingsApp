@@ -127,6 +127,25 @@ describe('BookingService.createBooking - venue policy enforcement', () => {
     jest.useRealTimers()
   })
 
+  it('uses the standard hourly rate for weekend bookings', async () => {
+    await bookingService.createBooking(
+      {
+        venue_id: 'venue-123',
+        date: '2026-03-01',
+        start_time: '13:00:00',
+        end_time: '15:00:00',
+      },
+      'user-123'
+    )
+
+    expect(mockBookingRepo.create).toHaveBeenCalledWith(
+      expect.objectContaining({
+        date: '2026-03-01',
+        total_amount: 100,
+      })
+    )
+  })
+
   it('rejects bookings that violate min_advance_lead_time_hours', async () => {
     ;(createClient as jest.Mock).mockResolvedValue(
       makeSupabase({

@@ -13,6 +13,7 @@ import { handleApiError } from '@/utils/errorHandling'
 import type { ApiResponse } from '@/types/api'
 import type { CancellationResult } from '@/types'
 import { createClient } from '@/lib/supabase/server'
+import { getPostHogClient } from '@/lib/posthog-server'
 
 interface RouteContext {
   params: Promise<{ id: string }>
@@ -30,6 +31,18 @@ export async function POST(request: NextRequest, context: RouteContext) {
 
     const bookingService = new BookingService()
     const result = await bookingService.cancelBooking(id, auth.userId)
+
+    const posthog = getPostHogClient()
+    posthog.capture({
+      distinctId: auth.userId,
+      event: 'booking_cancelled',
+      properties: {
+        booking_id: id,
+        refund_issued: result.refundIssued,
+        refund_amount: result.refundAmount ?? 0,
+      },
+    })
+    await posthog.flush()
 
     let message = 'Booking cancelled successfully'
     if (result.refundIssued) {

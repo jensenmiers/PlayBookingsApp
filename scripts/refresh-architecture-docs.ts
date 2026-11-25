@@ -300,8 +300,13 @@ function buildCssSnapshot(nowPacific: string): string {
     .filter((file) => readUtf8(file).includes('cva('))
     .map((file) => relative(PROJECT_ROOT, file))
     .sort()
-  const fontVariables = existsSync(LAYOUT_PATH) ? parseFontVariables(readUtf8(LAYOUT_PATH)) : []
   const globals = existsSync(GLOBALS_CSS_PATH) ? readUtf8(GLOBALS_CSS_PATH) : ''
+  const fontVariables = Array.from(
+    new Set([
+      ...(existsSync(LAYOUT_PATH) ? parseFontVariables(readUtf8(LAYOUT_PATH)) : []),
+      ...(globals ? parseFontVariables(globals) : []),
+    ])
+  ).sort()
   const hasMapPopupOverrides = globals.includes('.map-popup')
   const hasDarkVariant = globals.includes('@custom-variant dark')
 

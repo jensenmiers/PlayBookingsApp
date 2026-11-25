@@ -6,9 +6,15 @@
 import type { SupabaseClient } from '@supabase/supabase-js'
 import { createClient } from '@/lib/supabase/server'
 import { measureDurationMs } from '@/lib/performance'
-import { timeStringToDate } from '@/utils/dateHelpers'
-import type { SlotActionType, SlotModalContent, SlotPricing } from '@/types'
-import { isSlotAllowedByVenueConfig, normalizeVenueAdminConfig } from '@/lib/venueAdminConfig'
+import { zonedDateTimeToDate } from '@/utils/dateHelpers'
+import type {
+  SlotActionType,
+  SlotModalContent,
+  SlotPaymentMethod,
+  SlotPricing,
+  SlotPricingUnit,
+} from '@/types'
+import { normalizeVenueAdminConfig, PLATFORM_TIME_ZONE } from '@/lib/venueAdminConfig'
 
 interface SlotInstanceRow {
   id: string
@@ -27,6 +33,14 @@ interface RegularAvailableSlotRow {
   start_time: string
   end_time: string
   action_type: SlotActionType
+}
+
+interface SlotInstancePricingRow {
+  slot_instance_id: string
+  amount_cents: number
+  currency: string
+  unit: SlotPricingUnit
+  payment_method: SlotPaymentMethod
 }
 
 interface SlotModalContentRow {
@@ -93,12 +107,28 @@ function overlapsExternalBlock(
   slot: { date: string; start_time: string; end_time: string },
   block: ExternalAvailabilityBlockRow
 ): boolean {
-  const slotStartMs = timeStringToDate(slot.date, slot.start_time).getTime()
-  const slotEndMs = timeStringToDate(slot.date, slot.end_time).getTime()
+  // Match discovery RPC: interpret slot walls in America/Los_Angeles, not host local time.
+  const slotStartMs = zonedDateTimeToDate(slot.date, slot.start_time, PLATFORM_TIME_ZONE).getTime()
+  const slotEndMs = zonedDateTimeToDate(slot.date, slot.end_time, PLATFORM_TIME_ZONE).getTime()
   const blockStartMs = new Date(block.start_at).getTime()
   const blockEndMs = new Date(block.end_at).getTime()
 
   return slotStartMs < blockEndMs && slotEndMs > blockStartMs
+}
+
+function isInfoOnlySlotAllowedByVenueConfig(
+  slot: { date: string },
+  config: ReturnType<typeof normalizeVenueAdminConfig>
+): boolean {
+  return !config.blackout_dates.includes(slot.date) && !config.holiday_dates.includes(slot.date)
+}
+
+/** Match discovery RPC: keep open gym when (si.date + si.start_time) >= now in America/Los_Angeles */
+function isOpenGymStartInPast(
+  slot: { date: string; start_time: string },
+  now: Date = new Date()
+): boolean {
+  return zonedDateTimeToDate(slot.date, slot.start_time, PLATFORM_TIME_ZONE).getTime() < now.getTime()
 }
 
 export class AvailabilityService {
@@ -108,6 +138,14 @@ export class AvailabilityService {
       onTiming?: (report: AvailabilityTimingReport) => void
     } = {}
   ) {}
+
+  async getPublishedThrough(venueId: string): Promise<string | null> {
+    const supabase = await (this.options.getClient?.() || createClient())
+    const { data, error } = await supabase.from('slot_instances').select('date').eq('venue_id', venueId)
+      .eq('is_active', true).order('date', { ascending: false }).limit(1)
+    if (error) throw new Error('Failed to load the published schedule')
+    return data?.[0]?.date ?? null
+  }
 
   /**
    * Get true available slots for a venue within a date range
@@ -121,12 +159,12 @@ export class AvailabilityService {
   async getAvailableSlots(
     venueId: string,
     dateFrom: string,
-    dateTo: string
+    dateTo: string,
+    now: Date = new Date()
   ): Promise<UnifiedAvailableSlot[]> {
     const totalStartTime = performance.now()
     const queryTimingsMs: AvailabilityQueryTimings = {}
     const supabase = await (this.options.getClient?.() || createClient())
-    const now = new Date()
 
     const captureQuery = async <T>(
       label: string,
@@ -248,6 +286,31 @@ export class AvailabilityService {
     const enabledInfoSlots = adminConfig.drop_in_enabled ? infoSlots : []
     const modalContentRows = (modalContentResult.data || []) as SlotModalContentRow[]
 
+    const pricingSlotIds = enabledInfoSlots.map((slot) => slot.id)
+    const pricingBySlotId = new Map<string, SlotPricing>()
+    if (pricingSlotIds.length > 0) {
+      const { data: pricingRows, error: pricingError } = await captureQuery(
+        'slotInstancePricing',
+        supabase
+          .from('slot_instance_pricing')
+          .select('slot_instance_id, amount_cents, currency, unit, payment_method')
+          .in('slot_instance_id', pricingSlotIds)
+      )
+
+      if (pricingError) {
+        throw new Error(`Failed to fetch slot instance pricing: ${pricingError.message}`)
+      }
+
+      for (const row of (pricingRows || []) as SlotInstancePricingRow[]) {
+        pricingBySlotId.set(row.slot_instance_id, {
+          amount_cents: row.amount_cents,
+          currency: row.currency,
+          unit: row.unit,
+          payment_method: row.payment_method,
+        })
+      }
+    }
+
     const modalContentByAction = new Map<SlotActionType, SlotModalContent>()
     for (const row of modalContentRows) {
       const filteredBulletPoints = (row.bullet_points || []).filter(
@@ -292,11 +355,11 @@ export class AvailabilityService {
       slot_instance_id: slot.id,
       action_type: slot.action_type,
       modal_content: modalContentByAction.get(slot.action_type) || null,
-      slot_pricing: dropInSlotPricing,
+      slot_pricing: pricingBySlotId.get(slot.id) || dropInSlotPricing,
     }))
-      .filter((slot) => timeStringToDate(slot.date, slot.start_time) >= now)
+      .filter((slot) => !isOpenGymStartInPast(slot, now))
       .filter((slot) => !externalBlocks.some((block) => overlapsExternalBlock(slot, block)))
-      .filter((slot) => isSlotAllowedByVenueConfig(slot, adminConfig))
+      .filter((slot) => isInfoOnlySlotAllowedByVenueConfig(slot, adminConfig))
 
     const result = sortSlots([...regularSlots, ...infoOnlySlots])
     const slowestTimingEntry = Object.entries(queryTimingsMs).sort((left, right) => right[1] - left[1])[0]

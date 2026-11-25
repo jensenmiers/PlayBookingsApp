@@ -13,6 +13,7 @@ import { buildAuthInitiationPath, buildEmailConfirmationPath, buildFinalizePath 
 import { navigateToUrl } from '@/lib/auth/clientNavigation'
 import { createClient } from '@/lib/supabase/client'
 import { loginSchema } from '@/lib/validations/auth'
+import { usePostHog } from 'posthog-js/react'
 
 function getErrorMessage(message: string) {
   const lowered = message.toLowerCase()
@@ -25,6 +26,7 @@ function getErrorMessage(message: string) {
 }
 
 function LoginContent() {
+  const posthog = usePostHog()
   const [loading, setLoading] = useState(false)
   const [emailLoading, setEmailLoading] = useState(false)
   const [magicLinkLoading, setMagicLinkLoading] = useState(false)
@@ -90,6 +92,7 @@ function LoginContent() {
         return
       }
 
+      posthog.capture('user_logged_in', { method: 'email' })
       navigateToUrl(buildFinalizePath({ returnTo, intent }))
     } catch (error) {
       const message = error instanceof Error ? error.message : 'Unable to sign in with email right now.'

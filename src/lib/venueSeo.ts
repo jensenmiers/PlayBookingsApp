@@ -20,7 +20,6 @@ export function venueToSeoMetadata(venue: Venue): VenueSeoMetadata {
     latitude: typeof venue.latitude === 'number' ? venue.latitude : null,
     longitude: typeof venue.longitude === 'number' ? venue.longitude : null,
     hourly_rate: typeof venue.hourly_rate === 'number' ? venue.hourly_rate : null,
-    weekend_rate: typeof venue.weekend_rate === 'number' ? venue.weekend_rate : null,
     primary_photo_url: primaryPhoto,
   }
 }

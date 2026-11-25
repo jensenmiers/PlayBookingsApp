@@ -38,7 +38,6 @@ interface VenueSeed {
   latitude: number
   longitude: number
   hourly_rate: number
-  weekend_rate: number
   instant_booking: boolean
   booking_mode: BookingMode
   insurance_required: boolean
@@ -72,7 +71,6 @@ const VENUES: VenueSeed[] = [
     latitude: 34.10609585,
     longitude: -118.3104325,
     hourly_rate: 80,
-    weekend_rate: 100,
     instant_booking: false,
     booking_mode: 'approval_slots',
     insurance_required: true,
@@ -92,7 +90,6 @@ const VENUES: VenueSeed[] = [
     latitude: 34.0868793,
     longitude: -118.3283874,
     hourly_rate: 60,
-    weekend_rate: 75,
     instant_booking: true,
     booking_mode: 'instant_slots',
     insurance_required: false,
@@ -112,7 +109,6 @@ const VENUES: VenueSeed[] = [
     latitude: 34.0521346,
     longitude: -118.2272867,
     hourly_rate: 120,
-    weekend_rate: 150,
     instant_booking: true,
     booking_mode: 'instant_slots',
     insurance_required: false,
@@ -132,7 +128,6 @@ const VENUES: VenueSeed[] = [
     latitude: 34.02113525,
     longitude: -118.4804420,
     hourly_rate: 75,
-    weekend_rate: 95,
     instant_booking: false,
     booking_mode: 'approval_slots',
     insurance_required: false,
@@ -152,7 +147,6 @@ const VENUES: VenueSeed[] = [
     latitude: 34.0234338,
     longitude: -118.4781325,
     hourly_rate: 90,
-    weekend_rate: 115,
     instant_booking: false,
     booking_mode: 'approval_slots',
     insurance_required: true,
@@ -172,7 +166,6 @@ const VENUES: VenueSeed[] = [
     latitude: 34.0647081,
     longitude: -118.4123853,
     hourly_rate: 85,
-    weekend_rate: 105,
     instant_booking: false,
     booking_mode: 'request_to_book',
     insurance_required: false,
@@ -192,7 +185,6 @@ const VENUES: VenueSeed[] = [
     latitude: 34.1033108,
     longitude: -118.3220431,
     hourly_rate: 100,
-    weekend_rate: 100,
     instant_booking: false,
     booking_mode: 'request_to_book',
     insurance_required: true,
@@ -212,7 +204,6 @@ const VENUES: VenueSeed[] = [
     latitude: 34.0492092,
     longitude: -118.2445363,
     hourly_rate: 100,
-    weekend_rate: 125,
     instant_booking: false,
     booking_mode: 'request_to_book',
     insurance_required: false,

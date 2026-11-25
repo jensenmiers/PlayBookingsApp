@@ -102,11 +102,15 @@ export default async function VenuePage({ params }: PageProps) {
 
   const availabilityStartTime = startMeasurement()
   let initialAvailability: UnifiedAvailableSlot[] = []
+  let initialPublishedThrough: string | null = null
   let initialAvailabilityFallback = false
 
   if (!isRequestToBook) {
     try {
-      initialAvailability = await availabilityService.getAvailableSlots(venue.id, dateFrom, dateTo)
+      ;[initialAvailability, initialPublishedThrough] = await Promise.all([
+        availabilityService.getAvailableSlots(venue.id, dateFrom, dateTo),
+        availabilityService.getPublishedThrough(venue.id),
+      ])
     } catch (error) {
       initialAvailabilityFallback = true
       console.error('Failed to load initial venue availability during SSR:', {
@@ -140,7 +144,8 @@ export default async function VenuePage({ params }: PageProps) {
       <VenueDesignEditorial
         venue={venue as Venue}
         venueAdminConfig={venueAdminConfig}
-        initialAvailability={initialAvailability}
+        initialAvailability={initialAvailabilityFallback ? undefined : initialAvailability}
+        initialPublishedThrough={initialPublishedThrough}
         faqStyle="accordion"
         bottomGallery="strip"
       />

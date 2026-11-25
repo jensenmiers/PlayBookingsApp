@@ -5,6 +5,7 @@
  * Uses dynamic require() to control when the route module loads,
  * since it captures STRIPE_WEBHOOK_SECRET at module scope.
  */
+import { BookingConfirmationEmailDataError } from '@/services/bookingConfirmationEmailService'
 
 // Polyfill Response.json for jsdom test environment
 if (typeof globalThis.Response === 'undefined') {
@@ -52,6 +53,16 @@ jest.mock('@/lib/stripe', () => ({
     checkout: { sessions: { create: jest.fn(), retrieve: jest.fn() } },
     refunds: { create: jest.fn() },
   },
+}))
+
+// Mock PostHog server client
+const mockPostHogCapture = jest.fn()
+const mockPostHogFlush = jest.fn()
+jest.mock('@/lib/posthog-server', () => ({
+  getPostHogClient: () => ({
+    capture: mockPostHogCapture,
+    flush: mockPostHogFlush,
+  }),
 }))
 
 jest.mock('@/repositories/paymentRepository')
@@ -175,6 +186,114 @@ describe('Stripe Webhook Handler', () => {
     expect(response.status).toBe(200)
     expect(data.received).toBe(true)
     expect(mockProcessPaymentSuccess).toHaveBeenCalledWith('pi_checkout_456', 'cs_session_456')
+  })
+
+  it('acknowledges a paid checkout session even when analytics capture fails', async () => {
+    const fakeEvent = {
+      type: 'checkout.session.completed',
+      data: {
+        object: {
+          id: 'cs_session_789',
+          payment_intent: 'pi_checkout_789',
+          payment_status: 'paid',
+        },
+      },
+    }
+
+    mockConstructEvent.mockReturnValue(fakeEvent)
+    mockProcessPaymentSuccess.mockResolvedValue({
+      payment: { id: 'payment-789' },
+      booking: { id: 'booking-789' },
+    })
+    mockPostHogFlush.mockRejectedValueOnce(new Error('PostHog unavailable'))
+
+    const request = createRequest('{}', { 'stripe-signature': 'valid_sig' })
+    const response = await POST(request)
+    const data = await response.json() as { received: boolean }
+
+    expect(response.status).toBe(200)
+    expect(data.received).toBe(true)
+    expect(mockProcessPaymentSuccess).toHaveBeenCalledWith('pi_checkout_789', 'cs_session_789')
+  })
+
+  it('acknowledges payment_intent.payment_failed even when analytics capture fails', async () => {
+    const fakeEvent = {
+      type: 'payment_intent.payment_failed',
+      data: {
+        object: {
+          id: 'pi_failed_123',
+          amount: 5000,
+          currency: 'usd',
+          last_payment_error: { code: 'card_declined' },
+        },
+      },
+    }
+
+    mockConstructEvent.mockReturnValue(fakeEvent)
+    mockPostHogCapture.mockImplementationOnce(() => {
+      throw new Error('PostHog misconfigured')
+    })
+
+    const request = createRequest('{}', { 'stripe-signature': 'valid_sig' })
+    const response = await POST(request)
+    const data = await response.json() as { received: boolean }
+
+    expect(response.status).toBe(200)
+    expect(data.received).toBe(true)
+  })
+
+  it('returns 500 when successful-payment processing fails so Stripe retries', async () => {
+    const fakeEvent = {
+      type: 'payment_intent.succeeded',
+      data: {
+        object: {
+          id: 'pi_retry_123',
+          metadata: { booking_id: 'booking-123' },
+        },
+      },
+    }
+
+    mockConstructEvent.mockReturnValue(fakeEvent)
+    mockProcessPaymentSuccess.mockRejectedValue(new Error('Resend unavailable'))
+
+    const request = createRequest('{}', { 'stripe-signature': 'valid_sig' })
+    const response = await POST(request)
+    const data = await response.json() as { received: boolean; error: string }
+
+    expect(response.status).toBe(500)
+    expect(data).toEqual({
+      received: false,
+      error: 'Webhook processing failed',
+    })
+  })
+
+  it('acknowledges permanent booking-data failures so Stripe does not retry', async () => {
+    const fakeEvent = {
+      type: 'payment_intent.succeeded',
+      data: {
+        object: {
+          id: 'pi_missing_booking_123',
+          metadata: { booking_id: 'missing-booking' },
+        },
+      },
+    }
+
+    mockConstructEvent.mockReturnValue(fakeEvent)
+    mockProcessPaymentSuccess.mockRejectedValue(
+      new BookingConfirmationEmailDataError(
+        'Booking confirmation data not found for missing-booking'
+      )
+    )
+
+    const request = createRequest('{}', { 'stripe-signature': 'valid_sig' })
+    const response = await POST(request)
+    const data = await response.json() as { received: boolean; error: string }
+
+    expect(response.status).toBe(200)
+    expect(data).toEqual({
+      received: true,
+      error: 'Webhook processing permanently failed',
+    })
   })
 
   it('should handle charge.refunded event', async () => {
