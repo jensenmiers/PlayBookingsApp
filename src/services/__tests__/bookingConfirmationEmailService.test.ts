@@ -68,7 +68,7 @@ describe('BookingConfirmationEmailService', () => {
         to: ['renter@example.com'],
         bcc: config.bcc,
         replyTo: config.replyTo,
-        subject: 'Booking confirmed: Memorial Park Gym — August 5, 2026',
+        subject: 'Booking confirmed: Memorial Park Gym — Wednesday, August 5, 2026',
       }),
       { idempotencyKey: 'booking-confirmation/booking-123' }
     )
@@ -101,7 +101,7 @@ describe('BookingConfirmationEmailService', () => {
     expect(message.to).toEqual(['jensenmiers@gmail.com'])
     expect(message.bcc).toBeUndefined()
     expect(message.subject).toBe(
-      '[TEST for renter@example.com] Booking confirmed: Memorial Park Gym — August 5, 2026'
+      '[TEST for renter@example.com] Booking confirmed: Memorial Park Gym — Wednesday, August 5, 2026'
     )
   })
 

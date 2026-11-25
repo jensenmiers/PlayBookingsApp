@@ -22,7 +22,7 @@ const booking = {
 
 describe('booking confirmation email', () => {
   it('formats booking values without server-timezone drift', () => {
-    expect(formatBookingDate('2026-08-05')).toBe('August 5, 2026')
+    expect(formatBookingDate('2026-08-05')).toBe('Wednesday, August 5, 2026')
     expect(formatBookingTimeRange('00:05:00', '13:30:00')).toBe('12:05 AM–1:30 PM PT')
     expect(formatBookingAmount(175)).toBe('$175.00')
   })
@@ -35,7 +35,7 @@ describe('booking confirmation email', () => {
     const email = buildBookingConfirmationEmail(booking)
     const html = renderToStaticMarkup(email.react)
 
-    expect(email.subject).toBe('Booking confirmed: Memorial Park Gym — August 5, 2026')
+    expect(email.subject).toBe('Booking confirmed: Memorial Park Gym — Wednesday, August 5, 2026')
     expect(html).toContain('alt="Play Bookings"')
     expect(html).toContain(
       'src="https://www.playbookings.com/email/play-bookings-avatar.png"'

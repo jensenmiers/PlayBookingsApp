@@ -89,6 +89,8 @@ describe('BookingRequestEmailService', () => {
     expect(receiptPayload.text).toContain("You're not booked yet")
     expect(receiptPayload.text).toContain('within 24 hours')
     expect(receiptPayload.text).toContain('$120.00')
+    expect(receiptPayload.subject).toBe('Request received: First Presbyterian Church of Hollywood, Saturday, November 28, 2026')
+    expect(receiptPayload.text).toContain('Date: Saturday, November 28, 2026')
     expect(receiptOptions).toEqual({ idempotencyKey: 'booking-request-receipt/booking-1' })
   })
 
@@ -121,7 +123,8 @@ describe('BookingRequestEmailService', () => {
     const [payload, options] = send.mock.calls[0]
     expect(payload.to).toEqual(['renter@example.com'])
     expect(payload.bcc).toEqual(['jensen@playbookings.com', 'jensenmiers@gmail.com'])
-    expect(payload.subject).toContain('Not available')
+    expect(payload.subject).toBe('Not available: First Presbyterian Church of Hollywood, Saturday, November 28, 2026')
+    expect(payload.text).toContain('Date: Saturday, November 28, 2026')
     expect(payload.text).toContain('The gym has a church event that morning.')
     expect(options).toEqual({ idempotencyKey: 'booking-request-declined/booking-1' })
   })

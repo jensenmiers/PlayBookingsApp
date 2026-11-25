@@ -35,6 +35,7 @@ const INK = '#18181b'
 const MUTED = '#71717a'
 const PANEL = '#f4f4f5'
 
+/** "Saturday, November 28, 2026", used in every booking email. */
 export function formatBookingDate(date: string): string {
   const [year, month, day] = date.split('-').map(Number)
 
@@ -43,6 +44,7 @@ export function formatBookingDate(date: string): string {
   }
 
   return new Intl.DateTimeFormat('en-US', {
+    weekday: 'long',
     month: 'long',
     day: 'numeric',
     year: 'numeric',

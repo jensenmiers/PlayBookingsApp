@@ -111,13 +111,6 @@ function toUtcNoon(date: string): Date {
   return new Date(Date.UTC(year, month - 1, day, 12))
 }
 
-/** "Saturday, November 28, 2026" */
-function formatLongDate(date: string): string {
-  return new Intl.DateTimeFormat('en-US', {
-    weekday: 'long', month: 'long', day: 'numeric', year: 'numeric', timeZone: 'UTC',
-  }).format(toUtcNoon(date))
-}
-
 /** "Sat, Nov 28" */
 function formatShortDate(date: string): string {
   return new Intl.DateTimeFormat('en-US', {
@@ -172,7 +165,7 @@ export class BookingRequestEmailService {
         "They are not booked yet. They've been told they'll hear back within 24 hours.",
         '',
         "WHAT THEY'RE ASKING FOR",
-        `Date:      ${formatLongDate(record.date)}`,
+        `Date:      ${date}`,
         `Time:      ${time} (${hours} ${hours === 1 ? 'hour' : 'hours'})`,
         `Planning:  ${record.activity || 'Not given'}`,
         `Message:   ${record.notes || 'None'}`,
