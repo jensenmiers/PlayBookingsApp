@@ -157,6 +157,13 @@ export function Navigation() {
                       My Bookings
                     </Link>
                     <Link
+                      href="/profile"
+                      onClick={() => setDropdownOpen(false)}
+                      className="block px-4 py-2 text-sm text-secondary-50/70 transition-colors hover:bg-secondary-50/10 hover:text-secondary-50"
+                    >
+                      Profile
+                    </Link>
+                    <Link
                       href="/search"
                       onClick={() => setDropdownOpen(false)}
                       className="block px-4 py-2 text-sm text-secondary-50/70 transition-colors hover:bg-secondary-50/10 hover:text-secondary-50"
@@ -371,6 +378,13 @@ export function Navigation() {
                   className="block rounded-lg px-4 py-3 text-base font-medium text-secondary-50/70 transition-colors hover:bg-secondary-50/10 hover:text-secondary-50"
                 >
                   My Bookings
+                </Link>
+                <Link
+                  href="/profile"
+                  onClick={() => setMobileMenuOpen(false)}
+                  className="block rounded-lg px-4 py-3 text-base font-medium text-secondary-50/70 transition-colors hover:bg-secondary-50/10 hover:text-secondary-50"
+                >
+                  Profile
                 </Link>
                 <Link
                   href="/search"
