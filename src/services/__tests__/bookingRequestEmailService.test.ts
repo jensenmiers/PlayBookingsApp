@@ -39,14 +39,15 @@ function setup(config: Partial<BookingEmailConfig> = {}, sendImpl?: jest.Mock) {
 }
 
 describe('BookingRequestEmailService', () => {
-  it('sends the admins a request notice that replies to the renter', async () => {
+  it('sends the admins a request notice with the renter\'s contact details, replying to the business address', async () => {
     const { service, send } = setup()
 
     await service.sendRequestReceived('booking-1')
 
     const [adminPayload, adminOptions] = send.mock.calls[0]
     expect(adminPayload.to).toEqual(['jensen@playbookings.com', 'jensenmiers@gmail.com'])
-    expect(adminPayload.replyTo).toBe('renter@example.com')
+    expect(adminPayload.replyTo).toBe('jensen@playbookings.com')
+    expect(adminPayload.text).toContain('renter@example.com')
     expect(adminPayload.subject).toContain('New request')
     expect(adminPayload.subject).toContain('Pickup run')
     expect(adminPayload.text).toContain('323-555-0100')

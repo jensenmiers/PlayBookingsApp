@@ -146,14 +146,12 @@ export class BookingRequestEmailService {
         `Message: ${record.notes || 'None'}`,
         '',
         `Super Admin: ${this.config.appUrl}/super-admin`,
-        '',
-        'Reply to this email to write to the renter directly.',
       ].join('\n')
 
       const error = await this.send(
         {
           to: this.config.overrideTo ? [this.config.overrideTo] : this.config.bcc,
-          replyTo: record.renterEmail,
+          replyTo: this.config.replyTo,
           subject: `New request: ${date} ${time} · ${record.activity || 'Court time'}`,
           text: adminText,
         },
