@@ -318,8 +318,6 @@ export default function Home() {
     [venues, availabilityVenues]
   )
   const featuredLoading = venuesLoading || availabilityLoading
-  // With a single live venue, the main call to action goes straight to it.
-  const heroHref = featuredCourts.length === 1 ? featuredCourts[0].href : '/search'
   
   useEffect(() => {
     setMounted(true)
@@ -356,7 +354,7 @@ export default function Home() {
 
           <div className={`max-w-xl transform transition-all duration-1000 delay-300 ${mounted ? 'translate-y-0 opacity-100' : 'translate-y-12 opacity-0'}`}>
             <Link 
-              href={heroHref}
+              href="/search"
               className="group flex items-center justify-between w-full px-6 sm:px-8 py-5 sm:py-6 bg-secondary-50 text-secondary-900 rounded-2xl hover:bg-primary-400 transition-colors"
             >
               <span className="text-lg sm:text-xl font-medium">

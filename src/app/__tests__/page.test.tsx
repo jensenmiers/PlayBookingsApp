@@ -264,7 +264,7 @@ describe('HomePage', () => {
     expect(screen.getAllByText(/by request/i).length).toBeGreaterThan(0)
   })
 
-  it('fills empty featured spots with coming-soon cards and sends the hero to the only live venue', () => {
+  it('fills empty featured spots with coming-soon cards and keeps the hero pointed at search', () => {
     mockUseVenues.mockReturnValue({
       data: [
         {
@@ -303,7 +303,7 @@ describe('HomePage', () => {
     expect(screen.getAllByText('More LA courts coming soon')).toHaveLength(4)
     expect(screen.getByRole('link', { name: /see available courts now/i })).toHaveAttribute(
       'href',
-      '/venue/first-presbyterian-church-of-hollywood'
+      '/search'
     )
   })
 })
