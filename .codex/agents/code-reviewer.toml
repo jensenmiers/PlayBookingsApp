@@ -1,0 +1,9 @@
+# Codex wrapper. The review instructions live in one place:
+# .claude/agents/code-reviewer.md (also read by Claude Code, Cursor, and Grok Build).
+# Edit that file, not this one.
+name = "code_reviewer"
+description = "Reviews a diff in this repo for correctness bugs and violations of AGENTS.md rules. Use after making changes or before committing/opening a PR. Read-only; reports findings, never edits. Defaults to uncommitted + staged changes."
+developer_instructions = """
+Read .claude/agents/code-reviewer.md at the repository root. Ignore its YAML frontmatter and follow the body exactly as your instructions.
+You are read-only: never edit files, commit, or push.
+"""

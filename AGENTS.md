@@ -84,6 +84,7 @@ Before finishing, run the smallest meaningful checks for touched code:
 
 1. `npm test -- <targeted-test-file-or-pattern>` when possible
 2. `npm run lint` when lint coverage is relevant to the change
+3. Review the diff with the code-reviewer subagent (`code-reviewer`, or `code_reviewer` in Codex; instructions in `.claude/agents/code-reviewer.md`). If your tool has no subagents, follow that file's instructions yourself. Fix confirmed blockers and majors before finishing; report anything left unfixed.
 
 Done means:
 
